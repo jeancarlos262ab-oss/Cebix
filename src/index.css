@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap");
+@import 'maplibre-gl/dist/maplibre-gl.css';
 
 @tailwind base;
 @tailwind components;
@@ -134,4 +135,133 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+}
+
+/* ========================================
+   MapLibre Popup Customization
+   ======================================== */
+
+/* Personalización de popups para ParcelMap */
+.maplibregl-popup {
+  max-width: 280px;
+  font-family: inherit;
+}
+
+.maplibregl-popup-content {
+  padding: 12px 14px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: white;
+}
+
+html.dark .maplibregl-popup-content {
+  background: #1f2937;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.maplibregl-popup-close-button {
+  width: 24px;
+  height: 24px;
+  font-size: 20px;
+  color: #6b7280;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.maplibregl-popup-close-button:hover {
+  background: transparent;
+  color: #111827;
+}
+
+html.dark .maplibregl-popup-close-button {
+  color: #9ca3af;
+}
+
+html.dark .maplibregl-popup-close-button:hover {
+  color: #f3f4f6;
+}
+
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: white;
+}
+
+html.dark .maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: #1f2937;
+}
+
+.maplibregl-popup-anchor-top .maplibregl-popup-tip {
+  border-bottom-color: white;
+}
+
+html.dark .maplibregl-popup-anchor-top .maplibregl-popup-tip {
+  border-bottom-color: #1f2937;
+}
+
+.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: white;
+}
+
+html.dark .maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: #1f2937;
+}
+
+.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: white;
+}
+
+html.dark .maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: #1f2937;
+}
+
+/* Estilos para controles de navegación y fullscreen */
+.maplibregl-ctrl-group {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.maplibregl-ctrl-group button {
+  width: 32px;
+  height: 32px;
+}
+
+.maplibregl-ctrl-icon {
+  filter: brightness(0) invert(1);
+}
+
+.maplibregl-ctrl button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Atribución del mapa */
+.maplibregl-ctrl-attrib {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  font-size: 10px;
+}
+
+html.dark .maplibregl-ctrl-attrib {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.maplibregl-ctrl-attrib a {
+  color: #4b5563;
+  text-decoration: none;
+}
+
+html.dark .maplibregl-ctrl-attrib a {
+  color: #9ca3af;
+}
+
+.maplibregl-ctrl-attrib a:hover {
+  color: #111827;
+  text-decoration: underline;
+}
+
+html.dark .maplibregl-ctrl-attrib a:hover {
+  color: #f3f4f6;
 }
