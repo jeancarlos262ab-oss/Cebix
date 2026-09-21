@@ -54,9 +54,20 @@ export function detectLowEndDevice() {
 }
 
 /**
- * Resuelve qué motor usar, siempre de forma automática según el equipo.
- * Borra cualquier preferencia manual que haya quedado guardada de la
- * versión anterior (cuando existía el botón de cambio).
+ * Motor de mapas forzado. Hoy siempre se usa el mapa ligero (Leaflet).
+ *
+ *   "lite" → siempre Leaflet (ParcelMapLite)
+ *   "gl"   → siempre MapLibre GL (ParcelMapGL)
+ *   null   → automático según el equipo (detectLowEndDevice)
+ *
+ * La lógica de MapLibre GL y la detección automática se conservan intactas:
+ * para volver a usarlas basta con cambiar este valor a null.
+ */
+export const FORCED_MAP_ENGINE = "lite";
+
+/**
+ * Resuelve qué motor usar. Borra cualquier preferencia manual que haya
+ * quedado guardada de la versión anterior (cuando existía el botón de cambio).
  *
  * @returns {"gl" | "lite"}
  */
@@ -66,5 +77,6 @@ export function resolveMapEngine() {
   } catch {
     // localStorage no disponible — ignorar
   }
+  if (FORCED_MAP_ENGINE) return FORCED_MAP_ENGINE;
   return detectLowEndDevice() ? "lite" : "gl";
 }
