@@ -19,7 +19,7 @@ export default function MapaSatelitalPage() {
 
       {/* Mapa a todo el ancho y alto disponible. En pantallas grandes "Regiones
           cubiertas" flota dentro del mapa; en celulares va debajo, sin tapar nada. */}
-      <div className="relative flex flex-1 flex-col">
+      <div className="relative isolate flex flex-1 flex-col">
         <div className="relative min-h-[420px] flex-1">
           <div className="absolute inset-0">
             <ParcelMap

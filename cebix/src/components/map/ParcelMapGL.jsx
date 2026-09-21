@@ -579,7 +579,7 @@ function ParcelMapGL({
     <div
       ref={containerRef}
       style={{ height: typeof height === "number" ? `${height}px` : height }}
-      className={`relative w-full overflow-hidden bg-black ${bordered ? "border border-gray-200 dark:border-gray-800" : ""}`}
+      className={`relative isolate w-full overflow-hidden bg-black ${bordered ? "border border-gray-200 dark:border-gray-800" : ""}`}
     >
       <Map
         ref={mapRef}
