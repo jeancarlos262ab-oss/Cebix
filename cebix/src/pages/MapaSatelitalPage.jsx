@@ -1,24 +1,23 @@
 import { useState } from "react";
-import TopBar from "../components/layout/TopBar";
+import { Menu } from "lucide-react";
 import ParcelMap from "../components/map/ParcelMap";
 import { useParcels } from "../context/ParcelsContext";
+import { useSidebar } from "../context/SidebarContext";
 
 export default function MapaSatelitalPage() {
   const { parcels, regionSummary } = useParcels();
+  const { toggle } = useSidebar();
   const [selectedId, setSelectedId] = useState(null);
 
   return (
-    <div className="flex min-h-full flex-col">
-      <TopBar
-        title="Mapa satelital"
-        subtitle="Imagen satelital de Hidalgo, Tlaxcala y Puebla sobre las parcelas evaluadas."
-        hideSearch
-      />
-
-      <div className="mt-6 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
-
+    // Sin TopBar: cualquier encabezado, aunque esté "vacío", reserva su propio
+    // alto y deja un espacio muerto arriba del mapa. Al quitarlo, este
+    // contenedor pasa a ocupar exactamente el alto disponible (h-full, no
+    // min-h-full) y el mapa sí llega a ser de todo lo alto de la pantalla.
+    <div className="flex h-full flex-col">
       {/* Mapa a todo el ancho y alto disponible. En pantallas grandes "Regiones
-          cubiertas" flota dentro del mapa; en celulares va debajo, sin tapar nada. */}
+          cubiertas" flota dentro del mapa; en celulares va debajo, sin tapar nada.
+          El título vive dentro del mapa, arriba, en vez de en el encabezado. */}
       <div className="relative isolate flex flex-1 flex-col">
         <div className="relative min-h-[420px] flex-1">
           <div className="absolute inset-0">
@@ -30,6 +29,37 @@ export default function MapaSatelitalPage() {
               basemap="satellite"
               bordered={false}
             />
+          </div>
+
+          {/* right-[10rem] deja libre la leyenda de arriba a la derecha: si el
+              título y la descripción no caben en horizontal, se acomodan en
+              varias líneas en vez de encimarse con ella o salirse del mapa. */}
+          {/* Mismo espaciado (left-3 / top-3) que usa la barra vertical de
+              controles del mapa (esquina superior izquierda) y que "Regiones
+              cubiertas" usa abajo. El padding-left dentro de este contenedor
+              corre el título justo después de esa barra para que nunca quede
+              encimado con ella. */}
+          <div className="pointer-events-none absolute left-3 right-[10rem] top-3 z-[1000] flex items-start gap-2 pl-[3.75rem]">
+            {/* Botón de menú: solo hace falta en móvil/tablet, donde el
+                sidebar vive detrás de un drawer (en escritorio ya está
+                siempre visible, así que aquí se oculta con lg:hidden). */}
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label="Abrir menú"
+              className="pointer-events-auto flex h-9 w-9 shrink-0 items-center justify-center rounded border border-gray-200 bg-white/90 text-gray-500 shadow-lg backdrop-blur hover:bg-gray-50 dark:border-white/10 dark:bg-black/70 dark:text-gray-400 dark:hover:bg-white/10 lg:hidden"
+            >
+              <Menu size={18} />
+            </button>
+
+            <div className="pointer-events-auto min-w-0 max-w-xl rounded bg-white/90 px-3.5 py-2.5 shadow-lg backdrop-blur dark:bg-black/70">
+              <h1 className="break-words font-sora text-xl font-bold text-gray-900 dark:text-white">
+                Mapa satelital
+              </h1>
+              <p className="mt-0.5 break-words text-sm text-gray-500 dark:text-gray-400">
+                Imagen satelital de Hidalgo, Tlaxcala y Puebla sobre las parcelas evaluadas.
+              </p>
+            </div>
           </div>
         </div>
 

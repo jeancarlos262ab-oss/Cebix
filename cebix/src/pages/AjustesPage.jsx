@@ -67,7 +67,7 @@ export default function AjustesPage() {
 
   function handleReset() {
     setTheme("system");
-    setAccent("mono");
+    setAccent("brand");
     setDensity("comoda");
     setNotifs({ email: true, riesgo: true, resumenSemanal: false, producto: false });
     setPrefs({

@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Download, Plus } from "lucide-react";
 import UploadDropzone from "./UploadDropzone";
 import ParcelRow from "./ParcelRow";
 import ParcelFormModal from "./ParcelFormModal";
+import Pagination from "../ui/Pagination";
+import usePagination from "../../hooks/usePagination";
 import { useParcels } from "../../context/ParcelsContext";
 import { exportParcelsCSV } from "../../utils/csv";
 
@@ -11,6 +13,8 @@ const COLUMNS = ["Parcela", "Rendimiento", "Elegibilidad", "Municipio", ""];
 export default function ParcelsTable() {
   const { parcels, addParcel, updateParcel } = useParcels();
   const [modal, setModal] = useState(null); // null | "add" | parcel object being edited
+  const tableRef = useRef(null);
+  const { pageItems, paginationProps } = usePagination(parcels, { scrollRef: tableRef });
 
   return (
     <section>
@@ -42,7 +46,7 @@ export default function ParcelsTable() {
         <UploadDropzone onParsed={(records) => records.forEach((r) => addParcel(r))} />
       </div>
 
-      <div className="mt-4 overflow-x-auto">
+      <div ref={tableRef} className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[560px] border-collapse text-left">
           <thead>
             <tr className="border-b border-gray-100 dark:border-gray-800 text-xs font-medium text-gray-400 dark:text-gray-500">
@@ -54,7 +58,7 @@ export default function ParcelsTable() {
             </tr>
           </thead>
           <tbody>
-            {parcels.map((parcel) => (
+            {pageItems.map((parcel) => (
               <ParcelRow
                 key={parcel.id}
                 parcel={parcel}
@@ -64,6 +68,8 @@ export default function ParcelsTable() {
           </tbody>
         </table>
       </div>
+
+      <Pagination {...paginationProps} className="mt-4" />
 
       {modal && (
         <ParcelFormModal

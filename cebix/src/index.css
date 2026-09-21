@@ -36,7 +36,7 @@
   }
 
   /* Color de acento: controla botones primarios, enlaces y estados activos
-     en toda la app. "mono" (Negro, Blanco en oscuro) es el valor por defecto; brand/ndvi se activan
+     en toda la app. "brand" (Ámbar) es el valor por defecto; mono/ndvi se activan
      con data-accent, elegido en Ajustes. */
   html[data-accent="brand"] {
     --accent-700: #7a581a;

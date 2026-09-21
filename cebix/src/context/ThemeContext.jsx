@@ -4,7 +4,7 @@ const STORAGE_KEY = "cebix-preferences";
 
 const DEFAULT_PREFS = {
   theme: "system", // "light" | "dark" | "system"
-  accent: "mono", // "brand" | "mono" | "ndvi" — por defecto: Negro (Blanco en modo oscuro)
+  accent: "brand", // "brand" | "mono" | "ndvi" — por defecto: Ámbar (acento 1)
   density: "comoda", // "comoda" | "compacta"
 };
 

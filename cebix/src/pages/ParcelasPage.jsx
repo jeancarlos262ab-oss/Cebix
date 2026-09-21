@@ -1,10 +1,12 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Download, Plus } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import ParcelMap from "../components/map/ParcelMap";
 import ParcelRow from "../components/dashboard/ParcelRow";
 import UploadDropzone from "../components/dashboard/UploadDropzone";
+import Pagination from "../components/ui/Pagination";
+import usePagination from "../hooks/usePagination";
 import ParcelFormModal from "../components/dashboard/ParcelFormModal";
 import { useParcels } from "../context/ParcelsContext";
 import { exportParcelsCSV } from "../utils/csv";
@@ -33,6 +35,13 @@ export default function ParcelasPage() {
     [region, parcels]
   );
 
+  // Solo se pintan las filas de la página actual (el mapa y el resumen sí
+  // siguen usando la lista completa filtrada).
+  const tableRef = useRef(null);
+  const { pageItems, reset: resetPage, paginationProps } = usePagination(filtered, {
+    scrollRef: tableRef,
+  });
+
   const riskCounts = useMemo(
     () =>
       RISK_SUMMARY.map((r) => ({
@@ -45,9 +54,10 @@ export default function ParcelasPage() {
   const handleRegionChange = useCallback(
     (r) => {
       setRegion(r);
+      resetPage();
       setSearchParams(r === "Todas" ? {} : { region: r });
     },
-    [setSearchParams]
+    [setSearchParams, resetPage]
   );
 
   return (
@@ -145,27 +155,30 @@ export default function ParcelasPage() {
 
           <div className="h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
 
-          <div className="overflow-x-auto px-4 py-6 sm:px-6 lg:pl-8 lg:pr-8">
-            <table className="w-full min-w-[560px] border-collapse text-left">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-800 text-xs font-medium text-gray-400 dark:text-gray-500">
-                  {COLUMNS.map((col) => (
-                    <th key={col} className="pb-2 pr-4 font-medium">
-                      {col}
-                    </th>
+          <div ref={tableRef} className="px-4 py-6 sm:px-6 lg:pl-8 lg:pr-8">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-800 text-xs font-medium text-gray-400 dark:text-gray-500">
+                    {COLUMNS.map((col) => (
+                      <th key={col} className="pb-2 pr-4 font-medium">
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageItems.map((parcel) => (
+                    <ParcelRow
+                      key={parcel.id}
+                      parcel={parcel}
+                      onEdit={parcel.isCustom ? () => setModal(parcel) : undefined}
+                    />
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((parcel) => (
-                  <ParcelRow
-                    key={parcel.id}
-                    parcel={parcel}
-                    onEdit={parcel.isCustom ? () => setModal(parcel) : undefined}
-                  />
-                ))}
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
+            <Pagination {...paginationProps} className="mt-4" />
           </div>
         </div>
       </div>
