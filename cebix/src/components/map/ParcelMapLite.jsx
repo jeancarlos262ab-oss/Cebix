@@ -16,8 +16,9 @@ import L from "leaflet";
 import { MapContainer, TileLayer, CircleMarker, Marker, Popup, GeoJSON } from "react-leaflet";
 import { locationPinHtml, PIN_SIZE, PIN_TIP_OFFSET } from "./LocationPin";
 import LiteMapControls from "./LiteMapControls";
-import { Gauge, Leaf, Map as MapIcon, Milestone, Mountain, Satellite as SatelliteIcon } from "lucide-react";
+import { ExternalLink, Gauge, Leaf, Map as MapIcon, Milestone, Mountain, Satellite as SatelliteIcon } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
+import { openInGoogleMaps } from "../../utils/googleMaps";
 import { getAccentHex } from "../../utils/accentColors";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
 import "leaflet/dist/leaflet.css";
@@ -429,15 +430,25 @@ function ParcelMapLite({
                       <span className="font-medium">Elegibilidad:</span> {parcel.risk}
                     </p>
                   </div>
-                  {allowGroundView && (
+                  <div className="mt-3 flex gap-1.5">
+                    {allowGroundView && (
+                      <button
+                        type="button"
+                        onClick={() => flyToParcel(parcel)}
+                        className="flex-1 rounded bg-gray-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-gray-800"
+                      >
+                        Acercar a parcela
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => flyToParcel(parcel)}
-                      className="mt-3 w-full rounded bg-gray-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-gray-800"
+                      onClick={() => openInGoogleMaps(parcel.lat, parcel.lng)}
+                      className="flex flex-1 items-center justify-center gap-1 rounded border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100"
                     >
-                      Acercar a parcela
+                      <ExternalLink size={12} />
+                      Google Maps
                     </button>
-                  )}
+                  </div>
                 </div>
               </Popup>
             </CircleMarker>

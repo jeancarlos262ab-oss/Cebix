@@ -12,11 +12,12 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Map, { Layer, Marker, Popup, Source } from "react-map-gl/maplibre";
 import LocationPin, { PIN_TIP_OFFSET } from "./LocationPin";
 import CustomMapControls from "./CustomMapControls";
-import { Gauge, Leaf, Map as MapIcon, Milestone, Mountain, Satellite as SatelliteIcon } from "lucide-react";
+import { ExternalLink, Gauge, Leaf, Map as MapIcon, Milestone, Mountain, Satellite as SatelliteIcon } from "lucide-react";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
 import { detectLowEndDevice } from "../../utils/mapDevice";
 import { useTheme } from "../../context/ThemeContext";
 import { getAccentHex } from "../../utils/accentColors";
+import { openInGoogleMaps } from "../../utils/googleMaps";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 const RISK_HEX = {
@@ -667,15 +668,25 @@ function ParcelMapGL({
                   <span className="font-medium">Elegibilidad:</span> {popupInfo.risk}
                 </p>
               </div>
-              {allowGroundView && (
+              <div className="mt-3 flex gap-1.5">
+                {allowGroundView && (
+                  <button
+                    type="button"
+                    onClick={() => flyToParcel(popupInfo)}
+                    className="flex-1 rounded bg-gray-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-gray-800"
+                  >
+                    Acercar a parcela
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => flyToParcel(popupInfo)}
-                  className="mt-3 w-full rounded bg-gray-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-gray-800"
+                  onClick={() => openInGoogleMaps(popupInfo.lat, popupInfo.lng)}
+                  className="flex flex-1 items-center justify-center gap-1 rounded border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-white/10"
                 >
-                  Acercar a parcela
+                  <ExternalLink size={12} />
+                  Google Maps
                 </button>
-              )}
+              </div>
             </div>
           </Popup>
         )}
