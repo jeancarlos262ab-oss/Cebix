@@ -26,7 +26,7 @@ function RouteFallback() {
 export default function App() {
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full overflow-hidden bg-white dark:bg-black">
+      <div className="flex h-screen w-full overflow-hidden supports-[height:100dvh]:h-dvh bg-white dark:bg-black">
         <Sidebar />
 
         <main className="min-w-0 flex-1 overflow-y-auto">

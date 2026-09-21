@@ -8,7 +8,7 @@ export default function MapaSatelitalPage() {
   const [selectedId, setSelectedId] = useState(null);
 
   return (
-    <div className="flex h-full min-h-[560px] flex-col">
+    <div className="flex min-h-full flex-col">
       <TopBar
         title="Mapa satelital"
         subtitle="Imagen satelital de Hidalgo, Tlaxcala y Puebla sobre las parcelas evaluadas."
@@ -17,18 +17,23 @@ export default function MapaSatelitalPage() {
 
       <div className="mt-6 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
 
-      {/* Mapa a todo el ancho y alto disponible; "Regiones cubiertas" vive dentro */}
-      <div className="relative min-h-0 flex-1">
-        <ParcelMap
-          parcels={parcels}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          height="100%"
-          basemap="satellite"
-          bordered={false}
-        />
+      {/* Mapa a todo el ancho y alto disponible. En pantallas grandes "Regiones
+          cubiertas" flota dentro del mapa; en celulares va debajo, sin tapar nada. */}
+      <div className="relative flex flex-1 flex-col">
+        <div className="relative min-h-[420px] flex-1">
+          <div className="absolute inset-0">
+            <ParcelMap
+              parcels={parcels}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              height="100%"
+              basemap="satellite"
+              bordered={false}
+            />
+          </div>
+        </div>
 
-        <section className="absolute bottom-3 left-3 z-[1000] w-64 rounded border border-gray-200 bg-white/90 px-3 py-2.5 text-gray-800 shadow-lg backdrop-blur dark:border-white/10 dark:bg-black/70 dark:text-gray-100">
+        <section className="w-full border-t border-gray-200 bg-white px-4 py-3 text-gray-800 dark:border-gray-800 dark:bg-black dark:text-gray-100 sm:px-6 lg:absolute lg:bottom-3 lg:left-3 lg:z-[1000] lg:w-64 lg:rounded lg:border lg:border-gray-200 lg:bg-white/90 lg:px-3 lg:py-2.5 lg:shadow-lg lg:backdrop-blur lg:dark:border-white/10 lg:dark:bg-black/70">
           <h2 className="text-sm font-semibold">Regiones cubiertas</h2>
           <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
             {parcels.length} parcelas activas con imagen Sentinel-2 procesada en Earth Engine.
