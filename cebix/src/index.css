@@ -1,0 +1,283 @@
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap");
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .font-sora {
+    font-family: "Sora", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    font-family: "Garet", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background-color: #ffffff;
+    color: #101828;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  html.dark body {
+    background-color: #000000;
+    color: #e5e7eb;
+  }
+
+  /* Color de acento: controla botones primarios, enlaces y estados activos
+     en toda la app. "mono" (Negro, Blanco en oscuro) es el valor por defecto; brand/ndvi se activan
+     con data-accent, elegido en Ajustes. */
+  html[data-accent="brand"] {
+    --accent-700: #7a581a;
+    --accent-600: #9c6f1f;
+    --accent-500: #c08a2e;
+    --accent-400: #d9a544;
+    --accent-100: #f5e4c0;
+    --accent-50: #fbf3e4;
+    --accent-contrast: #ffffff;
+  }
+
+  html[data-accent="ndvi"] {
+    --accent-contrast: #ffffff;
+    --accent-700: #2c5d3b;
+    --accent-600: #3b7a4e;
+    --accent-500: #4c9a63;
+    --accent-400: #7cc192;
+    --accent-100: #dcefe1;
+    --accent-50: #eef7f0;
+  }
+
+  html:not([data-accent]),
+  html[data-accent="mono"] {
+    --accent-700: #000000;
+    --accent-600: #111827;
+    --accent-500: #1f2937;
+    --accent-400: #6b7280;
+    --accent-100: #e5e7eb;
+    --accent-50: #f3f4f6;
+    --accent-contrast: #ffffff;
+  }
+
+  html.dark:not([data-accent]),
+  html.dark[data-accent="mono"] {
+    --accent-700: #6b7280;
+    --accent-600: #e5e7eb;
+    --accent-500: #ffffff;
+    --accent-400: #9ca3af;
+    --accent-100: #374151;
+    --accent-50: #1f2937;
+    /* texto sobre fondo blanco: negro */
+    --accent-contrast: #000000;
+  }
+
+  /* Barras "de fondo" de las gráficas (p. ej. GDD esperado): gris claro en modo
+     claro y gris medio en oscuro, para que contrasten con el acento blanco. */
+  html {
+    --chart-track: #eaecf0;
+  }
+
+  html.dark {
+    --chart-track: #4b5563;
+  }
+
+  /* Densidad compacta: reduce el espaciado vertical en tarjetas y filas sin
+     tocar cada componente individualmente. */
+  html[data-density="compacta"] .density-py {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  /* Scrollbar personalizado: esquinas cuadradas (sin radio) para mantener el
+     look del resto de la interfaz, gris neutro en reposo y el color de
+     acento activo al pasar el mouse. Firefox usa scrollbar-color;
+     Chrome/Safari/Edge usan los pseudo-elementos ::-webkit-scrollbar. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #d0d5dd transparent;
+  }
+
+  html.dark * {
+    scrollbar-color: #344054 transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: #d0d5dd;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--accent-500);
+  }
+
+  html.dark ::-webkit-scrollbar-thumb {
+    background-color: #344054;
+  }
+
+  html.dark ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--accent-400);
+  }
+}
+
+@layer utilities {
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* ========================================
+   MapLibre Popup Customization
+   ======================================== */
+
+/* Personalización de popups para ParcelMap */
+.maplibregl-popup {
+  max-width: 280px;
+  font-family: inherit;
+}
+
+.maplibregl-popup-content {
+  padding: 12px 14px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: white;
+}
+
+html.dark .maplibregl-popup-content {
+  background: #1f2937;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.maplibregl-popup-close-button {
+  width: 24px;
+  height: 24px;
+  font-size: 20px;
+  color: #6b7280;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.maplibregl-popup-close-button:hover {
+  background: transparent;
+  color: #111827;
+}
+
+html.dark .maplibregl-popup-close-button {
+  color: #9ca3af;
+}
+
+html.dark .maplibregl-popup-close-button:hover {
+  color: #f3f4f6;
+}
+
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: white;
+}
+
+html.dark .maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: #1f2937;
+}
+
+.maplibregl-popup-anchor-top .maplibregl-popup-tip {
+  border-bottom-color: white;
+}
+
+html.dark .maplibregl-popup-anchor-top .maplibregl-popup-tip {
+  border-bottom-color: #1f2937;
+}
+
+.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: white;
+}
+
+html.dark .maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: #1f2937;
+}
+
+.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: white;
+}
+
+html.dark .maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: #1f2937;
+}
+
+/* Estilos para controles de navegación y fullscreen */
+.maplibregl-ctrl-group {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.maplibregl-ctrl-group button {
+  width: 32px;
+  height: 32px;
+}
+
+.maplibregl-ctrl-icon {
+  filter: brightness(0) invert(1);
+}
+
+.maplibregl-ctrl button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Atribución del mapa */
+.maplibregl-ctrl-attrib {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  font-size: 10px;
+}
+
+html.dark .maplibregl-ctrl-attrib {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.maplibregl-ctrl-attrib a {
+  color: #4b5563;
+  text-decoration: none;
+}
+
+html.dark .maplibregl-ctrl-attrib a {
+  color: #9ca3af;
+}
+
+.maplibregl-ctrl-attrib a:hover {
+  color: #111827;
+  text-decoration: underline;
+}
+
+html.dark .maplibregl-ctrl-attrib a:hover {
+  color: #f3f4f6;
+}
