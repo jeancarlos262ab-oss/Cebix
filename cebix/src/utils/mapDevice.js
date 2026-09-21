@@ -6,6 +6,9 @@
  * el selector automático puedan reutilizar la misma heurística.
  */
 
+import { appStorage } from "../services/AppStorage";
+import { lazySingleton } from "./singleton";
+
 const STORAGE_KEY = "cebix:mapEngine";
 
 /**
@@ -66,17 +69,16 @@ export function detectLowEndDevice() {
 export const FORCED_MAP_ENGINE = "lite";
 
 /**
- * Resuelve qué motor usar. Borra cualquier preferencia manual que haya
- * quedado guardada de la versión anterior (cuando existía el botón de cambio).
+ * Resuelve qué motor usar. Es un singleton: la decisión (y la detección del
+ * equipo, que crea un contexto WebGL) se hace una sola vez y todas las
+ * pantallas con mapa reutilizan el mismo resultado. Además borra la
+ * preferencia manual que haya quedado guardada de la versión anterior
+ * (cuando existía el botón de cambio).
  *
  * @returns {"gl" | "lite"}
  */
-export function resolveMapEngine() {
-  try {
-    window.localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // localStorage no disponible — ignorar
-  }
+export const resolveMapEngine = lazySingleton(() => {
+  appStorage.remove(STORAGE_KEY);
   if (FORCED_MAP_ENGINE) return FORCED_MAP_ENGINE;
   return detectLowEndDevice() ? "lite" : "gl";
-}
+});

@@ -20,6 +20,7 @@ import { ExternalLink, Gauge, Leaf, Map as MapIcon, Milestone, Mountain, Satelli
 import { useTheme } from "../../context/ThemeContext";
 import { openInGoogleMaps } from "../../utils/googleMaps";
 import { getAccentHex } from "../../utils/accentColors";
+import { lazySingleton } from "../../utils/singleton";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
 import "leaflet/dist/leaflet.css";
 
@@ -102,6 +103,17 @@ const NDVI_LEGEND = [
   { color: "#D9A544", label: "NDVI 0.50–0.55" },
   { color: "#C0362E", label: "NDVI < 0.50 (estrés)" },
 ];
+
+// Un único ícono de pin compartido por todos los mapas de todas las pantallas
+// (antes se creaba uno nuevo en cada montaje).
+const getPinIcon = lazySingleton(() =>
+  L.divIcon({
+    className: "",
+    html: locationPinHtml(),
+    iconSize: [PIN_SIZE, PIN_SIZE],
+    iconAnchor: [PIN_SIZE / 2, PIN_SIZE - PIN_TIP_OFFSET],
+  })
+);
 
 const GROUND_LEVEL_ZOOM = 18;
 const BASE_RADIUS = 9;
@@ -276,16 +288,7 @@ function ParcelMapLite({
     setUserBasemap(key === "theme" ? null : key);
   }, []);
 
-  const pinIcon = useMemo(
-    () =>
-      L.divIcon({
-        className: "",
-        html: locationPinHtml(),
-        iconSize: [PIN_SIZE, PIN_SIZE],
-        iconAnchor: [PIN_SIZE / 2, PIN_SIZE - PIN_TIP_OFFSET],
-      }),
-    []
-  );
+  const pinIcon = getPinIcon();
 
   const initialCenter = useMemo(() => normalizeCenter(center), [center]);
   const basemapConfig = BASEMAPS_LITE[basemap] || BASEMAPS_LITE.satellite;

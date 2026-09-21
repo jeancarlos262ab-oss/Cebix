@@ -7,7 +7,7 @@
  *
  * Las páginas siguen importando "../components/map/ParcelMap" sin cambios.
  */
-import { lazy, memo, Suspense, useState } from "react";
+import { lazy, memo, Suspense } from "react";
 import { resolveMapEngine } from "../../utils/mapDevice";
 
 const ParcelMapGL = lazy(() => import("./ParcelMapGL"));
@@ -25,8 +25,9 @@ function MapLoadingFallback({ height }) {
 }
 
 function ParcelMap(props) {
-  const [engine] = useState(() => resolveMapEngine());
-  const EngineComponent = engine === "lite" ? ParcelMapLite : ParcelMapGL;
+  // resolveMapEngine() es un singleton: se decide una vez y se reutiliza en
+  // todas las pantallas con mapa.
+  const EngineComponent = resolveMapEngine() === "lite" ? ParcelMapLite : ParcelMapGL;
 
   return (
     // Si height es un porcentaje ("100%"), el contenedor también debe tenerlo

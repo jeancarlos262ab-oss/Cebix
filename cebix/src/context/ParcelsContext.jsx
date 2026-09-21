@@ -1,47 +1,19 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { parcels as baseParcels, regionSummary as baseRegionSummary } from "../data/parcels";
 import { globalImportance } from "../data/shap";
+import { appStorage } from "../services/AppStorage";
 
 const STORAGE_KEY = "cebix-custom-parcels";
 const SUBMISSIONS_KEY = "cebix-committee-submissions";
 
 const REGION_CODE = { Hidalgo: "HGO", Tlaxcala: "TLX", Puebla: "PUE" };
 
-function loadCustomParcels() {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function persistCustomParcels(list) {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch {
-    // localStorage no disponible (modo privado, etc.) — no bloquea la app.
-  }
-}
-
-function loadSubmissions() {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(SUBMISSIONS_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function persistSubmissions(map) {
-  try {
-    window.localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(map));
-  } catch {
-    // ignore
-  }
-}
+// La persistencia pasa por el singleton AppStorage (no bloquea la app si
+// localStorage no está disponible).
+const loadCustomParcels = () => appStorage.getJSON(STORAGE_KEY, []);
+const persistCustomParcels = (list) => appStorage.setJSON(STORAGE_KEY, list);
+const loadSubmissions = () => appStorage.getJSON(SUBMISSIONS_KEY, {});
+const persistSubmissions = (map) => appStorage.setJSON(SUBMISSIONS_KEY, map);
 
 /** Deriva score / riesgo / semáforo a partir del rendimiento estimado y su margen de error,
  * usando el mismo criterio que ya usa el dataset (score >= 70 elegible, 45-69 revisión, <45 alto riesgo). */

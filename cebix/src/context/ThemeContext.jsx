@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { appStorage } from "../services/AppStorage";
 
 const STORAGE_KEY = "cebix-preferences";
 
@@ -9,14 +10,8 @@ const DEFAULT_PREFS = {
 };
 
 function loadPrefs() {
-  if (typeof window === "undefined") return DEFAULT_PREFS;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_PREFS;
-    return { ...DEFAULT_PREFS, ...JSON.parse(raw) };
-  } catch {
-    return DEFAULT_PREFS;
-  }
+  const saved = appStorage.getJSON(STORAGE_KEY, null);
+  return saved ? { ...DEFAULT_PREFS, ...saved } : DEFAULT_PREFS;
 }
 
 function getSystemPrefersDark() {
@@ -47,11 +42,7 @@ export function ThemeProvider({ children }) {
     root.classList.toggle("dark", resolvedTheme === "dark");
     root.dataset.density = prefs.density;
     root.dataset.accent = prefs.accent;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
-    } catch {
-      // localStorage unavailable (private mode, etc.) — fail silently.
-    }
+    appStorage.setJSON(STORAGE_KEY, prefs);
   }, [prefs, resolvedTheme]);
 
   const value = useMemo(

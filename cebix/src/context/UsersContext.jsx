@@ -1,25 +1,11 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { users as baseUsers } from "../data/users";
+import { appStorage } from "../services/AppStorage";
 
 const STORAGE_KEY = "cebix-users-overrides"; // { invited: User[], patches: Record<id, Partial<User>> }
 
-function loadState() {
-  if (typeof window === "undefined") return { invited: [], patches: {} };
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : { invited: [], patches: {} };
-  } catch {
-    return { invited: [], patches: {} };
-  }
-}
-
-function persistState(state) {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // ignore
-  }
-}
+const loadState = () => appStorage.getJSON(STORAGE_KEY, { invited: [], patches: {} });
+const persistState = (state) => appStorage.setJSON(STORAGE_KEY, state);
 
 function nextId(all) {
   return all.reduce((max, u) => Math.max(max, u.id), 0) + 1;
