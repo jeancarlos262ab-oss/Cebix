@@ -1,57 +1,79 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
-import { users as baseUsers } from "../data/users";
-import { appStorage } from "../services/AppStorage";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useAuth } from "./AuthContext";
+import { supabase } from "../services/supabaseClient";
 
-const STORAGE_KEY = "cebix-users-overrides"; // { invited: User[], patches: Record<id, Partial<User>> }
+function toUser(profile, currentUser) {
+  return {
+    id: profile.id,
+    name: profile.name,
+    email: profile.email ?? (profile.id === currentUser?.id ? currentUser.email : ""),
+    role: profile.role,
+    region: profile.region,
+    avatar: profile.avatar_url ?? `https://i.pravatar.cc/72?u=${profile.id}`,
+    status: profile.status,
+    twoFactor: Boolean(profile.two_factor),
+  };
+}
 
-const loadState = () => appStorage.getJSON(STORAGE_KEY, { invited: [], patches: {} });
-const persistState = (state) => appStorage.setJSON(STORAGE_KEY, state);
+function toProfilePatch(patch) {
+  const fields = {
+    name: patch.name,
+    role: patch.role,
+    region: patch.region,
+    status: patch.status,
+    avatar_url: patch.avatar ?? patch.avatar_url,
+    two_factor: patch.twoFactor ?? patch.two_factor,
+  };
 
-function nextId(all) {
-  return all.reduce((max, u) => Math.max(max, u.id), 0) + 1;
+  return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
 }
 
 const UsersContext = createContext(null);
 
 export function UsersProvider({ children }) {
-  const [state, setState] = useState(loadState);
+  const { user, loading: authLoading } = useAuth();
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const users = useMemo(() => {
-    const merged = [...baseUsers, ...state.invited].map((u) => ({
-      ...u,
-      ...(state.patches[u.id] ?? {}),
-    }));
-    return merged;
-  }, [state]);
+  const loadUsers = useCallback(async () => {
+    if (!user) {
+      setUsers([]);
+      setLoading(false);
+      return;
+    }
 
-  const inviteUser = useCallback((fields) => {
-    setState((prev) => {
-      const id = nextId([...baseUsers, ...prev.invited]);
-      const record = {
-        id,
-        name: fields.name,
-        email: fields.email,
-        role: fields.role,
-        region: fields.region,
-        avatar: `https://i.pravatar.cc/72?img=${(id % 70) + 1}`,
-        status: "Invitado",
-        twoFactor: false,
-      };
-      const next = { ...prev, invited: [...prev.invited, record] };
-      persistState(next);
-      return next;
-    });
+    setLoading(true);
+    const { data, error: queryError } = await supabase.from("profiles").select("*").order("created_at");
+    if (queryError) {
+      setError(queryError);
+      setUsers([]);
+    } else {
+      setError(null);
+      setUsers(data.map((profile) => toUser(profile, user)));
+    }
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    if (!authLoading) loadUsers();
+  }, [authLoading, loadUsers]);
+
+  const updateUser = useCallback(async (id, patch) => {
+    const profilePatch = toProfilePatch(patch);
+    const { error: updateError } = await supabase.from("profiles").update(profilePatch).eq("id", id);
+    if (updateError) return { error: updateError };
+
+    setUsers((current) =>
+      current.map((item) => (item.id === id ? { ...item, ...patch } : item))
+    );
+    return { error: null };
   }, []);
 
-  const updateUser = useCallback((id, patch) => {
-    setState((prev) => {
-      const next = { ...prev, patches: { ...prev.patches, [id]: { ...prev.patches[id], ...patch } } };
-      persistState(next);
-      return next;
-    });
-  }, []);
-
-  const value = useMemo(() => ({ users, inviteUser, updateUser }), [users, inviteUser, updateUser]);
+  const value = useMemo(
+    () => ({ users, loading, error, updateUser, reloadUsers: loadUsers }),
+    [users, loading, error, updateUser, loadUsers]
+  );
 
   return <UsersContext.Provider value={value}>{children}</UsersContext.Provider>;
 }

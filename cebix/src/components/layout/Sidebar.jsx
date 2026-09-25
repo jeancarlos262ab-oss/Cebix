@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
-import { ChevronsUpDown, Settings, X } from "lucide-react";
+import { ChevronsUpDown, LogOut, Settings, X } from "lucide-react";
 import { generalNav, workspaceNav } from "../../data/navigation";
+import { useAuth } from "../../context/AuthContext";
 import { useSidebar } from "../../context/SidebarContext";
 import Logo from "../ui/Logo";
 
@@ -44,6 +45,12 @@ function NavSection({ title, items }) {
 
 export default function Sidebar() {
   const { mobileOpen, close } = useSidebar();
+  const { user, profile, signOut } = useAuth();
+
+  async function handleSignOut() {
+    await signOut();
+    close();
+  }
 
   return (
     <>
@@ -92,8 +99,8 @@ export default function Sidebar() {
           >
             <span className="relative h-9 w-9 shrink-0 rounded-full bg-gray-200">
               <img
-                src="https://i.pravatar.cc/72?img=48"
-                alt="Ana Torres"
+                src={profile?.avatar_url || `https://i.pravatar.cc/72?u=${user?.id ?? "cebix"}`}
+                alt={profile?.name || user?.email || "Perfil"}
                 loading="lazy"
                 decoding="async"
                 className="h-full w-full rounded-full object-cover"
@@ -102,14 +109,22 @@ export default function Sidebar() {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold text-gray-900 dark:text-white">
-                Ana Torres
+                {profile?.name || user?.email || "Perfil"}
               </span>
               <span className="block truncate text-xs text-gray-500 dark:text-gray-400">
-                ana.torres@cebix.mx
+                {user?.email || ""}
               </span>
             </span>
             <Settings size={16} className="shrink-0 text-gray-400 dark:text-gray-500" />
           </NavLink>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
+          >
+            <LogOut size={17} className="shrink-0" />
+            <span>Cerrar sesión</span>
+          </button>
         </div>
       </aside>
     </>

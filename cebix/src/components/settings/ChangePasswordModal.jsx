@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X, Eye, EyeOff } from "lucide-react";
+import { supabase } from "../../services/supabaseClient";
 
 function validate(form) {
   const errors = {};
@@ -14,17 +15,29 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
   const [form, setForm] = useState({ current: "", next: "", confirm: "" });
   const [errors, setErrors] = useState({});
   const [show, setShow] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [requestError, setRequestError] = useState("");
 
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const nextErrors = validate(form);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
-    onChanged();
+
+    setRequestError("");
+    setSubmitting(true);
+    const { error } = await supabase.auth.updateUser({ password: form.next });
+    if (error) {
+      setRequestError("No pudimos actualizar la contraseña. Inténtalo de nuevo.");
+      setSubmitting(false);
+      return;
+    }
+
+    onChanged?.();
     onClose();
   }
 
@@ -50,6 +63,15 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
         </div>
 
         <div className="mt-4 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+
+        {requestError ? (
+          <div
+            role="alert"
+            className="mt-4 border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
+          >
+            {requestError}
+          </div>
+        ) : null}
 
         <div className="mt-4 space-y-3">
           <label className="block">
@@ -106,12 +128,17 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
           <button
             type="button"
             onClick={onClose}
+            disabled={submitting}
             className="border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             Cancelar
           </button>
-          <button type="submit" className="bg-accent-500 px-4 py-2 text-sm font-semibold text-accent-contrast shadow-sm hover:bg-accent-600">
-            Guardar contraseña
+          <button
+            type="submit"
+            disabled={submitting}
+            className="bg-accent-500 px-4 py-2 text-sm font-semibold text-accent-contrast shadow-sm hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {submitting ? "Actualizando..." : "Guardar contraseña"}
           </button>
         </div>
       </form>

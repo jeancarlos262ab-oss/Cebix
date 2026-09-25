@@ -1,17 +1,14 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { parcels as baseParcels, regionSummary as baseRegionSummary } from "../data/parcels";
 import { globalImportance } from "../data/shap";
 import { appStorage } from "../services/AppStorage";
+import { useAuth } from "./AuthContext";
+import { supabase } from "../services/supabaseClient";
 
-const STORAGE_KEY = "cebix-custom-parcels";
 const SUBMISSIONS_KEY = "cebix-committee-submissions";
 
 const REGION_CODE = { Hidalgo: "HGO", Tlaxcala: "TLX", Puebla: "PUE" };
 
-// La persistencia pasa por el singleton AppStorage (no bloquea la app si
-// localStorage no está disponible).
-const loadCustomParcels = () => appStorage.getJSON(STORAGE_KEY, []);
-const persistCustomParcels = (list) => appStorage.setJSON(STORAGE_KEY, list);
 const loadSubmissions = () => appStorage.getJSON(SUBMISSIONS_KEY, {});
 const persistSubmissions = (map) => appStorage.setJSON(SUBMISSIONS_KEY, map);
 
@@ -81,6 +78,55 @@ function nextId(all) {
   return all.reduce((max, p) => Math.max(max, p.id), 0) + 1;
 }
 
+function fromDatabaseParcel(row) {
+  return {
+    id: row.id,
+    polygonId: row.polygon_id,
+    name: row.name,
+    area: row.area,
+    yieldEstimate: Number(row.yield_estimate),
+    confidence: Number(row.confidence),
+    score: Number(row.score),
+    risk: row.risk,
+    riskColor: row.risk_color,
+    region: row.region,
+    municipio: row.municipio,
+    regionCode: row.region_code,
+    lat: Number(row.lat),
+    lng: Number(row.lng),
+    ndvi: Number(row.ndvi),
+    evi: Number(row.evi),
+    precip: Number(row.precip),
+    gdd: Number(row.gdd),
+    isTrainingSet: false,
+    isCustom: true,
+    shap: row.shap ?? [],
+  };
+}
+
+function toDatabaseParcel(record) {
+  return {
+    polygon_id: record.polygonId,
+    name: record.name,
+    area: record.area,
+    yield_estimate: record.yieldEstimate,
+    confidence: record.confidence,
+    score: record.score,
+    risk: record.risk,
+    risk_color: record.riskColor,
+    region: record.region,
+    municipio: record.municipio,
+    region_code: record.regionCode,
+    lat: record.lat,
+    lng: record.lng,
+    ndvi: record.ndvi,
+    evi: record.evi,
+    precip: record.precip,
+    gdd: record.gdd,
+    shap: record.shap,
+  };
+}
+
 /** Normaliza un registro (de formulario manual o de una fila de CSV) a un objeto parcela completo. */
 export function buildParcelRecord(fields, existingParcels) {
   const yieldEstimate = Number(fields.yieldEstimate);
@@ -124,8 +170,34 @@ export function buildParcelRecord(fields, existingParcels) {
 const ParcelsContext = createContext(null);
 
 export function ParcelsProvider({ children }) {
-  const [customParcels, setCustomParcels] = useState(loadCustomParcels);
+  const { user, loading: authLoading } = useAuth();
+  const [customParcels, setCustomParcels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [submissions, setSubmissions] = useState(loadSubmissions);
+
+  const loadCustomParcels = useCallback(async () => {
+    if (!user) {
+      setCustomParcels([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const { data, error: queryError } = await supabase.from("parcels_custom").select("*");
+    if (queryError) {
+      setError(queryError);
+      setCustomParcels([]);
+    } else {
+      setError(null);
+      setCustomParcels(data.map(fromDatabaseParcel));
+    }
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    if (!authLoading) loadCustomParcels();
+  }, [authLoading, loadCustomParcels]);
 
   const parcels = useMemo(() => [...baseParcels, ...customParcels], [customParcels]);
 
@@ -139,34 +211,51 @@ export function ParcelsProvider({ children }) {
     return Array.from(counts.values());
   }, [customParcels]);
 
-  const addParcel = useCallback((fields) => {
-    setCustomParcels((prev) => {
-      const record = buildParcelRecord(fields, [...baseParcels, ...prev]);
-      const next = [...prev, record];
-      persistCustomParcels(next);
-      return next;
-    });
-  }, []);
+  const addParcel = useCallback(async (fields) => {
+    const record = buildParcelRecord(fields, [...baseParcels, ...customParcels]);
+    const { data, error: insertError } = await supabase
+      .from("parcels_custom")
+      .insert(toDatabaseParcel(record))
+      .select()
+      .single();
+    if (insertError) return { error: insertError };
 
-  const updateParcel = useCallback((id, fields) => {
-    const isCustom = customParcels.some((p) => p.id === id);
-    if (!isCustom) return; // Las 197 parcelas del reto son de solo lectura (dataset validado).
-    setCustomParcels((prev) => {
-      const next = prev.map((p) =>
-        p.id === id ? buildParcelRecord({ ...fields, id }, [...baseParcels, ...prev.filter((x) => x.id !== id)]) : p
-      );
-      persistCustomParcels(next);
-      return next;
-    });
+    const savedParcel = fromDatabaseParcel(data);
+    setCustomParcels((prev) => [...prev, savedParcel]);
+    return { data: savedParcel, error: null };
   }, [customParcels]);
 
-  const removeParcel = useCallback((id) => {
-    setCustomParcels((prev) => {
-      const next = prev.filter((p) => p.id !== id);
-      persistCustomParcels(next);
-      return next;
-    });
-  }, []);
+  const updateParcel = useCallback(async (id, fields) => {
+    const isCustom = customParcels.some((p) => p.id === id);
+    if (!isCustom) return { error: new Error("Las parcelas del dataset son de solo lectura") };
+
+    const record = buildParcelRecord(
+      { ...fields, id },
+      [...baseParcels, ...customParcels.filter((parcel) => parcel.id !== id)]
+    );
+    const { data, error: updateError } = await supabase
+      .from("parcels_custom")
+      .update(toDatabaseParcel(record))
+      .eq("id", id)
+      .select()
+      .single();
+    if (updateError) return { error: updateError };
+
+    const savedParcel = fromDatabaseParcel(data);
+    setCustomParcels((prev) => prev.map((parcel) => (parcel.id === id ? savedParcel : parcel)));
+    return { data: savedParcel, error: null };
+  }, [customParcels]);
+
+  const removeParcel = useCallback(async (id) => {
+    const isCustom = customParcels.some((p) => p.id === id);
+    if (!isCustom) return { error: new Error("Las parcelas del dataset son de solo lectura") };
+
+    const { error: deleteError } = await supabase.from("parcels_custom").delete().eq("id", id);
+    if (deleteError) return { error: deleteError };
+
+    setCustomParcels((prev) => prev.filter((parcel) => parcel.id !== id));
+    return { error: null };
+  }, [customParcels]);
 
   const submitToCommittee = useCallback((id) => {
     setSubmissions((prev) => {
@@ -186,10 +275,25 @@ export function ParcelsProvider({ children }) {
       updateParcel,
       removeParcel,
       isCustomParcel,
+      customParcelsLoading: loading,
+      customParcelsError: error,
+      reloadCustomParcels: loadCustomParcels,
       submissions,
       submitToCommittee,
     }),
-    [parcels, regionSummary, addParcel, updateParcel, removeParcel, isCustomParcel, submissions, submitToCommittee]
+    [
+      parcels,
+      regionSummary,
+      addParcel,
+      updateParcel,
+      removeParcel,
+      isCustomParcel,
+      loading,
+      error,
+      loadCustomParcels,
+      submissions,
+      submitToCommittee,
+    ]
   );
 
   return <ParcelsContext.Provider value={value}>{children}</ParcelsContext.Provider>;

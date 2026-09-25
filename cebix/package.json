@@ -10,6 +10,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.1",
     "framer-motion": "^13.3.0",
     "jspdf": "^2.5.2",
     "leaflet": "^1.9.4",

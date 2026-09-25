@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
-import { UserPlus } from "lucide-react";
+import { Link } from "react-router-dom";
 import TopBar from "../components/layout/TopBar";
 import CategoryTag from "../components/ui/CategoryTag";
-import InviteUserModal from "../components/settings/InviteUserModal";
 import { useUsers } from "../context/UsersContext";
 
 const STATUS_COLOR = {
@@ -13,9 +12,8 @@ const STATUS_COLOR = {
 const STATUS_FILTERS = ["Todos", "Activo", "Invitado"];
 
 export default function UsuariosPage() {
-  const { users, inviteUser } = useUsers();
+  const { users } = useUsers();
   const [status, setStatus] = useState("Todos");
-  const [showInvite, setShowInvite] = useState(false);
 
   const filtered = useMemo(
     () => (status === "Todos" ? users : users.filter((u) => u.status === status)),
@@ -44,14 +42,12 @@ export default function UsuariosPage() {
         title="Usuarios"
         subtitle="Equipo con acceso al panel de decisión de crédito de Cebix."
         actions={
-          <button
-            type="button"
-            onClick={() => setShowInvite(true)}
-            className="flex items-center gap-1.5 bg-accent-500 px-3 py-2 text-sm font-medium text-accent-contrast shadow-sm hover:bg-accent-600"
+          <Link
+            to="/signup"
+            className="bg-accent-500 px-3 py-2 text-sm font-medium text-accent-contrast shadow-sm hover:bg-accent-600"
           >
-            <UserPlus size={15} />
-            Invitar usuario
-          </button>
+            Crear usuario
+          </Link>
         }
       />
 
@@ -156,9 +152,6 @@ export default function UsuariosPage() {
         </div>
       </div>
 
-      {showInvite && (
-        <InviteUserModal onClose={() => setShowInvite(false)} onInvite={inviteUser} />
-      )}
     </>
   );
 }

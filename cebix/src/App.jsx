@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Sidebar from "./components/layout/Sidebar";
 import { SidebarProvider } from "./context/SidebarContext";
 
@@ -14,6 +15,8 @@ const MapaSatelitalPage = lazy(() => import("./pages/MapaSatelitalPage"));
 const PrediccionesPage = lazy(() => import("./pages/PrediccionesPage"));
 const ValidacionSHAPPage = lazy(() => import("./pages/ValidacionSHAPPage"));
 const AjustesPage = lazy(() => import("./pages/AjustesPage"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const SignupPage = lazy(() => import("./pages/SignupPage"));
 
 function RouteFallback() {
   return (
@@ -23,27 +26,38 @@ function RouteFallback() {
   );
 }
 
-export default function App() {
+function AuthenticatedLayout() {
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full overflow-hidden supports-[height:100dvh]:h-dvh bg-white dark:bg-black">
         <Sidebar />
 
         <main className="min-w-0 flex-1 overflow-y-auto">
-          <Suspense fallback={<RouteFallback />}>
-            <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/parcelas" element={<ParcelasPage />} />
-              <Route path="/parcelas/:id" element={<ParcelaDetallePage />} />
-              <Route path="/modelo" element={<ModeloPage />} />
-              <Route path="/mapa" element={<MapaSatelitalPage />} />
-              <Route path="/predicciones" element={<PrediccionesPage />} />
-              <Route path="/shap" element={<ValidacionSHAPPage />} />
-              <Route path="/ajustes" element={<AjustesPage />} />
-            </Routes>
-          </Suspense>
+          <Outlet />
         </main>
       </div>
     </SidebarProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/parcelas" element={<ParcelasPage />} />
+          <Route path="/parcelas/:id" element={<ParcelaDetallePage />} />
+          <Route path="/modelo" element={<ModeloPage />} />
+          <Route path="/mapa" element={<MapaSatelitalPage />} />
+          <Route path="/predicciones" element={<PrediccionesPage />} />
+          <Route path="/shap" element={<ValidacionSHAPPage />} />
+          <Route path="/ajustes" element={<AjustesPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </Suspense>
   );
 }
