@@ -38,8 +38,8 @@ export default function ValidacionSHAPPage() {
           </h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             {positive} de {parcels.length} parcelas evaluadas obtienen un score de elegibilidad
-            mayor a 70, alineado con NDVI alto en llenado de grano y precipitación suficiente en
-            espigado — sin contradicciones entre el SHAP local y el semáforo final.
+            mayor a 70, alineado con lo que domina el modelo: precipitación suficiente en
+            emergencia-macollamiento y buen vigor foliar (LAI) en espigado-llenado — sin contradicciones entre el SHAP local y el semáforo final.
           </p>
 
           <div className="mt-5 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />

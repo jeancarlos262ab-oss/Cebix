@@ -1,20 +1,19 @@
 /**
  * Importancia global (media de |SHAP|) por variable, agregada sobre las 138
- * parcelas de ENTRENAMIENTO + 59 de PREDICCION, calculada con shap.LinearExplainer
- * sobre el modelo final (Ridge, alpha=5, features estandarizadas). direction indica
- * el signo del coeficiente de esa variable en el modelo.
+ * parcelas de ENTRENAMIENTO + 59 de PREDICCION, calculada con shap.TreeExplainer
+ * sobre el modelo final (Random Forest, top-10 features seleccionadas por SHAP, sin Planet —
+ * ver select_features_sin_planet.py). direction indica el signo promedio de la contribución
+ * SHAP de esa variable sobre el rendimiento estimado.
  */
 export const globalImportance = [
-  { feature: "Temperatura mínima media (ciclo)", value: 0.259, direction: "positivo" },
-  { feature: "Temperatura máxima media (ciclo)", value: 0.243, direction: "negativo" },
-  { feature: "Grados-día de crecimiento (GDD)", value: 0.166, direction: "positivo" },
-  { feature: "Precipitación acumulada (ciclo)", value: 0.15, direction: "negativo" },
-  { feature: "Pendiente del terreno", value: 0.135, direction: "positivo" },
-  { feature: "NDWI en emergencia-macollamiento", value: 0.085, direction: "negativo" },
-  { feature: "EVI en encañado", value: 0.031, direction: "positivo" },
-  { feature: "Elevación de la parcela", value: 0.027, direction: "negativo" },
-  { feature: "LAI en espigado-llenado", value: 0.026, direction: "negativo" },
-  { feature: "NDVI en encañado", value: 0.022, direction: "positivo" },
-  { feature: "NDVI pico del ciclo", value: 0.018, direction: "negativo" },
-  { feature: "NDVI en espigado-llenado", value: 0.004, direction: "positivo" },
+  { feature: "Precipitación en emergencia-macollamiento", value: 0.652, direction: "positivo" },
+  { feature: "LAI en espigado-llenado", value: 0.054, direction: "positivo" },
+  { feature: "Densidad de observaciones válidas (Sentinel-2/Landsat)", value: 0.049, direction: "negativo" },
+  { feature: "NDTI en emergencia-macollamiento", value: 0.038, direction: "negativo" },
+  { feature: "NDWI en espigado-llenado", value: 0.031, direction: "negativo" },
+  { feature: "EVI en encañado", value: 0.029, direction: "negativo" },
+  { feature: "STI en encañado", value: 0.029, direction: "positivo" },
+  { feature: "EVI en emergencia-macollamiento", value: 0.021, direction: "negativo" },
+  { feature: "NDVI en emergencia-macollamiento", value: 0.02, direction: "negativo" },
+  { feature: "NDTI en encañado", value: 0.017, direction: "positivo" },
 ];

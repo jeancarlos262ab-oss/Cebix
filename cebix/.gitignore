@@ -38,3 +38,8 @@ Thumbs.db
 
 # Testing / coverage
 coverage
+
+# Backend Python
+backend/.venv/
+backend/__pycache__/
+backend/venv/

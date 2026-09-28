@@ -1,0 +1,8 @@
+.venv
+venv
+__pycache__
+*.pyc
+export_model.py
+README_BACKEND.md
+setup_venv.*
+run.*

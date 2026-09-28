@@ -3,6 +3,15 @@ import redLight from "../../assets/red.png";
 import yellowLight from "../../assets/yellow.png";
 import greenLight from "../../assets/green.png";
 
+// Tonos del semáforo alineados con la paleta de acento global:
+// ámbar = --accent-500 de "brand", verde = --accent-500 de "ndvi" y un rojo
+// terroso con la misma saturación/luminosidad para que convivan.
+const RISK_COLORS = {
+  red: "#B8493B",
+  yellow: "#C08A2E",
+  green: "#4C9A63",
+};
+
 // Convierte un hex "#RRGGBB" a "r, g, b" para poder armar rgba() y
 // construir degradados que se pierdan a transparente.
 function hexToRgb(hex) {
@@ -24,7 +33,7 @@ function rowGradient(hex, alpha) {
 const LEVELS = [
   {
     key: "red",
-    color: "#DC2626",
+    color: RISK_COLORS.red,
     image: redLight,
     label: "Alto riesgo",
     range: "0 – 44",
@@ -35,7 +44,7 @@ const LEVELS = [
   },
   {
     key: "yellow",
-    color: "#D97706",
+    color: RISK_COLORS.yellow,
     image: yellowLight,
     label: "Revisión manual",
     range: "45 – 69",
@@ -46,7 +55,7 @@ const LEVELS = [
   },
   {
     key: "green",
-    color: "#16A34A",
+    color: RISK_COLORS.green,
     image: greenLight,
     label: "Elegible",
     range: "70 – 100",

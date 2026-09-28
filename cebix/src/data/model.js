@@ -1,82 +1,67 @@
 /**
- * Todos los valores de este archivo provienen de un modelo entrenado sobre las
- * 138 parcelas de ENTRENAMIENTO del Reto AgroCebada 2026, usando:
- *  - NDVI/EVI/LAI/NDWI de Sentinel-2 (Dataset Básico), agregados en 3 ventanas
- *    fenológicas (emergencia-macollamiento, encañado, espigado-llenado) más el
- *    NDVI pico del ciclo, filtrando observaciones con >40% de nubosidad.
- *  - Precipitación acumulada y temperaturas mínima/máxima medias del ciclo
- *    (CHIRPS + CHIRTS-ERA5, abril-octubre 2025) y grados-día de crecimiento
- *    (GDD, base 4°C) derivados de esos mismos rásters.
- *  - Elevación y pendiente del terreno (INEGI CEM 4.0).
+ * Todos los valores de este archivo provienen del modelo real entrenado sobre las
+ * 138 parcelas de ENTRENAMIENTO del Reto AgroCebada 2026 (ver 03_modelo/train_model.py
+ * y 03_modelo/select_features.py del paquete de modelado).
  *
- * La validación es espacial (leave-region-out): en cada iteración se deja
- * fuera un estado completo (Hidalgo, Puebla o Tlaxcala) y se entrena solo con
- * los otros dos, para medir qué tan bien generaliza el modelo a una región que
- * nunca vio. Las métricas de "algorithmComparison" y "modelSummary" son el
- * resultado real de esa validación, no del ajuste en entrenamiento.
+ * Proceso en dos rondas:
+ *  1. Baseline con las 97 features construidas por build_features.py (Sentinel-2/Landsat
+ *     BÁSICO + Planet PRO, en 3 ventanas fenológicas; CHIRPS+CHIRTS-ERA5; INEGI CEM 4.0):
+ *     mejor modelo Random Forest, RMSE=0.740, R²=0.240 (leave-region-out).
+ *  2. Selección de features por importancia SHAP, EXCLUYENDO todas las features de Planet
+ *     (API de pago, no disponible para el equipo): 10/15/20/25/30/40/50 candidatos,
+ *     validados todos con la misma leave-region-out: el subconjunto de 10 features dio
+ *     el mejor resultado, RMSE=0.642, R²=0.426 — el que se reporta abajo.
+ *
+ * Validación espacial (leave-region-out): en cada iteración se deja fuera un estado
+ * completo (Hidalgo, Puebla o Tlaxcala) y se entrena solo con los otros dos, para medir
+ * qué tan bien generaliza el modelo a una región que nunca vio.
+ *
+ * Limitación conocida (declarada también en el reporte técnico): la variable más
+ * importante, precipitación en emergencia-macollamiento, está parcialmente confundida
+ * con el estado (Tlaxcala llueve más y rinde menos) por la resolución de CHIRPS (~5 km).
+ * La validación leave-region-out mitiga pero no elimina este efecto.
  */
 
 export const featureGroups = [
   {
-    group: "Índices espectrales (Sentinel-2)",
+    group: "Variables seleccionadas por SHAP (top 10 de 68, sin Planet ni índices no reproducibles)",
     color: "ndvi",
-    features: [
-      "NDVI en encañado",
-      "NDVI en espigado-llenado",
-      "NDVI pico del ciclo",
-      "EVI en encañado",
-      "LAI en espigado-llenado",
-      "NDWI en emergencia-macollamiento",
-    ],
-  },
-  {
-    group: "Clima (CHIRPS + CHIRTS-ERA5)",
-    color: "brand",
-    features: [
-      "Precipitación acumulada (ciclo abr-oct 2025)",
-      "Temperatura mínima media del ciclo",
-      "Temperatura máxima media del ciclo",
-      "Grados-día de crecimiento (GDD, base 4°C)",
-    ],
-  },
-  {
-    group: "Terreno (INEGI CEM 4.0)",
-    color: "navy",
-    features: ["Elevación de la parcela", "Pendiente del terreno"],
+    features: ["Precipitación en emergencia-macollamiento", "Densidad de observaciones válidas (Sentinel-2/Landsat)", "LAI en espigado-llenado", "NDTI en emergencia-macollamiento", "STI en encañado", "NDVI en emergencia-macollamiento", "NDWI en espigado-llenado", "NDTI en encañado", "EVI en emergencia-macollamiento", "EVI en encañado"],
   },
 ];
 
 // RMSE, MAE y R² son el resultado real de validación espacial leave-region-out
 // (predicciones out-of-fold concatenadas de las 138 parcelas de entrenamiento).
 export const algorithmComparison = [
-  { model: "Ridge", rmse: 0.76, mae: 0.61, r2: 0.2, type: "baseline" },
-  { model: "Lasso", rmse: 0.77, mae: 0.64, r2: 0.18, type: "baseline" },
-  { model: "Random Forest", rmse: 1.0, mae: 0.84, r2: -0.38, type: "boosting" },
-  { model: "XGBoost", rmse: 0.87, mae: 0.71, r2: -0.04, type: "boosting" },
-  { model: "LightGBM", rmse: 0.9, mae: 0.74, r2: -0.11, type: "boosting" },
+  { model: "Ridge", rmse: 0.821, mae: 0.691, r2: 0.062, type: "baseline" },
+  { model: "Lasso", rmse: 0.775, mae: 0.642, r2: 0.164, type: "baseline" },
+  { model: "ElasticNet", rmse: 0.782, mae: 0.654, r2: 0.15, type: "baseline" },
+  { model: "Random Forest", rmse: 0.642, mae: 0.489, r2: 0.426, type: "ensamble" },
+  { model: "XGBoost", rmse: 0.766, mae: 0.625, r2: 0.185, type: "boosting" },
+  { model: "LightGBM", rmse: 0.817, mae: 0.655, r2: 0.073, type: "boosting" },
 ];
 
 export const modelSummary = {
-  selected: "Ridge (regularizado)",
+  selected: "Random Forest (top-10 features SHAP, sin Planet)",
   trainingParcels: 138,
   validation: "Validación espacial por bloques (leave-region-out)",
-  rmse: 0.76,
-  mae: 0.61,
-  r2: 0.2,
+  rmse: 0.642,
+  mae: 0.489,
+  r2: 0.426,
 };
 
-// RMSE por estado excluido en la validación leave-region-out (Ridge).
+// RMSE por estado excluido en la validación leave-region-out (modelo final).
 export const rmseByRegion = [
-  { region: "Hidalgo", rmse: 0.85 },
-  { region: "Puebla", rmse: 0.72 },
-  { region: "Tlaxcala", rmse: 0.72 },
+  { region: "Tlaxcala", rmse: 0.435 },
+  { region: "Hidalgo", rmse: 0.619 },
+  { region: "Puebla", rmse: 0.725 },
 ];
 
 export const dataSources = [
   {
     name: "Sentinel-2 / Landsat",
     detail:
-      "Dataset Básico del reto: NDVI, EVI, LAI, NDWI y otros índices por parcela y fecha, 2022-2025.",
+      "Dataset Básico (Sentinel-2 + Landsat, 2022-2025) del reto: NDVI, EVI, LAI, NDWI y otros índices por parcela y fecha. El dataset PRO (Planet, de pago) se excluyó del modelo final: no cambió el desempeño y no es reproducible con fuentes gratuitas.",
     use: "Desarrollo",
   },
   {
@@ -91,8 +76,8 @@ export const dataSources = [
     use: "Desarrollo",
   },
   {
-    name: "Reto AgroCebada 2026",
-    detail: "Rendimiento observado (t/ha) de 138 parcelas de entrenamiento, ciclo abril-octubre 2025.",
+    name: "Reto AgroCebada 2026 (FIRA)",
+    detail: "Rendimiento observado (t/ha) de 138 parcelas de entrenamiento, agricultura de temporal, ciclo abril-octubre 2025.",
     use: "Entrenamiento",
   },
 ];
@@ -109,14 +94,14 @@ export const validationSteps = [
       "En cada iteración se deja fuera un estado completo y se entrena solo con los otros dos, para simular qué tan bien predice el modelo sobre una región que nunca vio.",
   },
   {
-    title: "Métrica por bloque",
+    title: "Selección de features por SHAP",
     detail:
-      "RMSE por estado excluido: Hidalgo 0.85 t/ha, Puebla 0.72 t/ha, Tlaxcala 0.72 t/ha. El promedio global (0.76 t/ha) es el que se reporta como RMSE del modelo.",
+      "De 68 features candidatas (solo índices reproducibles con fuentes gratuitas), se probaron subconjuntos de tamaño 10 a 50 rankeados por importancia SHAP; el top-10 dio el mejor RMSE bajo la misma validación espacial (0.740 con las 97 features -> 0.642), evidencia de que el modelo con todas las features sobreajustaba.",
   },
   {
-    title: "Por qué Ridge y no boosting",
+    title: "Métrica por bloque",
     detail:
-      "Bajo esta validación estricta, XGBoost, LightGBM y Random Forest obtienen R² negativo: con solo 3 macro-regiones y 138 filas, sobreajustan patrones que no generalizan a un estado nuevo. Un modelo lineal regularizado (Ridge) es más estable al extrapolar y se eligió como modelo final.",
+      "RMSE por estado excluido: Tlaxcala 0.43 t/ha, Hidalgo 0.62 t/ha, Puebla 0.72 t/ha. El promedio global (0.64 t/ha) es el que se reporta como RMSE del modelo.",
   },
 ];
 
@@ -124,21 +109,21 @@ export const guidingQuestions = [
   {
     question: "¿Qué variables satelitales y climáticas explican mejor el rendimiento?",
     answer:
-      "Según SHAP, la temperatura mínima y máxima media del ciclo, los grados-día acumulados y la precipitación total concentran la mayor contribución. Entre las variables satelitales, el NDWI temprano y el EVI en encañado aportan la señal más consistente; el NDVI por sí solo (en promedio simple) es más débil de lo esperado.",
+      "Según SHAP, Precipitación en emergencia-macollamiento, Densidad de observaciones válidas (Sentinel-2/Landsat), LAI en espigado-llenado, NDTI en emergencia-macollamiento, STI en encañado concentran la mayor contribución. La precipitación temprana (emergencia-macollamiento) domina, aunque está parcialmente confundida con el estado por la resolución de CHIRPS (~5 km) — ver limitación en Metodología.",
   },
   {
     question: "¿En qué etapa del ciclo es más crítico monitorear la parcela?",
     answer:
-      "Encañado y espigado-llenado (junio a septiembre): es cuando el NDVI, el EVI y el LAI muestran mayor variabilidad entre parcelas y concentran casi toda la señal espectral útil para el modelo.",
+      "Emergencia-macollamiento (abril-mayo): 4 de las 10 variables seleccionadas por SHAP corresponden a esta ventana (más que encañado con 3 o espigado-llenado con 2), y la precipitación de esta ventana domina la importancia global.",
   },
   {
     question: "¿Cómo se traduce la predicción en una decisión de crédito replicable?",
     answer:
-      "Cada parcela recibe un rendimiento esperado con un margen de error igual al RMSE de validación espacial de su estado, y un score 0-100 (escalado sobre el rango de rendimiento observado en entrenamiento) que alimenta un semáforo de elegibilidad.",
+      "Cada parcela recibe un rendimiento esperado con un margen de error igual al RMSE de validación espacial de su estado, y un score 0-100 que alimenta un semáforo de elegibilidad.",
   },
   {
     question: "¿Qué tan confiable es el modelo hoy?",
     answer:
-      "Bajo validación espacial estricta (dejar un estado completo fuera), el modelo elegido alcanza R²=0.20 y RMSE=0.76 t/ha: mejor que una estimación al azar, pero lejos de ser preciso. Con 138 parcelas repartidas en solo 3 estados, el clima y la ubicación están fuertemente confundidos entre sí, así que estas predicciones deben tratarse como una referencia de riesgo relativo, no como una cifra exacta de cosecha.",
+      "Bajo validación espacial estricta (dejar un estado completo fuera), el modelo elegido alcanza R²=0.43 y RMSE=0.64 t/ha tras seleccionar las 10 features más relevantes (sin usar Planet) (antes de seleccionar features, R² era 0.24). Sigue siendo una referencia de riesgo relativo, no una cifra exacta de cosecha.",
   },
 ];

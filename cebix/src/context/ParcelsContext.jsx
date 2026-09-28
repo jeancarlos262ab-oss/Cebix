@@ -15,7 +15,7 @@ const persistSubmissions = (map) => appStorage.setJSON(SUBMISSIONS_KEY, map);
 /** Deriva score / riesgo / semáforo a partir del rendimiento estimado y su margen de error,
  * usando el mismo criterio que ya usa el dataset (score >= 70 elegible, 45-69 revisión, <45 alto riesgo). */
 export function scoreFromInputs({ yieldEstimate, confidence, ndvi, precip }) {
-  // Heurística explícita y trazable (no es el modelo Ridge de producción, que
+  // Heurística explícita y trazable (no es el Random Forest de producción, que
   // requiere features satelitales completas): combina rendimiento normalizado
   // sobre 6 ton/ha, vigor NDVI y estabilidad (menor margen de error = más
   // confianza), en las mismas proporciones que discute src/data/model.js.
@@ -34,40 +34,37 @@ export function classifyRisk(score) {
 
 /** SHAP local aproximado para parcelas capturadas manualmente: usa la importancia
  * global real del modelo (src/data/shap.js) y la escala por qué tan lejos está
- * cada variable de la parcela del promedio del portafolio base. */
+ * cada variable de la parcela del promedio del portafolio base.
+ *
+ * El modelo final (Random Forest, top-10 SHAP, sin Planet) ya no usa temperatura/GDD ni
+ * NDVI pico. Del formulario manual solo tres campos corresponden a features reales:
+ *   precip -> Precipitación en emergencia-macollamiento (precip es el acumulado del ciclo,
+ *             se usa como aproximación de esa ventana)
+ *   ndvi   -> NDVI en emergencia-macollamiento
+ *   evi    -> EVI en emergencia-macollamiento
+ * El signo del impacto respeta la dirección real de cada variable en shap.js. */
+const SHAP_DRIVERS = [
+  { field: "precip", feature: "Precipitación en emergencia-macollamiento" },
+  { field: "ndvi", feature: "NDVI en emergencia-macollamiento" },
+  { field: "evi", feature: "EVI en emergencia-macollamiento" },
+];
+
+const FALLBACK_IMPORTANCE = { precip: 0.65, ndvi: 0.02, evi: 0.02 };
+
 function approximateShap(fields) {
-  const avg = {
-    ndvi: average(baseParcels.map((p) => p.ndvi)),
-    precip: average(baseParcels.map((p) => p.precip)),
-    gdd: average(baseParcels.map((p) => p.gdd)),
-  };
-  const drivers = [
-    {
-      feature: "NDVI pico del ciclo",
-      delta: (fields.ndvi - avg.ndvi) / avg.ndvi,
-      base: globalImportance.find((g) => g.feature.includes("NDVI pico"))?.value ?? 0.05,
-    },
-    {
-      feature: "Precipitación acumulada (ciclo)",
-      delta: (fields.precip - avg.precip) / avg.precip,
-      base: globalImportance.find((g) => g.feature.startsWith("Precipitación"))?.value ?? 0.15,
-    },
-    {
-      feature: "Grados-día de crecimiento (GDD)",
-      delta: (fields.gdd - avg.gdd) / avg.gdd,
-      base: globalImportance.find((g) => g.feature.startsWith("Grados"))?.value ?? 0.16,
-    },
-  ];
-  return drivers
-    .map((d) => {
-      const impact = Number((d.delta * d.base).toFixed(3));
-      return {
-        feature: d.feature,
-        impact,
-        direction: impact >= 0 ? "positivo" : "negativo",
-      };
-    })
-    .sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
+  return SHAP_DRIVERS.map(({ field, feature }) => {
+    const avg = average(baseParcels.map((p) => p[field]));
+    const entry = globalImportance.find((g) => g.feature === feature);
+    const base = entry?.value ?? FALLBACK_IMPORTANCE[field];
+    const sign = entry?.direction === "negativo" ? -1 : 1;
+    const delta = avg ? (fields[field] - avg) / avg : 0;
+    const impact = Number((delta * base * sign).toFixed(3));
+    return {
+      feature,
+      impact,
+      direction: impact >= 0 ? "positivo" : "negativo",
+    };
+  }).sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
 }
 
 function average(arr) {
@@ -163,7 +160,7 @@ export function buildParcelRecord(fields, existingParcels) {
     gdd,
     isTrainingSet: false,
     isCustom: true,
-    shap: approximateShap({ ndvi, precip, gdd }),
+    shap: approximateShap({ ndvi, evi, precip }),
   };
 }
 

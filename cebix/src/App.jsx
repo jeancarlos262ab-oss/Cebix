@@ -55,6 +55,7 @@ export default function App() {
           <Route path="/mapa" element={<MapaSatelitalPage />} />
           <Route path="/predicciones" element={<PrediccionesPage />} />
           <Route path="/shap" element={<ValidacionSHAPPage />} />
+          <Route path="/ejecutar-modelo" element={<Navigate to="/modelo?tab=ejecutar" replace />} />
           <Route path="/ajustes" element={<AjustesPage />} />
           <Route path="/perfil" element={<PerfilPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

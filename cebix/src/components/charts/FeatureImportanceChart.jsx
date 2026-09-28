@@ -2,7 +2,7 @@ import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 
 
 const DIRECTION_COLOR = {
   positivo: "var(--accent-500)",
-  negativo: "#C0362E",
+  negativo: "#B8493B",
   mixto: "var(--accent-400)",
 };
 

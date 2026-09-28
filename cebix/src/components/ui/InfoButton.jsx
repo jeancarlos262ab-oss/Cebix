@@ -5,12 +5,12 @@ import { Info, X } from "lucide-react";
  * Botón de información que abre un panel explicando, en formato pregunta y
  * respuesta, cómo funciona esta parte del programa.
  *
- * @param {{title: string, questions: {question: string, answer: string}[], tone?: "default"|"blue"}} props
+ * @param {{title: string, questions: {question: string, answer: string}[], tone?: "default"|"accent"}} props
  */
 const TONE_STYLES = {
   default:
     "border border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800",
-  blue: "rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600",
+  accent: "rounded-full bg-accent-500 text-accent-contrast shadow-sm hover:bg-accent-600",
 };
 
 export default function InfoButton({ title = "Acerca de este panel", questions, tone = "default", children }) {

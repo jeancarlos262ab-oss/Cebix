@@ -1,6 +1,19 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Gauge, Percent, Droplets, Leaf, Send, CheckCircle2 } from "lucide-react";
+import {
+  ChevronDown,
+  Gauge,
+  Percent,
+  Droplets,
+  Leaf,
+  Send,
+  CheckCircle2,
+  Sprout,
+  Sun,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+} from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import StatCard from "../components/ui/StatCard";
 import Semaphore from "../components/ui/Semaphore";
@@ -49,6 +62,53 @@ export default function PrediccionesPage() {
     return "Enviar a comité de crédito";
   }, [justSubmitted, submittedAt]);
 
+  // Promedios de la región de la parcela seleccionada, para dar contexto a
+  // las variables que aún no aparecen en las tarjetas superiores (EVI y GDD).
+  const regionAverages = useMemo(() => {
+    const regionParcels = parcels.filter((p) => p.region === parcel.region);
+    const avg = (key) => regionParcels.reduce((sum, p) => sum + p[key], 0) / regionParcels.length;
+    return {
+      count: regionParcels.length,
+      evi: avg("evi"),
+      gdd: avg("gdd"),
+    };
+  }, [parcels, parcel.region]);
+
+  const climateVariables = useMemo(() => {
+    const deltaMeta = (value, avg) => {
+      if (!avg) return { deltaIcon: Minus, deltaLabel: "Sin referencia regional" };
+      const diff = ((value - avg) / avg) * 100;
+      if (Math.abs(diff) < 0.5) {
+        return { deltaIcon: Minus, deltaLabel: "En línea con el promedio regional" };
+      }
+      return {
+        deltaIcon: diff > 0 ? TrendingUp : TrendingDown,
+        deltaLabel: `${diff > 0 ? "+" : ""}${diff.toFixed(0)}% vs. promedio de ${parcel.region}`,
+      };
+    };
+
+    return [
+      {
+        label: "EVI",
+        value: parcel.evi.toFixed(2),
+        icon: Sprout,
+        ...deltaMeta(parcel.evi, regionAverages.evi),
+      },
+      {
+        label: "GDD acumulados",
+        value: `${parcel.gdd}`,
+        icon: Sun,
+        ...deltaMeta(parcel.gdd, regionAverages.gdd),
+      },
+    ];
+  }, [parcel, regionAverages]);
+
+  const originLabel = parcel.isCustom
+    ? "Registrada manualmente en CEBIX"
+    : parcel.isTrainingSet
+      ? "Entrenamiento — rendimiento real observado"
+      : "Predicción — validación espacial leave-region-out";
+
   return (
     <>
       <TopBar
@@ -56,17 +116,7 @@ export default function PrediccionesPage() {
         subtitle="Rendimiento esperado y el motivo detrás, parcela por parcela."
         hideSearch
         actions={
-          <InfoButton title="Acerca de las gráficas" questions={chartQuestions} tone="blue">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              Variables que más influyeron
-            </h3>
-            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-              Contribución SHAP de {parcel.name}; el color de acento suma al rendimiento, rojo resta.
-            </p>
-            <div className="mt-3">
-              <FeatureImportanceChart data={parcel.shap} height={220} />
-            </div>
-          </InfoButton>
+          <InfoButton title="Acerca de las gráficas" questions={chartQuestions} tone="accent" />
         }
       />
 
@@ -215,6 +265,83 @@ export default function PrediccionesPage() {
               <div className="mt-4">
                 <StaticMapImage lat={parcel.lat} lng={parcel.lng} zoom={15} height={120} bordered />
               </div>
+            </div>
+          </div>
+
+          <div className="my-6 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                Variables que más influyeron
+              </h2>
+              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                Contribución SHAP de cada variable a la predicción de {parcel.name}.
+              </p>
+              <div className="mt-4">
+                <FeatureImportanceChart data={parcel.shap} height={220} />
+              </div>
+            </div>
+
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                Ficha técnica
+              </h2>
+              <div className="mt-4 border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-black">
+                <dl className="space-y-2.5 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-gray-500 dark:text-gray-400">ID de polígono</dt>
+                    <dd className="font-medium text-gray-900 dark:text-gray-100">{parcel.polygonId}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-gray-500 dark:text-gray-400">Región</dt>
+                    <dd className="font-medium text-gray-900 dark:text-gray-100">
+                      {parcel.region} ({parcel.regionCode})
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-gray-500 dark:text-gray-400">Coordenadas</dt>
+                    <dd className="font-medium text-gray-900 dark:text-gray-100">
+                      {parcel.lat.toFixed(4)}, {parcel.lng.toFixed(4)}
+                    </dd>
+                  </div>
+                  <div className="border-t border-gray-100 pt-2.5 dark:border-gray-800">
+                    <dt className="text-gray-500 dark:text-gray-400">Origen del dato</dt>
+                    <dd className="mt-0.5 font-medium text-gray-900 dark:text-gray-100">{originLabel}</dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+          </div>
+
+          <div className="my-6 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              Otras variables vs. promedio regional
+            </h2>
+            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+              EVI y grados-día de {parcel.name}, comparados contra el promedio de las {regionAverages.count}{" "}
+              parcelas de {parcel.region}.
+            </p>
+            <div className="mt-4 grid grid-cols-2 divide-x divide-gray-200 border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+              {climateVariables.map((v) => (
+                <div key={v.label} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{v.label}</p>
+                    <span className="flex h-7 w-7 items-center justify-center bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                      <v.icon size={14} />
+                    </span>
+                  </div>
+                  <p className="font-sora mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {v.value}
+                  </p>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                    <v.deltaIcon size={12} />
+                    {v.deltaLabel}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
           </div>
