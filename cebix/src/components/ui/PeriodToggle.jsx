@@ -31,8 +31,9 @@ function PeriodToggle({ value, options, onChange, withMenu = false, onMenuAction
               key={option}
               type="button"
               onClick={() => onChange(option)}
+              aria-pressed={isActive}
               className={[
-                " px-2.5 py-1.5 transition-colors",
+                "px-2.5 py-1.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-500",
                 isActive
                   ? "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300",

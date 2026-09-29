@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import {
   User,
@@ -104,7 +105,6 @@ export default function SignupPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // "form" = datos de la cuenta · "verify" = código de 6 dígitos que llegó
@@ -118,15 +118,13 @@ export default function SignupPage() {
   function handleChange(event) {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
-    if (error) setError("");
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setError("");
 
     if (form.password !== form.confirmPassword) {
-      setError("Las contraseñas no coinciden.");
+      toast.error("Las contraseñas no coinciden.");
       return;
     }
 
@@ -138,23 +136,23 @@ export default function SignupPage() {
     });
 
     if (signUpError) {
-      setError(getSignUpErrorMessage(signUpError));
+      toast.error(getSignUpErrorMessage(signUpError));
       setSubmitting(false);
       return;
     }
 
     setSubmitting(false);
+    toast.success("Te enviamos un código de verificación a tu correo.");
     setStep("verify");
   }
 
   async function handleVerify(event) {
     event.preventDefault();
-    setError("");
     setSubmitting(true);
 
     const { error: verifyError } = await verifySignupOtp(form.email.trim(), code.trim(), form.password);
     if (verifyError) {
-      setError(getVerifyErrorMessage(verifyError));
+      toast.error(getVerifyErrorMessage(verifyError));
       setSubmitting(false);
       return;
     }
@@ -163,30 +161,22 @@ export default function SignupPage() {
   }
 
   async function handleResend() {
-    setError("");
     setResending(true);
     const { error: resendError } = await resendSignupOtp(form.email.trim());
     setResending(false);
 
     if (resendError) {
-      setError("No pudimos reenviar el código. Espera unos segundos e inténtalo de nuevo.");
+      toast.error("No pudimos reenviar el código. Espera unos segundos e inténtalo de nuevo.");
       return;
     }
     setResent(true);
+    toast.success("Código reenviado. Revisa tu correo.");
     window.setTimeout(() => setResent(false), 5000);
   }
 
   return (
     <AuthLayout title="Crea tu cuenta" subtitle="Solicita acceso al espacio de trabajo CEBIX.">
       <div className="border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-black sm:p-8">
-        {error ? (
-          <div
-            role="alert"
-            className="mb-5 border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
-          >
-            {error}
-          </div>
-        ) : null}
 
         {step === "form" ? (
           <>
@@ -315,7 +305,6 @@ export default function SignupPage() {
                 value={code}
                 onChange={(e) => {
                   setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
-                  if (error) setError("");
                 }}
                 className="tracking-[0.5em]"
               />
@@ -356,7 +345,6 @@ export default function SignupPage() {
                 onClick={() => {
                   setStep("form");
                   setCode("");
-                  setError("");
                 }}
                 className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
               >

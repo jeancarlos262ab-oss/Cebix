@@ -8,6 +8,7 @@ export default function MapaSatelitalPage() {
   const { parcels, regionSummary } = useParcels();
   const { toggle } = useSidebar();
   const [selectedId, setSelectedId] = useState(null);
+  const total = regionSummary.reduce((sum, r) => sum + r.parcelCount, 0);
 
   return (
     // Sin TopBar: cualquier encabezado, aunque esté "vacío", reserva su propio
@@ -49,23 +50,40 @@ export default function MapaSatelitalPage() {
           </div>
         </div>
 
-        <section className="w-full border-t border-gray-200 bg-white px-4 py-3 text-gray-800 dark:border-gray-800 dark:bg-black dark:text-gray-100 sm:px-6 lg:absolute lg:bottom-3 lg:left-3 lg:z-[1000] lg:w-64 lg:rounded lg:border lg:border-gray-200 lg:bg-white/90 lg:px-3 lg:py-2.5 lg:shadow-lg lg:backdrop-blur lg:dark:border-white/10 lg:dark:bg-black/70">
-          <h2 className="text-sm font-semibold">Regiones cubiertas</h2>
-          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+        <section
+          aria-labelledby="regiones-title"
+          className="w-full border-t border-gray-200 bg-white px-4 py-4 text-gray-800 dark:border-gray-800 dark:bg-black dark:text-gray-100 sm:px-6 lg:absolute lg:bottom-3 lg:left-3 lg:z-[1000] lg:w-72 lg:rounded lg:border lg:border-gray-200 lg:bg-white/90 lg:p-4 lg:shadow-lg lg:backdrop-blur lg:dark:border-white/10 lg:dark:bg-black/70"
+        >
+          <h2 id="regiones-title" className="text-sm font-semibold">
+            Regiones cubiertas
+          </h2>
+          <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
             {parcels.length} parcelas activas con imagen Sentinel-2 procesada en Earth Engine.
           </p>
-          <dl className="mt-2.5 space-y-2 text-xs">
-            {regionSummary.map((r) => (
-              <div key={r.region} className="flex items-center justify-between">
-                <dt className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                  <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: r.color }} />
-                  {r.region}
-                </dt>
-                <dd className="font-sora font-bold">
-                  {r.parcelCount} parcela{r.parcelCount === 1 ? "" : "s"}
-                </dd>
-              </div>
-            ))}
+
+          <dl className="mt-4 space-y-3 border-t border-gray-200 pt-4 text-xs dark:border-white/10">
+            {regionSummary.map((r) => {
+              const share = total ? (r.parcelCount / total) * 100 : 0;
+              return (
+                <div key={r.region}>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                      <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: r.color }} />
+                      {r.region}
+                    </dt>
+                    <dd className="font-sora text-sm font-bold tabular-nums">
+                      {r.parcelCount}
+                      <span className="ml-1 text-[11px] font-medium text-gray-400 dark:text-gray-500">
+                        parcela{r.parcelCount === 1 ? "" : "s"}
+                      </span>
+                    </dd>
+                  </div>
+                  <div className="mt-1.5 h-1 w-full bg-gray-200 dark:bg-white/10" aria-hidden="true">
+                    <div className="h-full" style={{ width: `${share}%`, backgroundColor: r.color }} />
+                  </div>
+                </div>
+              );
+            })}
           </dl>
         </section>
       </div>

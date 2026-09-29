@@ -1,4 +1,5 @@
 import { useSearchParams } from "react-router-dom";
+import { CloudRain, Mountain, Satellite, Sprout } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import InfoButton from "../components/ui/InfoButton";
 import AlgorithmComparisonChart from "../components/charts/AlgorithmComparisonChart";
@@ -24,27 +25,42 @@ const TABS = [
   { key: "datos", label: "Variables y datos" },
 ];
 
+// Un ícono por fuente, para reconocerlas de un vistazo.
+const SOURCE_ICON = {
+  "Sentinel-2 / Landsat": Satellite,
+  "CHIRPS + CHIRTS-ERA5": CloudRain,
+  "INEGI - CEM 4.0": Mountain,
+  "Reto AgroCebada 2026 (FIRA)": Sprout,
+};
+
 function Section({ title, description, children }) {
   return (
     <section>
-      <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+      <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
       {description && (
-        <p className="mt-0.5 max-w-2xl text-sm text-gray-500 dark:text-gray-400">{description}</p>
+        <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">{description}</p>
       )}
-      <div className="mt-4">{children}</div>
+      <div className="mt-5">{children}</div>
     </section>
   );
 }
 
-function Kpi({ label, value, unit, sora = true }) {
+function Kpi({ label, value, unit, sora = true, highlight = false }) {
   return (
-    <div className="p-4">
+    <div className="relative p-5">
+      {highlight && (
+        <span className="absolute inset-y-0 left-0 w-0.5 bg-accent-500" aria-hidden="true" />
+      )}
       <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
       <p
-        className={`mt-1 text-xl font-bold text-gray-900 dark:text-gray-100 ${sora ? "font-sora" : ""}`}
+        className={`mt-2 font-bold leading-tight text-gray-900 dark:text-gray-100 ${
+          sora ? "font-sora text-2xl" : "text-base"
+        }`}
       >
         {value}
-        {unit && <span className="ml-1 text-sm font-medium text-gray-400 dark:text-gray-500">{unit}</span>}
+        {unit && (
+          <span className="ml-1.5 text-sm font-medium text-gray-400 dark:text-gray-500">{unit}</span>
+        )}
       </p>
     </div>
   );
@@ -52,38 +68,55 @@ function Kpi({ label, value, unit, sora = true }) {
 
 function ResumenTab() {
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-2 divide-x divide-y divide-gray-200 border border-gray-200 dark:divide-gray-800 dark:border-gray-800 lg:grid-cols-4 lg:divide-y-0">
-        <Kpi label="Modelo seleccionado" value={modelSummary.selected} sora={false} />
+    <div className="space-y-10">
+      <div className="grid grid-cols-2 divide-x divide-y divide-gray-200 border border-gray-200 dark:divide-gray-800 dark:border-gray-800 lg:grid-cols-[1.7fr_1fr_1fr_1fr] lg:divide-y-0">
+        <div className="col-span-2 lg:col-span-1">
+          <Kpi label="Modelo seleccionado" value={modelSummary.selected} sora={false} highlight />
+        </div>
         <Kpi label="Parcelas de entrenamiento" value={modelSummary.trainingParcels} />
         <Kpi label="RMSE" value={modelSummary.rmse} unit="ton/ha" />
         <Kpi label="R²" value={modelSummary.r2} />
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
         <Section
           title="Baseline vs. gradient boosting"
           description="Ridge y Lasso como referencia; XGBoost y LightGBM sobre ~138 parcelas, sin redes profundas por el tamaño de la muestra."
         >
-          <AlgorithmComparisonChart data={algorithmComparison} />
+          <div className="border border-gray-200 p-4 dark:border-gray-800">
+            <AlgorithmComparisonChart data={algorithmComparison} highlight="Random Forest" />
+          </div>
         </Section>
 
         <Section
           title="Validación espacial"
           description="Evita el sesgo por parcelas cercanas que produciría un k-fold aleatorio simple."
         >
-          <ol className="space-y-4">
-            {validationSteps.map((step, i) => (
-              <li key={step.title} className="flex gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-gray-100 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                  {i + 1}
-                </span>
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{step.title}</p>
-                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{step.detail}</p>
-                </div>
-              </li>
-            ))}
+          <ol>
+            {validationSteps.map((step, i) => {
+              const last = i === validationSteps.length - 1;
+              return (
+                <li key={step.title} className="relative flex gap-4 pb-6 last:pb-0">
+                  {!last && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-3 top-8 bottom-0 w-px -translate-x-1/2 bg-gray-200 dark:bg-gray-800"
+                    />
+                  )}
+                  <span className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center bg-accent-500 text-xs font-semibold text-accent-contrast">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {step.title}
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                      {step.detail}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         </Section>
       </div>
@@ -93,21 +126,30 @@ function ResumenTab() {
 
 function DatosTab() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <Section
         title="Feature engineering"
-        description="Variables derivadas de datos satelitales, climáticos y de suelo por etapa del ciclo."
+        description="Variables derivadas de datos satelitales, climáticas y de suelo por etapa del ciclo."
       >
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="space-y-4">
           {featureGroups.map((group) => (
-            <div key={group.group} className="border border-gray-200 p-4 dark:border-gray-800">
-              <div className="flex items-center gap-2">
-                <span className={`h-2 w-2 ${GROUP_DOT[group.color]}`} />
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{group.group}</p>
+            <div key={group.group} className="border border-gray-200 dark:border-gray-800">
+              <div className="flex items-center gap-2.5 border-b border-gray-200 bg-gray-50 px-5 py-3 dark:border-gray-800 dark:bg-gray-900">
+                <span className={`h-2 w-2 shrink-0 ${GROUP_DOT[group.color]}`} />
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {group.group}
+                </p>
               </div>
-              <ul className="mt-3 space-y-1.5">
+              <ul className="grid grid-cols-1 md:grid-cols-2 md:[&>li:nth-child(odd)]:border-r md:[&>li:nth-last-child(-n+2)]:border-b-0 [&>li:last-child]:border-b-0">
                 {group.features.map((f) => (
-                  <li key={f} className="text-sm text-gray-600 dark:text-gray-400">
+                  <li
+                    key={f}
+                    className="flex items-start gap-3 border-b border-gray-100 px-5 py-3 text-sm text-gray-700 dark:border-gray-800 dark:text-gray-300"
+                  >
+                    <span
+                      className={`mt-1.5 h-1.5 w-1.5 shrink-0 ${GROUP_DOT[group.color]}`}
+                      aria-hidden="true"
+                    />
                     {f}
                   </li>
                 ))}
@@ -118,16 +160,38 @@ function DatosTab() {
       </Section>
 
       <Section title="Fuentes de datos">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {dataSources.map((source) => (
-            <div key={source.name} className="border border-gray-200 p-4 dark:border-gray-800">
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{source.name}</p>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{source.detail}</p>
-              <span className="mt-3 inline-block bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                {source.use}
-              </span>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {dataSources.map((source) => {
+            const Icon = SOURCE_ICON[source.name] ?? Satellite;
+            const training = source.use === "Entrenamiento";
+            return (
+              <div
+                key={source.name}
+                className="flex h-full flex-col border border-gray-200 p-5 dark:border-gray-800"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-accent-50 text-accent-600 dark:bg-accent-500/10 dark:text-accent-400">
+                    <Icon size={18} />
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 text-xs font-medium ${
+                      training
+                        ? "bg-accent-50 text-accent-700 dark:bg-accent-500/10 dark:text-accent-400"
+                        : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                    }`}
+                  >
+                    {source.use}
+                  </span>
+                </div>
+                <p className="mt-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {source.name}
+                </p>
+                <p className="mt-1.5 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                  {source.detail}
+                </p>
+              </div>
+            );
+          })}
         </div>
       </Section>
     </div>

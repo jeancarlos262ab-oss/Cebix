@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { ArrowLeft, FileDown } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import ParcelMap from "../components/map/ParcelMap";
@@ -144,7 +145,10 @@ export default function ParcelaDetallePage() {
 
           <button
             type="button"
-            onClick={() => generateCreditReportPDF(parcel, { submitted: Boolean(submittedAt) })}
+            onClick={() => {
+              generateCreditReportPDF(parcel, { submitted: Boolean(submittedAt) });
+              toast.success("Reporte PDF generado.");
+            }}
             className="mt-6 flex w-full items-center justify-center gap-2 bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast shadow-sm hover:bg-accent-600"
           >
             <FileDown size={15} />

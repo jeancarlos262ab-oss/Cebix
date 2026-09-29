@@ -15,6 +15,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, CircleMarker, Marker, Popup, GeoJSON } from "react-leaflet";
 import { locationPinHtml, PIN_SIZE, PIN_TIP_OFFSET } from "./LocationPin";
+import cebadaMapIcon from "../../assets/cebada_map.png";
 import LiteMapControls from "./LiteMapControls";
 import { ExternalLink, Gauge, Leaf, Map as MapIcon, Milestone, Mountain, Satellite as SatelliteIcon } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
@@ -117,6 +118,7 @@ const getPinIcon = lazySingleton(() =>
 
 const GROUND_LEVEL_ZOOM = 18;
 const BASE_RADIUS = 9;
+
 const HOVER_RADIUS = 11;
 const SELECTED_RADIUS = 14;
 
@@ -211,8 +213,14 @@ function MapControlsPanel({
 
 const MapLegend = memo(function MapLegend({ layer }) {
   const items = layer === "ndvi" ? NDVI_LEGEND : RISK_LEGEND;
+  const title = LAYERS.find((l) => l.key === layer)?.label;
   return (
     <div className="rounded border border-gray-200 bg-white/90 dark:border-white/10 dark:bg-black/70 px-3 py-2.5 text-gray-800 shadow-lg dark:text-gray-100 backdrop-blur">
+      {title && (
+        <p className="mb-2 border-b border-gray-200 pb-2 text-xs font-semibold dark:border-white/10">
+          {title}
+        </p>
+      )}
       <ul className="space-y-1.5">
         {items.map((item) => (
           <li key={item.label} className="flex items-center gap-2 text-[11px] text-gray-700 dark:text-gray-200">
@@ -243,6 +251,7 @@ const MapLegend = memo(function MapLegend({ layer }) {
  *   showLegend?: boolean,   // leyenda arriba a la derecha (por defecto igual que showLayerControl)
  *   showBoundariesByDefault?: boolean,
  *   viewOnly?: boolean,   // solo visualizar el lugar: sin capas de riesgo/NDVI y con pin en vez de círculo
+ *   basemap?: "satellite" | "terreno",   // mapa base inicial; si se omite, sigue el tema de la app
  *   bordered?: boolean,   // false = sin borde, para pegarlo a las líneas de la página
  *   controlsTopClassName?: string,   // clase de Tailwind para el offset superior de la barra de capas (por defecto "top-3"); útil cuando algo del layout de la página, como un título, ya ocupa esa esquina.
  * }} props
@@ -254,6 +263,7 @@ function ParcelMapLite({
   height = 420,
   center = [19.9, -98.1],
   zoom = 8,
+  basemap: initialBasemap,
   allowGroundView = false,
   showLayerControl = true,
   showLegend = showLayerControl,
@@ -281,7 +291,9 @@ function ParcelMapLite({
   );
   // null = el basemap sigue el tema general de la app (claro/oscuro);
   // "satellite" | "terreno" = el usuario fijó uno manualmente en la barra.
-  const [userBasemap, setUserBasemap] = useState(null);
+  const [userBasemap, setUserBasemap] = useState(
+    initialBasemap === "satellite" || initialBasemap === "terreno" ? initialBasemap : null
+  );
   const basemap = userBasemap ?? (resolvedTheme === "dark" ? "oscuro" : "claro");
   const [layer, setLayer] = useState("risk");
   const [showBoundaries, setShowBoundaries] = useState(showBoundariesByDefault);
@@ -418,23 +430,56 @@ function ParcelMapLite({
               }}
             >
               <Popup className="parcel-popup" offset={[0, -6]}>
-                <div className="w-max font-sans">
-                  <p className="text-sm font-semibold text-gray-900">{parcel.name}</p>
-                  <p className="text-xs text-gray-600">
-                    {parcel.municipio}, {parcel.region}
-                  </p>
-                  <div className="mt-2 space-y-1 text-xs text-gray-700">
-                    <p>
-                      <span className="font-medium">Rendimiento:</span>{" "}
-                      {parcel.yieldEstimate.toFixed(1)} ton/ha
-                    </p>
-                    <p>
-                      <span className="font-medium">NDVI:</span> {parcel.ndvi.toFixed(2)}
-                    </p>
-                    <p>
-                      <span className="font-medium">Elegibilidad:</span> {parcel.risk}
-                    </p>
+                {/* Ojo: sin <p>. leaflet.css le pone margen a `.leaflet-popup-content p`
+                    y pisa las utilidades de Tailwind. */}
+                <div className="w-56 font-sans">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={cebadaMapIcon}
+                      alt=""
+                      width={26}
+                      height={44}
+                      draggable={false}
+                      className="h-11 w-auto shrink-0 select-none"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold leading-snug text-gray-900">{parcel.name}</div>
+                      <div className="mt-0.5 text-xs text-gray-500">
+                        {parcel.municipio}, {parcel.region}
+                      </div>
+                    </div>
                   </div>
+
+                  <dl className="mt-3 grid grid-cols-2 gap-px border border-gray-200 bg-gray-200">
+                    <div className="bg-white px-2.5 py-2">
+                      <dt className="text-[11px] text-gray-500">Rendimiento</dt>
+                      <dd className="mt-0.5 text-sm font-bold text-gray-900">
+                        {parcel.yieldEstimate.toFixed(1)}
+                        <span className="ml-1 text-[11px] font-medium text-gray-400">ton/ha</span>
+                      </dd>
+                    </div>
+                    <div className="bg-white px-2.5 py-2">
+                      <dt className="text-[11px] text-gray-500">NDVI</dt>
+                      <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-bold text-gray-900">
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: ndviToColor(parcel.ndvi) }}
+                        />
+                        {parcel.ndvi.toFixed(2)}
+                      </dd>
+                    </div>
+                    <div className="col-span-2 bg-white px-2.5 py-2">
+                      <dt className="text-[11px] text-gray-500">Elegibilidad</dt>
+                      <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: RISK_HEX[parcel.riskColor] ?? "#9ca3af" }}
+                        />
+                        {parcel.risk}
+                      </dd>
+                    </div>
+                  </dl>
+
                   <div className="mt-3 flex gap-1.5">
                     {allowGroundView && (
                       <button
@@ -448,7 +493,7 @@ function ParcelMapLite({
                     <button
                       type="button"
                       onClick={() => openInGoogleMaps(parcel.lat, parcel.lng)}
-                      className="flex flex-1 items-center justify-center gap-1 rounded border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100"
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100"
                     >
                       <ExternalLink size={12} />
                       Google Maps

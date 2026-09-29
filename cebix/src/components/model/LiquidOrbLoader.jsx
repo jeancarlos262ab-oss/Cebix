@@ -1,36 +1,214 @@
+import { useEffect, useId, useRef } from "react";
+
 /**
- * LiquidOrbLoader — Versión Rediseñada
- * 
- * Incluye soporte para modo oscuro, reflejo especular tipo cristal,
- * animaciones fluidas optimizadas para GPU y un halo ambiental al activarse.
+ * LiquidOrbLoader — Lámpara de lava que "piensa"
+ *
+ * Esfera con fondo circular (sin borde) con cera líquida de un solo color (el acento) y efecto
+ * metaball (filtro SVG). El movimiento NO es un loop de CSS: cada gota sigue su
+ * propio ciclo y, al terminar cada ciclo, sortea de nuevo cuánto tarda, hasta
+ * dónde sube, hacia qué lado se desplaza, cuánto se estira y si espera abajo
+ * antes de volver a subir. La piscina y el casquete se mueven con
+ * ruido suave (ondas con frecuencias no múltiplos entre sí). Resultado: la
+ * animación nunca se repite igual.
+ *
+ * `running` solo cambia la velocidad global, de forma gradual (sin saltos).
+ *
+ * API: <LiquidOrbLoader size running label />
  */
+
+const IDLE_RATE = 0.75; // velocidad en espera
+const RUN_RATE = 4.6; // velocidad pensando
+const RATE_SMOOTHING = 0.45; // segundos que tarda en acelerar / frenar
+
+// Gotas: posición horizontal base (% del ancho) y diámetro (fracción del orb).
+const BLOBS = [
+  { left: 24, d: 0.3 },
+  { left: 52, d: 0.22 },
+  { left: 40, d: 0.16 },
+  { left: 60, d: 0.27 },
+  { left: 18, d: 0.14 },
+  { left: 46, d: 0.2 },
+].map((b) => ({ ...b, y0: 1 - b.d * 0.55, y1: -b.d * 0.45 }));
+
+const TAU = Math.PI * 2;
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const smooth = (t) => t * t * (3 - 2 * t);
+
+// Ruido suave: suma de tres senos con frecuencias inconmensurables y fases al azar.
+function makeNoise() {
+  const base = rand(0.12, 0.22);
+  const f = [base, base * 1.618, base * 2.414];
+  const p = [rand(0, TAU), rand(0, TAU), rand(0, TAU)];
+  return (t) =>
+    (Math.sin(t * TAU * f[0] + p[0]) +
+      Math.sin(t * TAU * f[1] + p[1]) +
+      Math.sin(t * TAU * f[2] + p[2])) /
+    3;
+}
+
+// Sortea un ciclo nuevo para una gota (continúa desde la x donde terminó el anterior).
+function newCycle(blob, xs, firstTime) {
+  const shortRise = Math.random() < 0.22; // a veces sube poco y se arrepiente
+  const minX = -blob.left / 100 + 0.02;
+  const maxX = 1 - blob.left / 100 - blob.d - 0.02;
+  return {
+    t: firstTime ? Math.random() : 0,
+    dur: rand(6, 15),
+    dwell: firstTime ? 0 : Math.random() < 0.35 ? rand(0.5, 3) : 0,
+    peak: shortRise ? rand(0.3, 0.5) : rand(0.65, 1),
+    xs,
+    xe: clamp(xs + rand(-0.2, 0.2), minX, maxX),
+    sway: rand(-0.07, 0.07),
+    wobble: rand(0.03, 0.09),
+    wobblePhase: rand(0, TAU),
+    wobbleSpeed: rand(0.6, 1.4),
+  };
+}
+
 export default function LiquidOrbLoader({ size = 320, running = false, label }) {
+  const gooId = `goo-${useId().replace(/:/g, "")}`;
+  const blur = size * 0.04;
+
+  const rootRef = useRef(null);
+  const poolRef = useRef(null);
+  const capRef = useRef(null);
+  const blobRefs = useRef([]);
+  const runningRef = useRef(running);
+  runningRef.current = running;
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    // Estado inicial aleatorio (distinto en cada montaje).
+    const state = BLOBS.map((b) => {
+      const minX = -b.left / 100 + 0.02;
+      const maxX = 1 - b.left / 100 - b.d - 0.02;
+      return newCycle(b, clamp(rand(-0.1, 0.1), minX, maxX), true);
+    });
+    const poolNoise = [makeNoise(), makeNoise(), makeNoise()];
+    const capNoise = [makeNoise(), makeNoise(), makeNoise()];
+
+    let rate = runningRef.current ? RUN_RATE : IDLE_RATE;
+    let clock = rand(0, 1000); // tiempo "virtual" para los ruidos
+    let last = performance.now();
+    let raf;
+
+    const paint = () => {
+      const S = root.offsetWidth || size;
+
+      BLOBS.forEach((b, i) => {
+        const el = blobRefs.current[i];
+        if (!el) return;
+        const c = state[i];
+        const waiting = c.dwell > 0;
+        const t = waiting ? 0 : c.t;
+        const h = (1 - Math.cos(t * TAU)) / 2; // 0 → 1 → 0
+        const y = b.y0 + (b.y1 - b.y0) * h * c.peak;
+        const x =
+          c.xs + (c.xe - c.xs) * smooth(t) + c.sway * Math.sin(t * TAU) +
+          c.wobble * 0.3 * Math.sin(clock * c.wobbleSpeed + c.wobblePhase);
+        const speed = Math.abs(Math.sin(t * TAU));
+        const sy =
+          1 + 0.15 * speed + c.wobble * Math.sin(clock * c.wobbleSpeed * 1.3 + c.wobblePhase);
+        const sx = 1 / sy;
+        el.style.transform = `translate3d(${(x * S).toFixed(2)}px, ${(y * S).toFixed(2)}px, 0) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+      });
+
+      if (poolRef.current) {
+        const [a, b, c] = poolNoise.map((n) => n(clock));
+        poolRef.current.style.transform = `translateY(${(-6 - a * 5).toFixed(2)}%) scale(${(1.03 + b * 0.05).toFixed(3)}, ${(1.08 + c * 0.1).toFixed(3)})`;
+      }
+      if (capRef.current) {
+        const [a, b, c] = capNoise.map((n) => n(clock));
+        capRef.current.style.transform = `translate(${(a * 12).toFixed(2)}%, ${(b * 8).toFixed(2)}%) scale(${(1 + c * 0.14).toFixed(3)}, ${(1 + b * 0.12).toFixed(3)})`;
+      }
+    };
+
+    if (reduced) {
+      // Sin movimiento: una pose estática.
+      state.forEach((c) => (c.t = 0.5));
+      paint();
+      return;
+    }
+
+    const tick = (now) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+
+      // Velocidad global: se acerca gradualmente al objetivo.
+      const target = runningRef.current ? RUN_RATE : IDLE_RATE;
+      rate += (target - rate) * (1 - Math.exp(-dt / RATE_SMOOTHING));
+
+      clock += dt * rate;
+
+      state.forEach((c, i) => {
+        if (c.dwell > 0) {
+          c.dwell -= dt * rate;
+          return;
+        }
+        c.t += (dt * rate) / c.dur;
+        if (c.t >= 1) state[i] = newCycle(BLOBS[i], c.xe, false);
+      });
+
+      paint();
+      raf = requestAnimationFrame(tick);
+    };
+
+    paint();
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [size]);
+
   return (
     <div className="flex w-full flex-col items-center gap-5">
+      {/* Filtro metaball: desenfoca y "endurece" el alfa para que las gotas se fundan */}
+      <svg width="0" height="0" className="absolute" aria-hidden="true" focusable="false">
+        <defs>
+          <filter id={gooId} x="-10%" y="-10%" width="120%" height="120%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation={blur} result="b" />
+            <feColorMatrix
+              in="b"
+              type="matrix"
+              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10"
+            />
+          </filter>
+        </defs>
+      </svg>
+
       <div
-        className={`liquid-orb relative shrink-0 overflow-hidden rounded-full transition-all duration-700 ${
-          running ? "liquid-orb--active" : ""
-        }`}
+        ref={rootRef}
+        className={`lava ${running ? "lava--active" : ""}`}
         style={{
           width: size,
           maxWidth: "100%",
           aspectRatio: "1 / 1",
-          "--orb-size": `${size}px`,
-          "--orb-speed": running ? 1.8 : 1,
         }}
         role="status"
         aria-label={label || (running ? "Ejecutando modelo" : "En espera")}
       >
-        {/* Blobs líquidos internos */}
-        <span className="liquid-orb__blob liquid-orb__blob--a" />
-        <span className="liquid-orb__blob liquid-orb__blob--b" />
-        <span className="liquid-orb__blob liquid-orb__blob--c" />
-        
-        {/* Reflejo especular superior (Efecto cristal) */}
-        <div className="liquid-orb__specular" />
-
-        {/* Anillo de borde y profundidad */}
-        <div className="liquid-orb__ring" />
+        <div className="lava__glass bg-gray-100 dark:bg-gray-900">
+          {/* Cera: capa con filtro gooey */}
+          <div className="lava__wax" style={{ filter: `url(#${gooId})` }}>
+            <span ref={poolRef} className="lava__pool" />
+            <span ref={capRef} className="lava__cap" />
+            {BLOBS.map((b, i) => (
+              <span
+                key={i}
+                ref={(el) => (blobRefs.current[i] = el)}
+                className="lava__blob"
+                style={{
+                  left: `${b.left}%`,
+                  width: `${b.d * 100}%`,
+                  height: `${b.d * 100}%`,
+                }}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       {label && (
@@ -40,107 +218,48 @@ export default function LiquidOrbLoader({ size = 320, running = false, label }) 
       )}
 
       <style>{`
-        .liquid-orb {
-          background: linear-gradient(145deg, #f3f4f6 0%, #e5e7eb 100%);
-          box-shadow: 
-            0 10px 25px -5px rgba(0, 0, 0, 0.05),
-            0 0 0 1px rgba(0, 0, 0, 0.04) inset;
-          transform: scale(1);
-          transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s ease;
+        .lava {
+          --accent: var(--accent-500, #d97706);
+          position: relative;
+          flex-shrink: 0;
         }
 
-        /* Soporte para modo oscuro en Tailwind (asumiendo clase .dark en el HTML/Body) */
-        :global(.dark) .liquid-orb,
-        .dark .liquid-orb {
-          background: linear-gradient(145deg, #111827 0%, #030712 100%);
-          box-shadow: 
-            0 15px 30px -5px rgba(0, 0, 0, 0.5),
-            0 0 0 1px rgba(255, 255, 255, 0.08) inset;
-        }
-
-        .liquid-orb--active {
-          transform: scale(1.04);
-          box-shadow: 
-            0 20px 40px -10px var(--accent-500, rgba(192, 138, 46, 0.25)),
-            0 0 0 1px var(--accent-500, rgba(192, 138, 46, 0.4)) inset;
-        }
-
-        .liquid-orb__blob {
-          position: absolute;
-          inset: -25%;
+        .lava__glass {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
           border-radius: 999px;
-          filter: blur(calc(var(--orb-size, 320px) * 0.1));
-          opacity: 0.85;
-          will-change: transform;
-          mix-blend-mode: multiply;
+          /* El fondo circular lo pone Tailwind (bg-gray-100 / dark:bg-gray-900):
+             un tono apenas más oscuro que la página en claro y más claro en oscuro. */
+          transform: scale(1);
+          transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
         }
+        .lava--active .lava__glass { transform: scale(1.1); }
 
-        :global(.dark) .liquid-orb__blob,
-        .dark .liquid-orb__blob {
-          mix-blend-mode: screen;
-          opacity: 0.75;
-        }
-
-        .liquid-orb__blob--a {
-          background: radial-gradient(circle, var(--accent-500, #d97706) 0%, transparent 65%);
-          animation: liquidOrbDrift calc(5.5s / var(--orb-speed, 1)) cubic-bezier(0.37, 0, 0.63, 1) infinite;
-        }
-
-        .liquid-orb__blob--b {
-          background: radial-gradient(circle, #059669 0%, transparent 60%);
-          animation: liquidOrbDrift calc(7s / var(--orb-speed, 1)) cubic-bezier(0.37, 0, 0.63, 1) infinite reverse;
-          animation-delay: -1.8s;
-        }
-
-        .liquid-orb__blob--c {
-          background: radial-gradient(circle, #3b82f6 0%, transparent 60%);
-          opacity: 0.6;
-          animation: liquidOrbDrift calc(4.8s / var(--orb-speed, 1)) cubic-bezier(0.37, 0, 0.63, 1) infinite;
-          animation-delay: -3s;
-        }
-
-        .liquid-orb__specular {
-          position: absolute;
-          top: 5%;
-          left: 15%;
-          right: 15%;
-          height: 35%;
-          background: linear-gradient(to bottom, rgba(255, 255, 255, 0.4), transparent);
-          border-radius: 50%;
-          pointer-events: none;
-          filter: blur(4px);
-        }
-
-        :global(.dark) .liquid-orb__specular,
-        .dark .liquid-orb__specular {
-          background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), transparent);
-        }
-
-        .liquid-orb__ring {
+        .lava__wax {
           position: absolute;
           inset: 0;
-          border-radius: inherit;
-          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4) inset;
-          pointer-events: none;
         }
 
-        :global(.dark) .liquid-orb__ring,
-        .dark .liquid-orb__ring {
-          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+        .lava__pool,
+        .lava__cap,
+        .lava__blob {
+          position: absolute;
+          border-radius: 999px;
+          background: var(--accent);
+          will-change: transform;
         }
-
-        @keyframes liquidOrbDrift {
-          0%   { transform: translate(-8%, -6%) scale(1) rotate(0deg); }
-          33%  { transform: translate(10%, 8%) scale(1.18) rotate(120deg); }
-          66%  { transform: translate(-5%, 9%) scale(0.9) rotate(240deg); }
-          100% { transform: translate(-8%, -6%) scale(1) rotate(360deg); }
+        .lava__pool {
+          left: 8%; right: 8%; bottom: -14%;
+          height: 34%;
         }
-
-        @media (prefers-reduced-motion: reduce) {
-          .liquid-orb__blob {
-            animation: none;
-          }
+        .lava__cap {
+          left: 32%; right: 32%; top: -16%;
+          height: 24%;
+          opacity: 0.9;
         }
+        .lava__blob { top: 0; }
       `}</style>
     </div>
   );

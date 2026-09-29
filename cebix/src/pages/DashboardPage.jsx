@@ -6,7 +6,7 @@ import ParcelsTable from "../components/dashboard/ParcelsTable";
 export default function DashboardPage() {
   return (
     <>
-      <TopBar title="Parcelas evaluadas" subtitle="Del dato satelital a la decisión financiera." />
+      <TopBar title="Resumen general" subtitle="Del dato satelital a la decisión financiera." />
 
       <div className="mt-6 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
 

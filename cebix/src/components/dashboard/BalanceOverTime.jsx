@@ -52,8 +52,8 @@ export default function BalanceOverTime() {
           <AreaChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="balanceFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--accent-500)" stopOpacity={0.18} />
-                <stop offset="100%" stopColor="var(--accent-500)" stopOpacity={0} />
+                <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.18} />
+                <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <XAxis
@@ -67,11 +67,11 @@ export default function BalanceOverTime() {
             <Area
               type="monotone"
               dataKey="value"
-              stroke="var(--accent-500)"
+              stroke="var(--chart-1)"
               strokeWidth={2.5}
               fill="url(#balanceFill)"
               dot={false}
-              activeDot={{ r: 4, fill: "var(--accent-500)", stroke: "#fff", strokeWidth: 2 }}
+              activeDot={{ r: 4, fill: "var(--chart-1)", stroke: "#fff", strokeWidth: 2 }}
             />
           </AreaChart>
         </ResponsiveContainer>

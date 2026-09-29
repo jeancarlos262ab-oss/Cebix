@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Download, Play, Upload } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 
@@ -12,14 +13,12 @@ const API_URL = (import.meta.env.VITE_MODEL_API_URL || "http://localhost:8000").
 export default function EjecutarModeloPage() {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [results, setResults] = useState(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!file) return;
     setLoading(true);
-    setError(null);
     setResults(null);
 
     try {
@@ -34,8 +33,11 @@ export default function EjecutarModeloPage() {
       }
       const data = await res.json();
       setResults(data.predicciones);
+      toast.success(
+        `Modelo ejecutado: ${data.predicciones.length} parcela${data.predicciones.length === 1 ? "" : "s"} procesada${data.predicciones.length === 1 ? "" : "s"}.`
+      );
     } catch (err) {
-      setError(
+      toast.error(
         err.message === "Failed to fetch"
           ? "No se pudo conectar al backend. Si está en Render/Railway con plan gratuito puede tardar ~30 s en despertar; intenta de nuevo."
           : err.message

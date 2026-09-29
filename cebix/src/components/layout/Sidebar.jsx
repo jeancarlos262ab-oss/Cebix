@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { ChevronRight, ChevronsUpDown, LogOut, Settings, X } from "lucide-react";
 import { generalNav, workspaceNav } from "../../data/navigation";
@@ -43,13 +44,83 @@ function NavSection({ title, items }) {
   );
 }
 
+function SignOutConfirm({ onCancel, onConfirm, loading }) {
+  // Escape cancela (salvo mientras se está cerrando la sesión).
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === "Escape" && !loading) onCancel();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [loading, onCancel]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4"
+      onClick={loading ? undefined : onCancel}
+    >
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="signout-title"
+        aria-describedby="signout-desc"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-sm border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900"
+      >
+        <div className="flex items-start gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+            <LogOut size={17} />
+          </span>
+          <div className="min-w-0">
+            <h2 id="signout-title" className="text-sm font-semibold text-gray-900 dark:text-white">
+              ¿Cerrar sesión?
+            </h2>
+            <p id="signout-desc" className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Tendrás que iniciar sesión de nuevo para volver a entrar.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            autoFocus
+            onClick={onCancel}
+            disabled={loading}
+            className="border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            className="bg-accent-500 px-4 py-2 text-sm font-semibold text-accent-contrast shadow-sm transition-colors hover:bg-accent-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:opacity-60 dark:focus-visible:ring-offset-gray-900"
+          >
+            {loading ? "Cerrando sesión..." : "Cerrar sesión"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Sidebar() {
   const { mobileOpen, close } = useSidebar();
   const { user, profile, signOut } = useAuth();
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
   async function handleSignOut() {
-    await signOut();
-    close();
+    setSigningOut(true);
+    try {
+      await signOut();
+    } finally {
+      setSigningOut(false);
+      setConfirmOpen(false);
+      close();
+    }
   }
 
   return (
@@ -119,7 +190,7 @@ export default function Sidebar() {
           </NavLink>
           <button
             type="button"
-            onClick={handleSignOut}
+            onClick={() => setConfirmOpen(true)}
             className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
           >
             <LogOut size={17} className="shrink-0" />
@@ -127,6 +198,15 @@ export default function Sidebar() {
           </button>
         </div>
       </aside>
+
+      {/* Fuera del <aside>: su transform haría que "fixed" se posicione respecto a él. */}
+      {confirmOpen && (
+        <SignOutConfirm
+          loading={signingOut}
+          onCancel={() => setConfirmOpen(false)}
+          onConfirm={handleSignOut}
+        />
+      )}
     </>
   );
 }

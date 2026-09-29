@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 import { Download, Plus } from "lucide-react";
 import UploadDropzone from "./UploadDropzone";
 import ParcelRow from "./ParcelRow";
@@ -19,12 +20,12 @@ export default function ParcelsTable() {
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Parcelas evaluadas</h2>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Parcelas evaluadas</h2>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => exportParcelsCSV(parcels)}
-            className="flex items-center gap-1.5 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800"
+            className="flex items-center gap-1.5 border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
           >
             <Download size={15} />
             Exportar reporte
@@ -32,7 +33,7 @@ export default function ParcelsTable() {
           <button
             type="button"
             onClick={() => setModal("add")}
-            className="flex items-center gap-1.5 bg-accent-500 px-3 py-2 text-sm font-medium text-accent-contrast shadow-sm hover:bg-accent-600"
+            className="flex items-center gap-1.5 bg-accent-500 px-3 py-2 text-sm font-medium text-accent-contrast shadow-sm transition-colors hover:bg-accent-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
           >
             <Plus size={15} />
             Agregar parcela
@@ -49,9 +50,9 @@ export default function ParcelsTable() {
       <div ref={tableRef} className="mt-4 overflow-x-auto border border-gray-200 shadow-card dark:border-gray-800">
         <table className="w-full min-w-[680px] border-collapse text-left">
           <thead>
-            <tr className="border-b border-gray-200 bg-gray-50 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-400">
+            <tr className="border-b border-gray-200 bg-gray-50 text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-400">
               {COLUMNS.map((col, i) => (
-                <th key={col || i} className={`py-2.5 pr-4 font-semibold ${i === 0 ? "pl-3" : ""}`}>
+                <th key={col || i} className={`py-3 pr-4 font-medium ${i === 0 ? "pl-3" : ""}`}>
                   {col}
                 </th>
               ))}
@@ -75,7 +76,15 @@ export default function ParcelsTable() {
         <ParcelFormModal
           parcel={modal === "add" ? null : modal}
           onClose={() => setModal(null)}
-          onSubmit={(fields) => (modal === "add" ? addParcel(fields) : updateParcel(modal.id, fields))}
+          onSubmit={(fields) => {
+            if (modal === "add") {
+              addParcel(fields);
+              toast.success("Parcela agregada.");
+            } else {
+              updateParcel(modal.id, fields);
+              toast.success("Parcela actualizada.");
+            }
+          }}
         />
       )}
     </section>

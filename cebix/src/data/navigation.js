@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 export const generalNav = [
-  { label: "Dashboard", icon: LayoutGrid, to: "/" },
+  { label: "Resumen", icon: LayoutGrid, to: "/" },
   { label: "Parcelas", icon: MapPin, to: "/parcelas" },
   { label: "Modelo", icon: BrainCircuit, to: "/modelo" },
   { label: "Mapa satelital", icon: Satellite, to: "/mapa" },

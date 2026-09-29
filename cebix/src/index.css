@@ -36,8 +36,10 @@
   }
 
   /* Color de acento: controla botones primarios, enlaces y estados activos
-     en toda la app. "brand" (Ámbar) es el valor por defecto; mono/ndvi se activan
-     con data-accent, elegido en Ajustes. */
+     en toda la app. "brand" (Ámbar) es el valor por defecto y la base del resto:
+     cobre / oliva / pizarra conservan su misma saturación y luminosidad (solo
+     rota el tono) para que combinen con él. mono/ndvi también se activan con
+     data-accent, elegido en Ajustes. */
   html[data-accent="brand"] {
     --accent-700: #7a581a;
     --accent-600: #9c6f1f;
@@ -56,6 +58,36 @@
     --accent-400: #7cc192;
     --accent-100: #dcefe1;
     --accent-50: #eef7f0;
+  }
+
+  html[data-accent="cobre"] {
+    --accent-700: #743f20;
+    --accent-600: #944f27;
+    --accent-500: #b76637;
+    --accent-400: #d07d4d;
+    --accent-100: #f2d4c3;
+    --accent-50: #faede5;
+    --accent-contrast: #ffffff;
+  }
+
+  html[data-accent="oliva"] {
+    --accent-700: #5d6430;
+    --accent-600: #77803b;
+    --accent-500: #949f4f;
+    --accent-400: #adb766;
+    --accent-100: #e5e9cc;
+    --accent-50: #f4f6e9;
+    --accent-contrast: #ffffff;
+  }
+
+  html[data-accent="pizarra"] {
+    --accent-700: #2c4668;
+    --accent-600: #375884;
+    --accent-500: #4a71a4;
+    --accent-400: #6088bd;
+    --accent-100: #cad8eb;
+    --accent-50: #e8eff7;
+    --accent-contrast: #ffffff;
   }
 
   html:not([data-accent]),
@@ -89,6 +121,33 @@
 
   html.dark {
     --chart-track: #4b5563;
+  }
+
+  /* Paleta PROPIA de las gráficas: no depende del color de acento (que solo
+     aplica a botones/controles), pero sale de la misma familia cálida del ámbar
+     (mismas saturación/luminosidad, solo rota el tono): ocre → oliva → cobre.
+     Son las escalas 600 (claro) y 400 (oscuro) de los acentos Ámbar/Oliva/Cobre,
+     más oscuras/apagadas que el ámbar del semáforo para no confundirse con un
+     estado de riesgo. Solo positivo/negativo usan verde/rojo porque significan
+     "suma/resta". Sin azules ni violetas. */
+  html {
+    --chart-1: #9c6f1f;        /* serie principal (ocre) */
+    --chart-2: #77803b;        /* serie secundaria (oliva) */
+    --chart-3: #944f27;        /* serie terciaria (cobre) */
+    --chart-neutral: #a29a8a;  /* referencia / error (gris cálido) */
+    --chart-positive: #4c9a63; /* suma al rendimiento */
+    --chart-negative: #b8493b; /* resta al rendimiento */
+    --chart-mixed: #9a8a72;    /* efecto mixto (taupe) */
+  }
+
+  html.dark {
+    --chart-1: #d9a544;
+    --chart-2: #adb766;
+    --chart-3: #d07d4d;
+    --chart-neutral: #a39b8b;
+    --chart-positive: #6bbf83;
+    --chart-negative: #d9695a;
+    --chart-mixed: #b3a58d;
   }
 
   /* Densidad compacta: reduce el espaciado vertical en tarjetas y filas sin
@@ -311,4 +370,68 @@ html.dark .maplibregl-ctrl-attrib a:hover {
   .auth-aside-bg {
     animation: none;
   }
+}
+
+/* react-loading-skeleton: colores acordes al tema (gris-100/800 + brillo). */
+.results-skeleton .react-loading-skeleton {
+  --base-color: #f2f4f7;
+  --highlight-color: #ffffff;
+}
+.results-skeleton .strong .react-loading-skeleton {
+  --base-color: #e4e7ec;
+}
+html.dark .results-skeleton .react-loading-skeleton {
+  --base-color: #1d2939;
+  --highlight-color: #344054;
+}
+html.dark .results-skeleton .strong .react-loading-skeleton {
+  --base-color: #344054;
+  --highlight-color: #475467;
+}
+
+/* Notificaciones (sonner): color sólido según el contexto. Mismos colores del semáforo
+   (Semaphore.jsx) de Predicciones: rojo #B8493B, amarillo #C08A2E, verde #4C9A63.
+   sonner inyecta sus propios estilos en runtime (después de este CSS), por eso
+   se usa mayor especificidad + !important para que no gane el fondo por defecto. */
+ol.app-toaster li[data-sonner-toast] {
+  --toast-bg: var(--accent-600);
+  --toast-fg: var(--accent-contrast);
+  --normal-bg: var(--toast-bg);
+  --normal-text: var(--toast-fg);
+  --normal-border: var(--toast-bg);
+  background: var(--toast-bg) !important;
+  border: 1px solid var(--toast-bg) !important;
+  color: var(--toast-fg) !important;
+  border-radius: 0 !important;
+}
+
+ol.app-toaster li[data-sonner-toast][data-type="success"] { --toast-bg: #4C9A63; --toast-fg: #ffffff; }
+ol.app-toaster li[data-sonner-toast][data-type="error"]   { --toast-bg: #B8493B; --toast-fg: #ffffff; }
+ol.app-toaster li[data-sonner-toast][data-type="warning"] { --toast-bg: #C08A2E; --toast-fg: #ffffff; }
+ol.app-toaster li[data-sonner-toast][data-type="info"]    { --toast-bg: var(--accent-600); --toast-fg: var(--accent-contrast); }
+
+ol.app-toaster li[data-sonner-toast] [data-title],
+ol.app-toaster li[data-sonner-toast] [data-description],
+ol.app-toaster li[data-sonner-toast] [data-icon],
+ol.app-toaster li[data-sonner-toast] [data-content] {
+  color: var(--toast-fg) !important;
+}
+
+ol.app-toaster li[data-sonner-toast] [data-description] {
+  opacity: 0.9;
+}
+
+ol.app-toaster li[data-sonner-toast] [data-close-button] {
+  background: var(--toast-bg) !important;
+  color: var(--toast-fg) !important;
+  border: 1px solid var(--toast-fg) !important;
+  border-radius: 9999px !important;
+  width: 22px !important;
+  height: 22px !important;
+}
+
+ol.app-toaster li[data-sonner-toast] [data-button] {
+  background: var(--toast-fg) !important;
+  color: var(--toast-bg) !important;
+  border-radius: 0 !important;
 }

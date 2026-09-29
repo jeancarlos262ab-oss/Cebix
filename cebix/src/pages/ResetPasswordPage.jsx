@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import { Lock, Eye, EyeOff, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
 import AuthLayout from "../components/auth/AuthLayout";
@@ -31,33 +32,30 @@ export default function ResetPasswordPage() {
   const { signOut } = useAuth();
   const [form, setForm] = useState({ password: "", confirmPassword: "" });
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   function handleChange(event) {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
-    if (error) setError("");
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setError("");
 
     if (form.password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
+      toast.error("La contraseña debe tener al menos 6 caracteres.");
       return;
     }
     if (form.password !== form.confirmPassword) {
-      setError("Las contraseñas no coinciden.");
+      toast.error("Las contraseñas no coinciden.");
       return;
     }
 
     setSubmitting(true);
     const { error: updateError } = await supabase.auth.updateUser({ password: form.password });
     if (updateError) {
-      setError(getUpdateErrorMessage(updateError));
+      toast.error(getUpdateErrorMessage(updateError));
       setSubmitting(false);
       return;
     }
@@ -71,14 +69,6 @@ export default function ResetPasswordPage() {
   return (
     <AuthLayout title="Restablece tu contraseña" subtitle="Elige una contraseña nueva para tu cuenta CEBIX.">
       <div className="border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-black sm:p-8">
-        {error ? (
-          <div
-            role="alert"
-            className="mb-5 border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
-          >
-            {error}
-          </div>
-        ) : null}
 
         {success ? (
           <div

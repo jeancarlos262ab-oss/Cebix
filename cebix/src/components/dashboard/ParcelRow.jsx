@@ -47,7 +47,7 @@ function ParcelRow({ parcel, onEdit }) {
           </span>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{parcel.name}</p>
-            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
+            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
               <span>{parcel.area}</span>
               {parcel.polygonId && (
                 <>
@@ -65,10 +65,10 @@ function ParcelRow({ parcel, onEdit }) {
           <Gauge size={13} className="shrink-0 text-gray-300 dark:text-gray-600" />
           <div>
             <p className="font-sora text-sm font-bold text-gray-800 dark:text-gray-200">
-              {parcel.yieldEstimate.toFixed(1)} <span className="text-xs font-medium text-gray-400 dark:text-gray-500">ton/ha</span>
+              {parcel.yieldEstimate.toFixed(1)} <span className="text-xs font-medium text-gray-500 dark:text-gray-400">ton/ha</span>
             </p>
             {typeof parcel.confidence === "number" && (
-              <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">± {parcel.confidence.toFixed(2)}</p>
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">± {parcel.confidence.toFixed(2)}</p>
             )}
           </div>
         </div>
@@ -77,7 +77,7 @@ function ParcelRow({ parcel, onEdit }) {
       <td className="py-4 pr-4">
         <div className="flex items-center justify-between gap-2">
           <CategoryTag label={parcel.risk} color={parcel.riskColor} />
-          <span className="text-xs font-medium text-gray-400 dark:text-gray-500">{parcel.score}</span>
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{parcel.score}</span>
         </div>
         <div className="mt-1.5 h-1 w-24 overflow-hidden bg-gray-100 dark:bg-gray-800">
           <div
@@ -108,7 +108,7 @@ function ParcelRow({ parcel, onEdit }) {
           </span>
           <div>
             <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{parcel.municipio}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500">{parcel.region}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{parcel.region}</p>
           </div>
         </div>
       </td>
@@ -127,7 +127,7 @@ function ParcelRow({ parcel, onEdit }) {
             className={[
               "p-1.5",
               onEdit
-                ? "text-gray-300 dark:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-500 dark:hover:text-gray-400"
+                ? "text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
                 : "cursor-not-allowed text-gray-200 dark:text-gray-800",
             ].join(" ")}
           >
@@ -135,7 +135,7 @@ function ParcelRow({ parcel, onEdit }) {
           </button>
           <ChevronRight
             size={15}
-            className="text-gray-200 transition-transform group-hover:translate-x-0.5 group-hover:text-gray-400 dark:text-gray-700 dark:group-hover:text-gray-500"
+            className="text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-gray-500 dark:text-gray-600 dark:group-hover:text-gray-400"
           />
         </div>
       </td>

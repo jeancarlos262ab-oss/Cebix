@@ -7,6 +7,7 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
 import { ParcelsProvider } from "./context/ParcelsContext.jsx";
 import { UsersProvider } from "./context/UsersContext.jsx";
+import AppToaster from "./components/ui/AppToaster.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -17,6 +18,7 @@ createRoot(document.getElementById("root")).render(
             <BrowserRouter>
               <App />
             </BrowserRouter>
+            <AppToaster />
           </UsersProvider>
         </ParcelsProvider>
       </AuthProvider>

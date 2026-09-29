@@ -77,7 +77,7 @@ export default function ParcelSummary() {
 
   return (
     <section className="bg-white dark:bg-black">
-      <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Resumen del modelo</h2>
+      <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Resumen del modelo</h2>
       <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
         Rendimiento y riesgo por parcela.
       </p>
@@ -85,14 +85,19 @@ export default function ParcelSummary() {
 
       <ParcelEmblem />
 
-      <div className="mt-2 flex gap-5 border-b border-gray-200 dark:border-gray-800 text-sm font-medium">
+      <div
+        role="tablist"
+        className="mt-2 flex gap-5 overflow-x-auto whitespace-nowrap border-b border-gray-200 text-sm font-medium dark:border-gray-800"
+      >
         {TABS.map((tab) => (
           <button
             key={tab}
             type="button"
+            role="tab"
+            aria-selected={activeTab === tab}
             onClick={() => setActiveTab(tab)}
             className={[
-              "relative -mb-px pb-2.5 transition-colors duration-200",
+              "relative -mb-px pb-3 pt-1 transition-colors duration-200 focus:outline-none focus-visible:text-accent-600",
               activeTab === tab
                 ? "text-accent-600"
                 : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300",
@@ -121,14 +126,14 @@ export default function ParcelSummary() {
           >
             {activeTab === "Variables" ? (
               <div className="mt-4">
-                <FeatureImportanceChart data={globalImportance.slice(0, 6)} height={180} />
+                <FeatureImportanceChart data={globalImportance.slice(0, 6)} />
               </div>
             ) : (
-              <dl className="mt-4 space-y-3">
+              <dl className="mt-2 divide-y divide-gray-100 dark:divide-gray-800">
                 {summaryRows.map((row) => (
-                  <div key={row.label} className="flex items-center justify-between gap-4">
+                  <div key={row.label} className="flex items-baseline justify-between gap-4 py-3">
                     <dt className="text-sm text-gray-500 dark:text-gray-400">{row.label}</dt>
-                    <dd className="font-sora shrink-0 text-sm font-bold text-gray-900 dark:text-gray-100">{row.value}</dd>
+                    <dd className="font-sora shrink-0 text-base font-bold tabular-nums text-gray-900 dark:text-gray-100">{row.value}</dd>
                   </div>
                 ))}
               </dl>
@@ -137,8 +142,12 @@ export default function ParcelSummary() {
         </AnimatePresence>
       </motion.div>
 
-      <motion.div layout transition={{ duration: 0.3, ease: "easeInOut" }} className="mt-6">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+      <motion.div
+        layout
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="mt-6 border-t border-gray-200 pt-6 dark:border-gray-700"
+      >
+        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
           Variables por etapa del ciclo
         </h3>
         <div className="mt-3">
@@ -154,6 +163,16 @@ export default function ParcelSummary() {
         <div className="mt-4">
           <MiniBarChart data={BARS_BY_PERIOD[period]} />
         </div>
+        <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <li className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: "var(--chart-track)" }} />
+            GDD máximo regional
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: "var(--chart-2)" }} />
+            GDD observado
+          </li>
+        </ul>
       </motion.div>
     </section>
   );

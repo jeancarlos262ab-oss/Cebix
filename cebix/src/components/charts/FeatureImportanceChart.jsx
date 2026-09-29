@@ -1,55 +1,70 @@
-import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-
 const DIRECTION_COLOR = {
-  positivo: "var(--accent-500)",
-  negativo: "#B8493B",
-  mixto: "var(--accent-400)",
+  positivo: "var(--chart-positive)",
+  negativo: "var(--chart-negative)",
+  mixto: "var(--chart-mixed)",
 };
 
-function ChartTooltip({ active, payload }) {
-  if (!active || !payload?.length) return null;
-  const row = payload[0].payload;
-  return (
-    <div className=" bg-gray-900 px-2.5 py-1.5 text-xs text-white shadow-lg">
-      <p className="font-semibold">{row.feature}</p>
-      <p className="text-gray-300 dark:text-gray-600">
-        Impacto {row.direction}: {Math.abs(row.value ?? row.impact).toFixed(2)}
-      </p>
-    </div>
-  );
-}
+const DIRECTION_LABEL = {
+  positivo: "Suma al rendimiento",
+  negativo: "Resta al rendimiento",
+  mixto: "Efecto mixto",
+};
+
+const SIGN = { positivo: "+", negativo: "−", mixto: "±" };
 
 /**
+ * Contribución SHAP por variable, como lista con barras proporcionales.
+ * Se hace en HTML (no en recharts) para que los nombres largos se lean completos
+ * en vez de cortarse en el eje. `height` se acepta por compatibilidad pero ya no
+ * se usa: la lista toma el alto que necesite.
+ *
  * @param {{data: {feature: string, value?: number, impact?: number, direction: string}[], height?: number}} props
  */
-export default function FeatureImportanceChart({ data, height = 260 }) {
+export default function FeatureImportanceChart({ data }) {
   const rows = data.map((d) => ({ ...d, magnitude: Math.abs(d.value ?? d.impact) }));
+  const max = Math.max(...rows.map((r) => r.magnitude), 0.0001);
+  const present = [...new Set(rows.map((r) => r.direction))];
 
   return (
-    <div style={{ height }} className="w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={rows}
-          layout="vertical"
-          margin={{ top: 4, right: 24, left: 0, bottom: 0 }}
-        >
-          <XAxis type="number" hide />
-          <YAxis
-            type="category"
-            dataKey="feature"
-            width={190}
-            axisLine={false}
-            tickLine={false}
-            tick={{ fill: "#475467", fontSize: 12 }}
-          />
-          <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(100,116,139,0.08)" }} />
-          <Bar dataKey="magnitude" radius={[0, 6, 6, 0]} barSize={14}>
-            {rows.map((row, i) => (
-              <Cell key={i} fill={DIRECTION_COLOR[row.direction] ?? "#98A2B3"} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="w-full">
+      <ul className="space-y-4">
+        {rows.map((row) => {
+          const color = DIRECTION_COLOR[row.direction] ?? "var(--chart-neutral)";
+          const pct = Math.max(1.5, (row.magnitude / max) * 100);
+          return (
+            <li key={row.feature}>
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-sm leading-snug text-gray-800 dark:text-gray-200">
+                  {row.feature}
+                </span>
+                <span className="font-sora shrink-0 text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                  {SIGN[row.direction] ?? ""}
+                  {row.magnitude.toFixed(2)}
+                </span>
+              </div>
+              <div
+                className="mt-1.5 h-2 w-full bg-gray-100 dark:bg-gray-800"
+                role="img"
+                aria-label={`${row.feature}: impacto ${row.direction} de ${row.magnitude.toFixed(2)}`}
+              >
+                <div className="h-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5 border-t border-gray-100 pt-3 dark:border-gray-800">
+        {present.map((dir) => (
+          <li key={dir} className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <span
+              className="h-2.5 w-2.5 shrink-0"
+              style={{ backgroundColor: DIRECTION_COLOR[dir] ?? "var(--chart-neutral)" }}
+            />
+            {DIRECTION_LABEL[dir] ?? dir}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

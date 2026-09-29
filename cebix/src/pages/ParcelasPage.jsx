@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 import { Download, Plus } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
@@ -70,7 +71,7 @@ export default function ParcelasPage() {
             <button
               type="button"
               onClick={() => exportParcelsCSV(filtered, `cebix-parcelas-${region.toLowerCase()}.csv`)}
-              className="flex items-center gap-1.5 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800"
+              className="flex items-center gap-1.5 border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
             >
               <Download size={15} />
               Exportar
@@ -78,7 +79,7 @@ export default function ParcelasPage() {
             <button
               type="button"
               onClick={() => setModal("add")}
-              className="flex items-center gap-1.5 bg-accent-500 px-3 py-2 text-sm font-medium text-accent-contrast shadow-sm hover:bg-accent-600"
+              className="flex items-center gap-1.5 bg-accent-500 px-3 py-2 text-sm font-medium text-accent-contrast shadow-sm transition-colors hover:bg-accent-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
             >
               <Plus size={15} />
               Agregar parcela
@@ -92,45 +93,62 @@ export default function ParcelasPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1px_1fr]">
         {/* Rail izquierdo: filtros, resumen de riesgo y alta de parcelas */}
         <aside className="bg-white px-4 py-6 dark:bg-black sm:px-6 lg:pl-8 lg:pr-8">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Filtrar por región</h2>
-          <div className="mt-3 flex flex-col gap-1.5">
-            {REGION_FILTERS.map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => handleRegionChange(r)}
-                className={[
-                  " px-3 py-2 text-left text-sm font-medium transition-colors",
-                  region === r
-                    ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
-                    : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800/60",
-                ].join(" ")}
-              >
-                {r}
-              </button>
-            ))}
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Filtrar por región</h2>
+          <div className="mt-3 flex flex-col" role="group" aria-label="Región">
+            {REGION_FILTERS.map((r) => {
+              const active = region === r;
+              return (
+                <button
+                  key={r}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => handleRegionChange(r)}
+                  className={[
+                    "relative px-3 py-2.5 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-500",
+                    active
+                      ? "bg-gray-100 font-semibold text-gray-900 dark:bg-gray-800 dark:text-white"
+                      : "font-medium text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800/60",
+                  ].join(" ")}
+                >
+                  {active && (
+                    <span className="absolute inset-y-0 left-0 w-0.5 bg-accent-500" aria-hidden="true" />
+                  )}
+                  {r}
+                </button>
+              );
+            })}
           </div>
 
           <div className="mt-5 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
 
-          <h3 className="mt-5 text-sm font-semibold text-gray-900 dark:text-gray-100">
+          <h3 className="mt-5 text-base font-semibold text-gray-900 dark:text-gray-100">
             Resumen de elegibilidad
           </h3>
-          <dl className="mt-3 space-y-2.5 text-sm">
-            {riskCounts.map((r) => (
-              <div key={r.key} className="flex items-center justify-between">
-                <dt className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                  <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: r.color }} />
-                  {r.label}
-                </dt>
-                <dd className="font-sora font-bold text-gray-900 dark:text-gray-100">{r.count}</dd>
-              </div>
-            ))}
+          <dl className="mt-4 space-y-3.5 text-sm">
+            {riskCounts.map((r) => {
+              const share = filtered.length ? (r.count / filtered.length) * 100 : 0;
+              return (
+                <div key={r.key}>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                      <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: r.color }} />
+                      {r.label}
+                    </dt>
+                    <dd className="font-sora text-base font-bold tabular-nums text-gray-900 dark:text-gray-100">
+                      {r.count}
+                    </dd>
+                  </div>
+                  <div className="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800" aria-hidden="true">
+                    <div className="h-full" style={{ width: `${share}%`, backgroundColor: r.color }} />
+                  </div>
+                </div>
+              );
+            })}
           </dl>
 
           <div className="mt-5 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
 
-          <h3 className="mt-5 text-sm font-semibold text-gray-900 dark:text-gray-100">
+          <h3 className="mt-5 text-base font-semibold text-gray-900 dark:text-gray-100">
             Registrar nueva parcela
           </h3>
           <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
@@ -159,9 +177,9 @@ export default function ParcelasPage() {
             <div className="overflow-x-auto border border-gray-200 shadow-card dark:border-gray-800">
               <table className="w-full min-w-[680px] border-collapse text-left">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-400">
+                  <tr className="border-b border-gray-200 bg-gray-50 text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-400">
                     {COLUMNS.map((col, i) => (
-                      <th key={col || i} className={`py-2.5 pr-4 font-semibold ${i === 0 ? "pl-3" : ""}`}>
+                      <th key={col || i} className={`py-3 pr-4 font-medium ${i === 0 ? "pl-3" : ""}`}>
                         {col}
                       </th>
                     ))}
@@ -187,7 +205,15 @@ export default function ParcelasPage() {
         <ParcelFormModal
           parcel={modal === "add" ? null : modal}
           onClose={() => setModal(null)}
-          onSubmit={(fields) => (modal === "add" ? addParcel(fields) : updateParcel(modal.id, fields))}
+          onSubmit={(fields) => {
+            if (modal === "add") {
+              addParcel(fields);
+              toast.success("Parcela agregada.");
+            } else {
+              updateParcel(modal.id, fields);
+              toast.success("Parcela actualizada.");
+            }
+          }}
         />
       )}
     </>

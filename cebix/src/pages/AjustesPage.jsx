@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Palette, Bell, Globe2, Satellite, Check, RotateCcw } from "lucide-react";
+import { Palette, Bell, Globe2, Satellite, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import TopBar from "../components/layout/TopBar";
 import SettingsSection from "../components/settings/SettingsSection";
 import ThemePreviewCard from "../components/settings/ThemePreviewCard";
@@ -8,8 +9,11 @@ import { useTheme } from "../context/ThemeContext";
 
 const ACCENTS = [
   { id: "brand", label: "Ámbar", swatch: "#C08A2E" },
-  { id: "mono", label: "Negro", swatch: "#111827", darkLabel: "Blanco", darkSwatch: "#FFFFFF" },
+  { id: "cobre", label: "Cobre", swatch: "#B76637" },
+  { id: "oliva", label: "Oliva", swatch: "#949F4F" },
+  { id: "pizarra", label: "Pizarra", swatch: "#4A71A4" },
   { id: "ndvi", label: "NDVI", swatch: "#4C9A63" },
+  { id: "mono", label: "Negro", swatch: "#111827", darkLabel: "Blanco", darkSwatch: "#FFFFFF" },
 ];
 
 export default function AjustesPage() {
@@ -32,13 +36,6 @@ export default function AjustesPage() {
     capaMapa: "NDVI",
   });
 
-  const [saved, setSaved] = useState(false);
-
-  function handleSave() {
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 2200);
-  }
-
   function handleReset() {
     setTheme("system");
     setAccent("brand");
@@ -50,6 +47,7 @@ export default function AjustesPage() {
       zonaHoraria: "America/Mexico_City",
       capaMapa: "NDVI",
     });
+    toast.info("Ajustes restablecidos.");
   }
 
   return (
@@ -67,14 +65,6 @@ export default function AjustesPage() {
             >
               <RotateCcw size={13} />
               Restablecer
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="flex items-center gap-1.5 bg-accent-500 px-3.5 py-2 text-xs font-semibold text-accent-contrast shadow-sm hover:bg-accent-600"
-            >
-              {saved ? <Check size={13} /> : null}
-              {saved ? "Guardado" : "Guardar cambios"}
             </button>
           </div>
         }

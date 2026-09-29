@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronDown,
@@ -52,6 +53,7 @@ export default function PrediccionesPage() {
   const handleSubmit = () => {
     submitToCommittee(parcel.id);
     generateCreditReportPDF(parcel, { submitted: true });
+    toast.success("Solicitud enviada al comité y reporte PDF generado.");
     setJustSubmitted(true);
     window.setTimeout(() => setJustSubmitted(false), 2500);
   };
@@ -125,7 +127,7 @@ export default function PrediccionesPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1px_1fr]">
         {/* Rail izquierdo: selector + semáforo + resumen + acción */}
         <aside className="bg-white px-4 py-6 dark:bg-black sm:px-6 lg:pl-8 lg:pr-8">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
             Parcela seleccionada
           </h2>
           <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
@@ -136,7 +138,7 @@ export default function PrediccionesPage() {
             <select
               value={selectedId}
               onChange={(e) => setSelectedId(Number(e.target.value))}
-              className="w-full appearance-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-black py-2.5 pl-3 pr-9 text-sm font-medium text-gray-800 dark:text-gray-200 shadow-sm focus:border-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-100"
+              className="w-full appearance-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-black py-2.5 pl-3 pr-9 text-sm font-medium text-gray-800 dark:text-gray-200 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
             >
               {parcels.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -156,21 +158,21 @@ export default function PrediccionesPage() {
 
           <div className="mt-5 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
 
-          <dl className="mt-5 space-y-2.5 text-sm">
-            <div className="flex items-center justify-between">
+          <dl className="mt-5 divide-y divide-gray-100 border-y border-gray-100 text-sm dark:divide-gray-800 dark:border-gray-800">
+            <div className="flex items-baseline justify-between gap-3 py-2.5">
               <dt className="text-gray-500 dark:text-gray-400">Parcela</dt>
-              <dd className="font-medium text-gray-900 dark:text-gray-100">{parcel.name}</dd>
+              <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{parcel.name}</dd>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-baseline justify-between gap-3 py-2.5">
               <dt className="text-gray-500 dark:text-gray-400">Municipio</dt>
-              <dd className="font-medium text-gray-900 dark:text-gray-100">{parcel.municipio}</dd>
+              <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{parcel.municipio}</dd>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-baseline justify-between gap-3 py-2.5">
               <dt className="text-gray-500 dark:text-gray-400">Superficie</dt>
-              <dd className="font-medium text-gray-900 dark:text-gray-100">{parcel.area}</dd>
+              <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{parcel.area}</dd>
             </div>
             {submittedAt && (
-              <div className="flex items-center justify-between">
+              <div className="flex items-baseline justify-between gap-3 py-2.5">
                 <dt className="text-gray-500 dark:text-gray-400">Última solicitud</dt>
                 <dd className="font-medium text-ndvi-600 dark:text-ndvi-400">
                   {new Date(submittedAt).toLocaleDateString("es-MX")}
@@ -182,7 +184,11 @@ export default function PrediccionesPage() {
           <button
             type="button"
             onClick={handleSubmit}
-            className="mt-6 flex w-full items-center justify-center gap-2 bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast shadow-sm hover:bg-accent-600 disabled:opacity-70"
+            className={`mt-6 flex w-full items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black ${
+              justSubmitted
+                ? "bg-ndvi-600 text-white"
+                : "bg-accent-500 text-accent-contrast hover:bg-accent-600"
+            }`}
           >
             {justSubmitted ? <CheckCircle2 size={15} /> : <Send size={15} />}
             {buttonLabel}
@@ -208,7 +214,8 @@ export default function PrediccionesPage() {
         >
           <div className="px-4 py-6 sm:px-6 lg:pl-8 lg:pr-8">
           <div className="grid grid-cols-2 divide-x divide-y divide-gray-200 border border-gray-200 dark:divide-gray-800 dark:border-gray-800 sm:grid-cols-4 sm:divide-y-0">
-            <div className="p-4">
+            <div className="relative p-5">
+              <span className="absolute inset-y-0 left-0 w-0.5 bg-accent-500" aria-hidden="true" />
               <StatCard
                 label="Rendimiento esperado"
                 value={`${parcel.yieldEstimate.toFixed(1)} ton/ha`}
@@ -217,7 +224,7 @@ export default function PrediccionesPage() {
                 tone="navy"
               />
             </div>
-            <div className="p-4">
+            <div className="p-5">
               <StatCard
                 label="Score de elegibilidad"
                 value={`${parcel.score} / 100`}
@@ -226,7 +233,7 @@ export default function PrediccionesPage() {
                 tone="navy"
               />
             </div>
-            <div className="p-4">
+            <div className="p-5">
               <StatCard
                 label="NDVI pico"
                 value={parcel.ndvi.toFixed(2)}
@@ -235,7 +242,7 @@ export default function PrediccionesPage() {
                 tone="navy"
               />
             </div>
-            <div className="p-4">
+            <div className="p-5">
               <StatCard
                 label="Precipitación"
                 value={`${parcel.precip} mm`}
@@ -250,7 +257,7 @@ export default function PrediccionesPage() {
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-[1fr_280px]">
             <div>
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                 Rendimiento esperado a cosecha
               </h2>
               <div className="mt-4">
@@ -259,11 +266,11 @@ export default function PrediccionesPage() {
             </div>
 
             <div>
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                 Ubicación
               </h2>
               <div className="mt-4">
-                <StaticMapImage lat={parcel.lat} lng={parcel.lng} zoom={15} height={120} bordered />
+                <StaticMapImage lat={parcel.lat} lng={parcel.lng} zoom={15} height={140} bordered />
               </div>
             </div>
           </div>
@@ -272,40 +279,40 @@ export default function PrediccionesPage() {
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
             <div>
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                 Variables que más influyeron
               </h2>
               <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                 Contribución SHAP de cada variable a la predicción de {parcel.name}.
               </p>
               <div className="mt-4">
-                <FeatureImportanceChart data={parcel.shap} height={220} />
+                <FeatureImportanceChart data={parcel.shap} />
               </div>
             </div>
 
             <div>
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                 Ficha técnica
               </h2>
               <div className="mt-4 border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-black">
-                <dl className="space-y-2.5 text-sm">
-                  <div className="flex items-center justify-between gap-3">
+                <dl className="divide-y divide-gray-100 text-sm dark:divide-gray-800">
+                  <div className="flex items-baseline justify-between gap-3 py-2.5 first:pt-0">
                     <dt className="text-gray-500 dark:text-gray-400">ID de polígono</dt>
-                    <dd className="font-medium text-gray-900 dark:text-gray-100">{parcel.polygonId}</dd>
+                    <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{parcel.polygonId}</dd>
                   </div>
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-baseline justify-between gap-3 py-2.5 first:pt-0">
                     <dt className="text-gray-500 dark:text-gray-400">Región</dt>
-                    <dd className="font-medium text-gray-900 dark:text-gray-100">
+                    <dd className="text-right font-medium text-gray-900 dark:text-gray-100">
                       {parcel.region} ({parcel.regionCode})
                     </dd>
                   </div>
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-baseline justify-between gap-3 py-2.5 first:pt-0">
                     <dt className="text-gray-500 dark:text-gray-400">Coordenadas</dt>
-                    <dd className="font-medium text-gray-900 dark:text-gray-100">
+                    <dd className="text-right font-medium text-gray-900 dark:text-gray-100">
                       {parcel.lat.toFixed(4)}, {parcel.lng.toFixed(4)}
                     </dd>
                   </div>
-                  <div className="border-t border-gray-100 pt-2.5 dark:border-gray-800">
+                  <div className="pt-2.5">
                     <dt className="text-gray-500 dark:text-gray-400">Origen del dato</dt>
                     <dd className="mt-0.5 font-medium text-gray-900 dark:text-gray-100">{originLabel}</dd>
                   </div>
@@ -317,7 +324,7 @@ export default function PrediccionesPage() {
           <div className="my-6 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
 
           <div>
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
               Otras variables vs. promedio regional
             </h2>
             <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
@@ -326,7 +333,7 @@ export default function PrediccionesPage() {
             </p>
             <div className="mt-4 grid grid-cols-2 divide-x divide-gray-200 border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
               {climateVariables.map((v) => (
-                <div key={v.label} className="p-4">
+                <div key={v.label} className="p-5">
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-gray-500 dark:text-gray-400">{v.label}</p>
                     <span className="flex h-7 w-7 items-center justify-center bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
@@ -336,7 +343,7 @@ export default function PrediccionesPage() {
                   <p className="font-sora mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
                     {v.value}
                   </p>
-                  <p className="mt-1 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                  <p className="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                     <v.deltaIcon size={12} />
                     {v.deltaLabel}
                   </p>

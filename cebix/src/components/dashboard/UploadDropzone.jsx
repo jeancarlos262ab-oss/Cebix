@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { UploadCloud, AlertCircle, CheckCircle2 } from "lucide-react";
+import { UploadCloud } from "lucide-react";
+import { toast } from "sonner";
 import { parseCSV } from "../../utils/csv";
 
 const REQUIRED_FIELDS = ["name", "municipio", "region", "area", "lat", "lng", "ndvi", "precip", "gdd", "yieldEstimate"];
@@ -44,7 +45,6 @@ function validateFields(fields) {
  */
 export default function UploadDropzone({ onParsed }) {
   const [isDragging, setIsDragging] = useState(false);
-  const [status, setStatus] = useState(null); // { type: "success" | "error", message: string }
 
   const processFiles = useCallback(
     async (files) => {
@@ -53,11 +53,7 @@ export default function UploadDropzone({ onParsed }) {
 
       const isCSV = /\.csv$/i.test(file.name) || file.type === "text/csv";
       if (!isCSV) {
-        setStatus({
-          type: "error",
-          message:
-            "Por ahora se procesan archivos CSV directamente en el navegador. SHP/GeoJSON/KML requieren un backend de geoprocesamiento que este proyecto no incluye.",
-        });
+        toast.error("Por ahora se procesan archivos CSV directamente en el navegador. SHP/GeoJSON/KML requieren un backend de geoprocesamiento que este proyecto no incluye.");
         return;
       }
 
@@ -65,7 +61,7 @@ export default function UploadDropzone({ onParsed }) {
         const text = await file.text();
         const rows = parseCSV(text);
         if (rows.length === 0) {
-          setStatus({ type: "error", message: "El CSV no tiene filas de datos." });
+          toast.error("El CSV no tiene filas de datos.");
           return;
         }
 
@@ -79,25 +75,16 @@ export default function UploadDropzone({ onParsed }) {
         }
 
         if (invalidCount === 0) {
-          setStatus({
-            type: "success",
-            message: `${validRows.length} parcela${validRows.length === 1 ? "" : "s"} agregada${
+          toast.success(`${validRows.length} parcela${validRows.length === 1 ? "" : "s"} agregada${
               validRows.length === 1 ? "" : "s"
-            } desde ${file.name}.`,
-          });
+            } desde ${file.name}.`);
         } else if (validRows.length > 0) {
-          setStatus({
-            type: "error",
-            message: `${validRows.length} fila(s) agregadas; ${invalidCount} fila(s) omitidas por datos faltantes o inválidos (se requieren: ${REQUIRED_FIELDS.join(", ")}).`,
-          });
+          toast.warning(`${validRows.length} fila(s) agregadas; ${invalidCount} fila(s) omitidas por datos faltantes o inválidos (se requieren: ${REQUIRED_FIELDS.join(", ")}).`);
         } else {
-          setStatus({
-            type: "error",
-            message: `Ninguna fila es válida. Columnas requeridas: ${REQUIRED_FIELDS.join(", ")}.`,
-          });
+          toast.error(`Ninguna fila es válida. Columnas requeridas: ${REQUIRED_FIELDS.join(", ")}.`);
         }
       } catch (err) {
-        setStatus({ type: "error", message: `No se pudo leer el archivo: ${err.message}` });
+        toast.error(`No se pudo leer el archivo: ${err.message}`);
       }
     },
     [onParsed]
@@ -121,40 +108,36 @@ export default function UploadDropzone({ onParsed }) {
         }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
-        style={
-          isDragging
-            ? {
-                backgroundImage:
-                  "repeating-linear-gradient(135deg, transparent 0 8px, var(--accent-100) 8px 16px)",
-              }
-            : undefined
-        }
         className={[
-          "flex cursor-pointer flex-col items-center justify-center gap-2 border px-6 py-8 text-center transition-colors [&>*]:pointer-events-none",
+          "flex cursor-pointer flex-col items-center justify-center gap-2.5 border border-dashed px-6 py-8 text-center transition-colors focus-within:ring-2 focus-within:ring-accent-500 [&>*]:pointer-events-none",
           isDragging
-            ? "border-accent-400 bg-accent-50"
-            : "border-gray-200 bg-white dark:border-gray-800 dark:bg-black",
+            ? "border-accent-500 bg-accent-50 dark:bg-accent-500/10"
+            : "border-gray-300 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-black dark:hover:bg-gray-900",
         ].join(" ")}
       >
         <span
           className={[
-            "flex h-9 w-9 items-center justify-center border bg-white shadow-sm transition-transform dark:bg-black",
+            "flex h-10 w-10 items-center justify-center border bg-white shadow-sm transition-transform dark:bg-black",
             isDragging
               ? "scale-110 border-accent-500"
               : "border-gray-200 dark:border-gray-800",
           ].join(" ")}
         >
           <UploadCloud
-            size={16}
+            size={18}
             className={isDragging ? "text-accent-600" : "text-gray-500 dark:text-gray-400"}
           />
         </span>
         {isDragging ? (
-          <p className="text-sm font-semibold text-accent-600">Suelta el archivo para subirlo</p>
+          <p className="text-sm font-semibold text-accent-600 dark:text-accent-400">
+            Suelta el archivo para subirlo
+          </p>
         ) : (
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            <span className="font-semibold text-accent-600">Sube el shapefile o CSV</span> de
-            la parcela, o arrástralo aquí
+          <p className="text-sm leading-snug text-gray-600 dark:text-gray-400">
+            <span className="font-semibold text-accent-600 dark:text-accent-400">
+              Sube el shapefile o CSV
+            </span>{" "}
+            de la parcela, o arrástralo aquí
           </p>
         )}
         <p className="text-xs text-gray-400 dark:text-gray-500">SHP, GeoJSON, CSV o KML (máx. 20MB)</p>
@@ -162,7 +145,7 @@ export default function UploadDropzone({ onParsed }) {
           type="file"
           multiple
           accept=".csv,text/csv,.shp,.geojson,.json,.kml"
-          className="hidden"
+          className="sr-only"
           onChange={(e) => {
             processFiles(Array.from(e.target.files ?? []));
             e.target.value = "";
@@ -170,23 +153,6 @@ export default function UploadDropzone({ onParsed }) {
         />
       </label>
 
-      {status && (
-        <div
-          className={[
-            "mt-2 flex items-start gap-2 border px-3 py-2 text-xs",
-            status.type === "success"
-              ? "border-ndvi-400/40 bg-ndvi-50 text-ndvi-700 dark:border-ndvi-500/30 dark:bg-ndvi-500/10 dark:text-ndvi-400"
-              : "border-red-300/60 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400",
-          ].join(" ")}
-        >
-          {status.type === "success" ? (
-            <CheckCircle2 size={14} className="mt-0.5 shrink-0" />
-          ) : (
-            <AlertCircle size={14} className="mt-0.5 shrink-0" />
-          )}
-          <span>{status.message}</span>
-        </div>
-      )}
     </div>
   );
 }

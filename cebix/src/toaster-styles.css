@@ -1,0 +1,23 @@
+/* Notificaciones (sonner): color sólido del acento en todas las variantes. */
+.app-toaster [data-sonner-toast] [data-description],
+.app-toaster [data-sonner-toast] [data-title],
+.app-toaster [data-sonner-toast] [data-icon] {
+  color: var(--accent-contrast);
+}
+
+.app-toaster [data-sonner-toast] [data-description] {
+  opacity: 0.85;
+}
+
+.app-toaster [data-sonner-toast] [data-close-button] {
+  background: var(--accent-500);
+  color: var(--accent-contrast);
+  border: 1px solid var(--accent-contrast);
+  border-radius: 0;
+}
+
+.app-toaster [data-sonner-toast] [data-button] {
+  background: var(--accent-contrast);
+  color: var(--accent-500);
+  border-radius: 0;
+}

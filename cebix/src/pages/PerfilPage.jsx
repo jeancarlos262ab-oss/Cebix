@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { User, Pencil, KeyRound, ShieldCheck, CalendarDays, Mail, Building2 } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import SettingsSection from "../components/settings/SettingsSection";
@@ -127,7 +128,10 @@ export default function PerfilPage() {
         <EditProfileModal
           account={account}
           onClose={() => setShowEditProfile(false)}
-          onSave={(fields) => updateAccount(fields)}
+          onSave={(fields) => {
+            updateAccount(fields);
+            toast.success("Perfil actualizado.");
+          }}
         />
       )}
 

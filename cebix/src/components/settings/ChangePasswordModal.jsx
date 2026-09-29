@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X, Eye, EyeOff } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "../../services/supabaseClient";
 
 function validate(form) {
@@ -16,7 +17,6 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
   const [errors, setErrors] = useState({});
   const [show, setShow] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [requestError, setRequestError] = useState("");
 
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -28,16 +28,16 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    setRequestError("");
     setSubmitting(true);
     const { error } = await supabase.auth.updateUser({ password: form.next });
     if (error) {
-      setRequestError("No pudimos actualizar la contraseña. Inténtalo de nuevo.");
+      toast.error("No pudimos actualizar la contraseña. Inténtalo de nuevo.");
       setSubmitting(false);
       return;
     }
 
     onChanged?.();
+    toast.success("Contraseña actualizada.");
     onClose();
   }
 
@@ -64,14 +64,6 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
 
         <div className="mt-4 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
 
-        {requestError ? (
-          <div
-            role="alert"
-            className="mt-4 border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
-          >
-            {requestError}
-          </div>
-        ) : null}
 
         <div className="mt-4 space-y-3">
           <label className="block">

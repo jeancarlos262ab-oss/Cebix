@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Mail,
@@ -59,7 +60,6 @@ export default function LoginPage() {
   const { signIn, sendPasswordResetOtp, verifyPasswordResetOtp } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // "login" = formulario normal · "forgot" = pedir el correo para
@@ -76,17 +76,15 @@ export default function LoginPage() {
   function handleChange(event) {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
-    if (error) setError("");
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setError("");
     setSubmitting(true);
 
     const { error: signInError } = await signIn(form.email.trim(), form.password);
     if (signInError) {
-      setError(getAuthErrorMessage(signInError));
+      toast.error(getAuthErrorMessage(signInError));
       setSubmitting(false);
       return;
     }
@@ -96,7 +94,6 @@ export default function LoginPage() {
 
   async function handleForgotSubmit(event) {
     event.preventDefault();
-    setError("");
     setSubmitting(true);
 
     // sendPasswordResetOtp nunca devuelve error (no revela si el correo
@@ -105,7 +102,7 @@ export default function LoginPage() {
     setSubmitting(false);
 
     if (resetError) {
-      setError("No pudimos enviar el código. Revisa el correo e inténtalo de nuevo.");
+      toast.error("No pudimos enviar el código. Revisa el correo e inténtalo de nuevo.");
       return;
     }
 
@@ -113,24 +110,23 @@ export default function LoginPage() {
   }
 
   async function handleResendCode() {
-    setError("");
     setResending(true);
     await sendPasswordResetOtp(recoveryEmail.trim());
     setResending(false);
     setResent(true);
+    toast.success("Código reenviado. Revisa tu correo.");
     window.setTimeout(() => setResent(false), 5000);
   }
 
   async function handleResetSubmit(event) {
     event.preventDefault();
-    setError("");
 
     if (newPassword.password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
+      toast.error("La contraseña debe tener al menos 6 caracteres.");
       return;
     }
     if (newPassword.password !== newPassword.confirmPassword) {
-      setError("Las contraseñas no coinciden.");
+      toast.error("Las contraseñas no coinciden.");
       return;
     }
 
@@ -143,7 +139,7 @@ export default function LoginPage() {
     setSubmitting(false);
 
     if (verifyError) {
-      setError(getResetErrorMessage(verifyError));
+      toast.error(getResetErrorMessage(verifyError));
       return;
     }
 
@@ -152,7 +148,6 @@ export default function LoginPage() {
 
   function backToLogin() {
     setMode("login");
-    setError("");
     setResetCode("");
     setNewPassword({ password: "", confirmPassword: "" });
   }
@@ -160,14 +155,6 @@ export default function LoginPage() {
   return (
     <AuthLayout title="Inicia sesión" subtitle="Accede a tu espacio de trabajo CEBIX.">
       <div className="border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-black sm:p-8">
-        {error ? (
-          <div
-            role="alert"
-            className="mb-5 border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
-          >
-            {error}
-          </div>
-        ) : null}
 
         {mode === "login" && (
           <>
@@ -210,7 +197,6 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => {
                     setRecoveryEmail(form.email);
-                    setError("");
                     setMode("forgot");
                   }}
                   className="mt-1.5 block text-right text-xs font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400"
@@ -260,7 +246,6 @@ export default function LoginPage() {
                 value={recoveryEmail}
                 onChange={(e) => {
                   setRecoveryEmail(e.target.value);
-                  if (error) setError("");
                 }}
               />
 
@@ -314,7 +299,6 @@ export default function LoginPage() {
                 value={resetCode}
                 onChange={(e) => {
                   setResetCode(e.target.value.replace(/\D/g, "").slice(0, 6));
-                  if (error) setError("");
                 }}
                 className="tracking-[0.5em]"
               />
@@ -330,7 +314,6 @@ export default function LoginPage() {
                 value={newPassword.password}
                 onChange={(e) => {
                   setNewPassword((current) => ({ ...current, password: e.target.value }));
-                  if (error) setError("");
                 }}
                 rightElement={
                   <button
@@ -355,7 +338,6 @@ export default function LoginPage() {
                 value={newPassword.confirmPassword}
                 onChange={(e) => {
                   setNewPassword((current) => ({ ...current, confirmPassword: e.target.value }));
-                  if (error) setError("");
                 }}
               />
 

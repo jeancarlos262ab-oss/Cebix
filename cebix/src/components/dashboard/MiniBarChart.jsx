@@ -12,7 +12,7 @@ function ChartTooltip({ active, payload, label }) {
 }
 
 /**
- * Barras grises de GDD esperado detrás de las barras doradas de GDD observado,
+ * Barras grises de GDD esperado detrás de las barras turquesa de GDD observado,
  * por etapa del ciclo fenológico.
  *
  * @param {{data: {month: string, budget: number, spent: number}[]}} props
@@ -30,8 +30,8 @@ function MiniBarChart({ data }) {
             interval={0}
           />
           <Tooltip content={<ChartTooltip />} cursor={false} />
-          <Bar dataKey="budget" fill="var(--chart-track)" radius={[4, 4, 4, 4]} barSize={14} />
-          <Bar dataKey="spent" fill="var(--accent-500)" radius={[4, 4, 4, 4]} barSize={8} />
+          <Bar dataKey="budget" fill="var(--chart-track)" radius={0} barSize={14} />
+          <Bar dataKey="spent" fill="var(--chart-2)" radius={0} barSize={8} />
         </BarChart>
       </ResponsiveContainer>
     </div>
