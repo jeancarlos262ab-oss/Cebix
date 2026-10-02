@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
-import { Lock, Eye, EyeOff, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Lock, CheckCircle2 } from "lucide-react";
 import AuthLayout from "../components/auth/AuthLayout";
-import AuthField from "../components/auth/AuthField";
+import AuthField, { PasswordToggle } from "../components/auth/AuthField";
+import AuthButton from "../components/auth/AuthButton";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../services/supabaseClient";
 
@@ -68,17 +69,13 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthLayout title="Restablece tu contraseña" subtitle="Elige una contraseña nueva para tu cuenta CEBIX.">
-      <div className="border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-black sm:p-8">
-
-        {success ? (
-          <div
-            role="status"
-            className="flex items-start gap-2.5 border border-green-200 bg-green-50 px-3 py-2.5 text-sm text-green-700 dark:border-green-900/60 dark:bg-green-950/40 dark:text-green-300"
-          >
-            <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
-            <span>Contraseña actualizada. Te llevamos a iniciar sesión...</span>
-          </div>
-        ) : (
+      {success ? (
+        <div role="status" className="auth-notice">
+          <CheckCircle2 size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <span>Contraseña actualizada. Te llevamos a iniciar sesión...</span>
+        </div>
+      ) : (
+        <>
           <form className="space-y-5" onSubmit={handleSubmit}>
             <AuthField
               label="Nueva contraseña"
@@ -91,16 +88,7 @@ export default function ResetPasswordPage() {
               placeholder="Mínimo 6 caracteres"
               value={form.password}
               onChange={handleChange}
-              rightElement={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                  className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              }
+              rightElement={<PasswordToggle shown={showPassword} onToggle={() => setShowPassword((v) => !v)} />}
             />
 
             <AuthField
@@ -114,36 +102,25 @@ export default function ResetPasswordPage() {
               placeholder="Escríbela de nuevo"
               value={form.confirmPassword}
               onChange={handleChange}
+              hint={
+                form.confirmPassword && form.password !== form.confirmPassword
+                  ? "Las contraseñas no coinciden."
+                  : undefined
+              }
             />
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex w-full items-center justify-center gap-2 bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast transition hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Actualizando...
-                </>
-              ) : (
-                <>
-                  Guardar contraseña
-                  <ArrowRight size={16} />
-                </>
-              )}
-            </button>
+            <AuthButton loading={submitting} loadingLabel="Actualizando...">
+              Guardar contraseña
+            </AuthButton>
           </form>
-        )}
 
-        {!success && (
-          <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-            <Link className="font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400" to="/login">
+          <p className="mt-6 text-center text-sm">
+            <Link className="auth-link" to="/login">
               Volver a iniciar sesión
             </Link>
           </p>
-        )}
-      </div>
+        </>
+      )}
     </AuthLayout>
   );
 }

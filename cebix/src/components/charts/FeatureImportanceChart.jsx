@@ -37,13 +37,13 @@ export default function FeatureImportanceChart({ data }) {
                 <span className="text-sm leading-snug text-gray-800 dark:text-gray-200">
                   {row.feature}
                 </span>
-                <span className="font-sora shrink-0 text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                <span className="font-display shrink-0 text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                   {SIGN[row.direction] ?? ""}
                   {row.magnitude.toFixed(2)}
                 </span>
               </div>
               <div
-                className="mt-1.5 h-2 w-full bg-gray-100 dark:bg-gray-800"
+                className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800"
                 role="img"
                 aria-label={`${row.feature}: impacto ${row.direction} de ${row.magnitude.toFixed(2)}`}
               >
@@ -54,7 +54,7 @@ export default function FeatureImportanceChart({ data }) {
         })}
       </ul>
 
-      <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5 border-t border-gray-100 pt-3 dark:border-gray-800">
+      <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5 pt-3">
         {present.map((dir) => (
           <li key={dir} className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
             <span

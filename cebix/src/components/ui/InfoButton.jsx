@@ -5,15 +5,15 @@ import { Info, X } from "lucide-react";
  * Botón de información que abre un panel explicando, en formato pregunta y
  * respuesta, cómo funciona esta parte del programa.
  *
- * @param {{title: string, questions: {question: string, answer: string}[], tone?: "default"|"accent"}} props
+ * Mismo aspecto en todas las pantallas: circular, con borde, fondo del color
+ * del fondo de la app (blanco / negro) e icono en el color de acento.
+ *
+ * @param {{title: string, questions: {question: string, answer: string}[]}} props
  */
-const TONE_STYLES = {
-  default:
-    "border border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800",
-  accent: "rounded-full bg-accent-500 text-accent-contrast shadow-sm hover:bg-accent-600",
-};
+const BUTTON_STYLE =
+  "rounded-full border border-gray-200 bg-white text-accent-500 transition-colors hover:border-accent-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-700 dark:bg-black";
 
-export default function InfoButton({ title = "Acerca de este panel", questions, tone = "default", children }) {
+export default function InfoButton({ title = "Acerca de este panel", questions, children }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -22,9 +22,9 @@ export default function InfoButton({ title = "Acerca de este panel", questions, 
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Información del programa"
-        className={`flex h-9 w-9 shrink-0 items-center justify-center ${TONE_STYLES[tone]}`}
+        className={`flex h-9 w-9 shrink-0 items-center justify-center ${BUTTON_STYLE}`}
       >
-        <Info size={16} />
+        <Info size={16} className="text-accent-600 dark:text-accent-400" />
       </button>
 
       {open && (
@@ -35,27 +35,24 @@ export default function InfoButton({ title = "Acerca de este panel", questions, 
           <div
             role="dialog"
             aria-modal="true"
-            className="max-h-[80vh] w-full max-w-lg overflow-y-auto border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900"
+            className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h2>
+              <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-white">{title}</h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Cerrar"
                 className="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
-                <X size={16} />
+                <X size={16} className="text-accent-600 dark:text-accent-400" />
               </button>
             </div>
-
-            <div className="mt-4 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
 
             {children && (
               <>
                 <div className="mt-4">{children}</div>
-                <div className="mt-4 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
               </>
             )}
 

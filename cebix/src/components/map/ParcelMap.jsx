@@ -13,11 +13,11 @@ import { resolveMapEngine } from "../../utils/mapDevice";
 const ParcelMapGL = lazy(() => import("./ParcelMapGL"));
 const ParcelMapLite = lazy(() => import("./ParcelMapLite"));
 
-function MapLoadingFallback({ height }) {
+function MapLoadingFallback({ height, rounded }) {
   return (
     <div
       style={{ height: typeof height === "number" ? `${height}px` : height }}
-      className="flex w-full items-center justify-center border border-gray-200 bg-gray-50 text-sm text-gray-400 dark:border-gray-800 dark:bg-gray-900"
+      className={`flex w-full items-center justify-center bg-black text-sm text-gray-400 ${rounded ? "rounded-2xl" : ""}`}
     >
       Cargando mapa…
     </div>
@@ -36,7 +36,7 @@ function ParcelMap(props) {
       className="relative w-full"
       style={typeof props.height === "string" ? { height: props.height } : undefined}
     >
-      <Suspense fallback={<MapLoadingFallback height={props.height ?? 420} />}>
+      <Suspense fallback={<MapLoadingFallback height={props.height ?? 420} rounded={props.rounded} />}>
         <EngineComponent {...props} />
       </Suspense>
     </div>

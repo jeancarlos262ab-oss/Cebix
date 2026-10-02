@@ -15,12 +15,12 @@ export default function TopBar({ title, subtitle, actions, hideSearch = false })
           type="button"
           onClick={toggle}
           aria-label="Abrir menú"
-          className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center border border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 lg:hidden"
+          className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 lg:hidden"
         >
-          <Menu size={18} />
+          <Menu size={18} className="text-accent-600 dark:text-accent-400" />
         </button>
         <div className="min-w-0">
-          <h1 className="truncate font-sora text-xl font-bold text-gray-900 dark:text-white">{title}</h1>
+          <h1 className="truncate font-display text-xl font-bold text-gray-900 dark:text-white">{title}</h1>
           {subtitle && (
             <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>
           )}

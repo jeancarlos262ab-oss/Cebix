@@ -42,7 +42,7 @@ export default function PerfilPage() {
     <div className="pb-10">
       <TopBar title="Mi perfil" subtitle="Tu información de cuenta en CEBIX" hideSearch />
 
-      <div className="mt-2 max-w-4xl divide-y divide-gray-200 px-4 sm:px-6 lg:px-8 dark:divide-gray-800">
+      <div className="mt-2 max-w-4xl px-4 sm:px-6 lg:px-8">
         {/* Identidad */}
         <SettingsSection icon={User} title="Identidad" description="Cómo te ven los demás dentro de CEBIX">
           <div className="flex flex-col items-start gap-5 py-3 sm:flex-row sm:items-center">
@@ -59,18 +59,18 @@ export default function PerfilPage() {
                 {account.name || "Sin nombre"}
               </p>
               <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-                <Mail size={12} className="shrink-0" />
+                <Mail size={12} className="shrink-0 text-accent-600 dark:text-accent-400" />
                 <span className="truncate">{account.email}</span>
                 {account.role && (
                   <>
                     <span className="text-gray-300 dark:text-gray-700">·</span>
-                    <Building2 size={12} className="shrink-0" />
+                    <Building2 size={12} className="shrink-0 text-accent-600 dark:text-accent-400" />
                     <span className="truncate">{account.role}</span>
                   </>
                 )}
               </p>
               <p className="mt-1 flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
-                <CalendarDays size={12} className="shrink-0" />
+                <CalendarDays size={12} className="shrink-0 text-accent-600 dark:text-accent-400" />
                 Miembro desde {memberSince(user?.created_at)}
               </p>
             </div>
@@ -78,19 +78,19 @@ export default function PerfilPage() {
             <button
               type="button"
               onClick={() => setShowEditProfile(true)}
-              className="flex shrink-0 items-center gap-1.5 border border-gray-200 px-3.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 px-3.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
-              <Pencil size={13} />
+              <Pencil size={13} className="text-accent-600 dark:text-accent-400" />
               Editar perfil
             </button>
           </div>
 
           {/* Stats: mismas líneas divisorias que el resto de la pantalla, sin
               tarjetas — solo se separan con una raya vertical entre columnas. */}
-          <div className="grid grid-cols-3 divide-x divide-gray-100 py-3 text-center dark:divide-gray-800 sm:text-left">
+          <div className="grid grid-cols-3 py-3 text-center sm:text-left">
             {stats.map(({ label, value }) => (
               <div key={label} className="px-2 first:pl-0 sm:px-4">
-                <p className="font-sora text-xl font-bold text-gray-900 dark:text-white">{value}</p>
+                <p className="font-display text-xl font-bold text-gray-900 dark:text-white">{value}</p>
                 <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">{label}</p>
               </div>
             ))}
@@ -109,9 +109,9 @@ export default function PerfilPage() {
             <button
               type="button"
               onClick={() => setShowChangePassword(true)}
-              className="flex items-center gap-1.5 border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
-              <KeyRound size={13} />
+              <KeyRound size={13} className="text-accent-600 dark:text-accent-400" />
               Cambiar
             </button>
           </div>

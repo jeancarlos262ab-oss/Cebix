@@ -11,6 +11,7 @@
  * No se renderiza directamente desde las páginas: lo selecciona
  * automáticamente ParcelMap.jsx según el dispositivo.
  */
+import { BOTTOM_FADE_LENGTH, BOTTOM_FADE_STRENGTH, LEFT_FADE_LENGTH, softFadeGradient } from "./edgeFade";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, CircleMarker, Marker, Popup, GeoJSON } from "react-leaflet";
@@ -23,13 +24,11 @@ import { openInGoogleMaps } from "../../utils/googleMaps";
 import { getAccentHex } from "../../utils/accentColors";
 import { lazySingleton } from "../../utils/singleton";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
+import RiskTrafficLight from "./RiskTrafficLight";
 import "leaflet/dist/leaflet.css";
+import { RISK_COLORS } from "../../utils/riskColors";
 
-const RISK_HEX = {
-  green: "#16A34A",
-  yellow: "#D97706",
-  red: "#DC2626",
-};
+const RISK_HEX = RISK_COLORS;
 
 /**
  * Mapas base del motor ligero. Los 4 son tiles raster PNG de Esri (misma
@@ -92,12 +91,6 @@ const LAYERS = [
   { key: "ndvi", label: "Vigor NDVI", icon: Leaf },
 ];
 
-const RISK_LEGEND = [
-  { color: "#16A34A", label: "Elegible" },
-  { color: "#D97706", label: "Revisión manual" },
-  { color: "#DC2626", label: "Alto riesgo" },
-];
-
 const NDVI_LEGEND = [
   { color: "#3B7A4E", label: "NDVI ≥ 0.68 (vigor alto)" },
   { color: "#7CC192", label: "NDVI 0.55–0.68" },
@@ -132,7 +125,7 @@ function ndviToColor(ndvi) {
 function colorForParcel(parcel, colorMode) {
   if (colorMode === "ndvi") return ndviToColor(parcel.ndvi);
   if (parcel.riskColor && RISK_HEX[parcel.riskColor]) return RISK_HEX[parcel.riskColor];
-  return "#16A34A";
+  return RISK_COLORS.green;
 }
 
 /** Normaliza center a [lat, lng], aceptando array o {latitude, longitude}. */
@@ -151,10 +144,10 @@ const ToolbarIconButton = memo(function ToolbarIconButton({ icon: Icon, label, a
       aria-label={label}
       aria-pressed={active}
       className={[
-        "flex h-8 w-8 items-center justify-center transition-colors rounded",
+        "flex h-8 w-8 items-center justify-center transition-colors rounded-full",
         active
-          ? "bg-gray-200 text-gray-900 dark:bg-white/20 dark:text-white"
-          : "text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white",
+          ? "bg-white/20 text-accent-400"
+          : "text-accent-400 hover:bg-white/10 hover:text-accent-400",
       ].join(" ")}
     >
       <Icon size={16} />
@@ -172,7 +165,7 @@ function MapControlsPanel({
   onToggleBoundaries,
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 rounded border border-gray-200 bg-white/90 dark:border-white/10 dark:bg-black/70 p-1.5 text-gray-800 shadow-lg dark:text-gray-100 backdrop-blur">
+    <div className="flex flex-col items-center gap-1 rounded-2xl border border-white/10 bg-black/85 p-1.5 text-gray-100 shadow-lg backdrop-blur">
       {!viewOnly && (
         <>
           {LAYERS.map((l) => (
@@ -185,7 +178,7 @@ function MapControlsPanel({
             />
           ))}
 
-          <div className="my-1 h-px w-6 bg-gray-200 dark:bg-white/10" aria-hidden="true" />
+          <div className="my-1 h-px w-6 bg-white/10" aria-hidden="true" />
         </>
       )}
 
@@ -199,7 +192,7 @@ function MapControlsPanel({
         />
       ))}
 
-      <div className="my-1 h-px w-6 bg-gray-200 dark:bg-white/10" aria-hidden="true" />
+      <div className="my-1 h-px w-6 bg-white/10" aria-hidden="true" />
 
       <ToolbarIconButton
         icon={Milestone}
@@ -212,18 +205,14 @@ function MapControlsPanel({
 }
 
 const MapLegend = memo(function MapLegend({ layer }) {
-  const items = layer === "ndvi" ? NDVI_LEGEND : RISK_LEGEND;
-  const title = LAYERS.find((l) => l.key === layer)?.label;
+  const items = NDVI_LEGEND;
+  // Semáforo: flota directo sobre el mapa, sin contenedor ni título.
+  if (layer !== "ndvi") return <RiskTrafficLight />;
   return (
-    <div className="rounded border border-gray-200 bg-white/90 dark:border-white/10 dark:bg-black/70 px-3 py-2.5 text-gray-800 shadow-lg dark:text-gray-100 backdrop-blur">
-      {title && (
-        <p className="mb-2 border-b border-gray-200 pb-2 text-xs font-semibold dark:border-white/10">
-          {title}
-        </p>
-      )}
+    <div className="rounded-2xl border border-white/10 bg-black/85 px-3 py-2.5 text-gray-100 shadow-lg backdrop-blur">
       <ul className="space-y-1.5">
         {items.map((item) => (
-          <li key={item.label} className="flex items-center gap-2 text-[11px] text-gray-700 dark:text-gray-200">
+          <li key={item.label} className="flex items-center gap-2 text-[11px] text-gray-200">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
             {item.label}
           </li>
@@ -252,8 +241,11 @@ const MapLegend = memo(function MapLegend({ layer }) {
  *   showBoundariesByDefault?: boolean,
  *   viewOnly?: boolean,   // solo visualizar el lugar: sin capas de riesgo/NDVI y con pin en vez de círculo
  *   basemap?: "satellite" | "terreno",   // mapa base inicial; si se omite, sigue el tema de la app
- *   bordered?: boolean,   // false = sin borde, para pegarlo a las líneas de la página
+ *   rounded?: boolean,    // true = esquinas redondeadas (los mapas nunca llevan borde)
+ *   edgeFade?: boolean,   // desvanece el mapa hacia el fondo de la app en el borde izquierdo (lg+, usa --sidebar-edge) y en el inferior; para mapas que van detrás del sidebar
+ *   controlsLeftClassName?: string,   // offset izquierdo de la barra de capas (por defecto "left-3")
  *   controlsTopClassName?: string,   // clase de Tailwind para el offset superior de la barra de capas (por defecto "top-3"); útil cuando algo del layout de la página, como un título, ya ocupa esa esquina.
+ *   controlsOrientation?: "vertical" | "horizontal",   // dirección de la barra de zoom (por defecto "vertical")
  * }} props
  */
 function ParcelMapLite({
@@ -268,9 +260,12 @@ function ParcelMapLite({
   showLayerControl = true,
   showLegend = showLayerControl,
   showBoundariesByDefault = true,
-  bordered = true,
+  rounded = false,
   viewOnly = false,
   controlsTopClassName = "top-3",
+  controlsLeftClassName = "left-3",
+  edgeFade = false,
+  controlsOrientation = "vertical",
 }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
@@ -282,9 +277,9 @@ function ParcelMapLite({
   const boundaryStyle = useCallback(
     () => ({
       color: accentHex,
-      weight: 1.5,
+      weight: 2,
       opacity: 0.85,
-      dashArray: "5,4",
+      dashArray: "10,8",
       fillOpacity: 0,
     }),
     [accentHex]
@@ -371,7 +366,7 @@ function ParcelMapLite({
     <div
       ref={containerRef}
       style={{ height: typeof height === "number" ? `${height}px` : height }}
-      className={`relative isolate w-full overflow-hidden bg-black ${bordered ? "border border-gray-200 dark:border-gray-800" : ""}`}
+      className={`relative isolate w-full overflow-hidden bg-black ${rounded ? "rounded-2xl" : ""}`}
     >
       <MapContainer
         ref={mapRef}
@@ -443,24 +438,24 @@ function ParcelMapLite({
                       className="h-11 w-auto shrink-0 select-none"
                     />
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold leading-snug text-gray-900">{parcel.name}</div>
-                      <div className="mt-0.5 text-xs text-gray-500">
+                      <div className="text-sm font-semibold leading-snug text-white">{parcel.name}</div>
+                      <div className="mt-0.5 text-xs text-gray-400">
                         {parcel.municipio}, {parcel.region}
                       </div>
                     </div>
                   </div>
 
-                  <dl className="mt-3 grid grid-cols-2 gap-px border border-gray-200 bg-gray-200">
-                    <div className="bg-white px-2.5 py-2">
-                      <dt className="text-[11px] text-gray-500">Rendimiento</dt>
-                      <dd className="mt-0.5 text-sm font-bold text-gray-900">
+                  <dl className="mt-3 grid grid-cols-2 gap-px border border-white/10 bg-white/10">
+                    <div className="bg-black px-2.5 py-2">
+                      <dt className="text-[11px] text-gray-400">Rendimiento</dt>
+                      <dd className="mt-0.5 text-sm font-bold text-white">
                         {parcel.yieldEstimate.toFixed(1)}
                         <span className="ml-1 text-[11px] font-medium text-gray-400">ton/ha</span>
                       </dd>
                     </div>
-                    <div className="bg-white px-2.5 py-2">
-                      <dt className="text-[11px] text-gray-500">NDVI</dt>
-                      <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-bold text-gray-900">
+                    <div className="bg-black px-2.5 py-2">
+                      <dt className="text-[11px] text-gray-400">NDVI</dt>
+                      <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-bold text-white">
                         <span
                           className="h-2 w-2 shrink-0 rounded-full"
                           style={{ backgroundColor: ndviToColor(parcel.ndvi) }}
@@ -468,9 +463,9 @@ function ParcelMapLite({
                         {parcel.ndvi.toFixed(2)}
                       </dd>
                     </div>
-                    <div className="col-span-2 bg-white px-2.5 py-2">
-                      <dt className="text-[11px] text-gray-500">Elegibilidad</dt>
-                      <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+                    <div className="col-span-2 bg-black px-2.5 py-2">
+                      <dt className="text-[11px] text-gray-400">Elegibilidad</dt>
+                      <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-white">
                         <span
                           className="h-2 w-2 shrink-0 rounded-full"
                           style={{ backgroundColor: RISK_HEX[parcel.riskColor] ?? "#9ca3af" }}
@@ -485,7 +480,7 @@ function ParcelMapLite({
                       <button
                         type="button"
                         onClick={() => flyToParcel(parcel)}
-                        className="flex-1 rounded bg-gray-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-gray-800"
+                        className="flex-1 rounded-full bg-white px-3 py-2 text-xs font-semibold text-black transition-colors hover:bg-gray-200"
                       >
                         Acercar a parcela
                       </button>
@@ -493,9 +488,9 @@ function ParcelMapLite({
                     <button
                       type="button"
                       onClick={() => openInGoogleMaps(parcel.lat, parcel.lng)}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100"
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-white/20 px-3 py-2 text-xs font-semibold text-gray-200 transition-colors hover:bg-white/10"
                     >
-                      <ExternalLink size={12} />
+                      <ExternalLink size={12} className="text-accent-400" />
                       Google Maps
                     </button>
                   </div>
@@ -509,12 +504,34 @@ function ParcelMapLite({
           initialCenter={initialCenter}
           initialZoom={zoom}
           position="bottom-right"
+          orientation={controlsOrientation}
           containerRef={containerRef}
         />
       </MapContainer>
 
+      {edgeFade && (
+        <>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-0 z-[900] hidden lg:block"
+            style={{
+              width: `calc(var(--sidebar-edge, 0px) + ${LEFT_FADE_LENGTH})`,
+              background: softFadeGradient("to right", "var(--sidebar-edge, 0px)", LEFT_FADE_LENGTH),
+            }}
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-[900]"
+            style={{
+              height: BOTTOM_FADE_LENGTH,
+              background: softFadeGradient("to top", "0px", BOTTOM_FADE_LENGTH, BOTTOM_FADE_STRENGTH),
+            }}
+          />
+        </>
+      )}
+
       {showLayerControl && (
-        <div className={`absolute left-3 z-[1000] flex flex-col items-start gap-2 ${controlsTopClassName}`}>
+        <div className={`absolute z-[1000] flex flex-col items-start gap-2 ${controlsLeftClassName} ${controlsTopClassName}`}>
           <MapControlsPanel
             viewOnly={viewOnly}
             layer={layer}

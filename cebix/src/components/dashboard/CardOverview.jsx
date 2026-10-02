@@ -29,15 +29,13 @@ export default function CardOverview() {
 
   return (
     <section className="bg-white dark:bg-black">
-      <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Overview</h2>
+      <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Overview</h2>
       <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
         Manage and track your card spending.
       </p>
-      <div className="mt-4 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
-
       <CreditCardStack />
 
-      <div className="mt-2 flex gap-5 border-b border-gray-200 dark:border-gray-800 text-sm font-medium">
+      <div className="mt-2 flex gap-5 text-sm font-medium">
         {TABS.map((tab) => (
           <button
             key={tab}
@@ -65,7 +63,7 @@ export default function CardOverview() {
       </dl>
 
       <div className="mt-6">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Balances over time</h3>
+        <h3 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Balances over time</h3>
         <div className="mt-3">
           <PeriodToggle value={period} options={PERIODS} onChange={setPeriod} />
         </div>

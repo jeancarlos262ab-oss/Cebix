@@ -8,16 +8,13 @@ export default function DashboardPage() {
     <>
       <TopBar title="Resumen general" subtitle="Del dato satelital a la decisión financiera." />
 
-      <div className="mt-6 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+      <div className="mt-6" aria-hidden="true" />
 
-      <div className="grid grid-cols-1 px-4 py-6 sm:px-6 lg:px-8 lg:grid-cols-[280px_1px_1fr] lg:gap-8">
+      <div className="grid grid-cols-1 items-start gap-10 px-4 py-6 sm:px-6 lg:grid-cols-[280px_1fr] lg:px-8">
         <ParcelSummary />
 
-        <div className="hidden bg-gray-200 dark:bg-gray-700 lg:block" aria-hidden="true" />
-
-        <div>
+        <div className="min-w-0 space-y-10">
           <YieldTrend />
-          <div className="my-6 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
           <ParcelsTable />
         </div>
       </div>

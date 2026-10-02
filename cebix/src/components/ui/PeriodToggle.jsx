@@ -23,7 +23,7 @@ function PeriodToggle({ value, options, onChange, withMenu = false, onMenuAction
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex border border-gray-200 dark:border-gray-800 bg-white dark:bg-black p-0.5 text-xs font-medium">
+      <div className="flex rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-black p-0.5 text-xs font-medium">
         {options.map((option) => {
           const isActive = option === value;
           return (
@@ -33,7 +33,7 @@ function PeriodToggle({ value, options, onChange, withMenu = false, onMenuAction
               onClick={() => onChange(option)}
               aria-pressed={isActive}
               className={[
-                "px-2.5 py-1.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-500",
+                "rounded-full px-2.5 py-1.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-500",
                 isActive
                   ? "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300",
@@ -52,14 +52,14 @@ function PeriodToggle({ value, options, onChange, withMenu = false, onMenuAction
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
-            className=" p-1.5 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300"
+            className="rounded-full p-1.5 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300"
           >
-            <MoreVertical size={16} />
+            <MoreVertical size={16} className="text-accent-600 dark:text-accent-400" />
           </button>
           {menuOpen && (
             <div
               role="menu"
-              className="absolute right-0 top-full z-50 mt-1 w-56 border border-gray-200 bg-white py-1 shadow-card dark:border-gray-800 dark:bg-gray-900"
+              className="absolute right-0 top-full z-50 mt-1 w-56 overflow-hidden rounded-2xl border border-gray-200 bg-white py-1 shadow-card dark:border-gray-800 dark:bg-gray-900"
             >
               <button
                 type="button"
@@ -70,7 +70,7 @@ function PeriodToggle({ value, options, onChange, withMenu = false, onMenuAction
                 }}
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
               >
-                <Download size={13} />
+                <Download size={13} className="text-accent-600 dark:text-accent-400" />
                 {menuLabel}
               </button>
             </div>

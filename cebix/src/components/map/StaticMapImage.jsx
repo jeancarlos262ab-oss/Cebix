@@ -14,7 +14,8 @@ import { openInGoogleMaps } from "../../utils/googleMaps";
  *   lng: number,
  *   zoom?: number,
  *   height?: number,
- *   bordered?: boolean,
+ *   rounded?: boolean,   // esquinas redondeadas (nunca lleva borde)
+ *   fill?: boolean,   // ocupa todo el alto del contenedor; height solo define la resolución pedida
  *   className?: string,
  * }} props
  */
@@ -23,7 +24,8 @@ export default function StaticMapImage({
   lng,
   zoom = 15,
   height = 130,
-  bordered = true,
+  rounded = false,
+  fill = false,
   className = "",
 }) {
   const [loaded, setLoaded] = useState(false);
@@ -44,11 +46,11 @@ export default function StaticMapImage({
       onClick={() => openInGoogleMaps(lat, lng, { zoom })}
       title="Abrir ubicación en Google Maps"
       className={[
-        "group relative block w-full cursor-pointer overflow-hidden bg-gray-100 text-left dark:bg-gray-900",
-        bordered ? "border border-gray-200 dark:border-gray-800" : "",
+        "group relative block w-full cursor-pointer overflow-hidden bg-black text-left",
+        rounded ? "rounded-2xl" : "",
         className,
       ].join(" ")}
-      style={{ height: `${height}px` }}
+      style={{ height: fill ? "100%" : `${height}px` }}
     >
       {!errored ? (
         <img

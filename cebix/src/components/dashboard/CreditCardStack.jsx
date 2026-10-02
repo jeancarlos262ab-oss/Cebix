@@ -4,7 +4,7 @@ function CardFace({ className, tone }) {
   const numberGroups = ["1234", "1234", "1234", "1234"];
   return (
     <div
-      className={`absolute h-40 w-64 p-4 text-white shadow-xl ${className}`}
+      className={`absolute h-40 w-64 rounded-2xl p-4 text-white shadow-xl ${className}`}
       style={{
         background:
           tone === "dark"
@@ -16,7 +16,7 @@ function CardFace({ className, tone }) {
         <span className="text-[10px] font-medium uppercase tracking-widest text-white/70">
           {tone === "dark" ? "Lane Stevens" : "Untitled UI"}
         </span>
-        <MoreVertical size={14} className="text-white/60" />
+        <MoreVertical size={14} className="text-accent-400" />
       </div>
 
       <div className="mt-7 flex items-center gap-1.5 text-[13px] font-medium tracking-[0.18em] text-white/90">
@@ -27,7 +27,7 @@ function CardFace({ className, tone }) {
 
       <div className="mt-4 flex items-end justify-between">
         <span className="text-[10px] text-white/60">08/28</span>
-        <Wifi size={16} className="rotate-90 text-white/60" />
+        <Wifi size={16} className="rotate-90 text-accent-400" />
       </div>
     </div>
   );
@@ -35,7 +35,7 @@ function CardFace({ className, tone }) {
 
 export default function CreditCardStack() {
   return (
-    <div className="mt-4 flex h-56 items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-800">
+    <div className="mt-4 flex h-56 items-center justify-center overflow-hidden rounded-2xl bg-gray-50 dark:bg-gray-800">
       <div className="relative flex h-48 w-full items-center justify-center">
         <CardFace tone="dark" className="left-6 top-4 rotate-[-8deg]" />
         <CardFace tone="light" className="left-2 top-0 rotate-[-2deg]" />

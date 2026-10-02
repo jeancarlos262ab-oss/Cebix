@@ -109,15 +109,15 @@ export default function UploadDropzone({ onParsed }) {
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         className={[
-          "flex cursor-pointer flex-col items-center justify-center gap-2.5 border border-dashed px-6 py-8 text-center transition-colors focus-within:ring-2 focus-within:ring-accent-500 [&>*]:pointer-events-none",
+          "flex cursor-pointer flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed px-6 py-8 text-center transition-colors focus-within:ring-2 focus-within:ring-accent-500 [&>*]:pointer-events-none",
           isDragging
             ? "border-accent-500 bg-accent-50 dark:bg-accent-500/10"
-            : "border-gray-300 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-black dark:hover:bg-gray-900",
+            : "border-gray-300 hover:bg-gray-50/60 dark:border-gray-700 dark:hover:bg-gray-900/60",
         ].join(" ")}
       >
         <span
           className={[
-            "flex h-10 w-10 items-center justify-center border bg-white shadow-sm transition-transform dark:bg-black",
+            "flex h-10 w-10 items-center justify-center rounded-full border transition-transform",
             isDragging
               ? "scale-110 border-accent-500"
               : "border-gray-200 dark:border-gray-800",
@@ -125,7 +125,7 @@ export default function UploadDropzone({ onParsed }) {
         >
           <UploadCloud
             size={18}
-            className={isDragging ? "text-accent-600" : "text-gray-500 dark:text-gray-400"}
+            className="text-accent-600 dark:text-accent-400"
           />
         </span>
         {isDragging ? (

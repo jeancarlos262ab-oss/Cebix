@@ -3,14 +3,7 @@ import redLight from "../../assets/red.png";
 import yellowLight from "../../assets/yellow.png";
 import greenLight from "../../assets/green.png";
 
-// Tonos del semáforo alineados con la paleta de acento global:
-// ámbar = --accent-500 de "brand", verde = --accent-500 de "ndvi" y un rojo
-// terroso con la misma saturación/luminosidad para que convivan.
-const RISK_COLORS = {
-  red: "#B8493B",
-  yellow: "#C08A2E",
-  green: "#4C9A63",
-};
+import { RISK_COLORS } from "../../utils/riskColors";
 
 // Convierte un hex "#RRGGBB" a "r, g, b" para poder armar rgba() y
 // construir degradados que se pierdan a transparente.
@@ -79,7 +72,7 @@ function Semaphore({ score }) {
   const clamped = Math.max(0, Math.min(100, score));
 
   return (
-    <div className="border border-gray-200 bg-white p-4 pb-0 shadow-card dark:border-gray-800 dark:bg-black">
+    <div className="rounded-2xl border border-gray-200 p-4 pb-0 dark:border-gray-800">
       <div className="flex items-center gap-4">
         <div className="relative flex h-40 shrink-0 items-center justify-center overflow-visible">
           <img
@@ -96,7 +89,7 @@ function Semaphore({ score }) {
         </div>
         <div>
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Score de elegibilidad</p>
-          <p className="font-sora text-2xl font-bold text-gray-900 dark:text-gray-100">{score} / 100</p>
+          <p className="font-display text-2xl font-bold text-gray-900 dark:text-gray-100">{score} / 100</p>
           <p className="mt-0.5 text-sm font-semibold" style={{ color: active.color }}>
             {active.label}
           </p>
@@ -127,7 +120,7 @@ function Semaphore({ score }) {
       {/* Desglose de los tres niveles: solo el recuadro activo lleva el
           degradado de izquierda a derecha (color -> transparente); los
           demás quedan sin fondo y con el punto apagado. */}
-      <div className="-mx-4 mt-3 divide-y divide-gray-100 border-t border-gray-100 dark:divide-gray-800 dark:border-gray-800">
+      <div className="-mx-4 mt-3">
         {LEVELS.map((level) => {
           const isActive = level.key === active.key;
           return (

@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@800&family=Sora:wght@500;600;700;800&display=swap");
 @import 'maplibre-gl/dist/maplibre-gl.css';
 
 @tailwind base;
@@ -6,8 +6,15 @@
 @tailwind utilities;
 
 @layer utilities {
-  .font-sora {
+  /* Cifras y encabezados destacados: Sora, geométrica, limpia y moderna.
+     Para cambiarla basta con editar esta línea y el @import de arriba. */
+  .font-display {
     font-family: "Sora", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  /* Exclusivo del wordmark CEBIX (Logo.jsx). El resto de la app usa Inter. */
+  .font-garet {
+    font-family: "Garet", "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
 }
 
@@ -23,11 +30,19 @@
   }
 
   body {
-    font-family: "Garet", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     background-color: #ffffff;
     color: #101828;
     transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  :root {
+    --page-bg: #ffffff;
+  }
+
+  html.dark {
+    --page-bg: #000000;
   }
 
   html.dark body {
@@ -123,13 +138,7 @@
     --chart-track: #4b5563;
   }
 
-  /* Paleta PROPIA de las gráficas: no depende del color de acento (que solo
-     aplica a botones/controles), pero sale de la misma familia cálida del ámbar
-     (mismas saturación/luminosidad, solo rota el tono): ocre → oliva → cobre.
-     Son las escalas 600 (claro) y 400 (oscuro) de los acentos Ámbar/Oliva/Cobre,
-     más oscuras/apagadas que el ámbar del semáforo para no confundirse con un
-     estado de riesgo. Solo positivo/negativo usan verde/rojo porque significan
-     "suma/resta". Sin azules ni violetas. */
+  /* Paleta PROPIA de las gráficas */
   html {
     --chart-1: #9c6f1f;        /* serie principal (ocre) */
     --chart-2: #77803b;        /* serie secundaria (oliva) */
@@ -150,17 +159,7 @@
     --chart-mixed: #b3a58d;
   }
 
-  /* Densidad compacta: reduce el espaciado vertical en tarjetas y filas sin
-     tocar cada componente individualmente. */
-  html[data-density="compacta"] .density-py {
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
-  }
-
-  /* Scrollbar personalizado: esquinas cuadradas (sin radio) para mantener el
-     look del resto de la interfaz, gris neutro en reposo y el color de
-     acento activo al pasar el mouse. Firefox usa scrollbar-color;
-     Chrome/Safari/Edge usan los pseudo-elementos ::-webkit-scrollbar. */
+  /* Scrollbar personalizado */
   * {
     scrollbar-width: thin;
     scrollbar-color: #d0d5dd transparent;
@@ -213,32 +212,47 @@
 }
 
 /* ========================================
-   MapLibre Popup Customization
+   Mapas: contenedores SIEMPRE negros (modo claro y oscuro)
+   Popups (MapLibre + Leaflet), controles nativos y atribución.
    ======================================== */
 
-/* Personalización de popups para ParcelMap */
-.maplibregl-popup {
+.maplibregl-popup,
+.leaflet-popup {
   max-width: 280px;
   font-family: inherit;
 }
 
-.maplibregl-popup-content {
+.maplibregl-popup-content,
+.leaflet-popup-content-wrapper {
   padding: 12px 14px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  background: white;
-}
-
-html.dark .maplibregl-popup-content {
-  background: #1f2937;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.92) !important;
+  color: #f3f4f6 !important;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
 }
 
-.maplibregl-popup-close-button {
+.leaflet-popup-content-wrapper {
+  padding: 0;
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px;
+  color: #f3f4f6;
+}
+
+.leaflet-popup-tip {
+  background: rgba(0, 0, 0, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+
+.maplibregl-popup-close-button,
+.leaflet-container a.leaflet-popup-close-button {
   width: 24px;
   height: 24px;
   font-size: 20px;
-  color: #6b7280;
+  color: #9ca3af;
   padding: 0;
   display: flex;
   align-items: center;
@@ -246,55 +260,38 @@ html.dark .maplibregl-popup-content {
   transition: color 0.15s ease;
 }
 
-.maplibregl-popup-close-button:hover {
+.maplibregl-popup-close-button:hover,
+.leaflet-container a.leaflet-popup-close-button:hover {
   background: transparent;
-  color: #111827;
+  color: #ffffff;
 }
 
-html.dark .maplibregl-popup-close-button {
-  color: #9ca3af;
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: rgba(0, 0, 0, 0.92);
 }
 
-html.dark .maplibregl-popup-close-button:hover {
-  color: #f3f4f6;
-}
-
-.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
-  border-top-color: white;
-}
-
-html.dark .maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
-  border-top-color: #1f2937;
-}
-
-.maplibregl-popup-anchor-top .maplibregl-popup-tip {
-  border-bottom-color: white;
-}
-
-html.dark .maplibregl-popup-anchor-top .maplibregl-popup-tip {
-  border-bottom-color: #1f2937;
+.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: rgba(0, 0, 0, 0.92);
 }
 
 .maplibregl-popup-anchor-left .maplibregl-popup-tip {
-  border-right-color: white;
-}
-
-html.dark .maplibregl-popup-anchor-left .maplibregl-popup-tip {
-  border-right-color: #1f2937;
+  border-right-color: rgba(0, 0, 0, 0.92);
 }
 
 .maplibregl-popup-anchor-right .maplibregl-popup-tip {
-  border-left-color: white;
+  border-left-color: rgba(0, 0, 0, 0.92);
 }
 
-html.dark .maplibregl-popup-anchor-right .maplibregl-popup-tip {
-  border-left-color: #1f2937;
-}
-
-/* Estilos para controles de navegación y fullscreen */
-.maplibregl-ctrl-group {
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
+/* Controles nativos (si alguno se llegara a usar) */
+.maplibregl-ctrl-group,
+.leaflet-bar a,
+.leaflet-control-layers {
+  background: rgba(0, 0, 0, 0.85);
+  color: #f3f4f6;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
@@ -308,71 +305,32 @@ html.dark .maplibregl-popup-anchor-right .maplibregl-popup-tip {
   filter: brightness(0) invert(1);
 }
 
-.maplibregl-ctrl button:hover {
+.maplibregl-ctrl button:hover,
+.leaflet-bar a:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Atribución del mapa */
-.maplibregl-ctrl-attrib {
-  background-color: rgba(255, 255, 255, 0.8);
+/* Atribución */
+.maplibregl-ctrl-attrib,
+.leaflet-container .leaflet-control-attribution {
+  background-color: rgba(0, 0, 0, 0.85) !important;
   backdrop-filter: blur(4px);
   font-size: 10px;
-}
-
-html.dark .maplibregl-ctrl-attrib {
-  background-color: rgba(0, 0, 0, 0.7);
-}
-
-.maplibregl-ctrl-attrib a {
-  color: #4b5563;
-  text-decoration: none;
-}
-
-html.dark .maplibregl-ctrl-attrib a {
   color: #9ca3af;
 }
 
-.maplibregl-ctrl-attrib a:hover {
-  color: #111827;
+.maplibregl-ctrl-attrib a,
+.leaflet-control-attribution a {
+  color: #9ca3af;
+  text-decoration: none;
+}
+
+.maplibregl-ctrl-attrib a:hover,
+.leaflet-control-attribution a:hover {
+  color: #ffffff;
   text-decoration: underline;
 }
 
-html.dark .maplibregl-ctrl-attrib a:hover {
-  color: #f3f4f6;
-}
-
-/* Fondo animado del panel de marca en Login/Signup: un degradado suave que
-   "respira" entre los tres tonos de acento del tema activo (--accent-400/
-   500/600), así siempre corresponde al acento y modo claro/oscuro elegidos
-   sin necesitar JS. Se desactiva si el usuario prefiere menos movimiento. */
-.auth-aside-bg {
-  background-image: linear-gradient(
-    125deg,
-    var(--accent-600) 0%,
-    var(--accent-500) 45%,
-    var(--accent-400) 100%
-  );
-  background-size: 220% 220%;
-  animation: auth-aside-pan 16s ease-in-out infinite;
-}
-
-@keyframes auth-aside-pan {
-  0%,
-  100% {
-    background-position: 0% 25%;
-  }
-  50% {
-    background-position: 100% 75%;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .auth-aside-bg {
-    animation: none;
-  }
-}
-
-/* react-loading-skeleton: colores acordes al tema (gris-100/800 + brillo). */
 .results-skeleton .react-loading-skeleton {
   --base-color: #f2f4f7;
   --highlight-color: #ffffff;
@@ -389,10 +347,6 @@ html.dark .results-skeleton .strong .react-loading-skeleton {
   --highlight-color: #475467;
 }
 
-/* Notificaciones (sonner): color sólido según el contexto. Mismos colores del semáforo
-   (Semaphore.jsx) de Predicciones: rojo #B8493B, amarillo #C08A2E, verde #4C9A63.
-   sonner inyecta sus propios estilos en runtime (después de este CSS), por eso
-   se usa mayor especificidad + !important para que no gane el fondo por defecto. */
 ol.app-toaster li[data-sonner-toast] {
   --toast-bg: var(--accent-600);
   --toast-fg: var(--accent-contrast);
@@ -402,7 +356,7 @@ ol.app-toaster li[data-sonner-toast] {
   background: var(--toast-bg) !important;
   border: 1px solid var(--toast-bg) !important;
   color: var(--toast-fg) !important;
-  border-radius: 0 !important;
+  border-radius: 1rem !important;
 }
 
 ol.app-toaster li[data-sonner-toast][data-type="success"] { --toast-bg: #4C9A63; --toast-fg: #ffffff; }
@@ -433,5 +387,25 @@ ol.app-toaster li[data-sonner-toast] [data-close-button] {
 ol.app-toaster li[data-sonner-toast] [data-button] {
   background: var(--toast-fg) !important;
   color: var(--toast-bg) !important;
-  border-radius: 0 !important;
+  border-radius: 9999px !important;
+}
+
+/* Degradado de acento en la esquina superior izquierda (fijo, detrás de todo).
+   Usa el color de acento elegido en Ajustes, así que cambia con él. */
+.app-corner-glow {
+  background: radial-gradient(
+    ellipse 75% 65% at 0% 0%,
+    color-mix(in srgb, var(--accent-500) 26%, transparent) 0%,
+    color-mix(in srgb, var(--accent-500) 10%, transparent) 45%,
+    transparent 80%
+  );
+}
+
+html.dark .app-corner-glow {
+  background: radial-gradient(
+    ellipse 75% 65% at 0% 0%,
+    color-mix(in srgb, var(--accent-500) 30%, transparent) 0%,
+    color-mix(in srgb, var(--accent-500) 11%, transparent) 45%,
+    transparent 80%
+  );
 }

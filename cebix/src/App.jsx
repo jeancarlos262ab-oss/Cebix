@@ -1,5 +1,6 @@
-import { lazy, Suspense } from "react";
-import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import AuthShell from "./components/auth/AuthShell";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Sidebar from "./components/layout/Sidebar";
 import { SidebarProvider } from "./context/SidebarContext";
@@ -16,8 +17,10 @@ const PrediccionesPage = lazy(() => import("./pages/PrediccionesPage"));
 const ValidacionSHAPPage = lazy(() => import("./pages/ValidacionSHAPPage"));
 const AjustesPage = lazy(() => import("./pages/AjustesPage"));
 const PerfilPage = lazy(() => import("./pages/PerfilPage"));
-const LoginPage = lazy(() => import("./pages/LoginPage"));
-const SignupPage = lazy(() => import("./pages/SignupPage"));
+const loadLogin = () => import("./pages/LoginPage");
+const loadSignup = () => import("./pages/SignupPage");
+const LoginPage = lazy(loadLogin);
+const SignupPage = lazy(loadSignup);
 
 function RouteFallback() {
   return (
@@ -28,12 +31,21 @@ function RouteFallback() {
 }
 
 function AuthenticatedLayout() {
+  // En el mapa satelital el contenido ocupa toda la pantalla, también detrás
+  // del sidebar (que sigue al frente por su z-index).
+  const fullBleed = useLocation().pathname === "/mapa";
+
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full overflow-hidden supports-[height:100dvh]:h-dvh bg-white dark:bg-black">
+      <div className="relative isolate flex h-screen w-full overflow-hidden supports-[height:100dvh]:h-dvh bg-white dark:bg-black">
+        {/* Degradado fijo de la esquina superior izquierda: va detrás del panel y de todas las pantallas. */}
+        <div className="app-corner-glow pointer-events-none absolute inset-0 -z-10" aria-hidden="true" />
         <Sidebar />
 
-        <main className="min-w-0 flex-1 overflow-y-auto">
+        <main
+          id="app-scroll"
+          className={fullBleed ? "absolute inset-0 overflow-hidden" : "min-w-0 flex-1 overflow-y-auto"}
+        >
           <Outlet />
         </main>
       </div>
@@ -42,11 +54,20 @@ function AuthenticatedLayout() {
 }
 
 export default function App() {
+  // Login y Signup comparten marco: precargamos ambas para que el cambio de
+  // pestaña sea instantáneo y no deje un hueco mientras baja el chunk.
+  useEffect(() => {
+    loadLogin();
+    loadSignup();
+  }, []);
+
   return (
     <Suspense fallback={<RouteFallback />}>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+        <Route element={<AuthShell />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+        </Route>
         <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/parcelas" element={<ParcelasPage />} />

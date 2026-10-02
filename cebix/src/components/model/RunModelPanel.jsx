@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Download,
@@ -9,6 +9,7 @@ import {
   TrendingUp,
   UploadCloud,
 } from "lucide-react";
+import { animateScroll } from "react-scroll";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import LiquidOrbLoader from "./LiquidOrbLoader";
@@ -17,6 +18,17 @@ const API_URL = (import.meta.env.VITE_MODEL_API_URL || "http://localhost:8000").
 
 const REQUIRED_COLUMNS = ["ID_POLIGONO", "Estado", "10 features del modelo"];
 const STATES = ["Hidalgo", "Puebla", "Tlaxcala"];
+
+// Tiempo mínimo que el orbe "piensa", aunque el backend responda antes.
+const MIN_THINKING_MS = 5000;
+
+// Scroll hacia el final de la tabla al mostrar los resultados (react-scroll).
+const SCROLL_CONTAINER_ID = "app-scroll"; // <main> en App.jsx
+const SCROLL_MARGIN = 32; // px de aire bajo la tabla
+const SCROLL_MIN_MS = 500;
+const SCROLL_MAX_MS = 1100;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const formatSize = (bytes) =>
   bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -52,14 +64,20 @@ export default function RunModelPanel() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(`${API_URL}/predict-csv`, { method: "POST", body: formData });
-      if (!res.ok) {
-        const detail = await res.json().catch(() => ({}));
-        throw new Error(
-          typeof detail.detail === "string" ? detail.detail : `El backend respondió ${res.status}`
-        );
-      }
-      const data = await res.json();
+
+      // La petición real y el mínimo de 5 s corren en paralelo: si el modelo termina antes,
+      // se espera lo que falte; si tarda más, no se añade tiempo extra.
+      const request = (async () => {
+        const res = await fetch(`${API_URL}/predict-csv`, { method: "POST", body: formData });
+        if (!res.ok) {
+          const detail = await res.json().catch(() => ({}));
+          throw new Error(
+            typeof detail.detail === "string" ? detail.detail : `El backend respondió ${res.status}`
+          );
+        }
+        return res.json();
+      })();
+      const [data] = await Promise.all([request, sleep(MIN_THINKING_MS)]);
       setResults(data.predicciones);
       toast.success(
         `Modelo ejecutado: ${data.predicciones.length} parcela${data.predicciones.length === 1 ? "" : "s"} procesada${data.predicciones.length === 1 ? "" : "s"}.`
@@ -79,7 +97,7 @@ export default function RunModelPanel() {
     <div className="grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,1fr)_200px] lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-12">
       {/* Orb: columna lateral fija al hacer scroll (en móvil va arriba). */}
       <aside className="order-first md:order-last">
-        <div className="md:sticky md:top-6">
+        <div className="md:sticky md:top-6 md:max-h-[calc(100vh-3rem)] md:overflow-y-auto scrollbar-none">
           <div className="flex justify-center py-2 md:py-4">
             <div className="w-36 lg:w-44">
               <LiquidOrbLoader
@@ -89,6 +107,7 @@ export default function RunModelPanel() {
               />
             </div>
           </div>
+          <ResultsGuide results={results} />
         </div>
       </aside>
 
@@ -98,17 +117,17 @@ export default function RunModelPanel() {
           title="Prepara tu archivo"
           description="El CSV necesita estas columnas; el de ejemplo trae el formato exacto."
         >
-          <div className="flex flex-col gap-4 border border-gray-200 p-4 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 p-4 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-start gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-accent-50 text-accent-600 dark:bg-accent-500/10 dark:text-accent-400">
-                <FileSpreadsheet size={18} />
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-600 dark:bg-accent-500/10 dark:text-accent-400">
+                <FileSpreadsheet size={18} className="text-accent-600 dark:text-accent-400" />
               </span>
               <div className="min-w-0">
                 <div className="flex flex-wrap gap-1.5">
                   {REQUIRED_COLUMNS.map((c) => (
                     <span
                       key={c}
-                      className="bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                      className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300"
                     >
                       {c}
                     </span>
@@ -122,9 +141,9 @@ export default function RunModelPanel() {
             <a
               href="/ejemplo_features_predict.csv"
               download
-              className="inline-flex shrink-0 items-center justify-center gap-2 border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
-              <Download size={16} />
+              <Download size={16} className="text-accent-600 dark:text-accent-400" />
               Descargar CSV de ejemplo
             </a>
           </div>
@@ -143,7 +162,7 @@ export default function RunModelPanel() {
               }}
               onDragLeave={() => setDragging(false)}
               onDrop={handleDrop}
-              className={`flex cursor-pointer flex-col items-center justify-center gap-2 border border-dashed px-4 py-8 text-center transition-colors focus-within:ring-2 focus-within:ring-accent-500 ${
+              className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-4 py-8 text-center transition-colors focus-within:ring-2 focus-within:ring-accent-500 ${
                 dragging
                   ? "border-accent-500 bg-accent-50 dark:bg-accent-500/10"
                   : file
@@ -154,7 +173,7 @@ export default function RunModelPanel() {
               {file ? (
                 <FileSpreadsheet size={26} className="text-accent-600 dark:text-accent-400" />
               ) : (
-                <UploadCloud size={26} className="text-gray-400 dark:text-gray-500" />
+                <UploadCloud size={26} className="text-accent-600 dark:text-accent-400" />
               )}
               <span className="max-w-full truncate text-sm font-medium text-gray-900 dark:text-gray-100">
                 {file ? file.name : "Elegir archivo CSV"}
@@ -173,7 +192,7 @@ export default function RunModelPanel() {
             <button
               type="submit"
               disabled={!file || loading}
-              className="inline-flex w-full items-center justify-center gap-2 bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast shadow-sm transition-colors hover:bg-accent-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent-500 px-5 py-2.5 text-sm font-semibold text-accent-contrast shadow-sm transition-colors hover:bg-accent-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black sm:w-auto"
             >
               {loading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
               {loading ? "Ejecutando modelo..." : "Ejecutar modelo"}
@@ -205,9 +224,97 @@ export default function RunModelPanel() {
   );
 }
 
-function ResultsTable({ results }) {
+// Guía en lenguaje sencillo bajo el orbe: qué significa cada columna de la tabla.
+// Solo aparece cuando ya hay resultados; incluye un ejemplo leído con la primera parcela.
+const GUIDE_ITEMS = [
+  {
+    term: "Rendimiento (t/ha)",
+    text: "Cuánta cebada se espera cosechar en cada hectárea. 1 tonelada (t) son 1,000 kg.",
+  },
+  {
+    term: "IC 90%",
+    text: "El rango más probable. Hay un 90 % de probabilidad de que la cosecha real quede entre esos dos números.",
+  },
+  {
+    term: "± RMSE",
+    text: "Cuánto suele equivocarse el modelo, en t/ha. Mientras más pequeño, más confiable es la estimación.",
+  },
+  {
+    term: "Variable de mayor impacto",
+    text: "El factor que más pesó en la estimación. Flecha verde ↑: la subió. Flecha roja ↓: la bajó.",
+  },
+];
+
+function ResultsGuide({ results }) {
+  if (!results?.length) return null; // solo se muestra cuando ya hay tabla
+  const first = results[0];
+  const top = first?.shap?.[0];
+  const kg = first ? Math.round(Number(first.yieldEstimate) * 1000) : NaN;
+
   return (
-    <div className="overflow-x-auto border border-gray-200 dark:border-gray-800">
+    <div className="mt-2 rounded-2xl border border-gray-200 p-4 text-xs dark:border-gray-800 md:mt-4">
+      <h3 className="font-display text-xs font-semibold text-gray-900 dark:text-gray-100">
+        ¿Cómo leer la tabla?
+      </h3>
+      <p className="mt-1 text-gray-500 dark:text-gray-400">
+        Cada fila es una parcela y el modelo estima cuánta cebada dará.
+      </p>
+
+      <dl className="mt-3 space-y-2.5">
+        {GUIDE_ITEMS.map((item) => (
+          <div key={item.term}>
+            <dt className="font-medium text-gray-900 dark:text-gray-100">{item.term}</dt>
+            <dd className="mt-0.5 text-gray-500 dark:text-gray-400">{item.text}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {Number.isFinite(kg) && (
+        <p className="mt-3 pt-3 text-gray-700 dark:text-gray-300">
+          <span className="font-medium text-gray-900 dark:text-gray-100">Ejemplo: </span>
+          la parcela {first.ID_POLIGONO} ({first.Estado}) daría cerca de {first.yieldEstimate} t/ha
+          (unos {kg.toLocaleString("es-MX")} kg por hectárea), y casi seguro entre{" "}
+          {first.ic90_inferior} y {first.ic90_superior}.
+          {top && (
+            <>
+              {" "}
+              Lo que más influyó fue «{top.feature}», que{" "}
+              {top.direction === "positivo" ? "subió" : "bajó"} la estimación.
+            </>
+          )}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ResultsTable({ results }) {
+  const wrapRef = useRef(null);
+
+  // Al mostrarse los resultados baja suavemente hasta el final de la tabla.
+  // react-scroll cancela la animación si el usuario usa la rueda, el touch o el teclado.
+  useEffect(() => {
+    const el = wrapRef.current;
+    const container = document.getElementById(SCROLL_CONTAINER_ID);
+    if (!el || !container) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+
+    const distance = el.getBoundingClientRect().bottom + SCROLL_MARGIN - container.getBoundingClientRect().bottom;
+    if (distance <= 0) return; // la tabla ya cabe en pantalla
+
+    // Más distancia, un poco más de tiempo (con tope).
+    const duration = Math.min(SCROLL_MAX_MS, Math.max(SCROLL_MIN_MS, distance * 1.2));
+    animateScroll.scrollMore(distance, {
+      containerId: SCROLL_CONTAINER_ID,
+      smooth: "easeInOutQuad",
+      duration,
+    });
+  }, [results]);
+
+  return (
+    <div
+      ref={wrapRef}
+      className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-800">
       <table className="min-w-full text-sm">
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
@@ -220,7 +327,7 @@ function ResultsTable({ results }) {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-          {results.map((r) => {
+          {results.map((r, i) => {
             const top = r.shap[0];
             const positive = top?.direction === "positivo";
             const DirIcon = positive ? TrendingUp : TrendingDown;
@@ -233,7 +340,7 @@ function ResultsTable({ results }) {
                 <td className="whitespace-nowrap px-4 py-3 text-gray-600 dark:text-gray-400">
                   {r.Estado}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right font-sora text-base font-bold tabular-nums">
+                <td className="whitespace-nowrap px-4 py-3 text-right font-display text-base font-bold tabular-nums">
                   {r.yieldEstimate}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 tabular-nums text-gray-500 dark:text-gray-400">
@@ -273,20 +380,20 @@ function ResultsTable({ results }) {
 function ResultsPlaceholder({ loading }) {
   const bar = {
     height: 10,
-    borderRadius: 0,
+    borderRadius: 999,
     enableAnimation: loading,
   };
 
   return (
     <div
       aria-hidden="true"
-      className="results-skeleton border border-dashed border-gray-300 dark:border-gray-700"
+      className="results-skeleton overflow-hidden rounded-2xl border border-dashed border-gray-300 dark:border-gray-700"
     >
       {[0, 1, 2].map((i) => (
         <div
           key={i}
           className={`flex items-center gap-4 px-4 py-3.5 ${
-            i > 0 ? "border-t border-dashed border-gray-200 dark:border-gray-800" : ""
+            ""
           }`}
         >
           <Skeleton {...bar} containerClassName="block w-16" />
@@ -310,11 +417,11 @@ function Step({ n, title, description, last = false, children }) {
           className="absolute left-3.5 top-9 -bottom-10 w-px -translate-x-1/2 bg-gray-200 dark:bg-gray-800"
         />
       )}
-      <span className="relative z-10 flex h-7 w-7 shrink-0 items-center justify-center bg-accent-500 text-sm font-semibold text-accent-contrast">
+      <span className="relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-500 text-sm font-semibold text-accent-contrast">
         {n}
       </span>
       <div className="min-w-0 flex-1">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+        <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
         <p className="mt-0.5 max-w-2xl text-sm text-gray-500 dark:text-gray-400">{description}</p>
         <div className="mt-4">{children}</div>
       </div>

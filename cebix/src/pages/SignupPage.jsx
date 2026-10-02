@@ -1,21 +1,11 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  User,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  MapPin,
-  Briefcase,
-  Loader2,
-  ArrowRight,
-  KeyRound,
-  MailCheck,
-} from "lucide-react";
+import { User, Mail, Lock, MapPin, Briefcase, MailCheck } from "lucide-react";
 import AuthLayout from "../components/auth/AuthLayout";
-import AuthField from "../components/auth/AuthField";
+import AuthField, { PasswordToggle } from "../components/auth/AuthField";
+import AuthSelect from "../components/auth/AuthSelect";
+import AuthButton from "../components/auth/AuthButton";
 import { useAuth } from "../context/AuthContext";
 
 const REGIONS = ["Nacional", "Hidalgo", "Tlaxcala", "Puebla"];
@@ -61,35 +51,6 @@ function getVerifyErrorMessage(error) {
   // (signIn), el mensaje ya viene traducido por getAuthErrorMessage de
   // LoginPage; aquí solo caemos al genérico.
   return "No pudimos verificar el código. Inténtalo de nuevo.";
-}
-
-function SelectField({ label, icon: Icon, name, value, onChange, options }) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-200">{label}</span>
-      <div className="relative">
-        {Icon && (
-          <Icon
-            size={16}
-            strokeWidth={2}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
-          />
-        )}
-        <select
-          name={name}
-          value={value}
-          onChange={onChange}
-          className="w-full appearance-none border border-gray-300 bg-white py-2.5 pl-10 pr-3 text-sm text-gray-900 outline-none transition focus:border-accent-500 focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-black dark:text-white dark:focus:ring-accent-700"
-        >
-          {options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </div>
-    </label>
-  );
 }
 
 export default function SignupPage() {
@@ -175,185 +136,145 @@ export default function SignupPage() {
   }
 
   return (
-    <AuthLayout title="Crea tu cuenta" subtitle="Solicita acceso al espacio de trabajo CEBIX.">
-      <div className="border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-black sm:p-8">
+    <AuthLayout
+      title={step === "form" ? "Crea tu cuenta" : "Verifica tu correo"}
+      subtitle={
+        step === "form"
+          ? "Solicita acceso al espacio de trabajo CEBIX."
+          : "Un último paso para activar tu cuenta."
+      }
+      activeTab={step === "form" ? "signup" : undefined}
+    >
+      {step === "form" ? (
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <AuthField
+            label="Nombre completo"
+            icon={User}
+            required
+            type="text"
+            name="name"
+            autoComplete="name"
+            placeholder="Nombre y apellido"
+            value={form.name}
+            onChange={handleChange}
+          />
 
-        {step === "form" ? (
-          <>
-            <form className="space-y-5" onSubmit={handleSubmit}>
-              <AuthField
-                label="Nombre completo"
-                icon={User}
-                required
-                type="text"
-                name="name"
-                autoComplete="name"
-                placeholder="Nombre y apellido"
-                value={form.name}
-                onChange={handleChange}
-              />
+          <AuthField
+            label="Correo electrónico"
+            icon={Mail}
+            required
+            type="email"
+            name="email"
+            autoComplete="email"
+            placeholder="tucorreo@ejemplo.com"
+            value={form.email}
+            onChange={handleChange}
+          />
 
-              <AuthField
-                label="Correo electrónico"
-                icon={Mail}
-                required
-                type="email"
-                name="email"
-                autoComplete="email"
-                placeholder="tucorreo@ejemplo.com"
-                value={form.email}
-                onChange={handleChange}
-              />
+          <AuthField
+            label="Contraseña"
+            icon={Lock}
+            required
+            minLength={6}
+            type={showPassword ? "text" : "password"}
+            name="password"
+            autoComplete="new-password"
+            placeholder="Mínimo 6 caracteres"
+            value={form.password}
+            onChange={handleChange}
+            rightElement={<PasswordToggle shown={showPassword} onToggle={() => setShowPassword((v) => !v)} />}
+          />
 
-              <AuthField
-                label="Contraseña"
-                icon={Lock}
-                required
-                minLength={6}
-                type={showPassword ? "text" : "password"}
-                name="password"
-                autoComplete="new-password"
-                placeholder="Mínimo 6 caracteres"
-                value={form.password}
-                onChange={handleChange}
-                rightElement={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                }
-              />
+          <AuthField
+            label="Confirmar contraseña"
+            icon={Lock}
+            required
+            minLength={6}
+            type={showConfirmPassword ? "text" : "password"}
+            name="confirmPassword"
+            autoComplete="new-password"
+            placeholder="Escríbela de nuevo"
+            value={form.confirmPassword}
+            onChange={handleChange}
+            rightElement={
+              <PasswordToggle shown={showConfirmPassword} onToggle={() => setShowConfirmPassword((v) => !v)} />
+            }
+            hint={
+              form.confirmPassword && form.password !== form.confirmPassword
+                ? "Las contraseñas no coinciden."
+                : undefined
+            }
+          />
 
-              <AuthField
-                label="Confirmar contraseña"
-                icon={Lock}
-                required
-                minLength={6}
-                type={showConfirmPassword ? "text" : "password"}
-                name="confirmPassword"
-                autoComplete="new-password"
-                placeholder="Escríbela de nuevo"
-                value={form.confirmPassword}
-                onChange={handleChange}
-                rightElement={
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword((v) => !v)}
-                    aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-                  >
-                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                }
-              />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <AuthSelect label="Región" icon={MapPin} name="region" value={form.region} onChange={handleChange} options={REGIONS} />
+            <AuthSelect label="Rol solicitado" icon={Briefcase} name="role" value={form.role} onChange={handleChange} options={ROLES} />
+          </div>
 
-              <div className="grid gap-5 sm:grid-cols-2">
-                <SelectField label="Región" icon={MapPin} name="region" value={form.region} onChange={handleChange} options={REGIONS} />
-                <SelectField label="Rol solicitado" icon={Briefcase} name="role" value={form.role} onChange={handleChange} options={ROLES} />
-              </div>
+          <div className="pt-2">
+            <AuthButton loading={submitting} loadingLabel="Creando cuenta...">
+              Crear cuenta
+            </AuthButton>
+          </div>
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex w-full items-center justify-center gap-2 bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast transition hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    Creando cuenta...
-                  </>
-                ) : (
-                  <>
-                    Crear cuenta
-                    <ArrowRight size={16} />
-                  </>
-                )}
-              </button>
-            </form>
+          <p className="auth-muted pt-1 text-center text-sm">
+            ¿Ya tienes cuenta?{" "}
+            <Link to="/login" replace className="auth-link">
+              Inicia sesión
+            </Link>
+          </p>
+        </form>
+      ) : (
+        <>
+          <div className="auth-notice mb-6">
+            <MailCheck size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <span>
+              Te enviamos un código de 6 dígitos a <strong className="font-semibold">{form.email}</strong>. Escríbelo
+              para confirmar que ese correo es tuyo.
+            </span>
+          </div>
 
-            <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-              ¿Ya tienes una cuenta?{" "}
-              <Link className="font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400" to="/login">
-                Iniciar sesión
-              </Link>
-            </p>
-          </>
-        ) : (
-          <>
-            <div className="mb-5 flex items-start gap-2.5 border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
-              <MailCheck size={16} className="mt-0.5 shrink-0 text-accent-600 dark:text-accent-400" />
-              <span>
-                Te enviamos un código de 6 dígitos a <strong className="font-semibold">{form.email}</strong>.
-                Escríbelo para confirmar que ese correo es tuyo.
-              </span>
-            </div>
+          <form className="space-y-5" onSubmit={handleVerify}>
+            <AuthField
+              label="Código de verificación"
+              required
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              placeholder="000000"
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+              }}
+              className="auth-code"
+            />
 
-            <form className="space-y-5" onSubmit={handleVerify}>
-              <AuthField
-                label="Código de verificación"
-                icon={KeyRound}
-                required
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                placeholder="000000"
-                value={code}
-                onChange={(e) => {
-                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
-                }}
-                className="tracking-[0.5em]"
-              />
+            <AuthButton loading={submitting} loadingLabel="Verificando..." disabled={code.length < 6}>
+              Verificar y entrar
+            </AuthButton>
+          </form>
 
-              <button
-                type="submit"
-                disabled={submitting || code.length < 6}
-                className="flex w-full items-center justify-center gap-2 bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast transition hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    Verificando...
-                  </>
-                ) : (
-                  <>
-                    Verificar y entrar
-                    <ArrowRight size={16} />
-                  </>
-                )}
-              </button>
-            </form>
-
-            <p className="mt-6 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-center text-sm text-gray-500 dark:text-gray-400">
-              <span>¿No llegó el código?</span>
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={resending}
-                className="font-semibold text-accent-600 hover:text-accent-700 disabled:opacity-60 dark:text-accent-400"
-              >
-                {resending ? "Enviando..." : resent ? "Reenviado ✓" : "Reenviar código"}
-              </button>
-            </p>
-            <p className="mt-2 text-center text-sm">
-              <button
-                type="button"
-                onClick={() => {
-                  setStep("form");
-                  setCode("");
-                }}
-                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-              >
-                ¿Correo incorrecto? Volver
-              </button>
-            </p>
-          </>
-        )}
-      </div>
+          <p className="auth-muted mt-6 flex flex-wrap items-center justify-center gap-x-1.5 text-center text-sm">
+            <span>¿No llegó el código?</span>
+            <button type="button" onClick={handleResend} disabled={resending} className="auth-link disabled:opacity-60">
+              {resending ? "Enviando..." : resent ? "Reenviado ✓" : "Reenviar código"}
+            </button>
+          </p>
+          <p className="mt-3 text-center text-sm">
+            <button
+              type="button"
+              onClick={() => {
+                setStep("form");
+                setCode("");
+              }}
+              className="auth-quiet"
+            >
+              ¿Correo incorrecto? Volver
+            </button>
+          </p>
+        </>
+      )}
     </AuthLayout>
   );
 }

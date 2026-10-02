@@ -15,7 +15,7 @@ function CategoryTag({ label, color = "gray" }) {
   return (
     <span
       className={[
-        "inline-flex items-center px-2.5 py-1 text-xs font-medium",
+        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium",
         COLOR_STYLES[color] ?? COLOR_STYLES.gray,
       ].join(" ")}
     >

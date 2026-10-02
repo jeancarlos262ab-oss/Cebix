@@ -24,8 +24,8 @@ function ReceiptRow({ receipt }) {
     <tr className="border-b border-gray-100 dark:border-gray-800 last:border-0">
       <td className="py-3 pr-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-red-50">
-            <FileText size={16} className="text-red-500" />
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-50 dark:bg-accent-500/10">
+            <FileText size={16} className="text-accent-600 dark:text-accent-400" />
           </span>
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{receipt.merchant}</p>
@@ -39,7 +39,7 @@ function ReceiptRow({ receipt }) {
       </td>
       <td className="py-3 pr-4">
         <div className="flex items-center gap-2">
-          <span className="flex h-6 w-9 items-center justify-center border border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
+          <span className="flex h-6 w-9 items-center justify-center rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
             {CARD_LOGO[receipt.cardBrand]}
           </span>
           <div>
@@ -52,9 +52,9 @@ function ReceiptRow({ receipt }) {
         <button
           type="button"
           aria-label={`Edit ${receipt.merchant}`}
-          className=" p-1.5 text-gray-300 dark:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-500 dark:hover:text-gray-400"
+          className="rounded-full p-1.5 text-gray-300 dark:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-500 dark:hover:text-gray-400"
         >
-          <Pencil size={14} />
+          <Pencil size={14} className="text-accent-600 dark:text-accent-400" />
         </button>
       </td>
     </tr>

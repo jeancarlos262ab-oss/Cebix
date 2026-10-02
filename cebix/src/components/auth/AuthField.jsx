@@ -1,41 +1,66 @@
+import { useId } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import "./auth.css";
+
 /**
- * Campo de formulario con icono a la izquierda, usado en Login/Signup.
- * Mantiene los mismos tokens de color y foco que el resto de la app
- * (border-gray-300/700, focus:ring-accent-100/700).
+ * Campo de formulario de Login/Signup. Un solo color (cebada): el icono es
+ * neutro y se oscurece al enfocar; el foco lo marca el borde en tinta más un
+ * halo dorado. Ver auth.css.
  *
  * @param {{
  *   label: string,
- *   icon: React.ElementType,
+ *   icon?: React.ElementType,
  *   rightElement?: React.ReactNode,
+ *   hint?: string,
  * } & React.InputHTMLAttributes<HTMLInputElement>} props
  */
-export default function AuthField({ label, icon: Icon, rightElement, className = "", ...inputProps }) {
+export default function AuthField({ label, icon: Icon, rightElement, hint, className = "", id, ...inputProps }) {
+  const autoId = useId();
+  const inputId = id ?? autoId;
+  const hintId = hint ? `${inputId}-hint` : undefined;
+
   return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-200">{label}</span>
+    <div className="auth-field">
+      <label htmlFor={inputId} className="auth-label">
+        {label}
+      </label>
       <div className="relative">
         {Icon && (
           <Icon
             size={16}
             strokeWidth={2}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+            aria-hidden="true"
+            className="auth-input-icon pointer-events-none absolute left-4 top-1/2 -translate-y-1/2"
           />
         )}
         <input
           {...inputProps}
-          className={[
-            "w-full border border-gray-300 bg-white py-2.5 text-sm text-gray-900 outline-none transition",
-            "focus:border-accent-500 focus:ring-2 focus:ring-accent-100",
-            "dark:border-gray-700 dark:bg-black dark:text-white dark:focus:ring-accent-700",
-            Icon ? "pl-10" : "pl-3",
-            rightElement ? "pr-10" : "pr-3",
-            className,
-          ].join(" ")}
+          id={inputId}
+          aria-describedby={hintId}
+          className={["auth-input", Icon ? "pl-11" : "pl-5", rightElement ? "pr-12" : "pr-5", className].join(" ")}
         />
-        {rightElement && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">{rightElement}</div>
-        )}
+        {rightElement && <div className="absolute right-3.5 top-1/2 -translate-y-1/2">{rightElement}</div>}
       </div>
-    </label>
+      {hint && (
+        <p id={hintId} role="status" className="auth-hint pl-4">
+          {hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Botón de mostrar/ocultar contraseña para el `rightElement` de AuthField. */
+export function PasswordToggle({ shown, onToggle }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={shown ? "Ocultar contraseña" : "Mostrar contraseña"}
+      aria-pressed={shown}
+      className="auth-icon-btn"
+    >
+      {shown ? <EyeOff size={16} /> : <Eye size={16} />}
+    </button>
   );
 }

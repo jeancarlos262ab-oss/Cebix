@@ -24,7 +24,7 @@ const LINE_BY_PERIOD = {
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className=" bg-gray-900 px-2.5 py-1.5 text-xs text-white shadow-lg">
+    <div className="rounded-lg bg-gray-900 px-2.5 py-1.5 text-xs text-white shadow-lg">
       <p className="font-semibold">{label}</p>
       <p className="text-gray-300 dark:text-gray-600">${Math.round(payload[0].value)}</p>
     </div>
@@ -39,13 +39,11 @@ export default function BalanceOverTime() {
     <section className="bg-white dark:bg-black">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Balance over time</h2>
+          <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Balance over time</h2>
           <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Compare spending over time.</p>
         </div>
         <PeriodToggle value={period} options={PERIODS} onChange={setPeriod} withMenu />
       </div>
-
-      <div className="mt-4 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
 
       <div className="mt-6 h-56 w-full">
         <ResponsiveContainer width="100%" height="100%">

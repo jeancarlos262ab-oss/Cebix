@@ -2,7 +2,13 @@ import cebada from "../../assets/cebada.png";
 
 export default function ParcelEmblem() {
   return (
-    <div className="relative mb-8 mt-8 flex h-36 items-center justify-center overflow-visible bg-gray-50 dark:bg-gray-800 lg:mb-0 lg:mt-4 lg:h-56">
+    <div className="relative mb-8 mt-8 flex h-36 items-center justify-center overflow-visible lg:mb-0 lg:mt-4 lg:h-56">
+      {/* Contenedor de acento detrás de la imagen: de todo el ancho del contenedor;
+          cebada.png sobresale por los bordes. */}
+      <span
+        aria-hidden="true"
+        className="absolute inset-0 z-10 rounded-2xl bg-accent-500"
+      />
       <img
         src={cebada}
         alt="Cebada"

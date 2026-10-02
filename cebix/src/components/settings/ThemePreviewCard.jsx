@@ -68,7 +68,7 @@ export default function ThemePreviewCard({ label, description, variant, active, 
       onClick={onSelect}
       aria-pressed={active}
       className={[
-        "group relative w-full overflow-hidden border bg-white text-left transition-all dark:bg-gray-800",
+        "group relative w-full overflow-hidden rounded-2xl border bg-white text-left transition-all dark:bg-gray-800",
         active
           ? "border-accent-500 ring-2 ring-accent-100 dark:ring-accent-500/20"
           : "border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600",
@@ -90,7 +90,7 @@ export default function ThemePreviewCard({ label, description, variant, active, 
         </span>
         <span
           className={[
-            "flex h-5 w-5 shrink-0 items-center justify-center border",
+            "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border",
             active
               ? "border-accent-500 bg-accent-500 text-accent-contrast"
               : "border-gray-300 text-transparent dark:border-gray-600",

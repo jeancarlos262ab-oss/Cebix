@@ -20,6 +20,7 @@ import { Plus, Minus, Compass, Maximize2, Minimize2 } from "lucide-react";
  *   initialCenter: [number, number],
  *   initialZoom: number,
  *   position?: "top-right" | "bottom-right" | "bottom-left" | "top-left",
+ *   orientation?: "vertical" | "horizontal",   // dirección de la barra (por defecto vertical)
  *   containerRef?: RefObject,
  * }} props
  */
@@ -28,6 +29,7 @@ function CustomMapControls({
   initialCenter,
   initialZoom,
   position = "bottom-right",
+  orientation = "vertical",
   containerRef,
 }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -127,15 +129,18 @@ function CustomMapControls({
 
   // Calcular posición del contenedor
   const positionClasses = {
-    "top-right": "top-4 right-14",
-    "bottom-right": "bottom-14 right-4",
-    "bottom-left": "bottom-14 left-4",
-    "top-left": "top-4 left-4",
-  }[position] || "bottom-14 right-4";
+    "top-right": "top-3 right-3",
+    "bottom-right": "bottom-3 right-3",
+    "bottom-left": "bottom-3 left-3",
+    "top-left": "top-3 left-3",
+  }[position] || "bottom-3 right-3";
+
+  const horizontal = orientation === "horizontal";
+  const separatorClass = horizontal ? "mx-1 h-6 w-px bg-white/10" : "my-1 h-px w-6 bg-white/10";
 
   return (
     <div
-      className={`absolute z-10 flex flex-col items-center gap-1 rounded border border-gray-200 bg-white/90 dark:border-white/10 dark:bg-black/70 p-1.5 text-gray-800 shadow-lg dark:text-gray-100 backdrop-blur ${positionClasses}`}
+      className={`absolute z-10 flex ${horizontal ? "flex-row" : "flex-col"} items-center gap-1 rounded-2xl border border-white/10 bg-black/85 p-1.5 text-gray-100 shadow-lg backdrop-blur ${positionClasses}`}
       role="group"
       aria-label="Controles del mapa"
     >
@@ -158,7 +163,7 @@ function CustomMapControls({
       />
 
       {/* Separador */}
-      <div className="my-1 h-px w-6 bg-gray-200 dark:bg-white/10" aria-hidden="true" />
+      <div className={separatorClass} aria-hidden="true" />
 
       {/* Botón Reset */}
       <ControlButton
@@ -169,7 +174,7 @@ function CustomMapControls({
       />
 
       {/* Separador */}
-      <div className="my-1 h-px w-6 bg-gray-200 dark:bg-white/10" aria-hidden="true" />
+      <div className={separatorClass} aria-hidden="true" />
 
       {/* Botón Pantalla Completa */}
       <ControlButton
@@ -211,10 +216,10 @@ const ControlButton = memo(function ControlButton({
       disabled={disabled}
       aria-label={label}
       title={title}
-      className={`flex h-8 w-8 items-center justify-center rounded transition-colors ${
+      className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
         disabled
-          ? "cursor-not-allowed text-gray-400 opacity-50 dark:text-gray-500"
-          : "text-gray-500 hover:bg-gray-100 hover:text-gray-900 active:bg-gray-200 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white dark:active:bg-white/20"
+          ? "cursor-not-allowed text-gray-500 opacity-50"
+          : "text-accent-400 hover:bg-white/10 hover:text-accent-400 active:bg-white/20"
       }`}
     >
       <Icon size={16} />

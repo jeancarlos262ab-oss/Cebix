@@ -13,11 +13,11 @@
   background: var(--accent-500);
   color: var(--accent-contrast);
   border: 1px solid var(--accent-contrast);
-  border-radius: 0;
+  border-radius: 9999px;
 }
 
 .app-toaster [data-sonner-toast] [data-button] {
   background: var(--accent-contrast);
   color: var(--accent-500);
-  border-radius: 0;
+  border-radius: 9999px;
 }

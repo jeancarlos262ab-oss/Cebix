@@ -1,0 +1,326 @@
+/* ==========================================================================
+   Login / Signup: fondo negro, texto blanco y un solo color, la cebada.
+
+   Las pantallas de acceso son siempre oscuras (no dependen del tema de la
+   app ni del acento de Ajustes). La cebada (dorado de espiga madura) es el
+   único color: espigas, botón, subrayado de pestaña, enlaces y foco.
+   ========================================================================== */
+
+.auth-root {
+  --barley: #d4a63c;
+  --barley-hover: #e0b650;
+  --barley-glow: rgba(212, 166, 60, 0.4);
+  --on-barley: #1a1204;
+  --radius: 999px; /* píldora, como botones y buscador del dashboard */
+  --radius-box: 1.25rem; /* cajas con varias líneas de texto */
+
+  --ink: #ffffff;
+  --muted: #a8a8a8;
+  --placeholder: #777777;
+  --line: #2b2b2b;
+  --paper: #000000;
+  --tint: rgba(212, 166, 60, 0.12);
+  --tint-line: rgba(212, 166, 60, 0.4);
+
+  /* Panel de marca */
+  --brand-bg: #000000;
+  --brand-fg: #ffffff;
+  --brand-soft: rgba(255, 255, 255, 0.7);
+  --brand-line: rgba(255, 255, 255, 0.2);
+
+  background: var(--paper);
+  color: var(--ink);
+  color-scheme: dark;
+}
+
+/* ---------- Panel de marca ---------- */
+
+.auth-brand {
+  background: var(--brand-bg);
+  color: var(--brand-fg);
+}
+
+@media (min-width: 1024px) {
+  .auth-brand {
+    border-right: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 1023px) {
+  .auth-brand {
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+.auth-brand-soft {
+  color: var(--brand-soft);
+}
+
+.auth-brand-rule {
+  border-color: var(--brand-line);
+}
+
+/* ---------- Espigas: se dibujan una sola vez al cargar ---------- */
+
+.auth-ears {
+  color: var(--barley);
+}
+
+.ear-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ear-awn {
+  stroke-width: 1.1;
+  stroke-opacity: 0.6;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: ear-draw 1.8s cubic-bezier(0.22, 0.7, 0.2, 1) both;
+}
+
+.ear-body {
+  stroke-width: 1.5;
+  stroke-opacity: 0.8;
+  animation: ear-fade 0.9s ease-out both;
+}
+
+@keyframes ear-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ear-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ear-awn,
+  .ear-body {
+    animation: none;
+  }
+}
+
+/* ---------- Pestañas ---------- */
+
+.auth-tabs {
+  display: flex;
+  gap: 1.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.auth-tab {
+  position: relative;
+  padding-bottom: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--muted);
+  transition: color 0.15s ease;
+}
+
+.auth-tab:hover {
+  color: var(--ink);
+}
+
+.auth-tab[aria-current="page"] {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Subrayado de la pestaña activa: se desliza entre pestañas (layoutId) */
+.auth-tab-bar {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 3px;
+  background: var(--barley);
+}
+
+.auth-tab:focus-visible,
+.auth-link:focus-visible,
+.auth-quiet:focus-visible,
+.auth-icon-btn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* ---------- Campos ---------- */
+
+.auth-label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.auth-input {
+  width: 100%;
+  height: 2.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.9375rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-input::placeholder {
+  color: var(--placeholder);
+}
+
+.auth-input:hover {
+  border-color: var(--muted);
+}
+
+.auth-input:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px var(--barley-glow);
+}
+
+.auth-input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--paper) inset;
+  -webkit-text-fill-color: var(--ink);
+  caret-color: var(--ink);
+}
+
+select.auth-input {
+  appearance: none;
+  cursor: pointer;
+}
+
+.auth-input-icon {
+  color: var(--muted);
+  transition: color 0.15s ease;
+}
+
+.auth-field:focus-within .auth-input-icon {
+  color: var(--ink);
+}
+
+.auth-icon-btn {
+  display: flex;
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+  color: var(--muted);
+}
+
+.auth-icon-btn:hover {
+  color: var(--ink);
+}
+
+.auth-hint {
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* Código de 6 dígitos */
+.auth-code {
+  height: 3.5rem;
+  text-align: center;
+  font-family: "Sora", "Inter", sans-serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.55em;
+  padding-left: 0.55em !important;
+  padding-right: 0 !important;
+}
+
+/* ---------- Botón principal ---------- */
+
+.auth-btn {
+  display: flex;
+  width: 100%;
+  height: 2.875rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--barley);
+  color: var(--on-barley);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.auth-btn:hover:not(:disabled) {
+  background: var(--barley-hover);
+}
+
+.auth-btn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.auth-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.auth-btn .auth-btn-arrow {
+  transition: transform 0.15s ease;
+}
+
+.auth-btn:hover:not(:disabled) .auth-btn-arrow {
+  transform: translateX(3px);
+}
+
+/* ---------- Enlaces y textos de apoyo ---------- */
+
+.auth-link {
+  border-radius: 0.25rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--barley);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.auth-link:hover {
+  background: var(--tint);
+}
+
+.auth-quiet {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.auth-quiet:hover {
+  color: var(--ink);
+}
+
+.auth-muted {
+  color: var(--muted);
+}
+
+/* ---------- Aviso (correo enviado, contraseña actualizada) ---------- */
+
+.auth-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  border: 1px solid var(--tint-line);
+  border-radius: var(--radius-box);
+  background: var(--tint);
+  padding: 0.875rem 1.125rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ink);
+}

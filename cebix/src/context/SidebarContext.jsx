@@ -10,6 +10,7 @@ const SidebarContext = createContext(null);
  */
 export function SidebarProvider({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false); // sidebar contraído (solo escritorio)
   const location = useLocation();
 
   // Cierra el drawer automáticamente al navegar a otra pantalla.
@@ -19,6 +20,8 @@ export function SidebarProvider({ children }) {
 
   const value = {
     mobileOpen,
+    collapsed,
+    setCollapsed,
     open: () => setMobileOpen(true),
     close: () => setMobileOpen(false),
     toggle: () => setMobileOpen((v) => !v),

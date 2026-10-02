@@ -4,7 +4,7 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className=" bg-gray-900 px-2.5 py-1.5 text-xs text-white shadow-lg">
+    <div className="rounded-lg bg-gray-900 px-2.5 py-1.5 text-xs text-white shadow-lg">
       <p className="font-semibold">{label}</p>
       <p className="text-gray-300 dark:text-gray-600">{payload[0].value} GDD observados</p>
     </div>

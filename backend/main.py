@@ -8,6 +8,7 @@ no hay resultados precalculados aquí. Es lo que responde a "que permita ejecuta
 modelo predictivo" de las bases del reto.
 
 Endpoints:
+  GET  /health           — health check ligero (no carga el modelo)
   GET  /                 — info básica, para probar que el servicio está vivo
   GET  /features         — la lista de las 10 features que el modelo espera, con su
                             nombre legible (para construir un formulario o validar un CSV)
@@ -44,10 +45,19 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# En producción, restringir allow_origins al dominio real del frontend en vez de "*".
+# CORS: en Render se define ALLOWED_ORIGINS con el dominio del frontend en Vercel
+# (varios separados por coma, sin "/" al final), p. ej.:
+#   ALLOWED_ORIGINS=https://cebix.vercel.app,https://cebix.com
+# ALLOWED_ORIGIN_REGEX es opcional, para aceptar también los previews de Vercel:
+#   ALLOWED_ORIGIN_REGEX=https://cebix-.*[.]vercel[.]app
+# Si no se define ALLOWED_ORIGINS, acepta cualquier origen ("*"), útil solo en local.
+ALLOWED_ORIGINS = [o.strip().rstrip("/") for o in os.environ.get("ALLOWED_ORIGINS", "*").split(",") if o.strip()]
+ALLOWED_ORIGIN_REGEX = os.environ.get("ALLOWED_ORIGIN_REGEX") or None
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=ALLOWED_ORIGIN_REGEX,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -123,6 +133,12 @@ def run_inference(rows_df, estados):
             "shap": shap_out,
         })
     return results
+
+
+@app.get("/health")
+def health():
+    # Ligero: no carga el modelo. Es el health check de Render.
+    return {"status": "ok"}
 
 
 @app.get("/")

@@ -1,20 +1,10 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  Loader2,
-  ArrowRight,
-  ArrowLeft,
-  MailCheck,
-  KeyRound,
-  CheckCircle2,
-} from "lucide-react";
+import { Mail, Lock, ArrowLeft, MailCheck, CheckCircle2 } from "lucide-react";
 import AuthLayout from "../components/auth/AuthLayout";
-import AuthField from "../components/auth/AuthField";
+import AuthField, { PasswordToggle } from "../components/auth/AuthField";
+import AuthButton from "../components/auth/AuthButton";
 import { useAuth } from "../context/AuthContext";
 
 function getAuthErrorMessage(error) {
@@ -54,6 +44,14 @@ function getResetErrorMessage(error) {
 
   return "No pudimos actualizar la contraseña. Intenta de nuevo.";
 }
+
+// Título y subtítulo del layout según el paso en el que va el usuario.
+const HEADINGS = {
+  login: { title: "Inicia sesión", subtitle: "Accede a tu espacio de trabajo CEBIX." },
+  forgot: { title: "Recupera tu contraseña", subtitle: "Te enviaremos un código de 6 dígitos a tu correo." },
+  reset: { title: "Elige una contraseña nueva", subtitle: "Escribe el código que te enviamos y tu nueva contraseña." },
+  done: { title: "Todo listo", subtitle: "Tu contraseña se actualizó correctamente." },
+};
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -153,257 +151,185 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthLayout title="Inicia sesión" subtitle="Accede a tu espacio de trabajo CEBIX.">
-      <div className="border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-black sm:p-8">
+    <AuthLayout
+      title={HEADINGS[mode].title}
+      subtitle={HEADINGS[mode].subtitle}
+      activeTab={mode === "login" ? "login" : undefined}
+    >
+      {mode === "login" && (
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          <AuthField
+            label="Correo electrónico"
+            icon={Mail}
+            required
+            type="email"
+            name="email"
+            autoComplete="email"
+            placeholder="tucorreo@ejemplo.com"
+            value={form.email}
+            onChange={handleChange}
+          />
 
-        {mode === "login" && (
-          <>
-            <form className="space-y-5" onSubmit={handleSubmit}>
-              <AuthField
-                label="Correo electrónico"
-                icon={Mail}
-                required
-                type="email"
-                name="email"
-                autoComplete="email"
-                placeholder="tucorreo@ejemplo.com"
-                value={form.email}
-                onChange={handleChange}
-              />
-
-              <div>
-                <AuthField
-                  label="Contraseña"
-                  icon={Lock}
-                  required
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  value={form.password}
-                  onChange={handleChange}
-                  rightElement={
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((v) => !v)}
-                      aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                      className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  }
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRecoveryEmail(form.email);
-                    setMode("forgot");
-                  }}
-                  className="mt-1.5 block text-right text-xs font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400"
-                >
-                  ¿Olvidaste tu contraseña?
-                </button>
-              </div>
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex w-full items-center justify-center gap-2 bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast transition hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    Iniciando sesión...
-                  </>
-                ) : (
-                  <>
-                    Iniciar sesión
-                    <ArrowRight size={16} />
-                  </>
-                )}
-              </button>
-            </form>
-
-            <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-              ¿Aún no tienes una cuenta?{" "}
-              <Link className="font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400" to="/signup">
-                Crear cuenta
-              </Link>
-            </p>
-          </>
-        )}
-
-        {mode === "forgot" && (
-          <>
-            <form className="space-y-5" onSubmit={handleForgotSubmit}>
-              <AuthField
-                label="Correo electrónico"
-                icon={Mail}
-                required
-                type="email"
-                autoComplete="email"
-                placeholder="tucorreo@ejemplo.com"
-                value={recoveryEmail}
-                onChange={(e) => {
-                  setRecoveryEmail(e.target.value);
-                }}
-              />
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex w-full items-center justify-center gap-2 bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast transition hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    Enviando código...
-                  </>
-                ) : (
-                  "Enviar código"
-                )}
-              </button>
-            </form>
-
-            <button
-              type="button"
-              onClick={backToLogin}
-              className="mt-6 flex w-full items-center justify-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <ArrowLeft size={14} />
-              Volver a iniciar sesión
-            </button>
-          </>
-        )}
-
-        {mode === "reset" && (
-          <>
-            <div className="mb-5 flex items-start gap-2.5 border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
-              <MailCheck size={16} className="mt-0.5 shrink-0 text-accent-600 dark:text-accent-400" />
-              <span>
-                Si <strong className="font-semibold">{recoveryEmail}</strong> tiene una cuenta, te enviamos un
-                código de 6 dígitos. Escríbelo junto con tu contraseña nueva.
-              </span>
-            </div>
-
-            <form className="space-y-5" onSubmit={handleResetSubmit}>
-              <AuthField
-                label="Código de verificación"
-                icon={KeyRound}
-                required
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                placeholder="000000"
-                value={resetCode}
-                onChange={(e) => {
-                  setResetCode(e.target.value.replace(/\D/g, "").slice(0, 6));
-                }}
-                className="tracking-[0.5em]"
-              />
-
-              <AuthField
-                label="Contraseña nueva"
-                icon={Lock}
-                required
-                minLength={6}
-                type={showNewPassword ? "text" : "password"}
-                autoComplete="new-password"
-                placeholder="Mínimo 6 caracteres"
-                value={newPassword.password}
-                onChange={(e) => {
-                  setNewPassword((current) => ({ ...current, password: e.target.value }));
-                }}
-                rightElement={
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword((v) => !v)}
-                    aria-label={showNewPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-                  >
-                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                }
-              />
-
-              <AuthField
-                label="Confirmar contraseña"
-                icon={Lock}
-                required
-                minLength={6}
-                type={showNewPassword ? "text" : "password"}
-                autoComplete="new-password"
-                placeholder="Escríbela de nuevo"
-                value={newPassword.confirmPassword}
-                onChange={(e) => {
-                  setNewPassword((current) => ({ ...current, confirmPassword: e.target.value }));
-                }}
-              />
-
-              <button
-                type="submit"
-                disabled={submitting || resetCode.length < 6}
-                className="flex w-full items-center justify-center gap-2 bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast transition hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    Cambiar contraseña
-                    <ArrowRight size={16} />
-                  </>
-                )}
-              </button>
-            </form>
-
-            <p className="mt-6 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-center text-sm text-gray-500 dark:text-gray-400">
-              <span>¿No llegó el código?</span>
+          <div>
+            <AuthField
+              label="Contraseña"
+              icon={Lock}
+              required
+              type={showPassword ? "text" : "password"}
+              name="password"
+              autoComplete="current-password"
+              placeholder="Tu contraseña"
+              value={form.password}
+              onChange={handleChange}
+              rightElement={<PasswordToggle shown={showPassword} onToggle={() => setShowPassword((v) => !v)} />}
+            />
+            <div className="mt-2 flex justify-end">
               <button
                 type="button"
-                onClick={handleResendCode}
-                disabled={resending}
-                className="font-semibold text-accent-600 hover:text-accent-700 disabled:opacity-60 dark:text-accent-400"
+                onClick={() => {
+                  setRecoveryEmail(form.email);
+                  setMode("forgot");
+                }}
+                className="auth-link text-sm"
               >
-                {resending ? "Enviando..." : resent ? "Reenviado ✓" : "Reenviar código"}
+                ¿Olvidaste tu contraseña?
               </button>
-            </p>
-
-            <button
-              type="button"
-              onClick={backToLogin}
-              className="mt-2 flex w-full items-center justify-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <ArrowLeft size={14} />
-              Volver a iniciar sesión
-            </button>
-          </>
-        )}
-
-        {mode === "done" && (
-          <>
-            <div
-              role="status"
-              className="flex items-start gap-2.5 border border-green-200 bg-green-50 px-3 py-2.5 text-sm text-green-700 dark:border-green-900/60 dark:bg-green-950/40 dark:text-green-300"
-            >
-              <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
-              <span>Contraseña actualizada. Ya puedes iniciar sesión con tu contraseña nueva.</span>
             </div>
+          </div>
 
-            <button
-              type="button"
-              onClick={backToLogin}
-              className="mt-6 flex w-full items-center justify-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <ArrowLeft size={14} />
-              Volver a iniciar sesión
+          <AuthButton loading={submitting} loadingLabel="Iniciando sesión...">
+            Iniciar sesión
+          </AuthButton>
+
+          <p className="auth-muted pt-1 text-center text-sm">
+            ¿Aún no tienes cuenta?{" "}
+            <Link to="/signup" replace className="auth-link">
+              Crea una
+            </Link>
+          </p>
+        </form>
+      )}
+
+      {mode === "forgot" && (
+        <>
+          <form className="space-y-5" onSubmit={handleForgotSubmit}>
+            <AuthField
+              label="Correo electrónico"
+              icon={Mail}
+              required
+              type="email"
+              autoComplete="email"
+              placeholder="tucorreo@ejemplo.com"
+              value={recoveryEmail}
+              onChange={(e) => {
+                setRecoveryEmail(e.target.value);
+              }}
+            />
+
+            <AuthButton loading={submitting} loadingLabel="Enviando código..." arrow={false}>
+              Enviar código
+            </AuthButton>
+          </form>
+
+          <BackToLogin onClick={backToLogin} />
+        </>
+      )}
+
+      {mode === "reset" && (
+        <>
+          <div className="auth-notice mb-6">
+            <MailCheck size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <span>
+              Si <strong className="font-semibold">{recoveryEmail}</strong> tiene una cuenta, te enviamos un código de
+              6 dígitos. Escríbelo junto con tu contraseña nueva.
+            </span>
+          </div>
+
+          <form className="space-y-5" onSubmit={handleResetSubmit}>
+            <AuthField
+              label="Código de verificación"
+              required
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              placeholder="000000"
+              value={resetCode}
+              onChange={(e) => {
+                setResetCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+              }}
+              className="auth-code"
+            />
+
+            <AuthField
+              label="Contraseña nueva"
+              icon={Lock}
+              required
+              minLength={6}
+              type={showNewPassword ? "text" : "password"}
+              autoComplete="new-password"
+              placeholder="Mínimo 6 caracteres"
+              value={newPassword.password}
+              onChange={(e) => {
+                setNewPassword((current) => ({ ...current, password: e.target.value }));
+              }}
+              rightElement={<PasswordToggle shown={showNewPassword} onToggle={() => setShowNewPassword((v) => !v)} />}
+            />
+
+            <AuthField
+              label="Confirmar contraseña"
+              icon={Lock}
+              required
+              minLength={6}
+              type={showNewPassword ? "text" : "password"}
+              autoComplete="new-password"
+              placeholder="Escríbela de nuevo"
+              value={newPassword.confirmPassword}
+              onChange={(e) => {
+                setNewPassword((current) => ({ ...current, confirmPassword: e.target.value }));
+              }}
+              hint={
+                newPassword.confirmPassword && newPassword.password !== newPassword.confirmPassword
+                  ? "Las contraseñas no coinciden."
+                  : undefined
+              }
+            />
+
+            <AuthButton loading={submitting} loadingLabel="Guardando..." disabled={resetCode.length < 6}>
+              Cambiar contraseña
+            </AuthButton>
+          </form>
+
+          <p className="auth-muted mt-6 flex flex-wrap items-center justify-center gap-x-1.5 text-center text-sm">
+            <span>¿No llegó el código?</span>
+            <button type="button" onClick={handleResendCode} disabled={resending} className="auth-link disabled:opacity-60">
+              {resending ? "Enviando..." : resent ? "Reenviado ✓" : "Reenviar código"}
             </button>
-          </>
-        )}
-      </div>
+          </p>
+
+          <BackToLogin onClick={backToLogin} />
+        </>
+      )}
+
+      {mode === "done" && (
+        <>
+          <div role="status" className="auth-notice">
+            <CheckCircle2 size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <span>Contraseña actualizada. Ya puedes iniciar sesión con tu contraseña nueva.</span>
+          </div>
+
+          <BackToLogin onClick={backToLogin} />
+        </>
+      )}
     </AuthLayout>
+  );
+}
+
+function BackToLogin({ onClick }) {
+  return (
+    <button type="button" onClick={onClick} className="auth-quiet mt-6 flex w-full items-center justify-center gap-1.5 text-sm">
+      <ArrowLeft size={14} aria-hidden="true" />
+      Volver a iniciar sesión
+    </button>
   );
 }

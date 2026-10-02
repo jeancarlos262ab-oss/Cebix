@@ -14,7 +14,7 @@ export default function ConfidenceRange({ estimate, confidence, maxScale = 6 }) 
   return (
     <div className="w-full">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p className="font-sora text-3xl font-bold text-gray-900 dark:text-gray-100">
+        <p className="font-display text-3xl font-bold text-gray-900 dark:text-gray-100">
           {estimate.toFixed(1)}
           <span className="ml-1 text-base font-medium text-gray-400 dark:text-gray-500">ton/ha</span>
         </p>
@@ -40,7 +40,7 @@ export default function ConfidenceRange({ estimate, confidence, maxScale = 6 }) 
           }}
         />
         <div
-          className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 border-2 border-white shadow dark:border-black"
+          className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow dark:border-black"
           style={{ left: `${toPct(estimate)}%`, backgroundColor: "var(--chart-1)" }}
         />
       </div>

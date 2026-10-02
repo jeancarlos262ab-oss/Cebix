@@ -1,0 +1,15 @@
+# Blueprint de Render: New → Blueprint → elige el repo y listo.
+services:
+  - type: web
+    name: cebix-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: ohio
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Dominio del frontend en Vercel, sin "/" al final. Varios, separados por coma.
+      # Render te lo pide al crear el Blueprint (sync: false = no va en el repo).
+      - key: ALLOWED_ORIGINS
+        sync: false

@@ -48,21 +48,19 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900"
+        className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900"
       >
         <div className="flex items-start justify-between gap-4">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Cambiar contraseña</h2>
+          <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-white">Cambiar contraseña</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
             className="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
-            <X size={16} />
+            <X size={16} className="text-accent-600 dark:text-accent-400" />
           </button>
         </div>
-
-        <div className="mt-4 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
 
 
         <div className="mt-4 space-y-3">
@@ -97,7 +95,7 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"}
               >
-                {show ? <EyeOff size={14} /> : <Eye size={14} />}
+                {show ? <EyeOff size={14} className="text-accent-600 dark:text-accent-400" /> : <Eye size={14} className="text-accent-600 dark:text-accent-400" />}
               </button>
             </div>
           </label>
@@ -121,14 +119,14 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            className="rounded-full border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="bg-accent-500 px-4 py-2 text-sm font-semibold text-accent-contrast shadow-sm hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-full bg-accent-500 px-4 py-2 text-sm font-semibold text-accent-contrast shadow-sm hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? "Actualizando..." : "Guardar contraseña"}
           </button>
@@ -140,7 +138,7 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
 
 function inputClass(error) {
   return [
-    "w-full border bg-white px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:bg-gray-800 dark:text-gray-200",
+    "w-full rounded-full border bg-white px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:bg-gray-800 dark:text-gray-200",
     error ? "border-red-400" : "border-gray-200 focus:border-accent-400 dark:border-gray-700",
   ].join(" ");
 }

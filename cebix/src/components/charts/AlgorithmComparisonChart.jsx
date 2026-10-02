@@ -12,7 +12,7 @@ import {
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className=" bg-gray-900 px-2.5 py-1.5 text-xs text-white shadow-lg">
+    <div className="rounded-lg bg-gray-900 px-2.5 py-1.5 text-xs text-white shadow-lg">
       <p className="font-semibold">{label}</p>
       {payload.map((p) => (
         <p key={p.dataKey} className="text-gray-300 dark:text-gray-600">

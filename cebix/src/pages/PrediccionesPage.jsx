@@ -43,6 +43,43 @@ const chartQuestions = [
   },
 ];
 
+/** Encabezado de sección: título + descripción opcional, con aire fijo debajo. */
+function SectionHeader({ title, description }) {
+  return (
+    <div className="mb-6">
+      <h2 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+      {description && (
+        <p className="mt-1 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">{description}</p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Contenedor de celdas pegadas: un solo borde exterior y las celdas
+ * compartiendo línea, sin fondo. El -mr-px/-mb-px del interior esconde el
+ * borde sobrante de la última columna/fila aunque el grid se reacomode.
+ */
+function JoinedCells({ className = "", children }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
+      <div className={`-mb-px -mr-px grid ${className}`}>{children}</div>
+    </div>
+  );
+}
+
+const CELL = "relative border-b border-r border-gray-200 p-5 dark:border-gray-800";
+
+/** Fila etiqueta/valor de las fichas. */
+function DetailRow({ label, children }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 py-3 first:pt-0 last:pb-0">
+      <dt className="text-sm text-gray-500 dark:text-gray-400">{label}</dt>
+      <dd className="text-right text-sm font-medium text-gray-900 dark:text-gray-100">{children}</dd>
+    </div>
+  );
+}
+
 export default function PrediccionesPage() {
   const { parcels, submissions, submitToCommittee } = useParcels();
   const [selectedId, setSelectedId] = useState(parcels[0].id);
@@ -118,241 +155,202 @@ export default function PrediccionesPage() {
         subtitle="Rendimiento esperado y el motivo detrás, parcela por parcela."
         hideSearch
         actions={
-          <InfoButton title="Acerca de las gráficas" questions={chartQuestions} tone="accent" />
+          <InfoButton title="Acerca de las gráficas" questions={chartQuestions} />
         }
       />
 
-      <div className="mt-6 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+      <div className="mt-6" aria-hidden="true" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1px_1fr]">
-        {/* Rail izquierdo: selector + semáforo + resumen + acción */}
-        <aside className="bg-white px-4 py-6 dark:bg-black sm:px-6 lg:pl-8 lg:pr-8">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-            Parcela seleccionada
-          </h2>
-          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-            Cambia de parcela para actualizar la predicción.
-          </p>
-
-          <div className="relative mt-4 mb-6 inline-block w-full">
-            <select
-              value={selectedId}
-              onChange={(e) => setSelectedId(Number(e.target.value))}
-              className="w-full appearance-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-black py-2.5 pl-3 pr-9 text-sm font-medium text-gray-800 dark:text-gray-200 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
-            >
-              {parcels.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} · {p.municipio}, {p.region}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              size={16}
-              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+      <div className="grid grid-cols-1 items-start gap-12 px-4 py-8 sm:px-6 lg:grid-cols-[280px_1fr] lg:gap-14 lg:px-8">
+        {/* Columna izquierda: selector, semáforo y datos/acción */}
+        <aside className="min-w-0 space-y-10">
+          <section>
+            <SectionHeader
+              title="Parcela seleccionada"
+              description="Cambia de parcela para actualizar la predicción."
             />
-          </div>
+            <div className="relative">
+              <select
+                value={selectedId}
+                onChange={(e) => setSelectedId(Number(e.target.value))}
+                className="w-full appearance-none rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-black py-2.5 pl-4 pr-10 text-sm font-medium text-gray-800 dark:text-gray-200 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+              >
+                {parcels.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} · {p.municipio}, {p.region}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={16}
+                className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+              />
+            </div>
+          </section>
 
-          <div className="mt-5">
+          <section>
+            <SectionHeader title="Elegibilidad" />
             <Semaphore score={parcel.score} />
-          </div>
+          </section>
 
-          <div className="mt-5 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+          <section>
+            <SectionHeader title="Datos de la parcela" />
+            <dl>
+              <DetailRow label="Municipio">{parcel.municipio}</DetailRow>
+              <DetailRow label="Superficie">{parcel.area}</DetailRow>
+              {submittedAt && (
+                <DetailRow label="Última solicitud">
+                  <span className="text-ndvi-600 dark:text-ndvi-400">
+                    {new Date(submittedAt).toLocaleDateString("es-MX")}
+                  </span>
+                </DetailRow>
+              )}
+            </dl>
 
-          <dl className="mt-5 divide-y divide-gray-100 border-y border-gray-100 text-sm dark:divide-gray-800 dark:border-gray-800">
-            <div className="flex items-baseline justify-between gap-3 py-2.5">
-              <dt className="text-gray-500 dark:text-gray-400">Parcela</dt>
-              <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{parcel.name}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-3 py-2.5">
-              <dt className="text-gray-500 dark:text-gray-400">Municipio</dt>
-              <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{parcel.municipio}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-3 py-2.5">
-              <dt className="text-gray-500 dark:text-gray-400">Superficie</dt>
-              <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{parcel.area}</dd>
-            </div>
-            {submittedAt && (
-              <div className="flex items-baseline justify-between gap-3 py-2.5">
-                <dt className="text-gray-500 dark:text-gray-400">Última solicitud</dt>
-                <dd className="font-medium text-ndvi-600 dark:text-ndvi-400">
-                  {new Date(submittedAt).toLocaleDateString("es-MX")}
-                </dd>
-              </div>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              className={`mt-8 flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black ${
+                justSubmitted
+                  ? "bg-ndvi-600 text-white"
+                  : "bg-accent-500 text-accent-contrast hover:bg-accent-600"
+              }`}
+            >
+              {justSubmitted ? <CheckCircle2 size={15} /> : <Send size={15} />}
+              {buttonLabel}
+            </button>
+            {submittedAt && !justSubmitted && (
+              <p className="mt-3 text-center text-xs text-gray-400 dark:text-gray-500">
+                Enviada el {new Date(submittedAt).toLocaleString("es-MX")}
+              </p>
             )}
-          </dl>
-
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className={`mt-6 flex w-full items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black ${
-              justSubmitted
-                ? "bg-ndvi-600 text-white"
-                : "bg-accent-500 text-accent-contrast hover:bg-accent-600"
-            }`}
-          >
-            {justSubmitted ? <CheckCircle2 size={15} /> : <Send size={15} />}
-            {buttonLabel}
-          </button>
-          {submittedAt && !justSubmitted && (
-            <p className="mt-2 text-center text-xs text-gray-400 dark:text-gray-500">
-              Enviada el {new Date(submittedAt).toLocaleString("es-MX")}
-            </p>
-          )}
+          </section>
         </aside>
 
-        <div className="hidden bg-gray-200 dark:bg-gray-700 lg:block" aria-hidden="true" />
-
-        {/* Contenido principal: métricas + gráficas + mapa */}
+        {/* Contenido principal: métricas, gráficas y mapa */}
         <AnimatePresence mode="wait">
-        <motion.div
-          key={parcel.id}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.28, ease: "easeInOut" }}
-          className="min-w-0"
-        >
-          <div className="px-4 py-6 sm:px-6 lg:pl-8 lg:pr-8">
-          <div className="grid grid-cols-2 divide-x divide-y divide-gray-200 border border-gray-200 dark:divide-gray-800 dark:border-gray-800 sm:grid-cols-4 sm:divide-y-0">
-            <div className="relative p-5">
-              <span className="absolute inset-y-0 left-0 w-0.5 bg-accent-500" aria-hidden="true" />
-              <StatCard
-                label="Rendimiento esperado"
-                value={`${parcel.yieldEstimate.toFixed(1)} ton/ha`}
-                hint={`± ${parcel.confidence.toFixed(1)} ton/ha`}
-                icon={Gauge}
-                tone="navy"
-              />
-            </div>
-            <div className="p-5">
-              <StatCard
-                label="Score de elegibilidad"
-                value={`${parcel.score} / 100`}
-                hint="Semáforo de riesgo"
-                icon={Percent}
-                tone="navy"
-              />
-            </div>
-            <div className="p-5">
-              <StatCard
-                label="NDVI pico"
-                value={parcel.ndvi.toFixed(2)}
-                hint="Máximo del ciclo"
-                icon={Leaf}
-                tone="navy"
-              />
-            </div>
-            <div className="p-5">
-              <StatCard
-                label="Precipitación"
-                value={`${parcel.precip} mm`}
-                hint="Acumulada en el ciclo"
-                icon={Droplets}
-                tone="navy"
-              />
-            </div>
-          </div>
+          <motion.div
+            key={parcel.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.28, ease: "easeInOut" }}
+            className="min-w-0 space-y-14"
+          >
+            {/* Métricas clave */}
+            <JoinedCells className="grid-cols-2 lg:grid-cols-4">
+              <div className={CELL}>
+                <span className="absolute inset-y-0 left-0 w-0.5 bg-accent-500" aria-hidden="true" />
+                <StatCard
+                  label="Rendimiento esperado"
+                  value={`${parcel.yieldEstimate.toFixed(1)} ton/ha`}
+                  hint={`± ${parcel.confidence.toFixed(1)} ton/ha`}
+                  icon={Gauge}
+                  tone="navy"
+                />
+              </div>
+              <div className={CELL}>
+                <StatCard
+                  label="Score de elegibilidad"
+                  value={`${parcel.score} / 100`}
+                  hint="Semáforo de riesgo"
+                  icon={Percent}
+                  tone="navy"
+                />
+              </div>
+              <div className={CELL}>
+                <StatCard
+                  label="NDVI pico"
+                  value={parcel.ndvi.toFixed(2)}
+                  hint="Máximo del ciclo"
+                  icon={Leaf}
+                  tone="navy"
+                />
+              </div>
+              <div className={CELL}>
+                <StatCard
+                  label="Precipitación"
+                  value={`${parcel.precip} mm`}
+                  hint="Acumulada en el ciclo"
+                  icon={Droplets}
+                  tone="navy"
+                />
+              </div>
+            </JoinedCells>
 
-          <div className="my-6 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
-
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-[1fr_280px]">
-            <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                Rendimiento esperado a cosecha
-              </h2>
-              <div className="mt-4">
+            {/* Rendimiento a cosecha + ubicación */}
+            <section className="grid grid-cols-1 gap-10 sm:grid-cols-[1fr_300px]">
+              <div className="min-w-0">
+                <SectionHeader
+                  title="Rendimiento esperado a cosecha"
+                  description="Estimación del modelo con su intervalo de confianza sobre la escala de rendimiento."
+                />
                 <ConfidenceRange estimate={parcel.yieldEstimate} confidence={parcel.confidence} />
               </div>
-            </div>
 
-            <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                Ubicación
-              </h2>
-              <div className="mt-4">
-                <StaticMapImage lat={parcel.lat} lng={parcel.lng} zoom={15} height={140} bordered />
+              <div className="min-w-0">
+                <SectionHeader title="Ubicación" description={`${parcel.municipio}, ${parcel.region}`} />
+                <StaticMapImage lat={parcel.lat} lng={parcel.lng} zoom={15} height={200} rounded />
               </div>
-            </div>
-          </div>
+            </section>
 
-          <div className="my-6 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
-
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
-            <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                Variables que más influyeron
-              </h2>
-              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-                Contribución SHAP de cada variable a la predicción de {parcel.name}.
-              </p>
-              <div className="mt-4">
+            {/* Variables SHAP + ficha técnica */}
+            <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1fr_280px]">
+              <section className="min-w-0">
+                <SectionHeader
+                  title="Variables que más influyeron"
+                  description={`Contribución SHAP de cada variable a la predicción de ${parcel.name}.`}
+                />
                 <FeatureImportanceChart data={parcel.shap} />
-              </div>
-            </div>
+              </section>
 
-            <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                Ficha técnica
-              </h2>
-              <div className="mt-4 border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-black">
-                <dl className="divide-y divide-gray-100 text-sm dark:divide-gray-800">
-                  <div className="flex items-baseline justify-between gap-3 py-2.5 first:pt-0">
-                    <dt className="text-gray-500 dark:text-gray-400">ID de polígono</dt>
-                    <dd className="text-right font-medium text-gray-900 dark:text-gray-100">{parcel.polygonId}</dd>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3 py-2.5 first:pt-0">
-                    <dt className="text-gray-500 dark:text-gray-400">Región</dt>
-                    <dd className="text-right font-medium text-gray-900 dark:text-gray-100">
+              <section>
+                <SectionHeader title="Ficha técnica" />
+                <div className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
+                  <dl>
+                    <DetailRow label="ID de polígono">{parcel.polygonId}</DetailRow>
+                    <DetailRow label="Región">
                       {parcel.region} ({parcel.regionCode})
-                    </dd>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3 py-2.5 first:pt-0">
-                    <dt className="text-gray-500 dark:text-gray-400">Coordenadas</dt>
-                    <dd className="text-right font-medium text-gray-900 dark:text-gray-100">
+                    </DetailRow>
+                    <DetailRow label="Coordenadas">
                       {parcel.lat.toFixed(4)}, {parcel.lng.toFixed(4)}
-                    </dd>
+                    </DetailRow>
+                  </dl>
+                  <div className="mt-3">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Origen del dato</p>
+                    <p className="mt-1 text-sm font-medium leading-snug text-gray-900 dark:text-gray-100">{originLabel}</p>
                   </div>
-                  <div className="pt-2.5">
-                    <dt className="text-gray-500 dark:text-gray-400">Origen del dato</dt>
-                    <dd className="mt-0.5 font-medium text-gray-900 dark:text-gray-100">{originLabel}</dd>
-                  </div>
-                </dl>
-              </div>
-            </div>
-          </div>
-
-          <div className="my-6 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
-
-          <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-              Otras variables vs. promedio regional
-            </h2>
-            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-              EVI y grados-día de {parcel.name}, comparados contra el promedio de las {regionAverages.count}{" "}
-              parcelas de {parcel.region}.
-            </p>
-            <div className="mt-4 grid grid-cols-2 divide-x divide-gray-200 border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
-              {climateVariables.map((v) => (
-                <div key={v.label} className="p-5">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{v.label}</p>
-                    <span className="flex h-7 w-7 items-center justify-center bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                      <v.icon size={14} />
-                    </span>
-                  </div>
-                  <p className="font-sora mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {v.value}
-                  </p>
-                  <p className="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                    <v.deltaIcon size={12} />
-                    {v.deltaLabel}
-                  </p>
                 </div>
-              ))}
+              </section>
             </div>
-          </div>
-          </div>
-        </motion.div>
+
+            {/* Otras variables vs. promedio regional */}
+            <section>
+              <SectionHeader
+                title="Otras variables vs. promedio regional"
+                description={`EVI y grados-día de ${parcel.name}, comparados contra el promedio de las ${regionAverages.count} parcelas de ${parcel.region}.`}
+              />
+              <JoinedCells className="grid-cols-1 sm:grid-cols-2">
+                {climateVariables.map((v) => (
+                  <div key={v.label} className={CELL}>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{v.label}</p>
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                        <v.icon size={14} />
+                      </span>
+                    </div>
+                    <p className="font-display mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
+                      {v.value}
+                    </p>
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      <v.deltaIcon size={12} />
+                      {v.deltaLabel}
+                    </p>
+                  </div>
+                ))}
+              </JoinedCells>
+            </section>
+          </motion.div>
         </AnimatePresence>
       </div>
     </>

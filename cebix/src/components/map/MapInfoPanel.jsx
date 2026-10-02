@@ -31,8 +31,8 @@ import {
 function Stat({ label, children }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</dt>
-      <dd className="mt-0.5 truncate font-mono text-[11px] tabular-nums text-gray-800 dark:text-gray-100">{children}</dd>
+      <dt className="text-[10px] font-medium uppercase tracking-wide text-gray-400">{label}</dt>
+      <dd className="mt-0.5 truncate font-mono text-[11px] tabular-nums text-gray-100">{children}</dd>
     </div>
   );
 }
@@ -44,7 +44,7 @@ function IconButton({ icon: Icon, label, onClick }) {
       onClick={onClick}
       title={label}
       aria-label={label}
-      className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white"
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-accent-400 transition-colors hover:bg-white/10"
     >
       <Icon size={14} />
     </button>
@@ -91,20 +91,20 @@ function MapInfoPanel({ info, pinned, onClearPinned, parcels, basemapLabel }) {
   }
 
   return (
-    <div className="pointer-events-auto w-full max-w-xl rounded border border-gray-200 bg-white/90 px-3 py-2 text-gray-800 shadow-lg backdrop-blur dark:border-white/10 dark:bg-black/70 dark:text-gray-100">
+    <div className="pointer-events-auto w-full max-w-xl rounded-2xl border border-white/10 bg-black/85 px-3 py-2 text-gray-100 shadow-lg backdrop-blur">
       <div className="flex items-center gap-2">
-        <PointIcon size={14} className="shrink-0 text-accent-500" aria-hidden="true" />
-        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <PointIcon size={14} className="shrink-0 text-accent-400" aria-hidden="true" />
+        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
           {pointLabel}
         </span>
-        <span className="min-w-0 flex-1 truncate font-mono text-xs font-semibold tabular-nums" aria-live="off">
+        <span className="min-w-0 flex-1 truncate font-mono text-xs font-semibold tabular-nums text-gray-100" aria-live="off">
           {coordText}
         </span>
         <button
           type="button"
           onClick={() => setDms((v) => !v)}
           title="Cambiar formato de coordenadas"
-          className="shrink-0 rounded border border-gray-200 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600 hover:bg-gray-100 dark:border-white/15 dark:text-gray-300 dark:hover:bg-white/10"
+          className="shrink-0 rounded-full border border-white/15 px-1.5 py-0.5 text-[10px] font-semibold text-gray-300 hover:bg-white/10"
         >
           {dms ? "DMS" : "DEC"}
         </button>
@@ -117,14 +117,14 @@ function MapInfoPanel({ info, pinned, onClearPinned, parcels, basemapLabel }) {
         {pinned && <IconButton icon={X} label="Quitar punto marcado" onClick={onClearPinned} />}
       </div>
 
-      <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-gray-200 pt-2 dark:border-white/10 sm:grid-cols-4">
+      <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 pt-2 sm:grid-cols-4">
         <Stat label="UTM">{formatUTM(point.lat, point.lng)}</Stat>
         <Stat label="Zoom">{zoom.toFixed(1)}</Stat>
         <Stat label="Escala">
           {scale.px > 0 && (
             <span className="flex items-center gap-1.5">
               <span
-                className="inline-block h-1.5 border-x-2 border-b-2 border-gray-800 dark:border-gray-100"
+                className="inline-block h-1.5 border-x-2 border-b-2 border-gray-100"
                 style={{ width: `${Math.round(scale.px)}px` }}
                 aria-hidden="true"
               />
@@ -136,14 +136,14 @@ function MapInfoPanel({ info, pinned, onClearPinned, parcels, basemapLabel }) {
         <Stat label="Centro">{formatDecimal(center.lat, center.lng, 3)}</Stat>
         <Stat label="Mapa base">{basemapLabel ?? "—"}</Stat>
         <div className="col-span-2 min-w-0">
-          <dt className="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          <dt className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
             Parcela más cercana
           </dt>
-          <dd className="mt-0.5 truncate text-[11px] text-gray-800 dark:text-gray-100">
+          <dd className="mt-0.5 truncate text-[11px] text-gray-100">
             {nearest ? (
               <>
                 <span className="font-medium">{nearest.parcel.name}</span>
-                <span className="font-mono tabular-nums text-gray-500 dark:text-gray-400">
+                <span className="font-mono tabular-nums text-gray-400">
                   {" "}· {formatDistance(nearest.distance)}
                 </span>
               </>
@@ -155,7 +155,7 @@ function MapInfoPanel({ info, pinned, onClearPinned, parcels, basemapLabel }) {
       </dl>
 
       {!pinned && (
-        <p className="mt-1.5 text-[10px] text-gray-400 dark:text-gray-500">
+        <p className="mt-1.5 text-[10px] text-gray-500">
           Haz clic en el mapa para marcar un punto.
         </p>
       )}

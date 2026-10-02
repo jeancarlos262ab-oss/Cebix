@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 function AuthLoadingFallback() {
   return (
     <div className="flex h-full w-full items-center justify-center py-24">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-accent-500 dark:border-gray-700" />
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-[#d4a63c] dark:border-gray-700" />
     </div>
   );
 }

@@ -44,19 +44,19 @@ export default function UsuariosPage() {
         actions={
           <Link
             to="/signup"
-            className="bg-accent-500 px-3 py-2 text-sm font-medium text-accent-contrast shadow-sm hover:bg-accent-600"
+            className="rounded-full bg-accent-500 px-3 py-2 text-sm font-medium text-accent-contrast shadow-sm hover:bg-accent-600"
           >
             Crear usuario
           </Link>
         }
       />
 
-      <div className="mt-6 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+      <div className="mt-6" aria-hidden="true" />
 
       <div className="grid grid-cols-1 px-4 py-6 sm:px-6 lg:px-8 lg:grid-cols-[280px_1px_1fr] lg:gap-8">
         {/* Rail izquierdo: filtro por estado y cobertura por región */}
         <aside className="bg-white dark:bg-black">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Estado</h2>
+          <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Estado</h2>
           <div className="mt-3 flex flex-col gap-1.5">
             {STATUS_FILTERS.map((s) => (
               <button
@@ -75,35 +75,31 @@ export default function UsuariosPage() {
             ))}
           </div>
 
-          <div className="mt-5 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
-
           <dl className="mt-5 space-y-2.5 text-sm">
             <div className="flex items-center justify-between">
               <dt className="text-gray-500 dark:text-gray-400">Total de usuarios</dt>
-              <dd className="font-sora font-bold text-gray-900 dark:text-gray-100">{users.length}</dd>
+              <dd className="font-display font-bold text-gray-900 dark:text-gray-100">{users.length}</dd>
             </div>
             <div className="flex items-center justify-between">
               <dt className="text-gray-500 dark:text-gray-400">Activos</dt>
-              <dd className="font-sora font-bold text-gray-900 dark:text-gray-100">
+              <dd className="font-display font-bold text-gray-900 dark:text-gray-100">
                 {statusCounts.activos}
               </dd>
             </div>
             <div className="flex items-center justify-between">
               <dt className="text-gray-500 dark:text-gray-400">Invitados</dt>
-              <dd className="font-sora font-bold text-gray-900 dark:text-gray-100">
+              <dd className="font-display font-bold text-gray-900 dark:text-gray-100">
                 {statusCounts.invitados}
               </dd>
             </div>
           </dl>
 
-          <div className="mt-5 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
-
-          <h3 className="mt-5 text-sm font-semibold text-gray-900 dark:text-gray-100">Por región</h3>
+          <h3 className="font-display mt-5 text-sm font-semibold text-gray-900 dark:text-gray-100">Por región</h3>
           <dl className="mt-3 space-y-2.5 text-sm">
             {regions.map((r) => (
               <div key={r.region} className="flex items-center justify-between">
                 <dt className="text-gray-500 dark:text-gray-400">{r.region}</dt>
-                <dd className="font-sora font-bold text-gray-900 dark:text-gray-100">{r.count}</dd>
+                <dd className="font-display font-bold text-gray-900 dark:text-gray-100">{r.count}</dd>
               </div>
             ))}
           </dl>

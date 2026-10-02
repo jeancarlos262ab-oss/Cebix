@@ -92,11 +92,11 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[86vh] w-full max-w-lg overflow-y-auto border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900"
+        className="max-h-[86vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+            <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-white">
               {isEdit ? "Editar parcela" : "Registrar nueva parcela"}
             </h2>
             <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
@@ -107,13 +107,11 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="shrink-0 rounded-full p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
-            <X size={16} />
+            <X size={16} className="text-accent-600 dark:text-accent-400" />
           </button>
         </div>
-
-        <div className="mt-4 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <Field label="Nombre" span2 error={errors.name}>
@@ -199,13 +197,13 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
           <button
             type="button"
             onClick={onClose}
-            className="border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            className="rounded-full border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             Cancelar
           </button>
           <button
             type="submit"
-            className="bg-accent-500 px-4 py-2 text-sm font-semibold text-accent-contrast shadow-sm hover:bg-accent-600"
+            className="rounded-full bg-accent-500 px-4 py-2 text-sm font-semibold text-accent-contrast shadow-sm hover:bg-accent-600"
           >
             {isEdit ? "Guardar cambios" : "Agregar parcela"}
           </button>
@@ -217,7 +215,7 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
 
 function inputClass(error) {
   return [
-    "w-full border bg-white px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:bg-gray-800 dark:text-gray-200",
+    "w-full rounded-full border bg-white px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:bg-gray-800 dark:text-gray-200",
     error ? "border-red-400" : "border-gray-200 focus:border-accent-400 dark:border-gray-700",
   ].join(" ");
 }

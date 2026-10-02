@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import ParcelEmblem from "./ParcelEmblem";
 import MiniBarChart from "./MiniBarChart";
 import PeriodToggle from "../ui/PeriodToggle";
@@ -10,6 +11,113 @@ import { useParcels } from "../../context/ParcelsContext";
 import { downloadCSV } from "../../utils/csv";
 
 const TABS = ["Predicción", "Variables", "Riesgo", "Histórico"];
+
+/**
+ * Tabs con scroll horizontal suave: sin barra de scroll, con flechas a los lados
+ * que desaparecen por completo junto con su espacio cuando no hay más contenido que mostrar en esa dirección.
+ */
+function ScrollableTabs({ tabs, active, onChange }) {
+  const scrollerRef = useRef(null);
+  const [edges, setEdges] = useState({ left: false, right: false });
+
+  const updateEdges = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const left = el.scrollLeft > 2;
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
+    setEdges((prev) => (prev.left === left && prev.right === right ? prev : { left, right }));
+  }, []);
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return undefined;
+    updateEdges();
+    el.addEventListener("scroll", updateEdges, { passive: true });
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateEdges) : null;
+    ro?.observe(el);
+    return () => {
+      el.removeEventListener("scroll", updateEdges);
+      ro?.disconnect();
+    };
+  }, [updateEdges]);
+
+  const scrollByDir = (dir) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * Math.max(el.clientWidth * 0.6, 80), behavior: "smooth" });
+  };
+
+  // Al elegir una pestaña, la centra suavemente dentro del contenedor.
+  const handleSelect = (tab, event) => {
+    onChange(tab);
+    const el = scrollerRef.current;
+    const btn = event.currentTarget;
+    if (!el || !btn) return;
+    const target = btn.offsetLeft - (el.clientWidth - btn.offsetWidth) / 2;
+    el.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
+  };
+
+  const arrowBase =
+    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-accent-600 shadow-sm transition-colors duration-200 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:bg-black dark:text-accent-400 dark:hover:bg-gray-800";
+
+  return (
+    <div className="relative mt-3 flex items-center gap-2">
+      {edges.left && (
+        <button
+          type="button"
+          aria-label="Ver pestañas anteriores"
+          onClick={() => scrollByDir(-1)}
+          className={arrowBase}
+        >
+          <ChevronLeft size={16} />
+        </button>
+      )}
+
+      <div
+        ref={scrollerRef}
+        role="tablist"
+        className="flex min-w-0 flex-1 scroll-smooth gap-5 overflow-x-auto overflow-y-hidden whitespace-nowrap text-sm font-medium scrollbar-none"
+      >
+        {tabs.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            role="tab"
+            aria-selected={active === tab}
+            onClick={(e) => handleSelect(tab, e)}
+            className={[
+              "relative shrink-0 pb-3 pt-1 transition-colors duration-200 focus:outline-none focus-visible:text-accent-600",
+              active === tab
+                ? "text-accent-600"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300",
+            ].join(" ")}
+          >
+            {tab}
+            {active === tab && (
+              <motion.div
+                layoutId="parcelSummaryTabIndicator"
+                className="absolute inset-x-0 bottom-0 h-0.5 bg-accent-600"
+                transition={{ type: "spring", stiffness: 450, damping: 38 }}
+              />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {edges.right && (
+        <button
+          type="button"
+          aria-label="Ver más pestañas"
+          onClick={() => scrollByDir(1)}
+          className={arrowBase}
+        >
+          <ChevronRight size={16} />
+        </button>
+      )}
+    </div>
+  );
+}
+
 const PERIODS = ["Ciclo completo", "60 días", "30 días"];
 
 const BARS_BY_PERIOD = {
@@ -76,44 +184,15 @@ export default function ParcelSummary() {
   }, [activeTab, parcels]);
 
   return (
-    <section className="bg-white dark:bg-black">
-      <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Resumen del modelo</h2>
+    <div className="min-w-0 space-y-10">
+    <section>
+      <h2 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">Resumen del modelo</h2>
       <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
         Rendimiento y riesgo por parcela.
       </p>
-      <div className="mt-4 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
-
       <ParcelEmblem />
 
-      <div
-        role="tablist"
-        className="mt-2 flex gap-5 overflow-x-auto whitespace-nowrap border-b border-gray-200 text-sm font-medium dark:border-gray-800"
-      >
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab}
-            onClick={() => setActiveTab(tab)}
-            className={[
-              "relative -mb-px pb-3 pt-1 transition-colors duration-200 focus:outline-none focus-visible:text-accent-600",
-              activeTab === tab
-                ? "text-accent-600"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300",
-            ].join(" ")}
-          >
-            {tab}
-            {activeTab === tab && (
-              <motion.div
-                layoutId="parcelSummaryTabIndicator"
-                className="absolute inset-x-0 -bottom-[1px] h-0.5 bg-accent-600"
-                transition={{ type: "spring", stiffness: 450, damping: 38 }}
-              />
-            )}
-          </button>
-        ))}
-      </div>
+      <ScrollableTabs tabs={TABS} active={activeTab} onChange={setActiveTab} />
 
       <motion.div layout transition={{ duration: 0.3, ease: "easeInOut" }}>
         <AnimatePresence mode="wait" initial={false}>
@@ -129,11 +208,11 @@ export default function ParcelSummary() {
                 <FeatureImportanceChart data={globalImportance.slice(0, 6)} />
               </div>
             ) : (
-              <dl className="mt-2 divide-y divide-gray-100 dark:divide-gray-800">
+              <dl className="mt-2">
                 {summaryRows.map((row) => (
                   <div key={row.label} className="flex items-baseline justify-between gap-4 py-3">
                     <dt className="text-sm text-gray-500 dark:text-gray-400">{row.label}</dt>
-                    <dd className="font-sora shrink-0 text-base font-bold tabular-nums text-gray-900 dark:text-gray-100">{row.value}</dd>
+                    <dd className="font-display shrink-0 text-base font-bold tabular-nums text-gray-900 dark:text-gray-100">{row.value}</dd>
                   </div>
                 ))}
               </dl>
@@ -142,12 +221,14 @@ export default function ParcelSummary() {
         </AnimatePresence>
       </motion.div>
 
+    </section>
+
+    <section>
       <motion.div
         layout
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="mt-6 border-t border-gray-200 pt-6 dark:border-gray-700"
       >
-        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+        <h3 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">
           Variables por etapa del ciclo
         </h3>
         <div className="mt-3">
@@ -175,5 +256,6 @@ export default function ParcelSummary() {
         </ul>
       </motion.div>
     </section>
+    </div>
   );
 }

@@ -1,13 +1,8 @@
 import { memo } from "react";
+import { RISK_COLORS } from "../../utils/riskColors";
 import { useNavigate } from "react-router-dom";
 import { Pencil, Gauge, Leaf, ChevronRight, LandPlot } from "lucide-react";
 import CategoryTag from "../ui/CategoryTag";
-
-const REGION_BADGE_COLOR = {
-  HGO: "bg-gray-700",
-  TLX: "bg-brand-500",
-  PUE: "bg-ndvi-600",
-};
 
 // Umbrales de vigor vegetal (NDVI pico del ciclo) calibrados sobre la
 // distribución real del dataset AgroCebada (p25 ≈ 0.61, p75 ≈ 0.71).
@@ -21,7 +16,7 @@ const NDVI_MAX = 0.85;
 
 // Mismos tonos del semáforo de elegibilidad (Semaphore.jsx), reutilizados
 // aquí para la barra de score de cada fila.
-const RISK_HEX = { red: "#DC2626", yellow: "#D97706", green: "#16A34A", gray: "#9CA3AF" };
+const RISK_HEX = { ...RISK_COLORS, gray: "#9CA3AF" };
 
 /**
  * @param {{parcel: import("../../data/parcels").parcels[number], onEdit?: (parcel: object) => void}} props
@@ -42,9 +37,7 @@ function ParcelRow({ parcel, onEdit }) {
     >
       <td className="py-4 pl-3 pr-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center bg-gray-100 dark:bg-gray-800">
-            <LandPlot size={17} className="text-gray-500 dark:text-gray-400" />
-          </span>
+          <LandPlot size={20} className="shrink-0 text-accent-600 dark:text-accent-400" />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{parcel.name}</p>
             <p className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
@@ -62,9 +55,9 @@ function ParcelRow({ parcel, onEdit }) {
 
       <td className="py-4 pr-4">
         <div className="flex items-center gap-2">
-          <Gauge size={13} className="shrink-0 text-gray-300 dark:text-gray-600" />
+          <Gauge size={13} className="shrink-0 text-accent-600 dark:text-accent-400" />
           <div>
-            <p className="font-sora text-sm font-bold text-gray-800 dark:text-gray-200">
+            <p className="font-display text-sm font-bold text-gray-800 dark:text-gray-200">
               {parcel.yieldEstimate.toFixed(1)} <span className="text-xs font-medium text-gray-500 dark:text-gray-400">ton/ha</span>
             </p>
             {typeof parcel.confidence === "number" && (
@@ -79,7 +72,7 @@ function ParcelRow({ parcel, onEdit }) {
           <CategoryTag label={parcel.risk} color={parcel.riskColor} />
           <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{parcel.score}</span>
         </div>
-        <div className="mt-1.5 h-1 w-24 overflow-hidden bg-gray-100 dark:bg-gray-800">
+        <div className="mt-1.5 h-1 w-24 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
           <div
             className="h-full transition-all"
             style={{ width: `${scorePct}%`, backgroundColor: RISK_HEX[parcel.riskColor] }}
@@ -89,10 +82,10 @@ function ParcelRow({ parcel, onEdit }) {
 
       <td className="py-4 pr-4">
         <div className="flex items-center gap-1.5">
-          <Leaf size={13} className="shrink-0" style={{ color: ndviTier.color }} />
+          <Leaf size={13} className="shrink-0 text-accent-600 dark:text-accent-400" />
           <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{parcel.ndvi.toFixed(2)}</span>
         </div>
-        <div className="mt-1.5 h-1 w-16 overflow-hidden bg-gray-100 dark:bg-gray-800">
+        <div className="mt-1.5 h-1 w-16 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
           <div className={`h-full ${ndviTier.track}`} style={{ width: `${ndviPct}%` }} />
         </div>
       </td>
@@ -100,9 +93,8 @@ function ParcelRow({ parcel, onEdit }) {
       <td className="py-4 pr-4">
         <div className="flex items-center gap-2">
           <span
-            className={`flex h-6 w-9 items-center justify-center text-[10px] font-bold text-white ${
-              REGION_BADGE_COLOR[parcel.regionCode] ?? "bg-gray-400"
-            }`}
+            className={`inline-block w-10 shrink-0 select-none font-garet text-sm font-extrabold uppercase leading-none tracking-tight text-accent-600 dark:text-accent-400`}
+            style={{ transform: "skewX(-12deg)" }}
           >
             {parcel.regionCode}
           </span>
@@ -131,11 +123,11 @@ function ParcelRow({ parcel, onEdit }) {
                 : "cursor-not-allowed text-gray-200 dark:text-gray-800",
             ].join(" ")}
           >
-            <Pencil size={14} />
+            <Pencil size={14} className={onEdit ? "text-accent-600 dark:text-accent-400" : ""} />
           </button>
           <ChevronRight
             size={15}
-            className="text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-gray-500 dark:text-gray-600 dark:group-hover:text-gray-400"
+            className="text-accent-600 dark:text-accent-400 transition-transform group-hover:translate-x-0.5"
           />
         </div>
       </td>

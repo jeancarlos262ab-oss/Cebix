@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Palette, Bell, Globe2, Satellite, RotateCcw } from "lucide-react";
+import { Palette, Bell, Globe2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import TopBar from "../components/layout/TopBar";
 import SettingsSection from "../components/settings/SettingsSection";
@@ -17,7 +17,7 @@ const ACCENTS = [
 ];
 
 export default function AjustesPage() {
-  const { theme, setTheme, accent, setAccent, density, setDensity, resolvedTheme } = useTheme();
+  const { theme, setTheme, accent, setAccent, resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
   const swatchOf = (a) => (isDark && a.darkSwatch) || a.swatch;
   const accentColor = swatchOf(ACCENTS.find((a) => a.id === accent) ?? ACCENTS[0]);
@@ -26,26 +26,22 @@ export default function AjustesPage() {
     email: true,
     riesgo: true,
     resumenSemanal: false,
-    producto: false,
   });
 
   const [prefs, setPrefs] = useState({
     idioma: "es-MX",
     formatoFecha: "dd/mm/aaaa",
     zonaHoraria: "America/Mexico_City",
-    capaMapa: "NDVI",
   });
 
   function handleReset() {
     setTheme("system");
     setAccent("brand");
-    setDensity("comoda");
-    setNotifs({ email: true, riesgo: true, resumenSemanal: false, producto: false });
+    setNotifs({ email: true, riesgo: true, resumenSemanal: false });
     setPrefs({
       idioma: "es-MX",
       formatoFecha: "dd/mm/aaaa",
       zonaHoraria: "America/Mexico_City",
-      capaMapa: "NDVI",
     });
     toast.info("Ajustes restablecidos.");
   }
@@ -61,16 +57,16 @@ export default function AjustesPage() {
             <button
               type="button"
               onClick={handleReset}
-              className="flex items-center gap-1.5 border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
-              <RotateCcw size={13} />
+              <RotateCcw size={13} className="text-accent-600 dark:text-accent-400" />
               Restablecer
             </button>
           </div>
         }
       />
 
-      <div className="mt-2 max-w-4xl divide-y divide-gray-200 px-4 sm:px-6 lg:px-8 dark:divide-gray-800">
+      <div className="mt-2 max-w-4xl px-4 sm:px-6 lg:px-8">
         {/* Apariencia */}
         <SettingsSection
           icon={Palette}
@@ -120,46 +116,15 @@ export default function AjustesPage() {
                   type="button"
                   aria-label={(isDark && a.darkLabel) || a.label}
                   onClick={() => setAccent(a.id)}
-                  className="flex h-8 w-8 items-center justify-center border-2 transition-transform hover:scale-105"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border-2 transition-transform hover:scale-105"
                   style={{
                     borderColor: accent === a.id ? swatchOf(a) : "transparent",
                   }}
                 >
                   <span
-                    className="h-5.5 w-5.5"
+                    className="rounded-full"
                     style={{ backgroundColor: swatchOf(a), height: "22px", width: "22px" }}
                   />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3">
-            <span>
-              <span className="block text-sm font-medium text-gray-900 dark:text-white">
-                Densidad de interfaz
-              </span>
-              <span className="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
-                Compacta muestra más información por pantalla
-              </span>
-            </span>
-            <div className="flex border border-gray-200 bg-white p-0.5 text-xs font-medium dark:border-gray-700 dark:bg-gray-800">
-              {[
-                { id: "comoda", label: "Cómoda" },
-                { id: "compacta", label: "Compacta" },
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setDensity(opt.id)}
-                  className={[
-                    " px-3 py-1.5 transition-colors",
-                    density === opt.id
-                      ? "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-white"
-                      : "text-gray-500 hover:text-gray-700 dark:text-gray-400",
-                  ].join(" ")}
-                >
-                  {opt.label}
                 </button>
               ))}
             </div>
@@ -190,39 +155,6 @@ export default function AjustesPage() {
             checked={notifs.resumenSemanal}
             onChange={(v) => setNotifs((n) => ({ ...n, resumenSemanal: v }))}
           />
-          <Toggle
-            label="Novedades del producto"
-            description="Nuevas funciones y mejoras del modelo"
-            checked={notifs.producto}
-            onChange={(v) => setNotifs((n) => ({ ...n, producto: v }))}
-          />
-        </SettingsSection>
-
-        {/* Mapa y modelo */}
-        <SettingsSection
-          icon={Satellite}
-          title="Mapa y modelo"
-          description="Preferencias por defecto al abrir el mapa satelital"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3">
-            <span>
-              <span className="block text-sm font-medium text-gray-900 dark:text-white">
-                Capa por defecto
-              </span>
-              <span className="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
-                Capa que se muestra al entrar al mapa satelital
-              </span>
-            </span>
-            <select
-              value={prefs.capaMapa}
-              onChange={(e) => setPrefs((p) => ({ ...p, capaMapa: e.target.value }))}
-              className=" border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
-            >
-              <option value="NDVI">NDVI</option>
-              <option value="RGB">RGB (color natural)</option>
-              <option value="Humedad">Humedad de suelo</option>
-            </select>
-          </div>
         </SettingsSection>
 
         {/* Idioma y región */}
@@ -239,7 +171,7 @@ export default function AjustesPage() {
               <select
                 value={prefs.idioma}
                 onChange={(e) => setPrefs((p) => ({ ...p, idioma: e.target.value }))}
-                className="w-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
               >
                 <option value="es-MX">Español (México)</option>
                 <option value="en-US">English (US)</option>
@@ -252,7 +184,7 @@ export default function AjustesPage() {
               <select
                 value={prefs.formatoFecha}
                 onChange={(e) => setPrefs((p) => ({ ...p, formatoFecha: e.target.value }))}
-                className="w-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
               >
                 <option value="dd/mm/aaaa">DD/MM/AAAA</option>
                 <option value="mm/dd/aaaa">MM/DD/AAAA</option>
@@ -265,7 +197,7 @@ export default function AjustesPage() {
               <select
                 value={prefs.zonaHoraria}
                 onChange={(e) => setPrefs((p) => ({ ...p, zonaHoraria: e.target.value }))}
-                className="w-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
               >
                 <option value="America/Mexico_City">Ciudad de México (GMT-6)</option>
                 <option value="America/Tijuana">Tijuana (GMT-8)</option>

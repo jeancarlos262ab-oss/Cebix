@@ -11,12 +11,9 @@ import {
 } from "lucide-react";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { RISK_COLORS } from "../../utils/riskColors";
 
-const RISK_HEX = {
-  green: "#16A34A",
-  yellow: "#D97706",
-  red: "#DC2626",
-};
+const RISK_HEX = RISK_COLORS;
 
 /**
  * Mapas base optimizados para bajos recursos.
@@ -99,9 +96,9 @@ const LAYERS = [
 ];
 
 const RISK_LEGEND = [
-  { color: "#16A34A", label: "Elegible" },
-  { color: "#D97706", label: "Revisión manual" },
-  { color: "#DC2626", label: "Alto riesgo" },
+  { color: RISK_COLORS.green, label: "Elegible" },
+  { color: RISK_COLORS.yellow, label: "Revisión manual" },
+  { color: RISK_COLORS.red, label: "Alto riesgo" },
 ];
 
 const NDVI_LEGEND = [
@@ -472,7 +469,7 @@ function ParcelMap({
     type: "line",
     paint: {
       "line-color": "#F5D949",
-      "line-width": 1.5,
+      "line-width": 3,
       "line-opacity": 0.85,
       "line-dasharray": [5, 4],
     },

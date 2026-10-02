@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, CornerDownLeft } from "lucide-react";
 import { useParcels } from "../../context/ParcelsContext";
+import { RISK_COLORS } from "../../utils/riskColors";
 
-const RISK_DOT = { green: "#16A34A", yellow: "#D97706", red: "#DC2626" };
+const RISK_DOT = RISK_COLORS;
 
 function normalize(str) {
   return str
@@ -87,7 +88,7 @@ export default function GlobalSearch() {
     <div ref={containerRef} className="relative w-40 sm:w-56 lg:w-64">
       <Search
         size={16}
-        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-accent-600 dark:text-accent-400"
       />
       <input
         ref={inputRef}
@@ -103,14 +104,14 @@ export default function GlobalSearch() {
         role="combobox"
         aria-expanded={open && results.length > 0}
         aria-controls="global-search-results"
-        className="w-full border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-700 shadow-sm placeholder:text-gray-400 focus:border-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500"
+        className="w-full rounded-full border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm text-gray-700 shadow-sm placeholder:text-gray-400 focus:border-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500"
       />
 
       {open && query && (
         <div
           id="global-search-results"
           role="listbox"
-          className="absolute right-0 top-full z-50 mt-1.5 max-h-80 w-72 max-w-[calc(100vw-2rem)] overflow-y-auto border border-gray-200 bg-white py-1 shadow-card dark:border-gray-800 dark:bg-gray-900 sm:w-80"
+          className="absolute right-0 top-full z-50 mt-1.5 max-h-80 w-72 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-gray-200 bg-white py-1 shadow-card dark:border-gray-800 dark:bg-gray-900 sm:w-80"
         >
           {results.length === 0 ? (
             <p className="px-3 py-3 text-sm text-gray-500 dark:text-gray-400">
@@ -140,7 +141,7 @@ export default function GlobalSearch() {
                     {p.municipio}, {p.region} · {p.yieldEstimate.toFixed(1)} ton/ha
                   </span>
                 </span>
-                {i === activeIndex && <CornerDownLeft size={13} className="shrink-0 text-gray-300" />}
+                {i === activeIndex && <CornerDownLeft size={13} className="shrink-0 text-accent-600 dark:text-accent-400" />}
               </button>
             ))
           )}

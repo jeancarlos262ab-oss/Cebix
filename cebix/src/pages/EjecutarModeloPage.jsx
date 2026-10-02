@@ -57,15 +57,15 @@ export default function EjecutarModeloPage() {
           <a
             href="/ejemplo_features_predict.csv"
             download
-            className="inline-flex items-center gap-2 border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           >
-            <Download size={16} />
+            <Download size={16} className="text-accent-600 dark:text-accent-400" />
             CSV de ejemplo
           </a>
         }
       />
 
-      <div className="mt-6 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+      <div className="mt-6" aria-hidden="true" />
 
       <div className="px-4 py-6 sm:px-6 lg:px-8">
         <p className="max-w-2xl text-sm text-gray-600 dark:text-gray-400">
@@ -75,8 +75,8 @@ export default function EjecutarModeloPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="mt-5 flex flex-wrap items-center gap-3">
-          <label className="inline-flex cursor-pointer items-center gap-2 border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
-            <Upload size={16} />
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
+            <Upload size={16} className="text-accent-600 dark:text-accent-400" />
             {file ? file.name : "Elegir archivo CSV"}
             <input
               type="file"
@@ -88,9 +88,9 @@ export default function EjecutarModeloPage() {
           <button
             type="submit"
             disabled={!file || loading}
-            className="inline-flex items-center gap-2 bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-gray-100 dark:text-gray-900"
+            className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-gray-100 dark:text-gray-900"
           >
-            <Play size={16} />
+            <Play size={16} className="text-accent-400 dark:text-accent-600" />
             {loading ? "Ejecutando modelo..." : "Ejecutar modelo"}
           </button>
         </form>
@@ -118,7 +118,7 @@ export default function EjecutarModeloPage() {
                   >
                     <td className="py-2 pr-6 font-medium">{r.ID_POLIGONO}</td>
                     <td className="py-2 pr-6">{r.Estado}</td>
-                    <td className="py-2 pr-6 font-sora font-bold">{r.yieldEstimate}</td>
+                    <td className="py-2 pr-6 font-display font-bold">{r.yieldEstimate}</td>
                     <td className="py-2 pr-6 text-gray-500 dark:text-gray-400">
                       {r.ic90_inferior} – {r.ic90_superior}
                     </td>

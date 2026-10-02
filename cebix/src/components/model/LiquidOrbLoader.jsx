@@ -219,7 +219,7 @@ export default function LiquidOrbLoader({ size = 320, running = false, label }) 
 
       <style>{`
         .lava {
-          --accent: var(--accent-500, #d97706);
+          --accent: var(--accent-500);
           position: relative;
           flex-shrink: 0;
         }

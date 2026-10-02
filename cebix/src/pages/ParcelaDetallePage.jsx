@@ -38,15 +38,15 @@ export default function ParcelaDetallePage() {
         actions={
           <Link
             to="/parcelas"
-            className="flex items-center gap-1.5 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800"
+            className="flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-black px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800"
           >
-            <ArrowLeft size={15} />
+            <ArrowLeft size={15} className="text-accent-600 dark:text-accent-400" />
             Todas las parcelas
           </Link>
         }
       />
 
-      <div className="mt-6 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+      <div className="mt-6" aria-hidden="true" />
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1px_360px]">
         <div className="min-w-0">
@@ -57,15 +57,12 @@ export default function ParcelaDetallePage() {
             zoom={17}
             showLegend={false}
             showBoundariesByDefault={false}
-            bordered={false}
           />
 
-          <div className="h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
-
           <div className="px-4 py-6 sm:px-6 lg:pl-8 lg:pr-8">
-          <div className="grid grid-cols-1 divide-y divide-gray-200 border-y border-gray-200 dark:divide-gray-800 dark:border-gray-800 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <div className="grid grid-cols-1 sm:grid-cols-3">
             <div className="py-4 sm:pr-4">
-              <StatCard label="NDVI pico" value={parcel.ndvi.toFixed(2)} icon={Leaf} tone="ndvi" />
+              <StatCard label="NDVI pico" value={parcel.ndvi.toFixed(2)} icon={Leaf} tone="brand" />
             </div>
             <div className="py-4 sm:px-4">
               <StatCard
@@ -80,15 +77,15 @@ export default function ParcelaDetallePage() {
             </div>
           </div>
 
-          <div className="mt-6 border-t border-gray-200 pt-6 dark:border-gray-800">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Rendimiento estimado</h2>
+          <div className="mt-8">
+            <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Rendimiento estimado</h2>
             <div className="mt-4">
               <ConfidenceRange estimate={parcel.yieldEstimate} confidence={parcel.confidence} />
             </div>
           </div>
 
-          <div className="mt-6 border-t border-gray-200 pt-6 dark:border-gray-800">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          <div className="mt-8">
+            <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">
               Por qué el modelo predijo esto (SHAP local)
             </h2>
             <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
@@ -101,18 +98,17 @@ export default function ParcelaDetallePage() {
           </div>
         </div>
 
-        <div className="hidden bg-gray-200 dark:bg-gray-700 lg:block" aria-hidden="true" />
+        <div className="hidden lg:block" aria-hidden="true" />
 
-        <div className="border-t border-gray-200 px-4 py-6 dark:border-gray-800 sm:px-6 lg:border-t-0 lg:pl-8 lg:pr-8">
+        <div className="px-4 py-6 sm:px-6 lg:pl-8 lg:pr-8">
           <Semaphore score={parcel.score} />
 
           <div className="mt-6">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Ficha de la parcela</h2>
-            <div className="mt-3 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+            <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Ficha de la parcela</h2>
             <dl className="mt-3 space-y-2.5 text-sm">
               <div className="flex justify-between">
                 <dt className="text-gray-500 dark:text-gray-400">Superficie</dt>
-                <dd className="font-sora font-bold text-gray-900 dark:text-gray-100">{parcel.area}</dd>
+                <dd className="font-display font-bold text-gray-900 dark:text-gray-100">{parcel.area}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500 dark:text-gray-400">Municipio</dt>
@@ -124,11 +120,11 @@ export default function ParcelaDetallePage() {
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500 dark:text-gray-400">EVI</dt>
-                <dd className="font-sora font-bold text-gray-900 dark:text-gray-100">{parcel.evi.toFixed(2)}</dd>
+                <dd className="font-display font-bold text-gray-900 dark:text-gray-100">{parcel.evi.toFixed(2)}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500 dark:text-gray-400">Coordenadas</dt>
-                <dd className="font-sora font-bold text-gray-900 dark:text-gray-100">
+                <dd className="font-display font-bold text-gray-900 dark:text-gray-100">
                   {parcel.lat.toFixed(3)}, {parcel.lng.toFixed(3)}
                 </dd>
               </div>
@@ -149,7 +145,7 @@ export default function ParcelaDetallePage() {
               generateCreditReportPDF(parcel, { submitted: Boolean(submittedAt) });
               toast.success("Reporte PDF generado.");
             }}
-            className="mt-6 flex w-full items-center justify-center gap-2 bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast shadow-sm hover:bg-accent-600"
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast shadow-sm hover:bg-accent-600"
           >
             <FileDown size={15} />
             Generar reporte de crédito

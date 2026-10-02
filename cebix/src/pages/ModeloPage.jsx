@@ -36,7 +36,7 @@ const SOURCE_ICON = {
 function Section({ title, description, children }) {
   return (
     <section>
-      <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+      <h2 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
       {description && (
         <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">{description}</p>
       )}
@@ -45,7 +45,7 @@ function Section({ title, description, children }) {
   );
 }
 
-function Kpi({ label, value, unit, sora = true, highlight = false }) {
+function Kpi({ label, value, unit, large = true, highlight = false }) {
   return (
     <div className="relative p-5">
       {highlight && (
@@ -54,7 +54,7 @@ function Kpi({ label, value, unit, sora = true, highlight = false }) {
       <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
       <p
         className={`mt-2 font-bold leading-tight text-gray-900 dark:text-gray-100 ${
-          sora ? "font-sora text-2xl" : "text-base"
+          large ? "font-display text-2xl" : "text-base"
         }`}
       >
         {value}
@@ -69,9 +69,9 @@ function Kpi({ label, value, unit, sora = true, highlight = false }) {
 function ResumenTab() {
   return (
     <div className="space-y-10">
-      <div className="grid grid-cols-2 divide-x divide-y divide-gray-200 border border-gray-200 dark:divide-gray-800 dark:border-gray-800 lg:grid-cols-[1.7fr_1fr_1fr_1fr] lg:divide-y-0">
+      <div className="grid grid-cols-2 lg:grid-cols-[1.7fr_1fr_1fr_1fr]">
         <div className="col-span-2 lg:col-span-1">
-          <Kpi label="Modelo seleccionado" value={modelSummary.selected} sora={false} highlight />
+          <Kpi label="Modelo seleccionado" value={modelSummary.selected} large={false} highlight />
         </div>
         <Kpi label="Parcelas de entrenamiento" value={modelSummary.trainingParcels} />
         <Kpi label="RMSE" value={modelSummary.rmse} unit="ton/ha" />
@@ -83,7 +83,7 @@ function ResumenTab() {
           title="Baseline vs. gradient boosting"
           description="Ridge y Lasso como referencia; XGBoost y LightGBM sobre ~138 parcelas, sin redes profundas por el tamaño de la muestra."
         >
-          <div className="border border-gray-200 p-4 dark:border-gray-800">
+          <div className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
             <AlgorithmComparisonChart data={algorithmComparison} highlight="Random Forest" />
           </div>
         </Section>
@@ -103,7 +103,7 @@ function ResumenTab() {
                       className="absolute left-3 top-8 bottom-0 w-px -translate-x-1/2 bg-gray-200 dark:bg-gray-800"
                     />
                   )}
-                  <span className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center bg-accent-500 text-xs font-semibold text-accent-contrast">
+                  <span className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-500 text-xs font-semibold text-accent-contrast">
                     {i + 1}
                   </span>
                   <div className="min-w-0">
@@ -133,21 +133,21 @@ function DatosTab() {
       >
         <div className="space-y-4">
           {featureGroups.map((group) => (
-            <div key={group.group} className="border border-gray-200 dark:border-gray-800">
-              <div className="flex items-center gap-2.5 border-b border-gray-200 bg-gray-50 px-5 py-3 dark:border-gray-800 dark:bg-gray-900">
-                <span className={`h-2 w-2 shrink-0 ${GROUP_DOT[group.color]}`} />
+            <div key={group.group} className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
+              <div className="flex items-center gap-2.5 bg-gray-50 px-5 py-3 dark:bg-gray-900">
+                <span className={`h-2 w-2 shrink-0 rounded-full ${GROUP_DOT[group.color]}`} />
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   {group.group}
                 </p>
               </div>
-              <ul className="grid grid-cols-1 md:grid-cols-2 md:[&>li:nth-child(odd)]:border-r md:[&>li:nth-last-child(-n+2)]:border-b-0 [&>li:last-child]:border-b-0">
+              <ul className="grid grid-cols-1 md:grid-cols-2">
                 {group.features.map((f) => (
                   <li
                     key={f}
-                    className="flex items-start gap-3 border-b border-gray-100 px-5 py-3 text-sm text-gray-700 dark:border-gray-800 dark:text-gray-300"
+                    className="flex items-start gap-3 px-5 py-3 text-sm text-gray-700 dark:text-gray-300"
                   >
                     <span
-                      className={`mt-1.5 h-1.5 w-1.5 shrink-0 ${GROUP_DOT[group.color]}`}
+                      className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${GROUP_DOT[group.color]}`}
                       aria-hidden="true"
                     />
                     {f}
@@ -167,14 +167,14 @@ function DatosTab() {
             return (
               <div
                 key={source.name}
-                className="flex h-full flex-col border border-gray-200 p-5 dark:border-gray-800"
+                className="flex h-full flex-col rounded-2xl border border-gray-200 p-5 dark:border-gray-800"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-accent-50 text-accent-600 dark:bg-accent-500/10 dark:text-accent-400">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-600 dark:bg-accent-500/10 dark:text-accent-400">
                     <Icon size={18} />
                   </span>
                   <span
-                    className={`px-2 py-0.5 text-xs font-medium ${
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       training
                         ? "bg-accent-50 text-accent-700 dark:bg-accent-500/10 dark:text-accent-400"
                         : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
@@ -212,7 +212,7 @@ export default function ModeloPage() {
         actions={<InfoButton title="Preguntas guía del modelo" questions={guidingQuestions} />}
       />
 
-      <div className="mt-6 border-b border-gray-200 px-4 dark:border-gray-700 sm:px-6 lg:px-8">
+      <div className="mt-6 px-4 sm:px-6 lg:px-8">
         <div role="tablist" className="-mb-px flex gap-6 overflow-x-auto scrollbar-none">
           {TABS.map((t) => {
             const active = t.key === tab;

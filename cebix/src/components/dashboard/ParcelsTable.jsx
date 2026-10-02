@@ -20,20 +20,20 @@ export default function ParcelsTable() {
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Parcelas evaluadas</h2>
+        <h2 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">Parcelas evaluadas</h2>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => exportParcelsCSV(parcels)}
-            className="flex items-center gap-1.5 border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
+            className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
           >
-            <Download size={15} />
+            <Download size={15} className="text-accent-600 dark:text-accent-400" />
             Exportar reporte
           </button>
           <button
             type="button"
             onClick={() => setModal("add")}
-            className="flex items-center gap-1.5 bg-accent-500 px-3 py-2 text-sm font-medium text-accent-contrast shadow-sm transition-colors hover:bg-accent-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
+            className="flex items-center gap-1.5 rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-accent-contrast shadow-sm transition-colors hover:bg-accent-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
           >
             <Plus size={15} />
             Agregar parcela
@@ -41,16 +41,14 @@ export default function ParcelsTable() {
         </div>
       </div>
 
-      <div className="mt-4 h-px w-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
-
       <div className="mt-4">
         <UploadDropzone onParsed={(records) => records.forEach((r) => addParcel(r))} />
       </div>
 
-      <div ref={tableRef} className="mt-4 overflow-x-auto border border-gray-200 shadow-card dark:border-gray-800">
+      <div ref={tableRef} className="mt-4 overflow-x-auto overflow-y-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
         <table className="w-full min-w-[680px] border-collapse text-left">
           <thead>
-            <tr className="border-b border-gray-200 bg-gray-50 text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-400">
+            <tr className="border-b border-gray-200 text-xs font-medium text-gray-500 dark:border-gray-800 dark:text-gray-400">
               {COLUMNS.map((col, i) => (
                 <th key={col || i} className={`py-3 pr-4 font-medium ${i === 0 ? "pl-3" : ""}`}>
                   {col}
