@@ -71,6 +71,19 @@ Cada cuenta ve solo lo que ella misma hizo:
   tabla, corre `supabase/parcels_custom_por_usuario.sql` (trae al final las opciones para las
   filas antiguas, que quedan sin dueño).
 
+## CRUD de parcelas
+
+Al hacer clic en una parcela de la lista se abre su pantalla, con **Editar** y **Eliminar**
+(Crear está en **Agregar parcela** de la lista, o importando un CSV; Leer es la propia pantalla).
+
+| Tipo de parcela | Editar | Eliminar |
+|---|---|---|
+| Capturada a mano o importada (Supabase) | todos los campos; score y semáforo se recalculan | se borra de la cuenta |
+| De la corrida del modelo | solo nombre, municipio, superficie y coordenadas (rendimiento, score y SHAP son del modelo) | se quita de la corrida actual |
+
+Si Supabase rechaza una operación, el formulario o el diálogo muestran el motivo y no pierden lo escrito.
+Una cuenta nueva puede crear parcelas sin ejecutar antes el modelo.
+
 ## Si reentrenas el modelo
 
 ```bash

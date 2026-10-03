@@ -41,7 +41,7 @@ function validateFields(fields) {
 }
 
 /**
- * @param {{onParsed?: (fields: object[]) => void}} props
+ * @param {{onParsed?: (fields: object[]) => Promise<{failed?: number, message?: string}|void>|void}} props
  */
 export default function UploadDropzone({ onParsed }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -70,11 +70,18 @@ export default function UploadDropzone({ onParsed }) {
         const validRows = results.filter((r) => r.valid).map((r) => r.fields);
         const invalidCount = results.length - validRows.length;
 
-        if (validRows.length > 0) {
-          onParsed?.(validRows);
-        }
+        // onParsed puede devolver { failed, message } (cuántas no se pudieron guardar y por qué).
+        const saved = validRows.length > 0 ? await onParsed?.(validRows) : null;
+        const failed = Math.min(saved?.failed ?? 0, validRows.length);
+        const added = validRows.length - failed;
 
-        if (invalidCount === 0) {
+        if (failed > 0) {
+          toast.error(
+            `${failed} parcela${failed === 1 ? "" : "s"} no se pudo guardar${failed === 1 ? "" : "n"}${
+              saved?.message ? `: ${saved.message}` : "."
+            }${added > 0 ? ` Se agregaron ${added}.` : ""}`
+          );
+        } else if (invalidCount === 0) {
           toast.success(`${validRows.length} parcela${validRows.length === 1 ? "" : "s"} agregada${
               validRows.length === 1 ? "" : "s"
             } desde ${file.name}.`);

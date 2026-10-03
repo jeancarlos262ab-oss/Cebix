@@ -111,7 +111,7 @@ function ParcelRow({ parcel, onEdit }) {
             type="button"
             aria-label={`Editar ${parcel.name}`}
             disabled={!onEdit}
-            title={onEdit ? "Editar parcela" : "Las parcelas del dataset del reto son de solo lectura"}
+            title="Editar parcela"
             onClick={(e) => {
               e.stopPropagation();
               onEdit?.(parcel);

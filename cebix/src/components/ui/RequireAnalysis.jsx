@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Download, FlaskConical, Loader2, Upload } from "lucide-react";
+import { Download, FlaskConical, Loader2, Plus, Upload } from "lucide-react";
 import TopBar from "../layout/TopBar";
 import { useParcels } from "../../context/ParcelsContext";
 import { useModelRunner, EXAMPLE_CSV_URL } from "../../hooks/useModelRunner";
@@ -9,7 +9,7 @@ import { useModelRunner, EXAMPLE_CSV_URL } from "../../hooks/useModelRunner";
  * modelo calcula. Si todavía no se ha ejecutado, aquí se ofrece correrlo con el
  * archivo de ejemplo (un clic) o subir un CSV propio en la pantalla Modelo.
  */
-export function EmptyAnalysis({ title, subtitle }) {
+export function EmptyAnalysis({ title, subtitle, onAdd }) {
   const { runExample, loading } = useModelRunner();
 
   return (
@@ -44,6 +44,16 @@ export function EmptyAnalysis({ title, subtitle }) {
             <Upload size={16} className="text-accent-600 dark:text-accent-400" />
             Subir mi CSV
           </Link>
+          {onAdd && (
+            <button
+              type="button"
+              onClick={onAdd}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            >
+              <Plus size={16} className="text-accent-600 dark:text-accent-400" />
+              Agregar parcela manualmente
+            </button>
+          )}
         </div>
 
         <a

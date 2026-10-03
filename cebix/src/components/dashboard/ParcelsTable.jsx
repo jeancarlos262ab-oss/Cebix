@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import { toast } from "sonner";
 import { Download, Plus } from "lucide-react";
 import UploadDropzone from "./UploadDropzone";
 import ParcelRow from "./ParcelRow";
@@ -7,12 +6,14 @@ import ParcelFormModal from "./ParcelFormModal";
 import Pagination from "../ui/Pagination";
 import usePagination from "../../hooks/usePagination";
 import { useParcels } from "../../context/ParcelsContext";
+import useParcelActions from "../../hooks/useParcelActions";
 import { exportParcelsCSV } from "../../utils/csv";
 
 const COLUMNS = ["Parcela", "Rendimiento", "Elegibilidad", "NDVI", "Municipio", ""];
 
 export default function ParcelsTable() {
-  const { parcels, addParcel, updateParcel } = useParcels();
+  const { parcels } = useParcels();
+  const { saveParcel, importParcels } = useParcelActions();
   const [modal, setModal] = useState(null); // null | "add" | parcel object being edited
   const tableRef = useRef(null);
   const { pageItems, paginationProps } = usePagination(parcels, { scrollRef: tableRef });
@@ -42,7 +43,7 @@ export default function ParcelsTable() {
       </div>
 
       <div className="mt-4">
-        <UploadDropzone onParsed={(records) => records.forEach((r) => addParcel(r))} />
+        <UploadDropzone onParsed={importParcels} />
       </div>
 
       <div ref={tableRef} className="mt-4 overflow-x-auto overflow-y-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
@@ -61,7 +62,7 @@ export default function ParcelsTable() {
               <ParcelRow
                 key={parcel.id}
                 parcel={parcel}
-                onEdit={parcel.isCustom ? setModal : undefined}
+                onEdit={setModal}
               />
             ))}
           </tbody>
@@ -74,15 +75,7 @@ export default function ParcelsTable() {
         <ParcelFormModal
           parcel={modal === "add" ? null : modal}
           onClose={() => setModal(null)}
-          onSubmit={(fields) => {
-            if (modal === "add") {
-              addParcel(fields);
-              toast.success("Parcela agregada.");
-            } else {
-              updateParcel(modal.id, fields);
-              toast.success("Parcela actualizada.");
-            }
-          }}
+          onSubmit={(fields) => saveParcel(modal === "add" ? null : modal, fields)}
         />
       )}
     </section>

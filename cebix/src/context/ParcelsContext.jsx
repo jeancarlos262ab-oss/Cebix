@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { parseCSV } from "../utils/csv";
 import { useModelInfo } from "./ModelInfoContext";
 import { appStorage } from "../services/AppStorage";
@@ -75,7 +75,14 @@ function average(arr) {
 }
 
 function nextId(all) {
-  return all.reduce((max, p) => Math.max(max, p.id), 0) + 1;
+  // Los ids de Supabase son uuid (texto): solo cuentan los numéricos, si no Math.max devuelve NaN.
+  return all.reduce((max, p) => (Number.isFinite(Number(p.id)) ? Math.max(max, Number(p.id)) : max), 0) + 1;
+}
+
+/** Siguiente código AGC_Cnnn libre, a partir de los polygonId que ya existen. */
+function nextCustomCode(all) {
+  const used = all.map((p) => /^AGC_C(\d+)$/i.exec(String(p.polygonId ?? ""))?.[1]).filter(Boolean).map(Number);
+  return `AGC_C${String((used.length ? Math.max(...used) : 0) + 1).padStart(3, "0")}`;
 }
 
 function fromDatabaseParcel(row) {
@@ -144,7 +151,7 @@ export function buildParcelRecord(fields, existingParcels, importance = []) {
 
   return {
     id: fields.id ?? nextId(existingParcels),
-    polygonId: fields.polygonId || `AGC_C${String(nextId(existingParcels)).padStart(3, "0")}`,
+    polygonId: fields.polygonId || nextCustomCode(existingParcels),
     name: fields.name,
     area: fields.area,
     yieldEstimate,
@@ -323,8 +330,14 @@ export function ParcelsProvider({ children }) {
     return Array.from(counts.values()).sort((a, b) => b.parcelCount - a.parcelCount);
   }, [parcels]);
 
+  // Lista más reciente de parcelas, para que varias altas seguidas (importar un CSV) no repitan código.
+  const latestRef = useRef([]);
+  useEffect(() => {
+    latestRef.current = [...analysisParcels, ...customParcels];
+  }, [analysisParcels, customParcels]);
+
   const addParcel = useCallback(async (fields) => {
-    const record = buildParcelRecord(fields, [...analysisParcels, ...customParcels], globalImportance);
+    const record = buildParcelRecord(fields, latestRef.current, globalImportance);
     const { data, error: insertError } = await supabase
       .from("parcels_custom")
       .insert(toDatabaseParcel(record))
@@ -333,16 +346,51 @@ export function ParcelsProvider({ children }) {
     if (insertError) return { error: insertError };
 
     const savedParcel = fromDatabaseParcel(data);
+    latestRef.current = [...latestRef.current, savedParcel];
     setCustomParcels((prev) => [...prev, savedParcel]);
     return { data: savedParcel, error: null };
-  }, [analysisParcels, customParcels, globalImportance]);
+  }, [globalImportance]);
 
+  /** Guarda la corrida actual (ya modificada) en estado y en el navegador, separada por usuario. */
+  const persistAnalysis = useCallback(
+    (nextAnalysis) => {
+      if (!uid) return;
+      setStored((prev) => ({ ...(prev.uid === uid ? prev : { ...EMPTY_STORE, uid }), analysis: nextAnalysis }));
+      if (nextAnalysis) appStorage.setJSON(scopedKey(ANALYSIS_KEY, uid), nextAnalysis);
+      else appStorage.remove(scopedKey(ANALYSIS_KEY, uid));
+    },
+    [uid]
+  );
+
+  /**
+   * Edita una parcela.
+   *  - Capturada a mano (Supabase): se pueden cambiar todos los campos; score y semáforo se recalculan.
+   *  - De la corrida del modelo: solo datos descriptivos (nombre, municipio, superficie y coordenadas).
+   *    El rendimiento, el score y el SHAP los calculó el modelo y no se tocan.
+   */
   const updateParcel = useCallback(async (id, fields) => {
-    const isCustom = customParcels.some((p) => p.id === id);
-    if (!isCustom) return { error: new Error("Las parcelas del dataset son de solo lectura") };
+    const custom = customParcels.find((p) => p.id === id);
+
+    if (!custom) {
+      const current = analysisParcels.find((p) => p.id === id);
+      if (!current) return { error: new Error("No se encontró la parcela.") };
+
+      const lat = fields.lat === "" || fields.lat == null ? null : Number(fields.lat);
+      const lng = fields.lng === "" || fields.lng == null ? null : Number(fields.lng);
+      const patched = {
+        ...current,
+        name: fields.name?.trim() || current.name,
+        municipio: fields.municipio?.trim() || current.municipio,
+        area: fields.area ?? current.area,
+        lat: Number.isFinite(lat) ? lat : current.lat,
+        lng: Number.isFinite(lng) ? lng : current.lng,
+      };
+      persistAnalysis({ ...analysis, parcels: analysisParcels.map((p) => (p.id === id ? patched : p)) });
+      return { data: patched, error: null };
+    }
 
     const record = buildParcelRecord(
-      { ...fields, id },
+      { polygonId: custom.polygonId, ...fields, id }, // conserva el código de la parcela al editar
       [...analysisParcels, ...customParcels.filter((parcel) => parcel.id !== id)],
       globalImportance
     );
@@ -357,18 +405,29 @@ export function ParcelsProvider({ children }) {
     const savedParcel = fromDatabaseParcel(data);
     setCustomParcels((prev) => prev.map((parcel) => (parcel.id === id ? savedParcel : parcel)));
     return { data: savedParcel, error: null };
-  }, [analysisParcels, customParcels, globalImportance]);
+  }, [analysis, analysisParcels, customParcels, globalImportance, persistAnalysis]);
 
+  /** Elimina una parcela: de Supabase si es propia, o de la corrida actual si viene del modelo. */
   const removeParcel = useCallback(async (id) => {
     const isCustom = customParcels.some((p) => p.id === id);
-    if (!isCustom) return { error: new Error("Las parcelas del dataset son de solo lectura") };
 
-    const { error: deleteError } = await supabase.from("parcels_custom").delete().eq("id", id);
-    if (deleteError) return { error: deleteError };
+    if (isCustom) {
+      const { error: deleteError } = await supabase.from("parcels_custom").delete().eq("id", id);
+      if (deleteError) return { error: deleteError };
+      setCustomParcels((prev) => prev.filter((parcel) => parcel.id !== id));
+    } else {
+      if (!analysisParcels.some((p) => p.id === id)) return { error: new Error("No se encontró la parcela.") };
+      const rest = analysisParcels.filter((p) => p.id !== id);
+      persistAnalysis(rest.length ? { ...analysis, parcels: rest } : null);
+    }
 
-    setCustomParcels((prev) => prev.filter((parcel) => parcel.id !== id));
+    if (uid && submissions[id]) {
+      const { [id]: _removed, ...restSubmissions } = submissions;
+      setStored((prev) => (prev.uid === uid ? { ...prev, submissions: restSubmissions } : prev));
+      appStorage.setJSON(scopedKey(SUBMISSIONS_KEY, uid), restSubmissions);
+    }
     return { error: null };
-  }, [customParcels]);
+  }, [analysis, analysisParcels, customParcels, persistAnalysis, submissions, uid]);
 
   const submitToCommittee = useCallback((id) => {
     if (!uid) return;

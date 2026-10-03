@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 import { Download, Plus } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
@@ -12,7 +11,8 @@ import ParcelFormModal from "../components/dashboard/ParcelFormModal";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { exportParcelsCSV } from "../utils/csv";
 import { RISK_COLORS } from "../utils/riskColors";
-import RequireAnalysis from "../components/ui/RequireAnalysis";
+import { EmptyAnalysis } from "../components/ui/RequireAnalysis";
+import useParcelActions from "../hooks/useParcelActions";
 
 const COLUMNS = ["Parcela", "Rendimiento", "Elegibilidad", "NDVI", "Municipio", ""];
 const REGION_FILTERS = ["Todas", "Hidalgo", "Tlaxcala", "Puebla"];
@@ -24,7 +24,8 @@ const RISK_SUMMARY = [
 ];
 
 function ParcelasPageContent() {
-  const { parcels, addParcel, updateParcel } = useParcels();
+  const { parcels } = useParcels();
+  const { saveParcel, importParcels } = useParcelActions();
   const [searchParams, setSearchParams] = useSearchParams();
   const regionParam = searchParams.get("region");
   const [region, setRegion] = useState(
@@ -76,7 +77,7 @@ function ParcelasPageContent() {
     <>
       <TopBar
         title="Parcelas"
-        subtitle={`${filtered.length} parcelas registradas en el reto AgroCebada.`}
+        subtitle={`${filtered.length} parcela${filtered.length === 1 ? "" : "s"} en tu cuenta.`}
         actions={
           <div className="flex items-center gap-2">
             <button
@@ -101,6 +102,9 @@ function ParcelasPageContent() {
 
       <div className="mt-6" aria-hidden="true" />
 
+      {parcels.length === 0 ? (
+        <EmptyAnalysis onAdd={() => setModal("add")} />
+      ) : (
       <div className="grid grid-cols-1 items-start gap-10 px-4 py-6 sm:px-6 lg:grid-cols-[280px_1fr] lg:px-8">
         {/* En escritorio aside y contenido se "aplanan" (lg:contents) para que el mapa
             comparta fila con el recuadro de filtro y tenga exactamente su altura. */}
@@ -176,7 +180,7 @@ function ParcelasPageContent() {
               Sube un CSV con NDVI, precipitación y GDD ya calculados, o captúralos a mano.
             </p>
             <div className="mt-3">
-              <UploadDropzone onParsed={(records) => records.forEach((r) => addParcel(r))} />
+              <UploadDropzone onParsed={importParcels} />
             </div>
           </section>
           </div>
@@ -218,7 +222,7 @@ function ParcelasPageContent() {
                       <ParcelRow
                         key={parcel.id}
                         parcel={parcel}
-                        onEdit={parcel.isCustom ? () => setModal(parcel) : undefined}
+                        onEdit={() => setModal(parcel)}
                       />
                     ))}
                   </tbody>
@@ -229,30 +233,17 @@ function ParcelasPageContent() {
           </div>
         </div>
       </div>
+      )}
 
       {modal && (
         <ParcelFormModal
           parcel={modal === "add" ? null : modal}
           onClose={() => setModal(null)}
-          onSubmit={(fields) => {
-            if (modal === "add") {
-              addParcel(fields);
-              toast.success("Parcela agregada.");
-            } else {
-              updateParcel(modal.id, fields);
-              toast.success("Parcela actualizada.");
-            }
-          }}
+          onSubmit={(fields) => saveParcel(modal === "add" ? null : modal, fields)}
         />
       )}
     </>
   );
 }
 
-export default function ParcelasPage() {
-  return (
-    <RequireAnalysis title="Parcelas" subtitle="Resultados del modelo por parcela." >
-      <ParcelasPageContent />
-    </RequireAnalysis>
-  );
-}
+export default ParcelasPageContent;

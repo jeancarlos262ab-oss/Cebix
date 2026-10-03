@@ -1,6 +1,7 @@
-import { Link, useParams } from "react-router-dom";
+import { useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, FileDown } from "lucide-react";
+import { ArrowLeft, FileDown, Pencil, Trash2 } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import ParcelMap from "../components/map/ParcelMap";
 import Semaphore from "../components/ui/Semaphore";
@@ -12,14 +13,22 @@ import { useModelInfo } from "../context/ModelInfoContext";
 import { generateCreditReportPDF } from "../utils/creditReport";
 import { Droplets, Leaf, Sun } from "lucide-react";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
+import ParcelFormModal from "../components/dashboard/ParcelFormModal";
+import useParcelActions from "../hooks/useParcelActions";
 
 function ParcelaDetallePageContent() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { parcels, submissions } = useParcels();
   const { info } = useModelInfo();
+  const { saveParcel, deleteParcel } = useParcelActions();
+  const [dialog, setDialog] = useState(null); // null | "edit" | "delete"
+  const deletingRef = useRef(false); // evita el aviso "no se encontró" mientras se elimina y se navega
   const parcel = parcels.find((p) => String(p.id) === id);
 
   if (!parcel) {
+    if (deletingRef.current) return null;
     return (
       <div className="px-4 py-10 sm:px-6 lg:px-8">
         <p className="text-sm text-gray-500 dark:text-gray-400">No se encontró esa parcela.</p>
@@ -39,13 +48,31 @@ function ParcelaDetallePageContent() {
         subtitle={`${parcel.municipio}, ${parcel.region} · ${parcel.area}`}
         hideSearch
         actions={
-          <Link
-            to="/parcelas"
-            className="flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-black px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            <ArrowLeft size={15} className="text-accent-600 dark:text-accent-400" />
-            Todas las parcelas
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to="/parcelas"
+              className="flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-black px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              <ArrowLeft size={15} className="text-accent-600 dark:text-accent-400" />
+              Todas las parcelas
+            </Link>
+            <button
+              type="button"
+              onClick={() => setDialog("edit")}
+              className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
+            >
+              <Pencil size={15} className="text-accent-600 dark:text-accent-400" />
+              Editar
+            </button>
+            <button
+              type="button"
+              onClick={() => setDialog("delete")}
+              className="flex items-center gap-1.5 rounded-full border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 shadow-sm hover:bg-red-50 dark:border-red-500/30 dark:bg-black dark:text-red-400 dark:hover:bg-red-500/10"
+            >
+              <Trash2 size={15} />
+              Eliminar
+            </button>
+          </div>
         }
       />
 
@@ -161,6 +188,33 @@ function ParcelaDetallePageContent() {
           </button>
         </div>
       </div>
+
+      {dialog === "edit" && (
+        <ParcelFormModal
+          parcel={parcel}
+          onClose={() => setDialog(null)}
+          onSubmit={(fields) => saveParcel(parcel, fields)}
+        />
+      )}
+
+      {dialog === "delete" && (
+        <ConfirmDialog
+          title={`¿Eliminar ${parcel.name}?`}
+          description={
+            parcel.isCustom
+              ? "Se borra de tu cuenta de forma permanente."
+              : "Se quita de la corrida actual del modelo. Para recuperarla, vuelve a ejecutar el modelo."
+          }
+          onClose={() => setDialog(null)}
+          onConfirm={async () => {
+            deletingRef.current = true;
+            const result = await deleteParcel(parcel);
+            if (result?.error) deletingRef.current = false;
+            else navigate("/parcelas", { replace: true });
+            return result;
+          }}
+        />
+      )}
     </>
   );
 }
