@@ -22,7 +22,7 @@ import InfoButton from "../components/ui/InfoButton";
 import ConfidenceRange from "../components/charts/ConfidenceRange";
 import FeatureImportanceChart from "../components/charts/FeatureImportanceChart";
 import StaticMapImage from "../components/map/StaticMapImage";
-import { useParcels } from "../context/ParcelsContext";
+import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { generateCreditReportPDF } from "../utils/creditReport";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
 
@@ -295,7 +295,13 @@ function PrediccionesPageContent() {
 
               <div className="min-w-0">
                 <SectionHeader title="Ubicación" description={`${parcel.municipio}, ${parcel.region}`} />
-                <StaticMapImage lat={parcel.lat} lng={parcel.lng} zoom={15} height={200} rounded />
+                {hasCoords(parcel) ? (
+                  <StaticMapImage lat={parcel.lat} lng={parcel.lng} zoom={15} height={200} rounded />
+                ) : (
+                  <div className="flex h-[200px] items-center justify-center rounded-2xl bg-gray-50 px-4 text-center text-sm text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+                    El CSV no incluye coordenadas (lat, lng): no se puede mostrar la ubicación.
+                  </div>
+                )}
               </div>
             </section>
 
@@ -318,7 +324,7 @@ function PrediccionesPageContent() {
                       {parcel.region} ({parcel.regionCode})
                     </DetailRow>
                     <DetailRow label="Coordenadas">
-                      {parcel.lat.toFixed(4)}, {parcel.lng.toFixed(4)}
+                      {hasCoords(parcel) ? `${parcel.lat.toFixed(4)}, ${parcel.lng.toFixed(4)}` : "—"}
                     </DetailRow>
                   </dl>
                   <div className="mt-3">

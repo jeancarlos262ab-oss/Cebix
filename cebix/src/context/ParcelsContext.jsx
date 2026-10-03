@@ -187,8 +187,9 @@ export function buildAnalysisParcel(pred, row = {}, index = 0) {
   const meta = { ...row, ...pred }; // el backend devuelve Municipio/lat/lng/area_ha si venían en el CSV
   const polygonId = String(pred.ID_POLIGONO);
   const region = pred.Estado || row.Estado || "Puebla";
-  const yieldEstimate = Number(pred.yieldEstimate);
-  const confidence = Number(pred.confidence);
+  const yieldEstimate = firstNum(pred.yieldEstimate) ?? 0;
+  const confidence = firstNum(pred.confidence) ?? 0;
+  const ic90 = [firstNum(pred.ic90_inferior) ?? yieldEstimate, firstNum(pred.ic90_superior) ?? yieldEstimate];
 
   // Mismos campos que se mostraban antes, ahora leídos del CSV de la corrida.
   const ndvi = firstNum(row.bas_ndvi_pico_ciclo, row.ndvi, row.bas_ndvi_emergencia_macollamiento) ?? 0;
@@ -208,7 +209,7 @@ export function buildAnalysisParcel(pred, row = {}, index = 0) {
     area: area !== null ? `${area.toFixed(2)} ha` : "— ha",
     yieldEstimate,
     confidence,
-    ic90: [Number(pred.ic90_inferior), Number(pred.ic90_superior)],
+    ic90,
     score,
     risk,
     riskColor,

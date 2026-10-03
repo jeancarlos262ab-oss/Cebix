@@ -9,7 +9,7 @@ import UploadDropzone from "../components/dashboard/UploadDropzone";
 import Pagination from "../components/ui/Pagination";
 import usePagination from "../hooks/usePagination";
 import ParcelFormModal from "../components/dashboard/ParcelFormModal";
-import { useParcels } from "../context/ParcelsContext";
+import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { exportParcelsCSV } from "../utils/csv";
 import { RISK_COLORS } from "../utils/riskColors";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
@@ -190,7 +190,7 @@ function ParcelasPageContent() {
                 así que mide exactamente lo mismo que "Filtrar por región". */}
             <div className="absolute inset-0">
               <ParcelMap
-                parcels={filtered}
+                parcels={filtered.filter(hasCoords)}
                 selectedId={selectedId}
                 onSelect={setSelectedId}
                 height="100%"

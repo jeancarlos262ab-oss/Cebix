@@ -43,7 +43,7 @@ export async function generateCreditReportPDF(parcel, { submitted = false } = {}
     ["EVI", parcel.evi.toFixed(3)],
     ["Precipitación acumulada", `${parcel.precip} mm`],
     ["Grados-día de crecimiento (GDD)", `${parcel.gdd}`],
-    ["Coordenadas", `${parcel.lat.toFixed(5)}, ${parcel.lng.toFixed(5)}`],
+    ["Coordenadas", Number.isFinite(parcel.lat) && Number.isFinite(parcel.lng) ? `${parcel.lat.toFixed(5)}, ${parcel.lng.toFixed(5)}` : "Sin coordenadas"],
     ["Origen del dato", parcel.isCustom ? "Registrada manualmente en CEBIX" : "Dataset Reto AgroCebada 2026"],
   ];
 
