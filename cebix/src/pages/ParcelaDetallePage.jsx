@@ -7,11 +7,12 @@ import Semaphore from "../components/ui/Semaphore";
 import StatCard from "../components/ui/StatCard";
 import ConfidenceRange from "../components/charts/ConfidenceRange";
 import FeatureImportanceChart from "../components/charts/FeatureImportanceChart";
-import { useParcels } from "../context/ParcelsContext";
+import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { generateCreditReportPDF } from "../utils/creditReport";
 import { Droplets, Leaf, Sun } from "lucide-react";
+import RequireAnalysis from "../components/ui/RequireAnalysis";
 
-export default function ParcelaDetallePage() {
+function ParcelaDetallePageContent() {
   const { id } = useParams();
   const { parcels, submissions } = useParcels();
   const parcel = parcels.find((p) => String(p.id) === id);
@@ -50,14 +51,20 @@ export default function ParcelaDetallePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1px_360px]">
         <div className="min-w-0">
-          <ParcelMap
-            parcels={[parcel]}
-            height={320}
-            center={[parcel.lat, parcel.lng]}
-            zoom={17}
-            showLegend={false}
-            showBoundariesByDefault={false}
-          />
+          {hasCoords(parcel) ? (
+            <ParcelMap
+              parcels={[parcel]}
+              height={320}
+              center={[parcel.lat, parcel.lng]}
+              zoom={17}
+              showLegend={false}
+              showBoundariesByDefault={false}
+            />
+          ) : (
+            <div className="flex h-40 items-center justify-center bg-gray-50 px-4 text-center text-sm text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+              Este CSV no incluye coordenadas (lat, lng): la parcela no se puede ubicar en el mapa.
+            </div>
+          )}
 
           <div className="px-4 py-6 sm:px-6 lg:pl-8 lg:pr-8">
           <div className="grid grid-cols-1 sm:grid-cols-3">
@@ -125,7 +132,7 @@ export default function ParcelaDetallePage() {
               <div className="flex justify-between">
                 <dt className="text-gray-500 dark:text-gray-400">Coordenadas</dt>
                 <dd className="font-display font-bold text-gray-900 dark:text-gray-100">
-                  {parcel.lat.toFixed(3)}, {parcel.lng.toFixed(3)}
+                  {hasCoords(parcel) ? `${parcel.lat.toFixed(3)}, ${parcel.lng.toFixed(3)}` : "—"}
                 </dd>
               </div>
               {submittedAt && (
@@ -153,5 +160,13 @@ export default function ParcelaDetallePage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function ParcelaDetallePage() {
+  return (
+    <RequireAnalysis title="Detalle de parcela" >
+      <ParcelaDetallePageContent />
+    </RequireAnalysis>
   );
 }

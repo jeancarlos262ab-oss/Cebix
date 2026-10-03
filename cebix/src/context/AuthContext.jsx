@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../services/supabaseClient";
+import { resetPageRegistry } from "../utils/pageRegistry";
 import { sendSignupOtp, sendResetOtp, verifySignupOtpApi, verifyResetOtpApi } from "../services/otpApi";
 
 const AuthContext = createContext(null);
@@ -85,6 +86,7 @@ export function AuthProvider({ children }) {
   const signOut = useCallback(async () => {
     const result = await supabase.auth.signOut();
     await applySession(null);
+    resetPageRegistry(); // las pantallas guardadas (singleton) no deben pasar al siguiente usuario
     return result;
   }, [applySession]);
 

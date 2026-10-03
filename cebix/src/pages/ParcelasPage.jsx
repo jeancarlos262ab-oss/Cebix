@@ -12,6 +12,7 @@ import ParcelFormModal from "../components/dashboard/ParcelFormModal";
 import { useParcels } from "../context/ParcelsContext";
 import { exportParcelsCSV } from "../utils/csv";
 import { RISK_COLORS } from "../utils/riskColors";
+import RequireAnalysis from "../components/ui/RequireAnalysis";
 
 const COLUMNS = ["Parcela", "Rendimiento", "Elegibilidad", "NDVI", "Municipio", ""];
 const REGION_FILTERS = ["Todas", "Hidalgo", "Tlaxcala", "Puebla"];
@@ -22,7 +23,7 @@ const RISK_SUMMARY = [
   { key: "red", color: RISK_COLORS.red, label: "Alto riesgo" },
 ];
 
-export default function ParcelasPage() {
+function ParcelasPageContent() {
   const { parcels, addParcel, updateParcel } = useParcels();
   const [searchParams, setSearchParams] = useSearchParams();
   const regionParam = searchParams.get("region");
@@ -245,5 +246,13 @@ export default function ParcelasPage() {
         />
       )}
     </>
+  );
+}
+
+export default function ParcelasPage() {
+  return (
+    <RequireAnalysis title="Parcelas" subtitle="Resultados del modelo por parcela." >
+      <ParcelasPageContent />
+    </RequireAnalysis>
   );
 }

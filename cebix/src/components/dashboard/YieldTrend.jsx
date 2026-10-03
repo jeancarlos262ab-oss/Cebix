@@ -138,7 +138,7 @@ export default function YieldTrend() {
               content={<ChartTooltip />}
               cursor={{ stroke: "var(--accent-500)", strokeOpacity: 0.3, strokeDasharray: "3 3" }}
             />
-            <Area
+            <Area isAnimationActive={false}
               type="monotone"
               dataKey="value"
               stroke="var(--accent-500)"

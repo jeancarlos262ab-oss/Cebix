@@ -14,6 +14,7 @@ import InfoButton from "../components/ui/InfoButton";
 import { globalImportance } from "../data/shap";
 import { guidingQuestions, modelSummary } from "../data/model";
 import { useParcels } from "../context/ParcelsContext";
+import RequireAnalysis from "../components/ui/RequireAnalysis";
 
 /* ------------------------------------------------------------------ */
 /* Constantes y utilidades                                             */
@@ -57,6 +58,18 @@ const PRECIP = "Precipitación en emergencia-macollamiento";
 
 // Recuadro del sistema de diseño: cuadrado, borde fino, sin relleno (igual que Modelo / Predicciones).
 const CARD = "rounded-2xl border border-gray-200 p-5 dark:border-gray-800";
+// Celdas de valor pegadas, igual que las métricas de Predicciones: un marco redondeado con líneas divisorias
+// finas. El -mb-px/-mr-px esconde el borde sobrante de la última fila y columna. El icono grande sale de la
+// esquina, así que cada celda recorta lo que se desborda.
+function JoinedCells({ className = "", children }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
+      <div className={`-mb-px -mr-px grid ${className}`}>{children}</div>
+    </div>
+  );
+}
+
+const CELL = "relative overflow-hidden border-b border-r border-gray-200 p-5 dark:border-gray-800";
 
 const pct = (n, d) => (d ? Math.round((n / d) * 100) : 0);
 
@@ -235,7 +248,7 @@ function LocalDriverRow({ driver, maxAbs }) {
 /* Página                                                              */
 /* ------------------------------------------------------------------ */
 
-export default function ValidacionSHAPPage() {
+function ValidacionSHAPPageContent() {
   const { parcels } = useParcels();
   const [filter, setFilter] = useState("todas");
 
@@ -317,44 +330,51 @@ export default function ValidacionSHAPPage() {
       {/* Resumen */}
       <section
         aria-label="Resumen de la validación"
-        className="grid grid-cols-1 gap-4 px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8"
+        className="px-4 sm:px-6 lg:px-8"
       >
-        <div className={CARD}>
-          <StatCard
-            label="Variable dominante"
-            value={`${Math.round((topFeature.value / total) * 100)}%`}
-            hint="Precipitación en emergencia-macollamiento"
-            icon={CloudRain}
-            tone="brand"
-          />
-        </div>
-        <div className={CARD}>
-          <StatCard
-            label="Ventana más crítica"
-            value={`${windowShares.share}%`}
-            hint={`${topWindow.label} (${topWindow.note})`}
-            icon={CalendarRange}
-            tone="ndvi"
-          />
-        </div>
-        <div className={CARD}>
-          <StatCard
-            label="Coherencia con el semáforo"
-            value={`${pct(checks.eligiblePositive, checks.eligible)}%`}
-            hint={`${checks.eligiblePositive} de ${checks.eligible} parcelas elegibles con SHAP neto positivo`}
-            icon={CircleCheck}
-            tone="navy"
-          />
-        </div>
-        <div className={CARD}>
-          <StatCard
-            label="Correlación SHAP – rendimiento"
-            value={checks.r == null ? "—" : checks.r.toFixed(2)}
-            hint={`r de Pearson sobre ${checks.total} parcelas`}
-            icon={Link2}
-            tone="navy"
-          />
-        </div>
+        <JoinedCells className="grid-cols-2 lg:grid-cols-4">
+          <div className={CELL}>
+            <span className="absolute inset-y-0 left-0 w-0.5 bg-accent-500" aria-hidden="true" />
+            <StatCard
+              label="Variable dominante"
+              value={`${Math.round((topFeature.value / total) * 100)}%`}
+              hint="Precipitación en emergencia-macollamiento"
+              icon={CloudRain}
+              tone="brand"
+              cornerIcon
+            />
+          </div>
+          <div className={CELL}>
+            <StatCard
+              label="Ventana más crítica"
+              value={`${windowShares.share}%`}
+              hint={`${topWindow.label} (${topWindow.note})`}
+              icon={CalendarRange}
+              tone="ndvi"
+              cornerIcon
+            />
+          </div>
+          <div className={CELL}>
+            <StatCard
+              label="Coherencia con el semáforo"
+              value={`${pct(checks.eligiblePositive, checks.eligible)}%`}
+              hint={`${checks.eligiblePositive} de ${checks.eligible} parcelas elegibles con SHAP neto positivo`}
+              icon={CircleCheck}
+              tone="navy"
+              cornerIcon
+            />
+          </div>
+          <div className={CELL}>
+            <StatCard
+              label="Correlación SHAP – rendimiento"
+              value={checks.r == null ? "—" : checks.r.toFixed(2)}
+              hint={`r de Pearson sobre ${checks.total} parcelas`}
+              icon={Link2}
+              tone="navy"
+              cornerIcon
+            />
+          </div>
+        </JoinedCells>
       </section>
 
       <div className="grid grid-cols-1 items-start gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-8">
@@ -577,5 +597,13 @@ export default function ValidacionSHAPPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function ValidacionSHAPPage() {
+  return (
+    <RequireAnalysis title="Validación SHAP" subtitle="Qué variables explican cada predicción." >
+      <ValidacionSHAPPageContent />
+    </RequireAnalysis>
   );
 }

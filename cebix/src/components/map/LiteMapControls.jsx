@@ -117,7 +117,7 @@ function LiteMapControls({
 
   return (
     <div
-      className={`absolute z-[1000] flex ${horizontal ? "flex-row" : "flex-col"} items-center gap-1 rounded-2xl border border-white/10 bg-black/85 p-1.5 text-gray-100 shadow-lg backdrop-blur ${positionClasses}`}
+      className={`absolute z-[1000] flex ${horizontal ? "flex-row" : "flex-col"} items-center gap-1 rounded-2xl border border-white/10 bg-black/85 p-1.5 text-gray-100 shadow-lg ${positionClasses}`}
       role="group"
       aria-label="Controles del mapa"
     >

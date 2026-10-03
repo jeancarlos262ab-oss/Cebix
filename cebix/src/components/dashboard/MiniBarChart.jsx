@@ -30,8 +30,8 @@ function MiniBarChart({ data }) {
             interval={0}
           />
           <Tooltip content={<ChartTooltip />} cursor={false} />
-          <Bar dataKey="budget" fill="var(--chart-track)" radius={0} barSize={14} />
-          <Bar dataKey="spent" fill="var(--chart-2)" radius={0} barSize={8} />
+          <Bar isAnimationActive={false} dataKey="budget" fill="var(--chart-track)" radius={0} barSize={14} />
+          <Bar isAnimationActive={false} dataKey="spent" fill="var(--chart-2)" radius={0} barSize={8} />
         </BarChart>
       </ResponsiveContainer>
     </div>

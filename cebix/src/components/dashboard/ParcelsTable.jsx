@@ -61,7 +61,7 @@ export default function ParcelsTable() {
               <ParcelRow
                 key={parcel.id}
                 parcel={parcel}
-                onEdit={parcel.isCustom ? () => setModal(parcel) : undefined}
+                onEdit={parcel.isCustom ? setModal : undefined}
               />
             ))}
           </tbody>

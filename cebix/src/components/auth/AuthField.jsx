@@ -5,7 +5,7 @@ import "./auth.css";
 /**
  * Campo de formulario de Login/Signup. Un solo color (cebada): el icono es
  * neutro y se oscurece al enfocar; el foco lo marca el borde en tinta más un
- * halo dorado. Ver auth.css.
+ * anillo dorado. Ver auth.css.
  *
  * @param {{
  *   label: string,

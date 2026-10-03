@@ -7,6 +7,7 @@ import PeriodToggle from "../ui/PeriodToggle";
 import FeatureImportanceChart from "../charts/FeatureImportanceChart";
 import { gddFull, gdd60d, gdd30d, yieldTrendFull } from "../../data/chartData";
 import { globalImportance } from "../../data/shap";
+import { modelSummary } from "../../data/model";
 import { useParcels } from "../../context/ParcelsContext";
 import { downloadCSV } from "../../utils/csv";
 
@@ -173,12 +174,12 @@ export default function ParcelSummary() {
       ];
     }
 
-    // "Predicción" — promedios sobre las 197 parcelas del modelo Ridge validado espacialmente.
+    // "Predicción" — promedios sobre las parcelas de la última corrida del modelo (Random Forest).
     const avgYield = parcels.reduce((s, p) => s + p.yieldEstimate, 0) / parcels.length;
     const avgScore = parcels.reduce((s, p) => s + p.score, 0) / parcels.length;
     return [
       { label: "Rendimiento estimado (promedio)", value: `${avgYield.toFixed(1)} ton/ha` },
-      { label: "Margen de error (RMSE espacial)", value: "± 0.76 ton/ha" },
+      { label: "Margen de error (RMSE espacial)", value: `± ${modelSummary.rmse.toFixed(2)} ton/ha` },
       { label: "Score de elegibilidad (promedio)", value: `${Math.round(avgScore)} / 100` },
     ];
   }, [activeTab, parcels]);

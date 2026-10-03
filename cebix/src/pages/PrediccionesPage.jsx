@@ -24,6 +24,7 @@ import FeatureImportanceChart from "../components/charts/FeatureImportanceChart"
 import StaticMapImage from "../components/map/StaticMapImage";
 import { useParcels } from "../context/ParcelsContext";
 import { generateCreditReportPDF } from "../utils/creditReport";
+import RequireAnalysis from "../components/ui/RequireAnalysis";
 
 const chartQuestions = [
   {
@@ -68,7 +69,7 @@ function JoinedCells({ className = "", children }) {
   );
 }
 
-const CELL = "relative border-b border-r border-gray-200 p-5 dark:border-gray-800";
+const CELL = "relative overflow-hidden border-b border-r border-gray-200 p-5 dark:border-gray-800";
 
 /** Fila etiqueta/valor de las fichas. */
 function DetailRow({ label, children }) {
@@ -80,7 +81,7 @@ function DetailRow({ label, children }) {
   );
 }
 
-export default function PrediccionesPage() {
+function PrediccionesPageContent() {
   const { parcels, submissions, submitToCommittee } = useParcels();
   const [selectedId, setSelectedId] = useState(parcels[0].id);
   const parcel = parcels.find((p) => p.id === selectedId) ?? parcels[0];
@@ -247,6 +248,7 @@ export default function PrediccionesPage() {
                   hint={`± ${parcel.confidence.toFixed(1)} ton/ha`}
                   icon={Gauge}
                   tone="navy"
+                  cornerIcon
                 />
               </div>
               <div className={CELL}>
@@ -256,6 +258,7 @@ export default function PrediccionesPage() {
                   hint="Semáforo de riesgo"
                   icon={Percent}
                   tone="navy"
+                  cornerIcon
                 />
               </div>
               <div className={CELL}>
@@ -265,6 +268,7 @@ export default function PrediccionesPage() {
                   hint="Máximo del ciclo"
                   icon={Leaf}
                   tone="navy"
+                  cornerIcon
                 />
               </div>
               <div className={CELL}>
@@ -274,6 +278,7 @@ export default function PrediccionesPage() {
                   hint="Acumulada en el ciclo"
                   icon={Droplets}
                   tone="navy"
+                  cornerIcon
                 />
               </div>
             </JoinedCells>
@@ -333,19 +338,20 @@ export default function PrediccionesPage() {
               <JoinedCells className="grid-cols-1 sm:grid-cols-2">
                 {climateVariables.map((v) => (
                   <div key={v.label} className={CELL}>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{v.label}</p>
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                        <v.icon size={14} />
-                      </span>
-                    </div>
-                    <p className="font-display mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    <p className="relative z-10 text-sm text-gray-500 dark:text-gray-400">{v.label}</p>
+                    <p className="font-display relative z-10 mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
                       {v.value}
                     </p>
-                    <p className="mt-1 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    <p className="relative z-10 mt-1 flex items-center gap-1.5 pr-12 text-xs text-gray-500 dark:text-gray-400">
                       <v.deltaIcon size={12} />
                       {v.deltaLabel}
                     </p>
+                    <v.icon
+                      aria-hidden="true"
+                      size={64}
+                      strokeWidth={1.75}
+                      className="pointer-events-none absolute -bottom-5 -right-2 -rotate-12 text-accent-600 dark:text-accent-400"
+                    />
                   </div>
                 ))}
               </JoinedCells>
@@ -354,5 +360,13 @@ export default function PrediccionesPage() {
         </AnimatePresence>
       </div>
     </>
+  );
+}
+
+export default function PrediccionesPage() {
+  return (
+    <RequireAnalysis title="Predicciones" subtitle="Rendimiento estimado por el modelo." >
+      <PrediccionesPageContent />
+    </RequireAnalysis>
   );
 }

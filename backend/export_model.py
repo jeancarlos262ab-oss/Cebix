@@ -1,5 +1,5 @@
 """
-Serializa el modelo final (Random Forest, top-15 features) + imputer + scaler +
+Serializa el modelo final (Random Forest, top-10 features) + imputer + scaler +
 metadata (RMSE por región, features, labels) en un solo archivo .joblib que el
 backend de inferencia (api/main.py) carga al arrancar.
 
@@ -14,7 +14,12 @@ import joblib
 import numpy as np
 from sklearn.metrics import mean_squared_error
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+# train_model.py puede estar junto a este archivo, en ../03_modelo (paquete original) o en la raíz del repo.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+for _p in (_HERE, os.path.join(_HERE, "03_modelo"), os.path.join(_HERE, "..", "03_modelo"), os.path.join(_HERE, "..")):
+    if os.path.exists(os.path.join(_p, "train_model.py")):
+        sys.path.insert(0, _p)
+        break
 from train_model import load_data, build_xy, get_models, leave_region_out_cv  # noqa: E402
 
 BEST_MODEL_NAME = "Random Forest"

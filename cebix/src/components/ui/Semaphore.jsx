@@ -1,7 +1,7 @@
 import { memo } from "react";
-import redLight from "../../assets/red.png";
-import yellowLight from "../../assets/yellow.png";
-import greenLight from "../../assets/green.png";
+import redLight from "../../assets/red.webp";
+import yellowLight from "../../assets/yellow.webp";
+import greenLight from "../../assets/green.webp";
 
 import { RISK_COLORS } from "../../utils/riskColors";
 

@@ -135,6 +135,25 @@ def run_inference(rows_df, estados):
     return results
 
 
+PASSTHROUGH_FIELDS = ["Municipio", "lat", "lng", "area_ha"]
+
+
+def _clean(v):
+    """JSON no admite NaN/inf: se devuelve None y el frontend lo trata como 'sin dato'."""
+    if v is None:
+        return None
+    if isinstance(v, (np.floating, float)):
+        return None if not np.isfinite(v) else float(v)
+    if isinstance(v, np.integer):
+        return int(v)
+    return v
+
+
+def _meta(df, i):
+    """Datos de contexto que venían en el CSV (municipio, coordenadas, área) y se devuelven tal cual."""
+    return {c: _clean(df[c].iloc[i]) for c in PASSTHROUGH_FIELDS if c in df.columns}
+
+
 @app.get("/health")
 def health():
     # Ligero: no carga el modelo. Es el health check de Render.
@@ -174,11 +193,12 @@ def predict(payload: PredictRequest):
     estados = [p.Estado for p in payload.parcelas]
 
     df = pd.DataFrame(rows)
+    meta_df = df.copy()  # run_inference agrega columnas al DataFrame; el contexto se lee antes
     results = run_inference(df, estados)
 
     return {
         "predicciones": [
-            {"ID_POLIGONO": ids[i], "Estado": estados[i], **results[i]}
+            {"ID_POLIGONO": ids[i], "Estado": estados[i], **_meta(meta_df, i), **results[i]}
             for i in range(len(ids))
         ]
     }
@@ -203,7 +223,7 @@ async def predict_csv(file: UploadFile = File(...)):
     return {
         "n_parcelas": len(df),
         "predicciones": [
-            {"ID_POLIGONO": ids[i], "Estado": estados[i], **results[i]}
+            {"ID_POLIGONO": ids[i], "Estado": estados[i], **_meta(df, i), **results[i]}
             for i in range(len(ids))
         ],
     }

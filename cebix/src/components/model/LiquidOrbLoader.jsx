@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { usePageActive } from "../../context/PageActiveContext";
 
 /**
  * LiquidOrbLoader — Lámpara de lava que "piensa"
@@ -77,6 +78,29 @@ export default function LiquidOrbLoader({ size = 320, running = false, label }) 
   const runningRef = useRef(running);
   runningRef.current = running;
 
+  // Solo anima si su pantalla está visible Y el orbe está dentro del viewport.
+  // Sin esto el bucle (con filtro SVG) seguía corriendo en segundo plano y
+  // volvía pesado el scroll de TODAS las pantallas.
+  const pageActive = usePageActive();
+  const [inView, setInView] = useState(true);
+  const enabled = pageActive && inView;
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
+  const controlRef = useRef(null); // { start, stop } del bucle
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || typeof IntersectionObserver === "undefined") return undefined;
+    const io = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting));
+    io.observe(root);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (enabled) controlRef.current?.start();
+    else controlRef.current?.stop();
+  }, [enabled]);
+
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
@@ -95,10 +119,14 @@ export default function LiquidOrbLoader({ size = 320, running = false, label }) 
     let rate = runningRef.current ? RUN_RATE : IDLE_RATE;
     let clock = rand(0, 1000); // tiempo "virtual" para los ruidos
     let last = performance.now();
-    let raf;
+    let raf = 0;
+
+    // Tamaño en caché: leer offsetWidth en cada frame forzaba un layout.
+    let S = root.offsetWidth || size;
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => { S = root.offsetWidth || size; }) : null;
+    ro?.observe(root);
 
     const paint = () => {
-      const S = root.offsetWidth || size;
 
       BLOBS.forEach((b, i) => {
         const el = blobRefs.current[i];
@@ -132,7 +160,7 @@ export default function LiquidOrbLoader({ size = 320, running = false, label }) 
       // Sin movimiento: una pose estática.
       state.forEach((c) => (c.t = 0.5));
       paint();
-      return;
+      return () => ro?.disconnect();
     }
 
     const tick = (now) => {
@@ -158,9 +186,24 @@ export default function LiquidOrbLoader({ size = 320, running = false, label }) 
       raf = requestAnimationFrame(tick);
     };
 
+    const start = () => {
+      if (raf) return;
+      last = performance.now();
+      raf = requestAnimationFrame(tick);
+    };
+    const stop = () => {
+      cancelAnimationFrame(raf);
+      raf = 0;
+    };
+    controlRef.current = { start, stop };
+
     paint();
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    if (enabledRef.current) start();
+    return () => {
+      stop();
+      ro?.disconnect();
+      controlRef.current = null;
+    };
   }, [size]);
 
   return (

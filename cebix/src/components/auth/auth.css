@@ -1,15 +1,17 @@
 /* ==========================================================================
-   Login / Signup: fondo negro, texto blanco y un solo color, la cebada.
+   Login / Signup: negro con texto blanco (tema oscuro) o blanco con texto
+   negro (tema claro) y un solo color, la cebada.
 
-   Las pantallas de acceso son siempre oscuras (no dependen del tema de la
-   app ni del acento de Ajustes). La cebada (dorado de espiga madura) es el
-   único color: espigas, botón, subrayado de pestaña, enlaces y foco.
+   Siguen el tema de la app (clase `dark` en <html>; se cambia con el botón de
+   la esquina o en Ajustes) pero no dependen del acento de Ajustes. La cebada
+   (dorado de cebada madura) es el único color: botón, subrayado de pestaña,
+   enlaces y foco. Lo de arriba es el tema oscuro; el claro lo redefine abajo.
    ========================================================================== */
 
 .auth-root {
   --barley: #d4a63c;
   --barley-hover: #e0b650;
-  --barley-glow: rgba(212, 166, 60, 0.4);
+  --barley-ring: rgba(212, 166, 60, 0.4);
   --on-barley: #1a1204;
   --radius: 999px; /* píldora, como botones y buscador del dashboard */
   --radius-box: 1.25rem; /* cajas con varias líneas de texto */
@@ -31,6 +33,27 @@
   background: var(--paper);
   color: var(--ink);
   color-scheme: dark;
+}
+
+/* ---------- Tema claro: mismas variables, invertidas ---------- */
+
+html:not(.dark) .auth-root {
+  --barley-hover: #c6972d;
+
+  --ink: #000000;
+  --muted: #5c5c5c;
+  --placeholder: #8a8a8a;
+  --line: #dcdcdc;
+  --paper: #ffffff;
+  --tint: rgba(212, 166, 60, 0.14);
+  --tint-line: rgba(180, 135, 30, 0.45);
+
+  --brand-bg: #ffffff;
+  --brand-fg: #000000;
+  --brand-soft: rgba(0, 0, 0, 0.66);
+  --brand-line: rgba(0, 0, 0, 0.16);
+
+  color-scheme: light;
 }
 
 /* ---------- Panel de marca ---------- */
@@ -60,43 +83,105 @@
   border-color: var(--brand-line);
 }
 
-/* ---------- Espigas: se dibujan una sola vez al cargar ---------- */
+/* ---------- Parcelas vistas desde el cielo: dibujo estático y ligero ---------- */
 
-.auth-ears {
-  color: var(--barley);
+.auth-parcels {
+  color: var(--brand-fg);
 }
 
-.ear-line {
+.parcels-fade {
+  animation: parcels-fade-in 1.2s ease-out both;
+}
+
+.parcel-outline,
+.parcel-rows,
+.parcel-dots {
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.ear-awn {
-  stroke-width: 1.1;
-  stroke-opacity: 0.6;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 0;
-  animation: ear-draw 1.8s cubic-bezier(0.22, 0.7, 0.2, 1) both;
+.parcel-outline {
+  stroke-width: 1;
+  stroke-opacity: 0.3;
 }
 
-.ear-body {
-  stroke-width: 1.5;
-  stroke-opacity: 0.8;
-  animation: ear-fade 0.9s ease-out both;
+.parcel-rows {
+  stroke-width: 0.8;
+  stroke-opacity: 0.2;
 }
 
-@keyframes ear-draw {
-  from {
-    stroke-dashoffset: 1;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
+.parcel-dots {
+  stroke-width: 1.4;
+  stroke-opacity: 0.32;
 }
 
-@keyframes ear-fade {
+.parcel-tint {
+  fill: currentColor;
+  fill-opacity: 0.045;
+  stroke: none;
+}
+
+/* Montañas: relleno negro (tapa la capa de atrás) y cresta fina */
+.mountain-fill {
+  fill: var(--paper);
+  stroke: none;
+}
+
+.mountain-ridge {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+/* Nubes: línea fina, más tenue que las parcelas */
+.parcel-cloud {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-opacity: 0.22;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* Resplandor amarillo en la esquina superior derecha del panel de marca.
+   Un solo degradado radial estático: sin blur, sin filtros, sin animación
+   por cuadro (solo el fundido de entrada). */
+.auth-sun {
+  /* El centro queda fuera del panel (offsets negativos): solo asoma el borde
+     del resplandor, suave y sin protagonismo. */
+  top: -10%;
+  right: -8%;
+  width: 68%;
+  height: 60%;
+  /* La elipse mide exactamente el alto y ancho de la caja, así que llega a
+     transparente justo en sus bordes (sin corte visible). */
+  background: radial-gradient(
+    ellipse 100% 100% at 100% 0%,
+    rgba(250, 204, 64, 0.52) 0%,
+    rgba(228, 178, 56, 0.3) 22%,
+    rgba(212, 166, 60, 0.12) 46%,
+    rgba(212, 166, 60, 0.04) 66%,
+    rgba(212, 166, 60, 0) 84%
+  );
+  animation: parcels-fade-in 1.8s ease-out both;
+}
+
+/* En claro el resplandor se satura un poco más para que se lea sobre el blanco. */
+html:not(.dark) .auth-sun {
+  background: radial-gradient(
+    ellipse 100% 100% at 100% 0%,
+    rgba(246, 190, 40, 0.62) 0%,
+    rgba(238, 182, 44, 0.36) 22%,
+    rgba(224, 170, 50, 0.14) 46%,
+    rgba(212, 166, 60, 0.04) 66%,
+    rgba(212, 166, 60, 0) 84%
+  );
+}
+
+@keyframes parcels-fade-in {
   from {
     opacity: 0;
   }
@@ -106,10 +191,36 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ear-awn,
-  .ear-body {
+  .parcels-fade,
+  .auth-sun {
     animation: none;
   }
+}
+
+/* ---------- Botón de tema (esquina superior derecha) ---------- */
+
+.auth-theme-btn {
+  display: flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.auth-theme-btn:hover {
+  background: var(--tint);
+  color: var(--ink);
+}
+
+.auth-theme-btn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
 }
 
 /* ---------- Pestañas ---------- */
@@ -188,7 +299,7 @@
 
 .auth-input:focus {
   border-color: var(--ink);
-  box-shadow: 0 0 0 3px var(--barley-glow);
+  box-shadow: 0 0 0 3px var(--barley-ring);
 }
 
 .auth-input:-webkit-autofill {

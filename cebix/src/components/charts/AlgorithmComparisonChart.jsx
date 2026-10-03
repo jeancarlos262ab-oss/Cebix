@@ -64,7 +64,7 @@ export default function AlgorithmComparisonChart({ data, highlight }) {
             <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--chart-neutral)", fontSize: 11 }} />
             <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(100,116,139,0.08)" }} />
             {SERIES.map((s) => (
-              <Bar key={s.key} dataKey={s.key} name={s.name} fill={s.fill} barSize={14}>
+              <Bar isAnimationActive={false} key={s.key} dataKey={s.key} name={s.name} fill={s.fill} barSize={14}>
                 {data.map((row) => (
                   <Cell key={row.model} fill={s.fill} fillOpacity={dim(row)} />
                 ))}

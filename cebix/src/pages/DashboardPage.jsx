@@ -2,8 +2,9 @@ import TopBar from "../components/layout/TopBar";
 import ParcelSummary from "../components/dashboard/ParcelSummary";
 import YieldTrend from "../components/dashboard/YieldTrend";
 import ParcelsTable from "../components/dashboard/ParcelsTable";
+import RequireAnalysis from "../components/ui/RequireAnalysis";
 
-export default function DashboardPage() {
+function DashboardPageContent() {
   return (
     <>
       <TopBar title="Resumen general" subtitle="Del dato satelital a la decisión financiera." />
@@ -19,5 +20,13 @@ export default function DashboardPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <RequireAnalysis title="Resumen general" subtitle="Del dato satelital a la decisión financiera." >
+      <DashboardPageContent />
+    </RequireAnalysis>
   );
 }

@@ -1,5 +1,5 @@
 /**
- * Degradados suaves para desvanecer un mapa hacia negro (en modo claro y oscuro).
+ * Degradados suaves para desvanecer un mapa hacia el fondo de la app (blanco en modo claro, negro en oscuro).
  *
  * Un degradado lineal "color → transparente" deja ver su final como una banda
  * porque la pendiente cambia de golpe. Aquí la opacidad sigue una curva
@@ -7,7 +7,8 @@
  * así no se distingue dónde empieza ni dónde termina el desvanecido.
  */
 const STEPS = 16;
-const FADE_COLOR = "#000";
+// Color del fondo de la app: blanco en modo claro, negro en oscuro (ver --page-bg en index.css).
+const FADE_COLOR = "var(--page-bg, #000)";
 
 const smootherstep = (t) => t * t * t * (t * (t * 6 - 15) + 10);
 

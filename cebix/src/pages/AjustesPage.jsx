@@ -171,7 +171,7 @@ export default function AjustesPage() {
               <select
                 value={prefs.idioma}
                 onChange={(e) => setPrefs((p) => ({ ...p, idioma: e.target.value }))}
-                className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-accent-500 dark:focus:border-accent-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
               >
                 <option value="es-MX">Español (México)</option>
                 <option value="en-US">English (US)</option>
@@ -184,7 +184,7 @@ export default function AjustesPage() {
               <select
                 value={prefs.formatoFecha}
                 onChange={(e) => setPrefs((p) => ({ ...p, formatoFecha: e.target.value }))}
-                className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-accent-500 dark:focus:border-accent-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
               >
                 <option value="dd/mm/aaaa">DD/MM/AAAA</option>
                 <option value="mm/dd/aaaa">MM/DD/AAAA</option>
@@ -197,7 +197,7 @@ export default function AjustesPage() {
               <select
                 value={prefs.zonaHoraria}
                 onChange={(e) => setPrefs((p) => ({ ...p, zonaHoraria: e.target.value }))}
-                className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-accent-500 dark:focus:border-accent-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
               >
                 <option value="America/Mexico_City">Ciudad de México (GMT-6)</option>
                 <option value="America/Tijuana">Tijuana (GMT-8)</option>

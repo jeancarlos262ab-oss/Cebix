@@ -1,4 +1,4 @@
-import cebada from "../../assets/cebada.png";
+import cebada from "../../assets/cebada.webp";
 
 export default function ParcelEmblem() {
   return (

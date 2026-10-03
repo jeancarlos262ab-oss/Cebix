@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 const SidebarContext = createContext(null);
@@ -18,14 +18,16 @@ export function SidebarProvider({ children }) {
     setMobileOpen(false);
   }, [location.pathname]);
 
-  const value = {
-    mobileOpen,
-    collapsed,
-    setCollapsed,
-    open: () => setMobileOpen(true),
-    close: () => setMobileOpen(false),
-    toggle: () => setMobileOpen((v) => !v),
-  };
+  const open = useCallback(() => setMobileOpen(true), []);
+  const close = useCallback(() => setMobileOpen(false), []);
+  const toggle = useCallback(() => setMobileOpen((v) => !v), []);
+
+  // Valor memoizado: antes era un objeto nuevo en cada render, así que Sidebar,
+  // TopBar y el mapa se volvían a renderizar con cualquier cambio del layout.
+  const value = useMemo(
+    () => ({ mobileOpen, collapsed, setCollapsed, open, close, toggle }),
+    [mobileOpen, collapsed, open, close, toggle]
+  );
 
   return <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>;
 }

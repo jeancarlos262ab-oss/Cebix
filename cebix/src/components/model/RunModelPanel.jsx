@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Download,
+  FlaskConical,
+  LayoutGrid,
+  Trash2,
   FileSpreadsheet,
   Loader2,
   Play,
@@ -12,9 +15,10 @@ import {
 import { animateScroll } from "react-scroll";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import { Link } from "react-router-dom";
 import LiquidOrbLoader from "./LiquidOrbLoader";
-
-const API_URL = (import.meta.env.VITE_MODEL_API_URL || "http://localhost:8000").replace(/\/$/, "");
+import { useParcels } from "../../context/ParcelsContext";
+import { EXAMPLE_CSV_URL, fetchExampleFile, friendlyError, predictCsv } from "../../hooks/useModelRunner";
 
 const REQUIRED_COLUMNS = ["ID_POLIGONO", "Estado", "10 features del modelo"];
 const STATES = ["Hidalgo", "Puebla", "Tlaxcala"];
@@ -43,6 +47,7 @@ export default function RunModelPanel() {
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
+  const { loadAnalysis, clearAnalysis, hasAnalysis, analysisMeta } = useParcels();
 
   function pickFile(f) {
     if (f) setFile(f);
@@ -55,42 +60,53 @@ export default function RunModelPanel() {
     if (dropped && dropped.name.toLowerCase().endsWith(".csv")) pickFile(dropped);
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (!file) return;
+  async function runWith(f) {
+    if (!f) return;
     setLoading(true);
     setResults(null);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
       // La petición real y el mínimo de 5 s corren en paralelo: si el modelo termina antes,
       // se espera lo que falte; si tarda más, no se añade tiempo extra.
-      const request = (async () => {
-        const res = await fetch(`${API_URL}/predict-csv`, { method: "POST", body: formData });
-        if (!res.ok) {
-          const detail = await res.json().catch(() => ({}));
-          throw new Error(
-            typeof detail.detail === "string" ? detail.detail : `El backend respondió ${res.status}`
-          );
-        }
-        return res.json();
-      })();
-      const [data] = await Promise.all([request, sleep(MIN_THINKING_MS)]);
+      const [data, csvText] = await Promise.all([
+        predictCsv(f),
+        f.text(),
+        sleep(MIN_THINKING_MS),
+      ]).then(([d, text]) => [d, text]);
       setResults(data.predicciones);
+      // Los resultados reales alimentan Resumen, Parcelas, Mapa, Predicciones y SHAP.
+      loadAnalysis(data.predicciones, csvText, f.name);
       toast.success(
         `Modelo ejecutado: ${data.predicciones.length} parcela${data.predicciones.length === 1 ? "" : "s"} procesada${data.predicciones.length === 1 ? "" : "s"}.`
       );
     } catch (err) {
-      toast.error(
-        err.message === "Failed to fetch"
-          ? "No se pudo conectar al backend. Si está en Render/Railway con plan gratuito puede tardar ~30 s en despertar; intenta de nuevo."
-          : err.message
-      );
+      toast.error(friendlyError(err));
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    runWith(file);
+  }
+
+  // Un clic: baja el CSV de ejemplo (59 parcelas de evaluación) y ejecuta el modelo con él.
+  async function handleExample() {
+    try {
+      const example = await fetchExampleFile();
+      setFile(example);
+      await runWith(example);
+    } catch (err) {
+      toast.error(friendlyError(err));
+    }
+  }
+
+  function handleClear() {
+    clearAnalysis();
+    setResults(null);
+    setFile(null);
+    toast.success("Resultados borrados. El dashboard quedó vacío.");
   }
 
   return (
@@ -134,12 +150,12 @@ export default function RunModelPanel() {
                   ))}
                 </div>
                 <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                  Estado: {STATES.join(", ")}.
+                  Estado: {STATES.join(", ")}. Opcionales: Municipio, area_ha, lat y lng (para el mapa y las tablas).
                 </p>
               </div>
             </div>
             <a
-              href="/ejemplo_features_predict.csv"
+              href={EXAMPLE_CSV_URL}
               download
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
@@ -197,6 +213,15 @@ export default function RunModelPanel() {
               {loading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
               {loading ? "Ejecutando modelo..." : "Ejecutar modelo"}
             </button>
+            <button
+              type="button"
+              onClick={handleExample}
+              disabled={loading}
+              className="ml-0 mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 sm:ml-3 sm:mt-0 sm:w-auto"
+            >
+              <FlaskConical size={16} className="text-accent-600 dark:text-accent-400" />
+              Probar con el archivo de ejemplo
+            </button>
           </form>
 
         </Step>
@@ -213,6 +238,31 @@ export default function RunModelPanel() {
               : "Aquí aparecerán las predicciones cuando ejecutes el modelo."
           }
         >
+          {hasAnalysis && analysisMeta && (
+            <div className="mb-4 flex flex-col gap-2 rounded-2xl border border-gray-200 p-3 text-xs text-gray-600 dark:border-gray-800 dark:text-gray-400 sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                El dashboard muestra los resultados de <strong>{analysisMeta.fileName || "la última corrida"}</strong>{" "}
+                ({analysisMeta.count} parcelas).
+              </span>
+              <span className="flex gap-2">
+                <Link
+                  to="/"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-accent-500 px-3 py-1.5 font-semibold text-accent-contrast hover:bg-accent-600"
+                >
+                  <LayoutGrid size={13} />
+                  Ver en el dashboard
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                >
+                  <Trash2 size={13} />
+                  Borrar resultados
+                </button>
+              </span>
+            </div>
+          )}
           {results ? (
             <ResultsTable results={results} />
           ) : (

@@ -138,7 +138,7 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
 
 function inputClass(error) {
   return [
-    "w-full rounded-full border bg-white px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:bg-gray-800 dark:text-gray-200",
-    error ? "border-red-400" : "border-gray-200 focus:border-accent-400 dark:border-gray-700",
+    "w-full rounded-full border bg-white px-3 py-1.5 text-sm text-gray-700 focus:outline-none dark:bg-gray-800 dark:text-gray-200",
+    error ? "border-red-400" : "border-gray-200 focus:border-accent-500 dark:focus:border-accent-500 dark:border-gray-700",
   ].join(" ");
 }

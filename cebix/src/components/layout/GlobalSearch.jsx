@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, CornerDownLeft } from "lucide-react";
 import { useParcels } from "../../context/ParcelsContext";
@@ -19,6 +19,7 @@ export default function GlobalSearch() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const resultsId = useId(); // único por instancia: ahora hay varias pantallas montadas a la vez
   const inputRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -103,13 +104,13 @@ export default function GlobalSearch() {
         placeholder="Buscar parcela"
         role="combobox"
         aria-expanded={open && results.length > 0}
-        aria-controls="global-search-results"
+        aria-controls={resultsId}
         className="w-full rounded-full border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm text-gray-700 shadow-sm placeholder:text-gray-400 focus:border-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500"
       />
 
       {open && query && (
         <div
-          id="global-search-results"
+          id={resultsId}
           role="listbox"
           className="absolute right-0 top-full z-50 mt-1.5 max-h-80 w-72 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-gray-200 bg-white py-1 shadow-card dark:border-gray-800 dark:bg-gray-900 sm:w-80"
         >

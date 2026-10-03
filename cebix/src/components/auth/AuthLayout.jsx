@@ -1,11 +1,11 @@
 import { useContext, useLayoutEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import AuthShell, { AuthShellContext } from "./AuthShell";
+import { AuthShellContext } from "./AuthShellContext";
 
 /**
  * Contenido de una pantalla de acceso: encabezado + formulario.
  *
- * El marco (panel de marca, espigas, pestañas) vive en AuthShell y no se
+ * El marco (panel de marca, parcelas, pestañas) vive en AuthShell y no se
  * vuelve a montar al cambiar de pantalla. Aquí solo se anima lo que cambia:
  * al pasar entre pasos de una misma pantalla (p. ej. iniciar sesión →
  * recuperar contraseña) el encabezado y los campos salen y entran con un
@@ -47,8 +47,9 @@ export default function AuthLayout({ title, subtitle, activeTab, children }) {
     </AnimatePresence>
   );
 
-  // Pantalla suelta (sin ruta de diseño): se envuelve en su propio marco.
-  if (!shell) return <AuthShell>{body}</AuthShell>;
-
+  // El marco (AuthShell) es único y vive en la ruta de diseño de App.jsx: esta
+  // pantalla nunca se envuelve a sí misma en otro marco, solo aporta su
+  // contenido. (Antes, si el contexto llegaba como null —p. ej. tras una
+  // recarga en caliente— se montaba un segundo AuthShell dentro del primero.)
   return body;
 }

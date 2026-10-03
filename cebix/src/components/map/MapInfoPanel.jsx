@@ -91,7 +91,7 @@ function MapInfoPanel({ info, pinned, onClearPinned, parcels, basemapLabel }) {
   }
 
   return (
-    <div className="pointer-events-auto w-full max-w-xl rounded-2xl border border-white/10 bg-black/85 px-3 py-2 text-gray-100 shadow-lg backdrop-blur">
+    <div className="pointer-events-auto w-full max-w-xl rounded-2xl border border-white/10 bg-black/85 px-3 py-2 text-gray-100 shadow-lg">
       <div className="flex items-center gap-2">
         <PointIcon size={14} className="shrink-0 text-accent-400" aria-hidden="true" />
         <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400">

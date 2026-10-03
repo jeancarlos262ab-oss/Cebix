@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
+import { getPageRegistry } from "../../utils/pageRegistry";
 import { ChevronRight, ChevronsUpDown, LogOut, Settings, X, Menu, PanelLeft } from "lucide-react";
 import { generalNav, workspaceNav } from "../../data/navigation";
 import { useAuth } from "../../context/AuthContext";
@@ -7,10 +8,22 @@ import { useSidebar } from "../../context/SidebarContext";
 import Logo from "../ui/Logo";
 
 function NavSection({ title, items, collapsed }) {
+  // Re-renderiza al navegar para que cada enlace apunte a la pantalla tal
+  // como se dejó (pestaña, filtro...), leyendo el registro singleton.
+  const { pathname, search } = useLocation();
+  const saved = getPageRegistry().search;
   return (
     <div className="mt-6 first:mt-0">
-      {title && !collapsed && (
-        <p className="px-4 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+      {title && (
+        <p
+          aria-hidden={collapsed || undefined}
+          className={[
+            // Siempre ocupa su lugar (una sola línea) para que la separación
+            // vertical sea idéntica con el sidebar contraído.
+            "overflow-hidden whitespace-nowrap px-4 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500",
+            collapsed ? "invisible" : "",
+          ].join(" ")}
+        >
           {title}
         </p>
       )}
@@ -18,13 +31,12 @@ function NavSection({ title, items, collapsed }) {
         {items.map(({ label, icon: Icon, to, badge }) => (
           <li key={label}>
             <NavLink
-              to={to}
+              to={to + (pathname === to ? search : saved.get(to) ?? "")}
               end={to === "/"}
               title={collapsed ? label : undefined}
               className={({ isActive }) =>
                 [
                   "flex w-full items-center gap-2.5 px-4 py-2 text-sm font-medium transition-colors",
-                  collapsed ? "justify-center px-0" : "",
                   isActive
                     ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-white",
@@ -149,24 +161,28 @@ export default function Sidebar() {
 
       <aside
         className={[
-          "fixed inset-y-3 left-3 z-50 flex shrink-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card transition-all duration-200 ease-out dark:border-gray-800 dark:bg-black",
+          "fixed inset-y-3 left-3 z-50 flex shrink-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card transition-transform duration-200 ease-out lg:transition-none dark:border-gray-800 dark:bg-black",
           collapsed ? "lg:w-20" : "lg:w-[264px]",
           "w-[264px] max-w-[calc(100vw-1.5rem)]",
           "lg:static lg:inset-auto lg:m-3 lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-[calc(100%+0.75rem)]",
         ].join(" ")}
       >
-        <div className="flex items-center gap-2.5 border-b border-gray-100 px-4 py-4 dark:border-gray-800">
-          {!collapsed && <Logo size="md" />}
+        <div className="relative flex h-[61px] items-center gap-2.5 border-b border-gray-100 px-4 py-4 dark:border-gray-800">
+          {/* Mismo logo y misma posición en ambos estados: al contraer solo se oculta el texto. */}
+          <Logo size="md" showText={!collapsed} />
           {collapsed && (
-            <div className="mx-auto">
-              <PanelLeft
-                size={20}
-                className="cursor-pointer text-accent-600 dark:text-accent-400"
-                onClick={() => setCollapsed(false)}
-                title="Expandir menú"
-              />
-            </div>
+            // Al pasar el cursor, el icono del logo se cambia por el de expandir
+            // (sin mover nada: va encima del logo, centrado en él).
+            <button
+              type="button"
+              onClick={() => setCollapsed(false)}
+              aria-label="Expandir menú"
+              title="Expandir menú"
+              className="absolute left-[13px] top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center bg-white opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100 dark:bg-black"
+            >
+              <PanelLeft size={18} className="text-accent-600 dark:text-accent-400" />
+            </button>
           )}
           {!collapsed && (
             <button
@@ -205,7 +221,6 @@ export default function Sidebar() {
             title={collapsed ? profile?.name || user?.email || "Perfil" : undefined}
             className={[
               "flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-900",
-              collapsed ? "justify-center px-0" : "",
             ].join(" ")}
           >
             <span className="relative h-9 w-9 shrink-0 rounded-full bg-gray-200">
@@ -238,7 +253,6 @@ export default function Sidebar() {
             title={collapsed ? "Cerrar sesión" : undefined}
             className={[
               "flex w-full items-center gap-3 px-4 py-2 text-left text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-white",
-              collapsed ? "justify-center px-0" : "",
             ].join(" ")}
           >
             <LogOut size={18} className="shrink-0 text-accent-600 dark:text-accent-400" />

@@ -8,7 +8,7 @@
  * No se debe borrar ni reemplazar este archivo: sigue siendo el mapa para
  * laptops/PCs potentes.
  */
-import { BOTTOM_FADE_LENGTH, BOTTOM_FADE_STRENGTH, LEFT_FADE_LENGTH, softFadeGradient } from "./edgeFade";
+import { LEFT_FADE_LENGTH, softFadeGradient } from "./edgeFade";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Map, { Layer, Marker, Popup, Source } from "react-map-gl/maplibre";
 import LocationPin, { PIN_TIP_OFFSET } from "./LocationPin";
@@ -264,7 +264,7 @@ function MapControls({
   onToggleBoundaries,
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 rounded-2xl border border-white/10 bg-black/85 p-1.5 text-gray-100 shadow-lg backdrop-blur">
+    <div className="flex flex-col items-center gap-1 rounded-2xl border border-white/10 bg-black/85 p-1.5 text-gray-100 shadow-lg">
       {!viewOnly && (
         <>
           {LAYERS.map((l) => (
@@ -311,7 +311,7 @@ const MapLegend = memo(function MapLegend({ layer }) {
   // Semáforo: flota directo sobre el mapa, sin contenedor ni título.
   if (layer !== "ndvi") return <RiskTrafficLight />;
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/85 px-3 py-2.5 text-gray-100 shadow-lg backdrop-blur">
+    <div className="rounded-2xl border border-white/10 bg-black/85 px-3 py-2.5 text-gray-100 shadow-lg">
       <ul className="space-y-1.5">
         {items.map((item) => (
           <li key={item.label} className="flex items-center gap-2 text-[11px] text-gray-200">
@@ -347,7 +347,7 @@ const MapLegend = memo(function MapLegend({ layer }) {
  *   showBoundariesByDefault?: boolean,
  *   viewOnly?: boolean,   // solo visualizar el lugar: sin capas de riesgo/NDVI y con pin en vez de círculo
  *   rounded?: boolean,    // true = esquinas redondeadas (los mapas nunca llevan borde)
- *   edgeFade?: boolean,   // desvanece el mapa hacia el fondo de la app en el borde izquierdo (lg+, usa --sidebar-edge) y en el inferior; para mapas que van detrás del sidebar
+ *   edgeFade?: boolean,   // desvanece el mapa hacia el fondo de la app solo en el borde izquierdo (lg+), con el color del tema; para el mapa satelital junto al sidebar
  *   controlsLeftClassName?: string,   // offset izquierdo de la barra de capas (por defecto "left-3")
  *   controlsTopClassName?: string,   // clase de Tailwind para el offset superior de la barra de capas (por defecto "top-3"); útil cuando algo del layout de la página, como un título, ya ocupa esa esquina.
  *   controlsOrientation?: "vertical" | "horizontal",   // dirección de la barra de zoom (por defecto "vertical")
@@ -704,14 +704,6 @@ function ParcelMapGL({
             style={{
               width: `calc(var(--sidebar-edge, 0px) + ${LEFT_FADE_LENGTH})`,
               background: softFadeGradient("to right", "var(--sidebar-edge, 0px)", LEFT_FADE_LENGTH),
-            }}
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-[5]"
-            style={{
-              height: BOTTOM_FADE_LENGTH,
-              background: softFadeGradient("to top", "0px", BOTTOM_FADE_LENGTH, BOTTOM_FADE_STRENGTH),
             }}
           />
         </>

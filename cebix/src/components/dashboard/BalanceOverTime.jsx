@@ -62,7 +62,7 @@ export default function BalanceOverTime() {
               interval={period === "30 days" ? 3 : 0}
             />
             <Tooltip content={<ChartTooltip />} />
-            <Area
+            <Area isAnimationActive={false}
               type="monotone"
               dataKey="value"
               stroke="var(--chart-1)"
