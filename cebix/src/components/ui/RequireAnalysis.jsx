@@ -24,7 +24,7 @@ export function EmptyAnalysis({ title, subtitle }) {
         </h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Esta pantalla se llena con las predicciones que calcula el modelo en el momento. Carga el archivo de
-          ejemplo (59 parcelas de evaluación) o sube tu propio CSV con las 10 variables del modelo.
+          ejemplo del backend o sube tu propio CSV con las variables del modelo.
         </p>
 
         <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row">

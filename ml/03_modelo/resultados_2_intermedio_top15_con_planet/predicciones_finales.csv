@@ -1,0 +1,60 @@
+ID_POLIGONO,Estado,Municipio,rendimiento_t_ha,ic90_inferior,ic90_superior
+AGC_174,Hidalgo,Cuautepec de Hinojosa,4.35,3.32,5.36
+AGC_149,Hidalgo,Cuautepec de Hinojosa,4.43,3.39,5.35
+AGC_052,Hidalgo,Cuautepec de Hinojosa,4.44,3.52,5.44
+AGC_130,Hidalgo,Cuautepec de Hinojosa,4.33,3.2,5.32
+AGC_107,Hidalgo,Almoloya,4.55,3.62,5.55
+AGC_065,Hidalgo,Almoloya,4.55,3.37,5.46
+AGC_082,Hidalgo,Almoloya,4.39,3.36,5.39
+AGC_128,Hidalgo,Almoloya,4.42,3.29,5.45
+AGC_003,Hidalgo,Singuilucan,3.15,1.97,4.15
+AGC_129,Hidalgo,Singuilucan,3.17,2.04,4.25
+AGC_113,Hidalgo,Singuilucan,3.28,2.09,4.28
+AGC_042,Hidalgo,Singuilucan,3.14,2.37,4.14
+AGC_030,Hidalgo,Singuilucan,2.76,1.64,3.76
+AGC_156,Hidalgo,Singuilucan,3.09,1.9,4.08
+AGC_118,Hidalgo,Singuilucan,2.89,1.95,3.81
+AGC_190,Puebla,Chignahuapan,4.31,3.47,5.32
+AGC_091,Puebla,Chignahuapan,4.84,3.71,5.84
+AGC_191,Puebla,Chignahuapan,4.78,3.85,5.78
+AGC_085,Puebla,Chignahuapan,4.27,3.23,5.18
+AGC_188,Puebla,Chignahuapan,4.4,3.21,5.4
+AGC_126,Puebla,Chignahuapan,4.68,3.5,5.71
+AGC_043,Puebla,Chignahuapan,4.44,3.25,5.43
+AGC_153,Puebla,Chignahuapan,4.26,3.32,5.3
+AGC_036,Puebla,Chignahuapan,4.38,3.26,5.38
+AGC_177,Puebla,Chignahuapan,4.36,3.41,5.35
+AGC_182,Puebla,Chignahuapan,4.58,3.28,5.62
+AGC_186,Puebla,Chignahuapan,4.53,3.35,5.53
+AGC_143,Puebla,Chignahuapan,4.5,3.55,5.53
+AGC_136,Puebla,Chignahuapan,4.37,3.6,5.37
+AGC_116,Puebla,Chignahuapan,4.38,3.45,5.41
+AGC_142,Puebla,Chignahuapan,4.52,3.58,5.53
+AGC_028,Puebla,Chignahuapan,4.73,3.69,5.73
+AGC_031,Puebla,Chignahuapan,4.7,3.66,5.7
+AGC_063,Puebla,Chignahuapan,4.46,3.34,5.46
+AGC_088,Puebla,Chignahuapan,4.3,3.36,5.3
+AGC_095,Puebla,Chignahuapan,4.34,3.31,5.35
+AGC_192,Puebla,Chignahuapan,4.78,3.48,5.7
+AGC_158,Puebla,Chignahuapan,4.48,3.53,5.48
+AGC_011,Puebla,Chignahuapan,4.55,3.68,5.47
+AGC_076,Puebla,Chignahuapan,4.53,3.4,5.52
+AGC_094,Puebla,Chignahuapan,4.48,3.53,5.47
+AGC_175,Puebla,Chignahuapan,4.32,3.14,5.33
+AGC_154,Puebla,Chignahuapan,4.54,3.51,5.54
+AGC_016,Puebla,Chignahuapan,4.38,3.35,5.39
+AGC_025,Tlaxcala,Calpulalpan,2.97,2.02,3.97
+AGC_050,Tlaxcala,Calpulalpan,2.97,1.85,3.98
+AGC_039,Tlaxcala,Calpulalpan,3.17,2.24,4.16
+AGC_120,Tlaxcala,Nanacamilpa de Mariano Arista,3.17,2.13,4.17
+AGC_029,Tlaxcala,Calpulalpan,3.19,2.16,4.2
+AGC_147,Tlaxcala,Calpulalpan,3.14,2.1,4.15
+AGC_075,Tlaxcala,Calpulalpan,3.09,2.17,4.1
+AGC_093,Tlaxcala,Calpulalpan,3.13,2.19,4.17
+AGC_087,Tlaxcala,Calpulalpan,2.73,1.79,3.73
+AGC_086,Tlaxcala,Calpulalpan,3.11,2.18,4.03
+AGC_183,Tlaxcala,Calpulalpan,2.79,1.66,3.79
+AGC_173,Tlaxcala,Calpulalpan,2.98,1.95,3.98
+AGC_027,Tlaxcala,Calpulalpan,3.16,2.3,4.16
+AGC_061,Tlaxcala,Calpulalpan,3.01,1.89,4.01
+AGC_071,Tlaxcala,Calpulalpan,3.1,2.06,4.01

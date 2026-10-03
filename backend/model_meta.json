@@ -1,0 +1,210 @@
+{
+  "modelSummary": {
+    "selected": "Random Forest (top-10 features SHAP, sin Planet)",
+    "modelName": "Random Forest",
+    "nFeatures": 10,
+    "trainingParcels": 138,
+    "evaluationParcels": 59,
+    "shapParcels": 197,
+    "validation": "Validación espacial por bloques (leave-region-out)",
+    "rmse": 0.642,
+    "mae": 0.489,
+    "r2": 0.426
+  },
+  "algorithmComparison": [
+    {
+      "model": "Random Forest",
+      "rmse": 0.642,
+      "mae": 0.489,
+      "r2": 0.426,
+      "type": "ensamble"
+    },
+    {
+      "model": "XGBoost",
+      "rmse": 0.766,
+      "mae": 0.625,
+      "r2": 0.185,
+      "type": "boosting"
+    },
+    {
+      "model": "Lasso",
+      "rmse": 0.775,
+      "mae": 0.642,
+      "r2": 0.164,
+      "type": "baseline"
+    },
+    {
+      "model": "ElasticNet",
+      "rmse": 0.782,
+      "mae": 0.654,
+      "r2": 0.15,
+      "type": "baseline"
+    },
+    {
+      "model": "LightGBM",
+      "rmse": 0.817,
+      "mae": 0.655,
+      "r2": 0.073,
+      "type": "boosting"
+    },
+    {
+      "model": "Ridge",
+      "rmse": 0.821,
+      "mae": 0.691,
+      "r2": 0.062,
+      "type": "baseline"
+    }
+  ],
+  "rmseByRegion": [
+    {
+      "region": "Tlaxcala",
+      "rmse": 0.435
+    },
+    {
+      "region": "Hidalgo",
+      "rmse": 0.619
+    },
+    {
+      "region": "Puebla",
+      "rmse": 0.725
+    }
+  ],
+  "globalImportance": [
+    {
+      "key": "precip_acum_emergencia_macollamiento_mm",
+      "feature": "Precipitación en emergencia-macollamiento",
+      "value": 0.652,
+      "direction": "positivo"
+    },
+    {
+      "key": "bas_lai_espigado_llenado",
+      "feature": "LAI en espigado-llenado",
+      "value": 0.054,
+      "direction": "positivo"
+    },
+    {
+      "key": "bas_n_obs_ciclo",
+      "feature": "Densidad de observaciones válidas (Sentinel-2/Landsat)",
+      "value": 0.049,
+      "direction": "negativo"
+    },
+    {
+      "key": "bas_ndti_emergencia_macollamiento",
+      "feature": "NDTI en emergencia-macollamiento",
+      "value": 0.038,
+      "direction": "negativo"
+    },
+    {
+      "key": "bas_ndwi_espigado_llenado",
+      "feature": "NDWI en espigado-llenado",
+      "value": 0.031,
+      "direction": "negativo"
+    },
+    {
+      "key": "bas_sti_encanado",
+      "feature": "STI en encañado",
+      "value": 0.029,
+      "direction": "positivo"
+    },
+    {
+      "key": "bas_evi_encanado",
+      "feature": "EVI en encañado",
+      "value": 0.029,
+      "direction": "negativo"
+    },
+    {
+      "key": "bas_evi_emergencia_macollamiento",
+      "feature": "EVI en emergencia-macollamiento",
+      "value": 0.021,
+      "direction": "negativo"
+    },
+    {
+      "key": "bas_ndvi_emergencia_macollamiento",
+      "feature": "NDVI en emergencia-macollamiento",
+      "value": 0.02,
+      "direction": "negativo"
+    },
+    {
+      "key": "bas_ndti_encanado",
+      "feature": "NDTI en encañado",
+      "value": 0.017,
+      "direction": "positivo"
+    }
+  ],
+  "featureGroups": [
+    {
+      "group": "Variables seleccionadas por SHAP (top 10 de 68, sin Planet ni índices no reproducibles)",
+      "color": "ndvi",
+      "features": [
+        "Precipitación en emergencia-macollamiento",
+        "Densidad de observaciones válidas (Sentinel-2/Landsat)",
+        "LAI en espigado-llenado",
+        "NDTI en emergencia-macollamiento",
+        "STI en encañado",
+        "NDVI en emergencia-macollamiento",
+        "NDWI en espigado-llenado",
+        "NDTI en encañado",
+        "EVI en emergencia-macollamiento",
+        "EVI en encañado"
+      ]
+    }
+  ],
+  "dataSources": [
+    {
+      "name": "Sentinel-2 / Landsat",
+      "detail": "Dataset Básico (Sentinel-2 + Landsat, 2022-2025) del reto: NDVI, EVI, LAI, NDWI y otros índices por parcela y fecha. El dataset PRO (Planet, de pago) se excluyó del modelo final: no cambió el desempeño y no es reproducible con fuentes gratuitas.",
+      "use": "Desarrollo"
+    },
+    {
+      "name": "CHIRPS + CHIRTS-ERA5",
+      "detail": "Precipitación mensual acumulada y temperatura mínima/máxima media, en raster para Hidalgo, Puebla y Tlaxcala.",
+      "use": "Desarrollo"
+    },
+    {
+      "name": "INEGI - CEM 4.0",
+      "detail": "Elevación y pendiente del terreno, resolución 120 m.",
+      "use": "Desarrollo"
+    },
+    {
+      "name": "Reto AgroCebada 2026 (FIRA)",
+      "detail": "Rendimiento observado (t/ha) de 138 parcelas de entrenamiento, agricultura de temporal, ciclo abril-octubre 2025.",
+      "use": "Entrenamiento"
+    }
+  ],
+  "validationSteps": [
+    {
+      "title": "Bloques por estado",
+      "detail": "Las 138 parcelas de entrenamiento se agrupan en 3 bloques espaciales: Hidalgo, Puebla y Tlaxcala."
+    },
+    {
+      "title": "Leave-region-out",
+      "detail": "En cada iteración se deja fuera un estado completo y se entrena solo con los otros dos, para simular qué tan bien predice el modelo sobre una región que nunca vio."
+    },
+    {
+      "title": "Selección de features por SHAP",
+      "detail": "De 68 features candidatas (solo índices reproducibles con fuentes gratuitas), se probaron subconjuntos rankeados por importancia SHAP; el top-10 dio el mejor RMSE bajo la misma validación espacial (0.740 con las 97 features -> 0.642), evidencia de que el modelo con todas las features sobreajustaba."
+    },
+    {
+      "title": "Métrica por bloque",
+      "detail": "RMSE por estado excluido: Tlaxcala 0.43 t/ha, Hidalgo 0.62 t/ha, Puebla 0.72 t/ha. El promedio global (0.64 t/ha) es el que se reporta como RMSE del modelo."
+    }
+  ],
+  "guidingQuestions": [
+    {
+      "question": "¿Qué variables satelitales y climáticas explican mejor el rendimiento?",
+      "answer": "Según SHAP, Precipitación en emergencia-macollamiento, LAI en espigado-llenado, Densidad de observaciones válidas (Sentinel-2/Landsat), NDTI en emergencia-macollamiento y NDWI en espigado-llenado concentran la mayor contribución. Precipitación en emergencia-macollamiento aporta el 69% de la importancia total; está parcialmente confundida con el estado por la resolución de CHIRPS (~5 km) — ver limitación en Metodología."
+    },
+    {
+      "question": "¿En qué etapa del ciclo es más crítico monitorear la parcela?",
+      "answer": "Emergencia-macollamiento: 4 de las 10 variables seleccionadas por SHAP corresponden a esta ventana (frente a Encañado con 3 o Espigado-llenado con 2)."
+    },
+    {
+      "question": "¿Cómo se traduce la predicción en una decisión de crédito replicable?",
+      "answer": "Cada parcela recibe un rendimiento esperado con un margen de error igual al RMSE de validación espacial de su estado, y un score 0-100 que alimenta un semáforo de elegibilidad."
+    },
+    {
+      "question": "¿Qué tan confiable es el modelo hoy?",
+      "answer": "Bajo validación espacial estricta (dejar un estado completo fuera), el modelo elegido alcanza R²=0.43 y RMSE=0.64 t/ha tras seleccionar las 10 features más relevantes (sin usar Planet); antes de seleccionar features, R² era 0.24. Sigue siendo una referencia de riesgo relativo, no una cifra exacta de cosecha."
+    }
+  ]
+}

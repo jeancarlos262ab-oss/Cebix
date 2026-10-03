@@ -11,10 +11,10 @@ import {
 import TopBar from "../components/layout/TopBar";
 import StatCard from "../components/ui/StatCard";
 import InfoButton from "../components/ui/InfoButton";
-import { globalImportance } from "../data/shap";
-import { guidingQuestions, modelSummary } from "../data/model";
+import { useModelInfo } from "../context/ModelInfoContext";
 import { useParcels } from "../context/ParcelsContext";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
+import RequireModelInfo from "../components/ui/RequireModelInfo";
 
 /* ------------------------------------------------------------------ */
 /* Constantes y utilidades                                             */
@@ -54,8 +54,6 @@ function windowOf(feature) {
   return "datos";
 }
 
-const PRECIP = "Precipitación en emergencia-macollamiento";
-
 // Recuadro del sistema de diseño: cuadrado, borde fino, sin relleno (igual que Modelo / Predicciones).
 const CARD = "rounded-2xl border border-gray-200 p-5 dark:border-gray-800";
 // Celdas de valor pegadas, igual que las métricas de Predicciones: un marco redondeado con líneas divisorias
@@ -90,8 +88,6 @@ function pearson(xs, ys) {
 }
 
 const netShap = (p) => (p.shap ?? []).reduce((s, d) => s + d.impact, 0);
-
-const globalDirection = Object.fromEntries(globalImportance.map((r) => [r.feature, r.direction]));
 
 /* ------------------------------------------------------------------ */
 /* Piezas de UI                                                        */
@@ -196,7 +192,7 @@ function WindowBreakdown({ rows }) {
   );
 }
 
-function LocalDriverRow({ driver, maxAbs }) {
+function LocalDriverRow({ driver, maxAbs, globalDirection }) {
   const positive = driver.impact >= 0;
   const color = positive ? EFFECT_COLOR.positivo : EFFECT_COLOR.negativo;
   const half = Math.max(1, (Math.abs(driver.impact) / maxAbs) * 50);
@@ -250,10 +246,16 @@ function LocalDriverRow({ driver, maxAbs }) {
 
 function ValidacionSHAPPageContent() {
   const { parcels } = useParcels();
+  const { info } = useModelInfo();
+  const { globalImportance, modelSummary, guidingQuestions } = info;
   const [filter, setFilter] = useState("todas");
+  const globalDirection = useMemo(
+    () => Object.fromEntries(globalImportance.map((r) => [r.feature, r.direction])),
+    [globalImportance],
+  );
 
   /* Importancia global ------------------------------------------------ */
-  const total = globalImportance.reduce((s, r) => s + r.value, 0);
+  const total = globalImportance.reduce((s, r) => s + r.value, 0) || 1;
   const maxValue = Math.max(...globalImportance.map((d) => Math.abs(d.value)));
   const topFeature = globalImportance[0];
 
@@ -268,7 +270,7 @@ function ValidacionSHAPPageContent() {
         cumulative: Math.round((acc / total) * 100),
       };
     });
-  }, [total]);
+  }, [total, globalImportance]);
 
   const visibleRows = rankedRows.filter((r) => filter === "todas" || r.row.direction === filter);
   const nPositive = globalImportance.filter((r) => r.direction === "positivo").length;
@@ -279,7 +281,7 @@ function ValidacionSHAPPageContent() {
     for (const r of globalImportance) sums[windowOf(r.feature)] = (sums[windowOf(r.feature)] ?? 0) + r.value;
     const best = Object.entries(sums).sort((a, b) => b[1] - a[1])[0];
     return { key: best[0], share: Math.round((best[1] / total) * 100) };
-  }, [total]);
+  }, [total, globalImportance]);
   const topWindow = WINDOWS.find((w) => w.key === windowShares.key);
 
   /* Coherencia entre SHAP local y semáforo (calculada con las parcelas actuales) */
@@ -287,9 +289,9 @@ function ValidacionSHAPPageContent() {
     const withShap = parcels.filter((p) => p.shap?.length);
     const eligible = withShap.filter((p) => p.score >= 70);
     const eligiblePositive = eligible.filter((p) => netShap(p) > 0).length;
-    const precipTop = withShap.filter((p) => {
+    const dominantTop = withShap.filter((p) => {
       const top = [...p.shap].sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact))[0];
-      return top.feature === PRECIP;
+      return top.feature === topFeature.feature;
     }).length;
     const r = pearson(
       withShap.map(netShap),
@@ -299,10 +301,10 @@ function ValidacionSHAPPageContent() {
       total: withShap.length,
       eligible: eligible.length,
       eligiblePositive,
-      precipTop,
+      dominantTop,
       r,
     };
-  }, [parcels]);
+  }, [parcels, topFeature.feature]);
 
   /* Explicación local ------------------------------------------------- */
   const selectable = useMemo(() => parcels.filter((p) => p.shap?.length), [parcels]);
@@ -338,7 +340,7 @@ function ValidacionSHAPPageContent() {
             <StatCard
               label="Variable dominante"
               value={`${Math.round((topFeature.value / total) * 100)}%`}
-              hint="Precipitación en emergencia-macollamiento"
+              hint={topFeature.feature}
               icon={CloudRain}
               tone="brand"
               cornerIcon
@@ -419,9 +421,9 @@ function ValidacionSHAPPageContent() {
 
           <dl className="mt-6 text-sm">
             <div className="flex items-baseline justify-between gap-4 py-3">
-              <dt className="text-gray-500 dark:text-gray-400">Precipitación como driver #1</dt>
+              <dt className="text-gray-500 dark:text-gray-400">Variable dominante como driver #1</dt>
               <dd className="font-display font-bold tabular-nums text-gray-900 dark:text-gray-100">
-                {checks.precipTop}
+                {checks.dominantTop}
                 <span className="ml-1 text-xs font-medium text-gray-400 dark:text-gray-500">
                   de {checks.total}
                 </span>
@@ -449,8 +451,9 @@ function ValidacionSHAPPageContent() {
 
           <p className="mt-4 text-xs leading-relaxed text-gray-400 dark:text-gray-500">
             Cada parcela guarda sus 4 variables con mayor |SHAP|; los totales por parcela se calculan sobre
-            esas 4. Nota: la precipitación está parcialmente confundida con el estado por la resolución de
-            CHIRPS (~5 km).
+            esas 4.
+            {topFeature.feature.toLowerCase().includes("precipitación") &&
+              " Nota: la precipitación está parcialmente confundida con el estado por la resolución de CHIRPS (~5 km)."}
           </p>
         </aside>
 
@@ -460,7 +463,7 @@ function ValidacionSHAPPageContent() {
           <section className={CARD}>
             <SectionHeader
               title="Importancia global de variables"
-              description={`Media de |SHAP| sobre las ${modelSummary.trainingParcels} parcelas de entrenamiento. Las 3 primeras variables concentran el ${rankedRows[2].cumulative}% de la importancia.`}
+              description={`Media de |SHAP| sobre las ${modelSummary.shapParcels} parcelas del reto (entrenamiento y evaluación). Las 3 primeras variables concentran el ${rankedRows[2].cumulative}% de la importancia.`}
               aside={
                 <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar por efecto">
                   {FILTERS.map((f) => {
@@ -584,7 +587,7 @@ function ValidacionSHAPPageContent() {
 
                 <ul className="mt-4">
                   {localDrivers.map((d) => (
-                    <LocalDriverRow key={d.feature} driver={d} maxAbs={localMax} />
+                    <LocalDriverRow key={d.feature} driver={d} maxAbs={localMax} globalDirection={globalDirection} />
                   ))}
                 </ul>
               </>
@@ -603,7 +606,9 @@ function ValidacionSHAPPageContent() {
 export default function ValidacionSHAPPage() {
   return (
     <RequireAnalysis title="Validación SHAP" subtitle="Qué variables explican cada predicción." >
-      <ValidacionSHAPPageContent />
+      <RequireModelInfo>
+        <ValidacionSHAPPageContent />
+      </RequireModelInfo>
     </RequireAnalysis>
   );
 }

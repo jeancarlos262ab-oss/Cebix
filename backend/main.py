@@ -9,6 +9,9 @@ modelo predictivo" de las bases del reto.
 
 Endpoints:
   GET  /health           — health check ligero (no carga el modelo)
+  GET  /model-info       — métricas de validación, comparación de algoritmos, SHAP global,
+                           preguntas guía... (lo genera ml/03_modelo/build_model_meta.py)
+  GET  /example-csv      — CSV de ejemplo (parcelas de evaluación, con lat/lng) para /predict-csv
   GET  /                 — info básica, para probar que el servicio está vivo
   GET  /features         — la lista de las 10 features que el modelo espera, con su
                             nombre legible (para construir un formulario o validar un CSV)
@@ -27,6 +30,7 @@ Probar:
 """
 
 import io
+import json
 import os
 
 import joblib
@@ -35,9 +39,12 @@ import pandas as pd
 import shap
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 MODEL_PATH = os.environ.get("MODEL_PATH", os.path.join(os.path.dirname(__file__), "model_artifact.joblib"))
+META_PATH = os.environ.get("MODEL_META_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "model_meta.json"))
+EXAMPLE_CSV_PATH = os.environ.get("EXAMPLE_CSV_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "ejemplo_features_predict.csv"))
 
 app = FastAPI(
     title="CEBIX — API de inferencia (Reto AgroCebada 2026)",
@@ -158,6 +165,31 @@ def _meta(df, i):
 def health():
     # Ligero: no carga el modelo. Es el health check de Render.
     return {"status": "ok"}
+
+
+_meta_cache = None
+
+
+@app.get("/model-info")
+def model_info():
+    """Todo lo que describe al modelo (métricas, SHAP global, textos). El frontend no trae nada de esto fijo."""
+    global _meta_cache
+    if _meta_cache is None:
+        if not os.path.exists(META_PATH):
+            raise HTTPException(
+                status_code=500,
+                detail="Falta model_meta.json. Genéralo con: python ml/03_modelo/build_model_meta.py",
+            )
+        with open(META_PATH, encoding="utf-8") as f:
+            _meta_cache = json.load(f)
+    return _meta_cache
+
+
+@app.get("/example-csv")
+def example_csv():
+    if not os.path.exists(EXAMPLE_CSV_PATH):
+        raise HTTPException(status_code=404, detail="Falta backend/data/ejemplo_features_predict.csv (ver ml/build_example_csv.py).")
+    return FileResponse(EXAMPLE_CSV_PATH, media_type="text/csv", filename="ejemplo_features_predict.csv")
 
 
 @app.get("/")

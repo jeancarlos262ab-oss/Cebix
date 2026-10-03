@@ -5,6 +5,7 @@ import "./index.css";
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
+import { ModelInfoProvider } from "./context/ModelInfoContext.jsx";
 import { ParcelsProvider } from "./context/ParcelsContext.jsx";
 import { UsersProvider } from "./context/UsersContext.jsx";
 import AppToaster from "./components/ui/AppToaster.jsx";
@@ -13,14 +14,16 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <ThemeProvider>
       <AuthProvider>
-        <ParcelsProvider>
-          <UsersProvider>
-            <BrowserRouter>
-              <App />
-            </BrowserRouter>
-            <AppToaster />
-          </UsersProvider>
-        </ParcelsProvider>
+        <ModelInfoProvider>
+          <ParcelsProvider>
+            <UsersProvider>
+              <BrowserRouter>
+                <App />
+              </BrowserRouter>
+              <AppToaster />
+            </UsersProvider>
+          </ParcelsProvider>
+        </ModelInfoProvider>
       </AuthProvider>
     </ThemeProvider>
   </StrictMode>

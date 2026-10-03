@@ -1,6 +1,6 @@
 import TopBar from "../components/layout/TopBar";
 import ParcelSummary from "../components/dashboard/ParcelSummary";
-import YieldTrend from "../components/dashboard/YieldTrend";
+import YieldDistribution from "../components/dashboard/YieldDistribution";
 import ParcelsTable from "../components/dashboard/ParcelsTable";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
 
@@ -15,7 +15,7 @@ function DashboardPageContent() {
         <ParcelSummary />
 
         <div className="min-w-0 space-y-10">
-          <YieldTrend />
+          <YieldDistribution />
           <ParcelsTable />
         </div>
       </div>

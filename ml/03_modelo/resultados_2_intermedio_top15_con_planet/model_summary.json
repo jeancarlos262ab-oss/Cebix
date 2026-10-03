@@ -1,0 +1,370 @@
+{
+  "selected_model": "Random Forest",
+  "n_features_selected": 15,
+  "n_features_originales": 97,
+  "features_seleccionadas": [
+    "precip_acum_emergencia_macollamiento_mm",
+    "bas_n_obs_ciclo",
+    "bas_lai_espigado_llenado",
+    "bas_ndti_emergencia_macollamiento",
+    "bas_sti_encanado",
+    "pro_msavi_emergencia_macollamiento",
+    "bas_ndwi_espigado_llenado",
+    "bas_fapar_emergencia_macollamiento",
+    "bas_ndti_encanado",
+    "pro_lai_emergencia_macollamiento",
+    "bas_dswi5_emergencia_macollamiento",
+    "bas_ndvi_emergencia_macollamiento",
+    "bas_evi_encanado",
+    "bas_vi6t_emergencia_macollamiento",
+    "pro_n_obs_ciclo"
+  ],
+  "cv_strategy": "leave-region-out (Hidalgo / Puebla / Tlaxcala)",
+  "cv_metrics_por_n": [
+    {
+      "model": "Ridge",
+      "rmse": 0.75,
+      "mae": 0.623,
+      "r2": 0.219,
+      "n_features": 10
+    },
+    {
+      "model": "Lasso",
+      "rmse": 0.762,
+      "mae": 0.634,
+      "r2": 0.192,
+      "n_features": 10
+    },
+    {
+      "model": "ElasticNet",
+      "rmse": 0.755,
+      "mae": 0.627,
+      "r2": 0.207,
+      "n_features": 10
+    },
+    {
+      "model": "Random Forest",
+      "rmse": 0.649,
+      "mae": 0.495,
+      "r2": 0.415,
+      "n_features": 10
+    },
+    {
+      "model": "XGBoost",
+      "rmse": 0.825,
+      "mae": 0.669,
+      "r2": 0.053,
+      "n_features": 10
+    },
+    {
+      "model": "LightGBM",
+      "rmse": 0.884,
+      "mae": 0.7,
+      "r2": -0.086,
+      "n_features": 10
+    },
+    {
+      "model": "Ridge",
+      "rmse": 0.762,
+      "mae": 0.627,
+      "r2": 0.192,
+      "n_features": 15
+    },
+    {
+      "model": "Lasso",
+      "rmse": 0.757,
+      "mae": 0.612,
+      "r2": 0.203,
+      "n_features": 15
+    },
+    {
+      "model": "ElasticNet",
+      "rmse": 0.752,
+      "mae": 0.612,
+      "r2": 0.214,
+      "n_features": 15
+    },
+    {
+      "model": "Random Forest",
+      "rmse": 0.645,
+      "mae": 0.491,
+      "r2": 0.422,
+      "n_features": 15
+    },
+    {
+      "model": "XGBoost",
+      "rmse": 0.778,
+      "mae": 0.634,
+      "r2": 0.158,
+      "n_features": 15
+    },
+    {
+      "model": "LightGBM",
+      "rmse": 0.851,
+      "mae": 0.692,
+      "r2": -0.006,
+      "n_features": 15
+    },
+    {
+      "model": "Ridge",
+      "rmse": 0.866,
+      "mae": 0.72,
+      "r2": -0.043,
+      "n_features": 20
+    },
+    {
+      "model": "Lasso",
+      "rmse": 0.798,
+      "mae": 0.657,
+      "r2": 0.114,
+      "n_features": 20
+    },
+    {
+      "model": "ElasticNet",
+      "rmse": 0.809,
+      "mae": 0.668,
+      "r2": 0.089,
+      "n_features": 20
+    },
+    {
+      "model": "Random Forest",
+      "rmse": 0.645,
+      "mae": 0.49,
+      "r2": 0.421,
+      "n_features": 20
+    },
+    {
+      "model": "XGBoost",
+      "rmse": 0.81,
+      "mae": 0.667,
+      "r2": 0.088,
+      "n_features": 20
+    },
+    {
+      "model": "LightGBM",
+      "rmse": 0.885,
+      "mae": 0.727,
+      "r2": -0.089,
+      "n_features": 20
+    },
+    {
+      "model": "Ridge",
+      "rmse": 0.806,
+      "mae": 0.669,
+      "r2": 0.096,
+      "n_features": 25
+    },
+    {
+      "model": "Lasso",
+      "rmse": 0.797,
+      "mae": 0.653,
+      "r2": 0.118,
+      "n_features": 25
+    },
+    {
+      "model": "ElasticNet",
+      "rmse": 0.807,
+      "mae": 0.663,
+      "r2": 0.095,
+      "n_features": 25
+    },
+    {
+      "model": "Random Forest",
+      "rmse": 0.653,
+      "mae": 0.496,
+      "r2": 0.407,
+      "n_features": 25
+    },
+    {
+      "model": "XGBoost",
+      "rmse": 0.777,
+      "mae": 0.643,
+      "r2": 0.16,
+      "n_features": 25
+    },
+    {
+      "model": "LightGBM",
+      "rmse": 0.892,
+      "mae": 0.73,
+      "r2": -0.106,
+      "n_features": 25
+    },
+    {
+      "model": "Ridge",
+      "rmse": 0.807,
+      "mae": 0.669,
+      "r2": 0.093,
+      "n_features": 30
+    },
+    {
+      "model": "Lasso",
+      "rmse": 0.807,
+      "mae": 0.661,
+      "r2": 0.096,
+      "n_features": 30
+    },
+    {
+      "model": "ElasticNet",
+      "rmse": 0.816,
+      "mae": 0.67,
+      "r2": 0.075,
+      "n_features": 30
+    },
+    {
+      "model": "Random Forest",
+      "rmse": 0.651,
+      "mae": 0.494,
+      "r2": 0.411,
+      "n_features": 30
+    },
+    {
+      "model": "XGBoost",
+      "rmse": 0.776,
+      "mae": 0.642,
+      "r2": 0.164,
+      "n_features": 30
+    },
+    {
+      "model": "LightGBM",
+      "rmse": 0.881,
+      "mae": 0.719,
+      "r2": -0.079,
+      "n_features": 30
+    },
+    {
+      "model": "Ridge",
+      "rmse": 0.833,
+      "mae": 0.691,
+      "r2": 0.036,
+      "n_features": 40
+    },
+    {
+      "model": "Lasso",
+      "rmse": 0.814,
+      "mae": 0.669,
+      "r2": 0.079,
+      "n_features": 40
+    },
+    {
+      "model": "ElasticNet",
+      "rmse": 0.819,
+      "mae": 0.67,
+      "r2": 0.068,
+      "n_features": 40
+    },
+    {
+      "model": "Random Forest",
+      "rmse": 0.649,
+      "mae": 0.495,
+      "r2": 0.414,
+      "n_features": 40
+    },
+    {
+      "model": "XGBoost",
+      "rmse": 0.762,
+      "mae": 0.621,
+      "r2": 0.192,
+      "n_features": 40
+    },
+    {
+      "model": "LightGBM",
+      "rmse": 0.843,
+      "mae": 0.681,
+      "r2": 0.013,
+      "n_features": 40
+    },
+    {
+      "model": "Ridge",
+      "rmse": 0.843,
+      "mae": 0.692,
+      "r2": 0.012,
+      "n_features": 50
+    },
+    {
+      "model": "Lasso",
+      "rmse": 0.836,
+      "mae": 0.693,
+      "r2": 0.028,
+      "n_features": 50
+    },
+    {
+      "model": "ElasticNet",
+      "rmse": 0.856,
+      "mae": 0.707,
+      "r2": -0.02,
+      "n_features": 50
+    },
+    {
+      "model": "Random Forest",
+      "rmse": 0.652,
+      "mae": 0.499,
+      "r2": 0.408,
+      "n_features": 50
+    },
+    {
+      "model": "XGBoost",
+      "rmse": 0.746,
+      "mae": 0.609,
+      "r2": 0.227,
+      "n_features": 50
+    },
+    {
+      "model": "LightGBM",
+      "rmse": 0.831,
+      "mae": 0.675,
+      "r2": 0.039,
+      "n_features": 50
+    },
+    {
+      "model": "Ridge",
+      "rmse": 0.755,
+      "mae": 0.601,
+      "r2": 0.208,
+      "n_features": 97
+    },
+    {
+      "model": "Lasso",
+      "rmse": 0.804,
+      "mae": 0.683,
+      "r2": 0.101,
+      "n_features": 97
+    },
+    {
+      "model": "ElasticNet",
+      "rmse": 0.776,
+      "mae": 0.645,
+      "r2": 0.163,
+      "n_features": 97
+    },
+    {
+      "model": "Random Forest",
+      "rmse": 0.738,
+      "mae": 0.594,
+      "r2": 0.242,
+      "n_features": 97
+    },
+    {
+      "model": "XGBoost",
+      "rmse": 0.759,
+      "mae": 0.636,
+      "r2": 0.2,
+      "n_features": 97
+    },
+    {
+      "model": "LightGBM",
+      "rmse": 0.886,
+      "mae": 0.739,
+      "r2": -0.09,
+      "n_features": 97
+    }
+  ],
+  "mejor_resultado": {
+    "rmse": 0.645,
+    "mae": 0.491,
+    "r2": 0.422,
+    "model": "Random Forest",
+    "n_features": 15
+  },
+  "n_train": 138,
+  "n_predict": 59
+}

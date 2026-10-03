@@ -10,6 +10,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY main.py .
 COPY model_artifact.joblib .
+COPY model_meta.json .
+COPY data ./data
 
 # Render inyecta $PORT (10000 por defecto); en local cae a 8000.
 EXPOSE 8000

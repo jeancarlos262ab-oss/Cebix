@@ -1,0 +1,95 @@
+{
+  "selected_model": "Random Forest",
+  "cv_strategy": "leave-region-out (Hidalgo / Puebla / Tlaxcala)",
+  "cv_metrics": [
+    {
+      "model": "Random Forest",
+      "rmse": 0.74,
+      "mae": 0.594,
+      "r2": 0.24,
+      "type": "boosting"
+    },
+    {
+      "model": "Ridge",
+      "rmse": 0.755,
+      "mae": 0.601,
+      "r2": 0.208,
+      "type": "baseline"
+    },
+    {
+      "model": "ElasticNet",
+      "rmse": 0.776,
+      "mae": 0.645,
+      "r2": 0.163,
+      "type": "baseline"
+    },
+    {
+      "model": "XGBoost",
+      "rmse": 0.796,
+      "mae": 0.667,
+      "r2": 0.12,
+      "type": "boosting"
+    },
+    {
+      "model": "Lasso",
+      "rmse": 0.804,
+      "mae": 0.683,
+      "r2": 0.101,
+      "type": "baseline"
+    },
+    {
+      "model": "LightGBM",
+      "rmse": 0.885,
+      "mae": 0.725,
+      "r2": -0.09,
+      "type": "boosting"
+    }
+  ],
+  "top_10_features": [
+    {
+      "feature": "precip_acum_emergencia_macollamiento_mm",
+      "shap_importance_media_abs": 0.6458675459379173
+    },
+    {
+      "feature": "bas_n_obs_ciclo",
+      "shap_importance_media_abs": 0.043175554749358656
+    },
+    {
+      "feature": "bas_lai_espigado_llenado",
+      "shap_importance_media_abs": 0.01612203116522887
+    },
+    {
+      "feature": "bas_ndti_emergencia_macollamiento",
+      "shap_importance_media_abs": 0.014948670323085238
+    },
+    {
+      "feature": "bas_sti_encanado",
+      "shap_importance_media_abs": 0.012038856263143632
+    },
+    {
+      "feature": "pro_msavi_emergencia_macollamiento",
+      "shap_importance_media_abs": 0.011112499364648469
+    },
+    {
+      "feature": "bas_ndwi_espigado_llenado",
+      "shap_importance_media_abs": 0.009282770325894637
+    },
+    {
+      "feature": "bas_fapar_emergencia_macollamiento",
+      "shap_importance_media_abs": 0.009279779367294353
+    },
+    {
+      "feature": "bas_ndti_encanado",
+      "shap_importance_media_abs": 0.00865538983456867
+    },
+    {
+      "feature": "pro_lai_emergencia_macollamiento",
+      "shap_importance_media_abs": 0.008256547919340773
+    }
+  ],
+  "n_train": 138,
+  "n_predict": 59,
+  "n_features": 97,
+  "gdd_base_temp_c": 4.0,
+  "cloud_threshold_pct": 40
+}

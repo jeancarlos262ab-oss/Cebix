@@ -8,6 +8,7 @@ import StatCard from "../components/ui/StatCard";
 import ConfidenceRange from "../components/charts/ConfidenceRange";
 import FeatureImportanceChart from "../components/charts/FeatureImportanceChart";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
+import { useModelInfo } from "../context/ModelInfoContext";
 import { generateCreditReportPDF } from "../utils/creditReport";
 import { Droplets, Leaf, Sun } from "lucide-react";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
@@ -15,6 +16,7 @@ import RequireAnalysis from "../components/ui/RequireAnalysis";
 function ParcelaDetallePageContent() {
   const { id } = useParams();
   const { parcels, submissions } = useParcels();
+  const { info } = useModelInfo();
   const parcel = parcels.find((p) => String(p.id) === id);
 
   if (!parcel) {
@@ -149,7 +151,7 @@ function ParcelaDetallePageContent() {
           <button
             type="button"
             onClick={() => {
-              generateCreditReportPDF(parcel, { submitted: Boolean(submittedAt) });
+              generateCreditReportPDF(parcel, { submitted: Boolean(submittedAt), modelSummary: info?.modelSummary });
               toast.success("Reporte PDF generado.");
             }}
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast shadow-sm hover:bg-accent-600"

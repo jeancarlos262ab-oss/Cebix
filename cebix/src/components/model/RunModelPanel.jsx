@@ -17,10 +17,10 @@ import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { Link } from "react-router-dom";
 import LiquidOrbLoader from "./LiquidOrbLoader";
+import { useModelInfo } from "../../context/ModelInfoContext";
 import { useParcels } from "../../context/ParcelsContext";
 import { EXAMPLE_CSV_URL, fetchExampleFile, friendlyError, predictCsv } from "../../hooks/useModelRunner";
 
-const REQUIRED_COLUMNS = ["ID_POLIGONO", "Estado", "10 features del modelo"];
 const STATES = ["Hidalgo", "Puebla", "Tlaxcala"];
 
 // Tiempo mínimo que el orbe "piensa", aunque el backend responda antes.
@@ -48,6 +48,13 @@ export default function RunModelPanel() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const { loadAnalysis, clearAnalysis, hasAnalysis, analysisMeta } = useParcels();
+  const { info } = useModelInfo();
+  const requiredColumns = [
+    "ID_POLIGONO",
+    "Estado",
+    info ? `${info.modelSummary.nFeatures} features del modelo` : "Features del modelo",
+    "lat / lng (para el mapa)",
+  ];
 
   function pickFile(f) {
     if (f) setFile(f);
@@ -91,7 +98,7 @@ export default function RunModelPanel() {
     runWith(file);
   }
 
-  // Un clic: baja el CSV de ejemplo (59 parcelas de evaluación) y ejecuta el modelo con él.
+  // Un clic: baja el CSV de ejemplo desde el backend y ejecuta el modelo con él.
   async function handleExample() {
     try {
       const example = await fetchExampleFile();
@@ -140,7 +147,7 @@ export default function RunModelPanel() {
               </span>
               <div className="min-w-0">
                 <div className="flex flex-wrap gap-1.5">
-                  {REQUIRED_COLUMNS.map((c) => (
+                  {requiredColumns.map((c) => (
                     <span
                       key={c}
                       className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300"

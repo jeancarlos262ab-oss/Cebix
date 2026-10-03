@@ -19,7 +19,7 @@ const NDVI_MAX = 0.85;
 const RISK_HEX = { ...RISK_COLORS, gray: "#9CA3AF" };
 
 /**
- * @param {{parcel: import("../../data/parcels").parcels[number], onEdit?: (parcel: object) => void}} props
+ * @param {{parcel: import("../../context/ParcelsContext").buildAnalysisParcel, onEdit?: (parcel: object) => void}} props
  */
 function ParcelRow({ parcel, onEdit }) {
   const navigate = useNavigate();

@@ -23,6 +23,7 @@ import ConfidenceRange from "../components/charts/ConfidenceRange";
 import FeatureImportanceChart from "../components/charts/FeatureImportanceChart";
 import StaticMapImage from "../components/map/StaticMapImage";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
+import { useModelInfo } from "../context/ModelInfoContext";
 import { generateCreditReportPDF } from "../utils/creditReport";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
 
@@ -40,7 +41,7 @@ const chartQuestions = [
   {
     question: "¿Por qué dos parcelas con el mismo NDVI pueden tener predicciones distintas?",
     answer:
-      "El modelo combina varias variables a la vez (temperatura, precipitación, grados-día, NDWI, EVI, etc.), no solo el NDVI. La gráfica de variables que más influyeron muestra exactamente cuáles pesaron más en cada caso particular.",
+      "El modelo combina varias variables satelitales y climáticas a la vez, no solo el NDVI. La gráfica de variables que más influyeron muestra exactamente cuáles pesaron más en cada caso particular.",
   },
 ];
 
@@ -83,6 +84,7 @@ function DetailRow({ label, children }) {
 
 function PrediccionesPageContent() {
   const { parcels, submissions, submitToCommittee } = useParcels();
+  const { info } = useModelInfo();
   const [selectedId, setSelectedId] = useState(parcels[0].id);
   const parcel = parcels.find((p) => p.id === selectedId) ?? parcels[0];
   const submittedAt = submissions[parcel.id];
@@ -90,7 +92,7 @@ function PrediccionesPageContent() {
 
   const handleSubmit = () => {
     submitToCommittee(parcel.id);
-    generateCreditReportPDF(parcel, { submitted: true });
+    generateCreditReportPDF(parcel, { submitted: true, modelSummary: info?.modelSummary });
     toast.success("Solicitud enviada al comité y reporte PDF generado.");
     setJustSubmitted(true);
     window.setTimeout(() => setJustSubmitted(false), 2500);

@@ -1,0 +1,11 @@
+feature,shap_importance_media_abs
+precip_acum_emergencia_macollamiento_mm,0.6538963128526883
+bas_lai_espigado_llenado,0.053502511392912254
+bas_n_obs_ciclo,0.05183219779884312
+bas_ndti_emergencia_macollamiento,0.03977095372394712
+bas_ndwi_espigado_llenado,0.031875184328938634
+bas_evi_encanado,0.030975514078026664
+bas_sti_encanado,0.03091662282802076
+bas_evi_emergencia_macollamiento,0.020802477854666896
+bas_ndvi_emergencia_macollamiento,0.02053169862680402
+bas_ndti_encanado,0.018551983225048398

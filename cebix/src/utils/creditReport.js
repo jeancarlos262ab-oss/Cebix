@@ -5,7 +5,7 @@
  */
 // jsPDF pesa bastante (~350 KB): se descarga solo al generar el primer reporte,
 // no al abrir Predicciones o el detalle de una parcela.
-export async function generateCreditReportPDF(parcel, { submitted = false } = {}) {
+export async function generateCreditReportPDF(parcel, { submitted = false, modelSummary = null } = {}) {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "letter" });
   const marginX = 56;
@@ -101,11 +101,11 @@ export async function generateCreditReportPDF(parcel, { submitted = false } = {}
 
   doc.setFontSize(8);
   doc.setTextColor(150);
-  doc.text(
-    "CEBIX — Reto AgroCebada 2026. Score calculado con un modelo Ridge validado espacialmente (leave-region-out).",
-    marginX,
-    770
-  );
+  // El nombre del modelo y su RMSE vienen del backend (GET /model-info), no están escritos aquí.
+  const modelNote = modelSummary
+    ? `Rendimiento estimado con ${modelSummary.modelName} (${modelSummary.validation}; RMSE ${modelSummary.rmse} ton/ha).`
+    : "Rendimiento estimado con el modelo predictivo de CEBIX.";
+  doc.text(`CEBIX — Reto AgroCebada 2026. ${modelNote}`, marginX, 770);
 
   const filename = `reporte-credito-${parcel.polygonId || parcel.id}.pdf`;
   doc.save(filename);

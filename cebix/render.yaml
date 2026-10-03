@@ -1,0 +1,17 @@
+# Blueprint de Render para el repo Cebix (el backend vive en la carpeta backend/).
+# Las rutas son relativas a la RAÍZ del repo, así que este archivo funciona igual
+# en la raíz (render.yaml) o dentro de backend/ (backend/render.yaml).
+services:
+  - type: web
+    name: cebix-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: ohio
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Dominio del frontend en Vercel, sin "/" al final. Varios, separados por coma.
+      - key: ALLOWED_ORIGINS
+        sync: false

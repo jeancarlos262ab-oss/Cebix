@@ -1,17 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 import ParcelEmblem from "./ParcelEmblem";
 import MiniBarChart from "./MiniBarChart";
-import PeriodToggle from "../ui/PeriodToggle";
 import FeatureImportanceChart from "../charts/FeatureImportanceChart";
-import { gddFull, gdd60d, gdd30d, yieldTrendFull } from "../../data/chartData";
-import { globalImportance } from "../../data/shap";
-import { modelSummary } from "../../data/model";
+import { useModelInfo } from "../../context/ModelInfoContext";
 import { useParcels } from "../../context/ParcelsContext";
 import { downloadCSV } from "../../utils/csv";
+import { yieldByRegion, yieldRange } from "../../utils/parcelStats";
 
-const TABS = ["Predicción", "Variables", "Riesgo", "Histórico"];
+const TABS = ["Predicción", "Variables", "Riesgo", "Rango"];
 
 /**
  * Tabs con scroll horizontal suave: sin barra de scroll, con flechas a los lados
@@ -119,34 +117,30 @@ function ScrollableTabs({ tabs, active, onChange }) {
   );
 }
 
-const PERIODS = ["Ciclo completo", "60 días", "30 días"];
-
-const BARS_BY_PERIOD = {
-  "Ciclo completo": gddFull,
-  "60 días": gdd60d,
-  "30 días": gdd30d,
-};
-
-function exportGdd(period) {
+function exportRegionYield(rows) {
   downloadCSV(
-    `cebix-gdd-${period.toLowerCase().replace(/\s+/g, "-")}.csv`,
+    "cebix-rendimiento-por-estado.csv",
     [
-      { key: "month", label: "Mes" },
-      { key: "budget", label: "GDD máximo regional" },
-      { key: "spent", label: "GDD observado" },
+      { key: "label", label: "Estado" },
+      { key: "count", label: "Parcelas" },
+      { key: "mean", label: "Rendimiento estimado promedio (ton/ha)" },
+      { key: "max", label: "Rendimiento estimado máximo (ton/ha)" },
     ],
-    BARS_BY_PERIOD[period]
+    rows
   );
 }
 
 export default function ParcelSummary() {
   const { parcels } = useParcels();
+  const { info } = useModelInfo();
+  const importance = useMemo(() => info?.globalImportance ?? [], [info]);
+  const rmse = info?.modelSummary?.rmse;
   const [activeTab, setActiveTab] = useState("Predicción");
-  const [period, setPeriod] = useState("Ciclo completo");
+  const regionRows = useMemo(() => yieldByRegion(parcels), [parcels]);
 
   const summaryRows = useMemo(() => {
     if (activeTab === "Variables") {
-      return globalImportance.slice(0, 3).map((f) => ({
+      return importance.slice(0, 3).map((f) => ({
         label: f.feature,
         value: `${f.direction === "negativo" ? "-" : "+"}${f.value.toFixed(3)}`,
       }));
@@ -163,14 +157,13 @@ export default function ParcelSummary() {
       ];
     }
 
-    if (activeTab === "Histórico") {
-      const first = yieldTrendFull[0];
-      const last = yieldTrendFull[yieldTrendFull.length - 1];
-      const growth = last.value - first.value;
+    if (activeTab === "Rango") {
+      const range = yieldRange(parcels);
+      if (!range) return [];
       return [
-        { label: `Rendimiento en ${first.month} (inicio de ciclo)`, value: `${first.value.toFixed(2)} ton/ha` },
-        { label: `Rendimiento en ${last.month} (a cosecha)`, value: `${last.value.toFixed(2)} ton/ha` },
-        { label: "Crecimiento acumulado del ciclo", value: `+${growth.toFixed(2)} ton/ha` },
+        { label: "Rendimiento mínimo estimado", value: `${range.min.toFixed(2)} ton/ha` },
+        { label: "Rendimiento máximo estimado", value: `${range.max.toFixed(2)} ton/ha` },
+        { label: "Rango (máx − mín)", value: `${range.spread.toFixed(2)} ton/ha` },
       ];
     }
 
@@ -179,10 +172,10 @@ export default function ParcelSummary() {
     const avgScore = parcels.reduce((s, p) => s + p.score, 0) / parcels.length;
     return [
       { label: "Rendimiento estimado (promedio)", value: `${avgYield.toFixed(1)} ton/ha` },
-      { label: "Margen de error (RMSE espacial)", value: `± ${modelSummary.rmse.toFixed(2)} ton/ha` },
+      { label: "Margen de error (RMSE espacial)", value: rmse == null ? "—" : `± ${rmse.toFixed(2)} ton/ha` },
       { label: "Score de elegibilidad (promedio)", value: `${Math.round(avgScore)} / 100` },
     ];
-  }, [activeTab, parcels]);
+  }, [activeTab, parcels, importance, rmse]);
 
   return (
     <div className="min-w-0 space-y-10">
@@ -206,7 +199,11 @@ export default function ParcelSummary() {
           >
             {activeTab === "Variables" ? (
               <div className="mt-4">
-                <FeatureImportanceChart data={globalImportance.slice(0, 6)} />
+                {importance.length ? (
+                  <FeatureImportanceChart data={importance.slice(0, 6)} />
+                ) : (
+                  <p className="py-6 text-sm text-gray-500 dark:text-gray-400">Cargando importancia de variables…</p>
+                )}
               </div>
             ) : (
               <dl className="mt-2">
@@ -229,30 +226,31 @@ export default function ParcelSummary() {
         layout
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
-        <h3 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">
-          Variables por etapa del ciclo
-        </h3>
-        <div className="mt-3">
-          <PeriodToggle
-            value={period}
-            options={PERIODS}
-            onChange={setPeriod}
-            withMenu
-            onMenuAction={() => exportGdd(period)}
-            menuLabel="Descargar CSV de esta serie"
-          />
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">
+            Rendimiento estimado por estado
+          </h3>
+          <button
+            type="button"
+            onClick={() => exportRegionYield(regionRows)}
+            aria-label="Descargar CSV de esta serie"
+            title="Descargar CSV de esta serie"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 text-accent-600 hover:bg-gray-50 dark:border-gray-700 dark:text-accent-400 dark:hover:bg-gray-800"
+          >
+            <Download size={14} />
+          </button>
         </div>
         <div className="mt-4">
-          <MiniBarChart data={BARS_BY_PERIOD[period]} />
+          <MiniBarChart data={regionRows} />
         </div>
         <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-gray-500 dark:text-gray-400">
           <li className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: "var(--chart-track)" }} />
-            GDD máximo regional
+            Máximo estimado
           </li>
           <li className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: "var(--chart-2)" }} />
-            GDD observado
+            Promedio estimado
           </li>
         </ul>
       </motion.div>

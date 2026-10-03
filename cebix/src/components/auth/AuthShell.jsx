@@ -8,7 +8,7 @@ import { AuthShellContext } from "./AuthShellContext";
 import "./auth.css";
 
 const FACTS = [
-  { title: "Monitoreo satelital", text: "NDVI y GDD actualizados por parcela." },
+  { title: "Monitoreo satelital", text: "Índices de vegetación y precipitación por parcela." },
   { title: "Predicción de rendimiento", text: "Cosecha estimada con margen de error conocido." },
   { title: "Elegibilidad crediticia", text: "Score de riesgo para cada ciclo de cebada." },
 ];

@@ -43,3 +43,6 @@ coverage
 backend/.venv/
 backend/__pycache__/
 backend/venv/
+__pycache__/
+*.pyc
+ml/**/__pycache__/

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { parseCSV } from "../utils/csv";
-import { globalImportance } from "../data/shap";
+import { useModelInfo } from "./ModelInfoContext";
 import { appStorage } from "../services/AppStorage";
 import { useAuth } from "./AuthContext";
 import { supabase } from "../services/supabaseClient";
@@ -20,7 +20,7 @@ export function scoreFromInputs({ yieldEstimate, confidence, ndvi, precip }) {
   // Heurística explícita y trazable (no es el Random Forest de producción, que
   // requiere features satelitales completas): combina rendimiento normalizado
   // sobre 6 ton/ha, vigor NDVI y estabilidad (menor margen de error = más
-  // confianza), en las mismas proporciones que discute src/data/model.js.
+  // confianza), con proporciones fijas de negocio (no vienen del modelo).
   const yieldScore = Math.max(0, Math.min(1, yieldEstimate / 6)) * 55;
   const ndviScore = Math.max(0, Math.min(1, (ndvi - 0.3) / 0.5)) * 30;
   const stabilityPenalty = Math.max(0, Math.min(1, confidence / 1.5)) * 15;
@@ -34,38 +34,33 @@ export function classifyRisk(score) {
   return { risk: "Alto riesgo", riskColor: "red" };
 }
 
-/** SHAP local aproximado para parcelas capturadas manualmente: usa la importancia
- * global real del modelo (src/data/shap.js) y la escala por qué tan lejos está
- * cada variable de la parcela del promedio del portafolio base.
+/** SHAP local aproximado para parcelas capturadas manualmente: toma la importancia global
+ * REAL del modelo (la entrega el backend en GET /model-info) y la escala por qué tan lejos
+ * está cada variable de la parcela del promedio del portafolio actual.
  *
- * El modelo final (Random Forest, top-10 SHAP, sin Planet) ya no usa temperatura/GDD ni
- * NDVI pico. Del formulario manual solo tres campos corresponden a features reales:
- *   precip -> Precipitación en emergencia-macollamiento (precip es el acumulado del ciclo,
- *             se usa como aproximación de esa ventana)
+ * Del formulario manual solo tres campos corresponden a features del modelo (se enlazan por
+ * la clave de la feature, no por su texto):
+ *   precip -> precipitación en emergencia-macollamiento (el acumulado capturado se usa como
+ *             aproximación de esa ventana)
  *   ndvi   -> NDVI en emergencia-macollamiento
  *   evi    -> EVI en emergencia-macollamiento
- * El signo del impacto respeta la dirección real de cada variable en shap.js. */
+ * El signo respeta la dirección real de cada variable. Si el backend aún no entregó la
+ * importancia global no se inventa ningún valor: la parcela queda sin drivers. */
 const SHAP_DRIVERS = [
-  { field: "precip", feature: "Precipitación en emergencia-macollamiento" },
-  { field: "ndvi", feature: "NDVI en emergencia-macollamiento" },
-  { field: "evi", feature: "EVI en emergencia-macollamiento" },
+  { field: "precip", key: "precip_acum_emergencia_macollamiento_mm" },
+  { field: "ndvi", key: "bas_ndvi_emergencia_macollamiento" },
+  { field: "evi", key: "bas_evi_emergencia_macollamiento" },
 ];
 
-const FALLBACK_IMPORTANCE = { precip: 0.65, ndvi: 0.02, evi: 0.02 };
-
-function approximateShap(fields, existingParcels = []) {
-  return SHAP_DRIVERS.map(({ field, feature }) => {
+function approximateShap(fields, existingParcels = [], importance = []) {
+  return SHAP_DRIVERS.flatMap(({ field, key }) => {
+    const entry = importance.find((g) => g.key === key);
+    if (!entry) return [];
     const avg = average(existingParcels.map((p) => p[field]).filter(Number.isFinite));
-    const entry = globalImportance.find((g) => g.feature === feature);
-    const base = entry?.value ?? FALLBACK_IMPORTANCE[field];
-    const sign = entry?.direction === "negativo" ? -1 : 1;
+    const sign = entry.direction === "negativo" ? -1 : 1;
     const delta = avg ? (fields[field] - avg) / avg : 0;
-    const impact = Number((delta * base * sign).toFixed(3));
-    return {
-      feature,
-      impact,
-      direction: impact >= 0 ? "positivo" : "negativo",
-    };
+    const impact = Number((delta * entry.value * sign).toFixed(3));
+    return [{ feature: entry.feature, impact, direction: impact >= 0 ? "positivo" : "negativo" }];
   }).sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
 }
 
@@ -127,7 +122,7 @@ function toDatabaseParcel(record) {
 }
 
 /** Normaliza un registro (de formulario manual o de una fila de CSV) a un objeto parcela completo. */
-export function buildParcelRecord(fields, existingParcels) {
+export function buildParcelRecord(fields, existingParcels, importance = []) {
   const yieldEstimate = Number(fields.yieldEstimate);
   const confidence = Number(fields.confidence ?? 0.7);
   const ndvi = Number(fields.ndvi);
@@ -162,7 +157,7 @@ export function buildParcelRecord(fields, existingParcels) {
     gdd,
     isTrainingSet: false,
     isCustom: true,
-    shap: approximateShap({ ndvi, evi, precip }, existingParcels),
+    shap: approximateShap({ ndvi, evi, precip }, existingParcels, importance),
   };
 }
 
@@ -237,6 +232,8 @@ const ParcelsContext = createContext(null);
 
 export function ParcelsProvider({ children }) {
   const { user, loading: authLoading } = useAuth();
+  const { info: modelInfo } = useModelInfo();
+  const globalImportance = modelInfo?.globalImportance;
   const [customParcels, setCustomParcels] = useState([]);
   // Resultado de la última corrida REAL del modelo. Arranca vacío: el dashboard no trae datos precargados.
   const [analysis, setAnalysis] = useState(() => appStorage.getJSON(ANALYSIS_KEY, null));
@@ -302,7 +299,7 @@ export function ParcelsProvider({ children }) {
   }, [parcels]);
 
   const addParcel = useCallback(async (fields) => {
-    const record = buildParcelRecord(fields, [...analysisParcels, ...customParcels]);
+    const record = buildParcelRecord(fields, [...analysisParcels, ...customParcels], globalImportance);
     const { data, error: insertError } = await supabase
       .from("parcels_custom")
       .insert(toDatabaseParcel(record))
@@ -313,7 +310,7 @@ export function ParcelsProvider({ children }) {
     const savedParcel = fromDatabaseParcel(data);
     setCustomParcels((prev) => [...prev, savedParcel]);
     return { data: savedParcel, error: null };
-  }, [analysisParcels, customParcels]);
+  }, [analysisParcels, customParcels, globalImportance]);
 
   const updateParcel = useCallback(async (id, fields) => {
     const isCustom = customParcels.some((p) => p.id === id);
@@ -321,7 +318,8 @@ export function ParcelsProvider({ children }) {
 
     const record = buildParcelRecord(
       { ...fields, id },
-      [...analysisParcels, ...customParcels.filter((parcel) => parcel.id !== id)]
+      [...analysisParcels, ...customParcels.filter((parcel) => parcel.id !== id)],
+      globalImportance
     );
     const { data, error: updateError } = await supabase
       .from("parcels_custom")
@@ -334,7 +332,7 @@ export function ParcelsProvider({ children }) {
     const savedParcel = fromDatabaseParcel(data);
     setCustomParcels((prev) => prev.map((parcel) => (parcel.id === id ? savedParcel : parcel)));
     return { data: savedParcel, error: null };
-  }, [analysisParcels, customParcels]);
+  }, [analysisParcels, customParcels, globalImportance]);
 
   const removeParcel = useCallback(async (id) => {
     const isCustom = customParcels.some((p) => p.id === id);

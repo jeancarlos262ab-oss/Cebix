@@ -4,14 +4,8 @@ import TopBar from "../components/layout/TopBar";
 import InfoButton from "../components/ui/InfoButton";
 import AlgorithmComparisonChart from "../components/charts/AlgorithmComparisonChart";
 import RunModelPanel from "../components/model/RunModelPanel";
-import {
-  algorithmComparison,
-  dataSources,
-  featureGroups,
-  guidingQuestions,
-  modelSummary,
-  validationSteps,
-} from "../data/model";
+import RequireModelInfo from "../components/ui/RequireModelInfo";
+import { useModelInfo } from "../context/ModelInfoContext";
 
 const GROUP_DOT = {
   ndvi: "bg-ndvi-500",
@@ -67,6 +61,7 @@ function Kpi({ label, value, unit, large = true, highlight = false }) {
 }
 
 function ResumenTab() {
+  const { modelSummary, algorithmComparison, validationSteps } = useModelInfo().info;
   return (
     <div className="space-y-10">
       <div className="grid grid-cols-2 lg:grid-cols-[1.7fr_1fr_1fr_1fr]">
@@ -81,10 +76,10 @@ function ResumenTab() {
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
         <Section
           title="Baseline vs. gradient boosting"
-          description="Ridge y Lasso como referencia; XGBoost y LightGBM sobre ~138 parcelas, sin redes profundas por el tamaño de la muestra."
+          description={`Ridge y Lasso como referencia; XGBoost y LightGBM sobre ${modelSummary.trainingParcels} parcelas, sin redes profundas por el tamaño de la muestra.`}
         >
           <div className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
-            <AlgorithmComparisonChart data={algorithmComparison} highlight="Random Forest" />
+            <AlgorithmComparisonChart data={algorithmComparison} highlight={modelSummary.modelName} />
           </div>
         </Section>
 
@@ -125,6 +120,7 @@ function ResumenTab() {
 }
 
 function DatosTab() {
+  const { featureGroups, dataSources } = useModelInfo().info;
   return (
     <div className="space-y-10">
       <Section
@@ -200,6 +196,7 @@ function DatosTab() {
 
 export default function ModeloPage() {
   const [params, setParams] = useSearchParams();
+  const { info } = useModelInfo();
   const requested = params.get("tab");
   const tab = TABS.some((t) => t.key === requested) ? requested : "ejecutar";
 
@@ -209,7 +206,7 @@ export default function ModeloPage() {
         title="Modelo"
         subtitle="Ejecuta el modelo con tus parcelas y consulta cómo pasa de imágenes satelitales a un rendimiento predicho."
         hideSearch
-        actions={<InfoButton title="Preguntas guía del modelo" questions={guidingQuestions} />}
+        actions={<InfoButton title="Preguntas guía del modelo" questions={info?.guidingQuestions ?? []} />}
       />
 
       <div className="mt-6 px-4 sm:px-6 lg:px-8">
@@ -238,8 +235,16 @@ export default function ModeloPage() {
 
       <div className="px-4 py-6 sm:px-6 lg:px-8">
         {tab === "ejecutar" && <RunModelPanel />}
-        {tab === "resumen" && <ResumenTab />}
-        {tab === "datos" && <DatosTab />}
+        {tab === "resumen" && (
+          <RequireModelInfo>
+            <ResumenTab />
+          </RequireModelInfo>
+        )}
+        {tab === "datos" && (
+          <RequireModelInfo>
+            <DatosTab />
+          </RequireModelInfo>
+        )}
       </div>
     </>
   );
