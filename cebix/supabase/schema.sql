@@ -77,11 +77,13 @@ create trigger on_auth_user_created
 -- ============================================================
 -- 2) PARCELS_CUSTOM
 -- ============================================================
--- Parcelas capturadas a mano desde la app (además del dataset base que ya
--- trae el código en src/data/parcels.js). Es una tabla compartida por todo
--- el equipo, no por usuario, igual que la usa src/context/ParcelsContext.jsx.
+-- Parcelas capturadas a mano desde la app. Cada parcela pertenece a quien la capturó
+-- (user_id = auth.uid() por defecto) y cada cuenta solo ve y modifica las suyas.
+-- Si ya tenías la tabla creada antes de este cambio, corre
+-- parcels_custom_por_usuario.sql en lugar de volver a ejecutar esta sección.
 create table if not exists public.parcels_custom (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   polygon_id text,
   name text,
   area numeric,
@@ -103,14 +105,32 @@ create table if not exists public.parcels_custom (
   created_at timestamptz not null default now()
 );
 
+create index if not exists parcels_custom_user_idx on public.parcels_custom (user_id);
+
 alter table public.parcels_custom enable row level security;
 
 drop policy if exists "parcels_custom: todo autenticado" on public.parcels_custom;
-create policy "parcels_custom: todo autenticado"
-  on public.parcels_custom for all
-  to authenticated
-  using (true)
-  with check (true);
+drop policy if exists "parcels_custom: ver propias" on public.parcels_custom;
+drop policy if exists "parcels_custom: insertar propias" on public.parcels_custom;
+drop policy if exists "parcels_custom: editar propias" on public.parcels_custom;
+drop policy if exists "parcels_custom: borrar propias" on public.parcels_custom;
+
+create policy "parcels_custom: ver propias"
+  on public.parcels_custom for select to authenticated
+  using (auth.uid() = user_id);
+
+create policy "parcels_custom: insertar propias"
+  on public.parcels_custom for insert to authenticated
+  with check (auth.uid() = user_id);
+
+create policy "parcels_custom: editar propias"
+  on public.parcels_custom for update to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "parcels_custom: borrar propias"
+  on public.parcels_custom for delete to authenticated
+  using (auth.uid() = user_id);
 
 -- ============================================================
 -- 3) OTP_CODES (registro y recuperación de contraseña por Gmail SMTP)

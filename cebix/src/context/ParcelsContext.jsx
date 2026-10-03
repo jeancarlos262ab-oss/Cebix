@@ -11,8 +11,14 @@ const REGION_COLOR = { Puebla: "#4C9A63", Hidalgo: "#374151", Tlaxcala: "#C08A2E
 
 const REGION_CODE = { Hidalgo: "HGO", Tlaxcala: "TLX", Puebla: "PUE" };
 
-const loadSubmissions = () => appStorage.getJSON(SUBMISSIONS_KEY, {});
-const persistSubmissions = (map) => appStorage.setJSON(SUBMISSIONS_KEY, map);
+// Todo lo que se guarda en el navegador va separado por usuario: así una cuenta nueva (o distinta)
+// en el mismo equipo empieza vacía y solo ve lo que ella misma haya ejecutado.
+const scopedKey = (key, uid) => `${key}:${uid}`;
+const EMPTY_STORE = { uid: null, analysis: null, submissions: {} };
+
+// Claves antiguas (globales, compartidas entre cuentas). Se borran para que no "se cuelen" datos viejos.
+const LEGACY_KEYS = [SUBMISSIONS_KEY, ANALYSIS_KEY];
+const clearLegacyKeys = () => LEGACY_KEYS.forEach((key) => appStorage.remove(key));
 
 /** Deriva score / riesgo / semáforo a partir del rendimiento estimado y su margen de error,
  * usando el mismo criterio que ya usa el dataset (score >= 70 elegible, 45-69 revisión, <45 alto riesgo). */
@@ -235,11 +241,27 @@ export function ParcelsProvider({ children }) {
   const { info: modelInfo } = useModelInfo();
   const globalImportance = modelInfo?.globalImportance;
   const [customParcels, setCustomParcels] = useState([]);
-  // Resultado de la última corrida REAL del modelo. Arranca vacío: el dashboard no trae datos precargados.
-  const [analysis, setAnalysis] = useState(() => appStorage.getJSON(ANALYSIS_KEY, null));
+  const uid = user?.id ?? null;
+  // Resultado de la última corrida REAL del modelo y envíos a comité DE ESTE USUARIO.
+  // Arranca vacío: el dashboard no trae datos precargados ni mezcla los de otras cuentas.
+  const [stored, setStored] = useState(EMPTY_STORE);
+  const { analysis, submissions } = stored.uid === uid && uid !== null ? stored : EMPTY_STORE;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [submissions, setSubmissions] = useState(loadSubmissions);
+
+  useEffect(() => {
+    if (authLoading) return;
+    clearLegacyKeys();
+    if (!uid) {
+      setStored(EMPTY_STORE);
+      return;
+    }
+    setStored({
+      uid,
+      analysis: appStorage.getJSON(scopedKey(ANALYSIS_KEY, uid), null),
+      submissions: appStorage.getJSON(scopedKey(SUBMISSIONS_KEY, uid), {}),
+    });
+  }, [authLoading, uid]);
 
   const loadCustomParcels = useCallback(async () => {
     if (!user) {
@@ -273,15 +295,18 @@ export function ParcelsProvider({ children }) {
     const byId = new Map(rows.map((r) => [String(r.ID_POLIGONO), r]));
     const built = predicciones.map((pred, i) => buildAnalysisParcel(pred, byId.get(String(pred.ID_POLIGONO)), i));
     const next = { parcels: built, fileName, runAt: new Date().toISOString() };
-    setAnalysis(next);
-    appStorage.setJSON(ANALYSIS_KEY, next);
+    if (uid) {
+      setStored((prev) => ({ ...(prev.uid === uid ? prev : { ...EMPTY_STORE, uid }), analysis: next }));
+      appStorage.setJSON(scopedKey(ANALYSIS_KEY, uid), next);
+    }
     return built;
-  }, []);
+  }, [uid]);
 
   const clearAnalysis = useCallback(() => {
-    setAnalysis(null);
-    appStorage.setJSON(ANALYSIS_KEY, null);
-  }, []);
+    if (!uid) return;
+    setStored((prev) => (prev.uid === uid ? { ...prev, analysis: null } : prev));
+    appStorage.remove(scopedKey(ANALYSIS_KEY, uid));
+  }, [uid]);
 
   const regionSummary = useMemo(() => {
     const counts = new Map();
@@ -346,12 +371,11 @@ export function ParcelsProvider({ children }) {
   }, [customParcels]);
 
   const submitToCommittee = useCallback((id) => {
-    setSubmissions((prev) => {
-      const next = { ...prev, [id]: new Date().toISOString() };
-      persistSubmissions(next);
-      return next;
-    });
-  }, []);
+    if (!uid) return;
+    const next = { ...submissions, [id]: new Date().toISOString() };
+    setStored((prev) => ({ ...(prev.uid === uid ? prev : { ...EMPTY_STORE, uid }), submissions: next }));
+    appStorage.setJSON(scopedKey(SUBMISSIONS_KEY, uid), next);
+  }, [uid, submissions]);
 
   const isCustomParcel = useCallback((id) => customParcels.some((p) => p.id === id), [customParcels]);
 

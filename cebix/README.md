@@ -60,6 +60,17 @@ npm run preview    # sirve el build de dist/ para probarlo localmente
 - **Frontend → Vercel:** define `VITE_MODEL_API_URL` con la URL pública del backend, más
   `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
 
+## Datos por usuario
+
+Cada cuenta ve solo lo que ella misma hizo:
+
+- **Corrida del modelo y envíos a comité:** se guardan en el navegador con la clave del usuario
+  (`cebix-analysis-v1:<id>`), no en una clave global. Al cambiar de cuenta empieza vacío.
+- **Parcelas capturadas a mano (`parcels_custom`):** cada fila lleva `user_id` y Supabase solo
+  devuelve las del usuario (RLS). En una base nueva corre `supabase/schema.sql`; si ya tenías la
+  tabla, corre `supabase/parcels_custom_por_usuario.sql` (trae al final las opciones para las
+  filas antiguas, que quedan sin dueño).
+
 ## Si reentrenas el modelo
 
 ```bash
