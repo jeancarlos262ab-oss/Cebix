@@ -39,30 +39,31 @@ function MapaSatelitalPageContent() {
               basemap="satellite"
               edgeFade={!isFullscreen}
               controlsLeftClassName="left-3"
+              controlsTopClassName="top-[66px] lg:top-3"
             />
           </div>
 
-          {/* Botón de menú: solo hace falta en móvil/tablet, donde el
-              sidebar vive detrás de un drawer (en escritorio ya está
-              siempre visible, así que aquí se oculta con lg:hidden).
-              pl-[3.75rem] lo corre después de la barra vertical de capas
-              (left-3/top-3, ver ParcelMapGL/ParcelMapLite) para que nunca
-              quede encimado con ella. */}
-          <div className="pointer-events-none absolute left-3 top-3 z-[1000] pl-[3.75rem] lg:hidden">
+          {/* Botón de menú: solo hace falta en móvil/tablet, donde el sidebar vive detrás
+              de un drawer (en escritorio ya está siempre visible: lg:hidden). Va en la
+              esquina superior izquierda, ENCIMA de la barra de opciones de vista, que en
+              móvil se baja con controlsTopClassName="top-[66px]" (en escritorio queda en top-3).
+              Mide 46px: el mismo ancho que la barra vertical (32px de botón + 6px de padding
+              + 1px de borde por lado). */}
+          <div className="pointer-events-none absolute left-3 top-3 z-1000 lg:hidden">
             <button
               type="button"
               onClick={toggle}
               aria-label="Abrir menú"
-              className="pointer-events-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/85 text-gray-400 shadow-lg hover:bg-white/10"
+              className="pointer-events-auto flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full bg-black/85 text-gray-400 shadow-lg hover:bg-white/10"
             >
-              <Menu size={18} className="text-accent-400" />
+              <Menu size={20} className="text-accent-400" />
             </button>
           </div>
         </div>
 
         <section
           aria-labelledby="regiones-title"
-          className="w-full border-t border-gray-800 bg-black px-4 py-4 text-gray-100 sm:px-6 lg:absolute lg:bottom-3 lg:left-3 lg:z-[1000] lg:w-72 lg:rounded-2xl lg:border lg:border-white/10 lg:bg-black/85 lg:p-4 lg:shadow-lg"
+          className="w-full border-t border-gray-800 bg-black px-4 py-4 text-gray-100 sm:px-6 lg:absolute lg:bottom-3 lg:left-3 lg:z-1000 lg:w-72 lg:rounded-4xl lg:border lg:border-white/10 lg:bg-black/85 lg:p-6 lg:shadow-lg"
         >
           <h2 id="regiones-title" className="font-display text-sm font-semibold">
             Regiones cubiertas

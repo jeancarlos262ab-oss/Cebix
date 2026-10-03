@@ -11,7 +11,7 @@ import { Info, X } from "lucide-react";
  * @param {{title: string, questions: {question: string, answer: string}[]}} props
  */
 const BUTTON_STYLE =
-  "rounded-full border border-gray-200 bg-white text-accent-500 transition-colors hover:border-accent-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-700 dark:bg-black";
+  "rounded-full border border-gray-200 bg-white text-accent-500 transition-colors hover:border-accent-500 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-700 dark:bg-black";
 
 export default function InfoButton({ title = "Acerca de este panel", questions, children }) {
   const [open, setOpen] = useState(false);

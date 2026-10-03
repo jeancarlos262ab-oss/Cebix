@@ -116,7 +116,7 @@ export default function UploadDropzone({ onParsed }) {
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         className={[
-          "flex cursor-pointer flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed px-6 py-8 text-center transition-colors focus-within:ring-2 focus-within:ring-accent-500 [&>*]:pointer-events-none",
+          "flex cursor-pointer flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed px-6 py-8 text-center transition-colors focus-within:ring-2 focus-within:ring-accent-500 *:pointer-events-none",
           isDragging
             ? "border-accent-500 bg-accent-50 dark:bg-accent-500/10"
             : "border-gray-300 hover:bg-gray-50/60 dark:border-gray-700 dark:hover:bg-gray-900/60",

@@ -40,7 +40,7 @@ export default function ConfidenceRange({ estimate, confidence, maxScale = 6 }) 
           }}
         />
         <div
-          className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow dark:border-black"
+          className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm dark:border-black"
           style={{ left: `${toPct(estimate)}%`, backgroundColor: "var(--chart-1)" }}
         />
       </div>

@@ -36,7 +36,9 @@ function NavSection({ title, items, collapsed }) {
               title={collapsed ? label : undefined}
               className={({ isActive }) =>
                 [
-                  "flex w-full items-center gap-2.5 px-4 py-2 text-sm font-medium transition-colors",
+                  // Alto fijo: idéntico con el sidebar expandido y contraído.
+                  "flex h-[34px] w-full items-center text-sm font-medium transition-colors",
+                  collapsed ? "justify-center px-0" : "gap-2.5 px-4",
                   isActive
                     ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-white",
@@ -82,7 +84,7 @@ function SignOutConfirm({ onCancel, onConfirm, loading }) {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4"
+      className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 px-4"
       onClick={loading ? undefined : onCancel}
     >
       <div
@@ -113,7 +115,7 @@ function SignOutConfirm({ onCancel, onConfirm, loading }) {
             autoFocus
             onClick={onCancel}
             disabled={loading}
-            className="rounded-full border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            className="rounded-full border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             Cancelar
           </button>
@@ -121,7 +123,7 @@ function SignOutConfirm({ onCancel, onConfirm, loading }) {
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className="rounded-full bg-accent-500 px-4 py-2 text-sm font-semibold text-accent-contrast shadow-sm transition-colors hover:bg-accent-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:opacity-60 dark:focus-visible:ring-offset-gray-900"
+            className="rounded-full bg-accent-500 px-4 py-2 text-sm font-semibold text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:opacity-60 dark:focus-visible:ring-offset-gray-900"
           >
             {loading ? "Cerrando sesión..." : "Cerrar sesión"}
           </button>
@@ -132,7 +134,19 @@ function SignOutConfirm({ onCancel, onConfirm, loading }) {
 }
 
 export default function Sidebar() {
-  const { mobileOpen, close, collapsed, setCollapsed } = useSidebar();
+  const { mobileOpen, close, collapsed: collapsedPref, setCollapsed } = useSidebar();
+  // El modo "solo iconos" existe únicamente en escritorio (lg+). En móvil/tablet el
+  // drawer siempre se muestra completo, aunque se haya contraído antes en escritorio.
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const onChange = (e) => setIsDesktop(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  const collapsed = collapsedPref && isDesktop;
   const { user, profile, signOut } = useAuth();
 
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -168,7 +182,12 @@ export default function Sidebar() {
           mobileOpen ? "translate-x-0" : "-translate-x-[calc(100%+0.75rem)]",
         ].join(" ")}
       >
-        <div className="relative flex h-[61px] items-center gap-2.5 border-b border-gray-100 px-4 py-4 dark:border-gray-800">
+        <div
+          className={[
+            "relative flex h-[61px] items-center gap-2.5 border-b border-gray-100 py-4 dark:border-gray-800",
+            collapsed ? "justify-center px-0" : "px-4",
+          ].join(" ")}
+        >
           {/* Mismo logo y misma posición en ambos estados: al contraer solo se oculta el texto. */}
           <Logo size="md" showText={!collapsed} />
           {collapsed && (
@@ -179,12 +198,12 @@ export default function Sidebar() {
               onClick={() => setCollapsed(false)}
               aria-label="Expandir menú"
               title="Expandir menú"
-              className="absolute left-[13px] top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center bg-white opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100 dark:bg-black"
+              className="absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center bg-white opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100 dark:bg-black"
             >
               <PanelLeft size={18} className="text-accent-600 dark:text-accent-400" />
             </button>
           )}
-          {!collapsed && (
+          {isDesktop && !collapsed && (
             <button
               type="button"
               onClick={() => setCollapsed(true)}
@@ -199,7 +218,7 @@ export default function Sidebar() {
             type="button"
             onClick={close}
             aria-label="Cerrar menú"
-            className="flex h-7 w-7 shrink-0 items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 lg:hidden"
+            className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 lg:hidden"
           >
             <X size={16} className="text-accent-600 dark:text-accent-400" />
           </button>
@@ -220,7 +239,8 @@ export default function Sidebar() {
             to="/perfil"
             title={collapsed ? profile?.name || user?.email || "Perfil" : undefined}
             className={[
-              "flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-900",
+              "flex w-full items-center py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-900",
+              collapsed ? "justify-center px-0" : "gap-3 px-4",
             ].join(" ")}
           >
             <span className="relative h-9 w-9 shrink-0 rounded-full bg-gray-200">
@@ -252,7 +272,8 @@ export default function Sidebar() {
             onClick={() => setConfirmOpen(true)}
             title={collapsed ? "Cerrar sesión" : undefined}
             className={[
-              "flex w-full items-center gap-3 px-4 py-2 text-left text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-white",
+              "flex h-[34px] w-full items-center text-left text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-white",
+              collapsed ? "justify-center px-0" : "gap-3 px-4",
             ].join(" ")}
           >
             <LogOut size={18} className="shrink-0 text-accent-600 dark:text-accent-400" />

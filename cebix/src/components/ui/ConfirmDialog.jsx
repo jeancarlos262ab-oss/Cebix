@@ -74,7 +74,7 @@ export default function ConfirmDialog({ title, description, confirmLabel = "Elim
             type="button"
             onClick={handleConfirm}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-700 disabled:opacity-60"
           >
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
             {confirmLabel}

@@ -33,7 +33,7 @@ function PeriodToggle({ value, options, onChange, withMenu = false, onMenuAction
               onClick={() => onChange(option)}
               aria-pressed={isActive}
               className={[
-                "rounded-full px-2.5 py-1.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-500",
+                "rounded-full px-2.5 py-1.5 transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-500",
                 isActive
                   ? "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300",

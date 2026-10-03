@@ -264,7 +264,7 @@ function MapControls({
   onToggleBoundaries,
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 rounded-2xl border border-white/10 bg-black/85 p-1.5 text-gray-100 shadow-lg">
+    <div className="flex flex-col items-center gap-1 rounded-full border border-white/10 bg-black/85 p-1.5 text-gray-100 shadow-lg">
       {!viewOnly && (
         <>
           {LAYERS.map((l) => (
@@ -311,7 +311,7 @@ const MapLegend = memo(function MapLegend({ layer }) {
   // Semáforo: flota directo sobre el mapa, sin contenedor ni título.
   if (layer !== "ndvi") return <RiskTrafficLight />;
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/85 px-3 py-2.5 text-gray-100 shadow-lg">
+    <div className="rounded-full border border-white/10 bg-black/85 px-4 py-3.5 text-gray-100 shadow-lg">
       <ul className="space-y-1.5">
         {items.map((item) => (
           <li key={item.label} className="flex items-center gap-2 text-[11px] text-gray-200">
@@ -351,6 +351,7 @@ const MapLegend = memo(function MapLegend({ layer }) {
  *   controlsLeftClassName?: string,   // offset izquierdo de la barra de capas (por defecto "left-3")
  *   controlsTopClassName?: string,   // clase de Tailwind para el offset superior de la barra de capas (por defecto "top-3"); útil cuando algo del layout de la página, como un título, ya ocupa esa esquina.
  *   controlsOrientation?: "vertical" | "horizontal",   // dirección de la barra de zoom (por defecto "vertical")
+ *   basemap?: "satellite" | "terreno",   // mapa base inicial; si se omite, sigue el tema de la app
  * }} props
  */
 function ParcelMapGL({
@@ -370,6 +371,7 @@ function ParcelMapGL({
   controlsLeftClassName = "left-3",
   edgeFade = false,
   controlsOrientation = "vertical",
+  basemap: initialBasemap,
 }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
@@ -382,7 +384,9 @@ function ParcelMapGL({
   const accentHex = getAccentHex(accent, resolvedTheme);
   // null = el basemap sigue el tema general de la app (claro/oscuro);
   // "satellite" | "terreno" = el usuario fijó uno manualmente en la barra.
-  const [userBasemap, setUserBasemap] = useState(null);
+  const [userBasemap, setUserBasemap] = useState(
+    initialBasemap === "satellite" || initialBasemap === "terreno" ? initialBasemap : null
+  );
   const basemap = userBasemap ?? (resolvedTheme === "dark" ? "oscuro" : "claro");
   const [layer, setLayer] = useState("risk");
   const [showBoundaries, setShowBoundaries] = useState(showBoundariesByDefault);
@@ -700,7 +704,7 @@ function ParcelMapGL({
         <>
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 left-0 z-[5] hidden lg:block"
+            className="pointer-events-none absolute inset-y-0 left-0 z-5 hidden lg:block"
             style={{
               width: `calc(var(--sidebar-edge, 0px) + ${LEFT_FADE_LENGTH})`,
               background: softFadeGradient("to right", "var(--sidebar-edge, 0px)", LEFT_FADE_LENGTH),
@@ -710,7 +714,7 @@ function ParcelMapGL({
       )}
 
       {showLayerControl && (
-        <div className={`absolute z-[1000] flex flex-col items-start gap-2 ${controlsLeftClassName} ${controlsTopClassName}`}>
+        <div className={`absolute z-1000 flex flex-col items-start gap-2 ${controlsLeftClassName} ${controlsTopClassName}`}>
           <MapControls
             viewOnly={viewOnly}
             layer={layer}
@@ -723,7 +727,7 @@ function ParcelMapGL({
         </div>
       )}
 
-      <div className="absolute right-3 top-3 z-[1000] flex flex-col items-end gap-2">
+      <div className="absolute right-3 top-3 z-1000 flex flex-col items-end gap-2">
         {showLegend && <MapLegend layer={layer} />}
       </div>
     </div>

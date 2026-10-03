@@ -6,6 +6,7 @@ import ParcelMap from "../components/map/ParcelMap";
 import ParcelRow from "../components/dashboard/ParcelRow";
 import UploadDropzone from "../components/dashboard/UploadDropzone";
 import Pagination from "../components/ui/Pagination";
+import FullscreenLink from "../components/ui/FullscreenLink";
 import usePagination from "../hooks/usePagination";
 import ParcelFormModal from "../components/dashboard/ParcelFormModal";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
@@ -31,12 +32,20 @@ function ParcelasPageContent() {
   const [region, setRegion] = useState(
     REGION_FILTERS.includes(regionParam) ? regionParam : "Todas"
   );
+  const riskParam = searchParams.get("risk");
+  const [risk, setRisk] = useState(RISK_SUMMARY.some((r) => r.key === riskParam) ? riskParam : "all");
   const [selectedId, setSelectedId] = useState(null);
   const [modal, setModal] = useState(null); // null | "add" | parcel
 
-  const filtered = useMemo(
+  // Primero se filtra por región; los conteos de elegibilidad se calculan sobre esa lista para que
+  // los botones de riesgo sigan mostrando cuántas hay en cada nivel aunque haya uno seleccionado.
+  const regionFiltered = useMemo(
     () => (region === "Todas" ? parcels : parcels.filter((p) => p.region === region)),
     [region, parcels]
+  );
+  const filtered = useMemo(
+    () => (risk === "all" ? regionFiltered : regionFiltered.filter((p) => p.riskColor === risk)),
+    [risk, regionFiltered]
   );
 
   // Solo se pintan las filas de la página actual (el mapa y el resumen sí
@@ -50,9 +59,9 @@ function ParcelasPageContent() {
     () =>
       RISK_SUMMARY.map((r) => ({
         ...r,
-        count: filtered.filter((p) => p.riskColor === r.key).length,
+        count: regionFiltered.filter((p) => p.riskColor === r.key).length,
       })),
-    [filtered]
+    [regionFiltered]
   );
 
   // Cuántas parcelas hay en cada región (sobre la lista completa, no la filtrada).
@@ -64,13 +73,35 @@ function ParcelasPageContent() {
     [parcels]
   );
 
+  // La región y el nivel de riesgo viajan en la URL (?region=...&risk=...).
+  const syncParams = useCallback(
+    (nextRegion, nextRisk) => {
+      const params = {};
+      if (nextRegion !== "Todas") params.region = nextRegion;
+      if (nextRisk !== "all") params.risk = nextRisk;
+      setSearchParams(params);
+    },
+    [setSearchParams]
+  );
+
   const handleRegionChange = useCallback(
     (r) => {
       setRegion(r);
       resetPage();
-      setSearchParams(r === "Todas" ? {} : { region: r });
+      syncParams(r, risk);
     },
-    [setSearchParams, resetPage]
+    [syncParams, resetPage, risk]
+  );
+
+  // Tocar el nivel que ya está activo vuelve a mostrar todos.
+  const handleRiskChange = useCallback(
+    (key) => {
+      const next = key === risk ? "all" : key;
+      setRisk(next);
+      resetPage();
+      syncParams(region, next);
+    },
+    [syncParams, resetPage, risk, region]
   );
 
   return (
@@ -82,8 +113,8 @@ function ParcelasPageContent() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => exportParcelsCSV(filtered, `cebix-parcelas-${region.toLowerCase()}.csv`)}
-              className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
+              onClick={() => exportParcelsCSV(filtered, `cebix-parcelas-${region.toLowerCase()}${risk === "all" ? "" : `-${risk}`}.csv`)}
+              className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-xs transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
             >
               <Download size={15} className="text-accent-600 dark:text-accent-400" />
               Exportar
@@ -91,7 +122,7 @@ function ParcelasPageContent() {
             <button
               type="button"
               onClick={() => setModal("add")}
-              className="flex items-center gap-1.5 rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-accent-contrast shadow-sm transition-colors hover:bg-accent-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
+              className="flex items-center gap-1.5 rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
             >
               <Plus size={15} />
               Agregar parcela
@@ -124,9 +155,9 @@ function ParcelasPageContent() {
                     aria-pressed={active}
                     onClick={() => handleRegionChange(r)}
                     className={[
-                      "flex w-full items-center justify-between gap-3 rounded-full px-4 py-2 text-left text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500",
+                      "flex w-full items-center justify-between gap-3 rounded-full px-4 py-2 text-left text-sm font-medium transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500",
                       active
-                        ? "bg-accent-500 text-accent-contrast shadow-sm"
+                        ? "bg-accent-500 text-accent-contrast shadow-xs"
                         : "text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-900",
                     ].join(" ")}
                   >
@@ -146,30 +177,73 @@ function ParcelasPageContent() {
 
           <div className="min-w-0 space-y-10 lg:col-start-1 lg:row-start-2">
           <section className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
-            <h3 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">
-              Resumen de elegibilidad
-            </h3>
-            <dl className="mt-4 space-y-3.5 text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">
+                Elegibilidad
+              </h3>
+              {risk !== "all" && (
+                <button
+                  type="button"
+                  onClick={() => handleRiskChange("all")}
+                  className="rounded-sm text-xs font-medium text-accent-600 hover:underline focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:text-accent-400"
+                >
+                  Quitar filtro
+                </button>
+              )}
+            </div>
+
+            {/* Distribución de un vistazo; al filtrar, los demás niveles se atenúan. */}
+            <div className="mt-4 flex h-1.5 w-full gap-0.5 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800" aria-hidden="true">
+              {riskCounts.map((r) => (
+                <div
+                  key={r.key}
+                  className="h-full transition-opacity"
+                  style={{
+                    flexGrow: r.count,
+                    backgroundColor: r.color,
+                    opacity: risk === "all" || risk === r.key ? 1 : 0.2,
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="-mx-2 mt-3 flex flex-col" role="group" aria-label="Filtrar por elegibilidad">
               {riskCounts.map((r) => {
-                const share = filtered.length ? (r.count / filtered.length) * 100 : 0;
+                const active = risk === r.key;
+                const share = regionFiltered.length ? Math.round((r.count / regionFiltered.length) * 100) : 0;
+                const empty = r.count === 0 && !active;
                 return (
-                  <div key={r.key}>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: r.color }} />
-                        {r.label}
-                      </dt>
-                      <dd className="font-display text-base font-bold tabular-nums text-gray-900 dark:text-gray-100">
-                        {r.count}
-                      </dd>
-                    </div>
-                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800" aria-hidden="true">
-                      <div className="h-full rounded-full" style={{ width: `${share}%`, backgroundColor: r.color }} />
-                    </div>
-                  </div>
+                  <button
+                    key={r.key}
+                    type="button"
+                    aria-pressed={active}
+                    disabled={empty}
+                    onClick={() => handleRiskChange(r.key)}
+                    className={[
+                      "flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left text-sm transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500",
+                      active
+                        ? "bg-gray-100 dark:bg-gray-800"
+                        : "hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:hover:bg-gray-900",
+                    ].join(" ")}
+                  >
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: r.color }} />
+                    <span
+                      className={`flex-1 truncate ${
+                        active
+                          ? "font-semibold text-gray-900 dark:text-gray-100"
+                          : "font-medium text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      {r.label}
+                    </span>
+                    <span className="w-9 text-right text-xs tabular-nums text-gray-400 dark:text-gray-500">{share}%</span>
+                    <span className="w-7 text-right font-display text-sm font-bold tabular-nums text-gray-900 dark:text-gray-100">
+                      {r.count}
+                    </span>
+                  </button>
                 );
               })}
-            </dl>
+            </div>
           </section>
 
           <section>
@@ -205,6 +279,12 @@ function ParcelasPageContent() {
           </div>
 
           <div className="min-w-0 lg:col-start-2 lg:row-start-2">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <h3 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">
+                Listado de parcelas
+              </h3>
+              <FullscreenLink to={region === "Todas" ? "/parcelas/historial" : `/parcelas/historial?region=${region}`} />
+            </div>
             <div ref={tableRef}>
               <div className="overflow-x-auto overflow-y-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
                 <table className="w-full min-w-[680px] border-collapse text-left">
@@ -218,6 +298,13 @@ function ParcelasPageContent() {
                     </tr>
                   </thead>
                   <tbody>
+                    {filtered.length === 0 && (
+                      <tr>
+                        <td colSpan={COLUMNS.length} className="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
+                          Ninguna parcela coincide con los filtros elegidos.
+                        </td>
+                      </tr>
+                    )}
                     {pageItems.map((parcel) => (
                       <ParcelRow
                         key={parcel.id}

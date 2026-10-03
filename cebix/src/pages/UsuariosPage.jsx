@@ -44,7 +44,7 @@ export default function UsuariosPage() {
         actions={
           <Link
             to="/signup"
-            className="rounded-full bg-accent-500 px-3 py-2 text-sm font-medium text-accent-contrast shadow-sm hover:bg-accent-600"
+            className="rounded-full bg-accent-500 px-3 py-2 text-sm font-medium text-accent-contrast shadow-xs hover:bg-accent-600"
           >
             Crear usuario
           </Link>

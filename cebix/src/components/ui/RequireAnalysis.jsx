@@ -32,7 +32,7 @@ export function EmptyAnalysis({ title, subtitle, onAdd }) {
             type="button"
             onClick={runExample}
             disabled={loading}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-accent-500 px-5 py-2.5 text-sm font-semibold text-accent-contrast shadow-sm transition-colors hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-accent-500 px-5 py-2.5 text-sm font-semibold text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <FlaskConical size={16} />}
             {loading ? "Ejecutando modelo…" : "Ejecutar con archivo de ejemplo"}

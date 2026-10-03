@@ -121,10 +121,10 @@ function LogoMark({ className = "", aspect = 1 }) {
 
 function Logo({ className = "", size = "md", tone = "auto", showText = true, aspect = 1 }) {
   let toneClass = "text-gray-900 dark:text-white";
-  if (tone === "contrast") toneClass = "text-[color:var(--accent-contrast)]";
+  if (tone === "contrast") toneClass = "text-(--accent-contrast)";
   if (tone === "inherit") toneClass = "";
   // "white": siempre blanco, sin importar el tema (p. ej. sobre el sidebar oscuro).
-  if (tone === "white") toneClass = "!text-white";
+  if (tone === "white") toneClass = "text-white!";
 
   return (
     <span

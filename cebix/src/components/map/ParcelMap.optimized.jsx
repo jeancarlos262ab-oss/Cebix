@@ -222,7 +222,7 @@ function MapControls({
   onToggleBoundaries,
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 border border-white/10 bg-black/70 p-1.5 text-gray-100 shadow-card backdrop-blur">
+    <div className="flex flex-col items-center gap-1 border border-white/10 bg-black/70 p-1.5 text-gray-100 shadow-card backdrop-blur-sm">
       {LAYERS.map((l) => (
         <ToolbarIconButton
           key={l.key}
@@ -261,7 +261,7 @@ function MapControls({
 const MapLegend = memo(function MapLegend({ layer }) {
   const items = layer === "ndvi" ? NDVI_LEGEND : RISK_LEGEND;
   return (
-    <div className="border border-white/10 bg-black/70 px-3 py-2.5 text-gray-100 shadow-card backdrop-blur">
+    <div className="border border-white/10 bg-black/70 px-3 py-2.5 text-gray-100 shadow-card backdrop-blur-sm">
       <ul className="space-y-1.5">
         {items.map((item) => (
           <li key={item.label} className="flex items-center gap-2 text-[11px] text-gray-200">
@@ -573,7 +573,7 @@ function ParcelMap({
 
       {/* Controles personalizados */}
       {showLayerControl && (
-        <div className="absolute left-2.5 top-2.5 z-[1000] flex flex-col items-start gap-2">
+        <div className="absolute left-2.5 top-2.5 z-1000 flex flex-col items-start gap-2">
           <MapControls
             layer={layer}
             onLayerChange={setLayer}
@@ -586,13 +586,13 @@ function ParcelMap({
       )}
 
       {/* Leyenda */}
-      <div className="absolute right-2.5 top-2.5 z-[1000] flex flex-col items-end gap-2">
+      <div className="absolute right-2.5 top-2.5 z-1000 flex flex-col items-end gap-2">
         {showLayerControl && <MapLegend layer={layer} />}
       </div>
 
       {/* Indicador de modo de rendimiento (solo en desarrollo) */}
       {process.env.NODE_ENV === "development" && (
-        <div className="absolute bottom-2.5 left-2.5 z-[1000] bg-black/70 px-2 py-1 text-[10px] text-white backdrop-blur">
+        <div className="absolute bottom-2.5 left-2.5 z-1000 bg-black/70 px-2 py-1 text-[10px] text-white backdrop-blur-sm">
           {isLowEnd ? "🐌 Modo bajo consumo" : "🚀 Modo alto rendimiento"}
         </div>
       )}

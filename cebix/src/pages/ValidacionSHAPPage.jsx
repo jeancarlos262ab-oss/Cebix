@@ -336,7 +336,6 @@ function ValidacionSHAPPageContent() {
       >
         <JoinedCells className="grid-cols-2 lg:grid-cols-4">
           <div className={CELL}>
-            <span className="absolute inset-y-0 left-0 w-0.5 bg-accent-500" aria-hidden="true" />
             <StatCard
               label="Variable dominante"
               value={`${Math.round((topFeature.value / total) * 100)}%`}
@@ -474,7 +473,7 @@ function ValidacionSHAPPageContent() {
                         type="button"
                         onClick={() => setFilter(f.key)}
                         aria-pressed={active}
-                        className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 ${
+                        className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 ${
                           active
                             ? "border-accent-500 bg-accent-500 text-accent-contrast"
                             : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
@@ -536,7 +535,7 @@ function ValidacionSHAPPageContent() {
                     value={selected.id}
                     onChange={(e) => setSelectedId(Number(e.target.value))}
                     aria-label="Parcela a explicar"
-                    className="w-full appearance-none rounded-full border border-gray-200 bg-white py-2.5 pl-4 pr-10 text-sm font-medium text-gray-800 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-200"
+                    className="w-full appearance-none rounded-full border border-gray-200 bg-white py-2.5 pl-4 pr-10 text-sm font-medium text-gray-800 shadow-xs focus:border-accent-500 focus:outline-hidden focus:ring-1 focus:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-200"
                   >
                     {selectable.map((p) => (
                       <option key={p.id} value={p.id}>

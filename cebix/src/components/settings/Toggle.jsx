@@ -34,9 +34,9 @@ function Toggle({ checked, onChange, label, description }) {
         <span
           className="h-6 w-11 rounded-full bg-gray-200 transition-colors duration-200 ease-in-out
             after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full
-            after:bg-white after:shadow after:transition-transform after:duration-200 after:ease-in-out after:content-['']
+            after:bg-white after:shadow-sm after:transition-transform after:duration-200 after:ease-in-out after:content-['']
             peer-checked:bg-accent-500 peer-checked:after:translate-x-full peer-checked:after:bg-accent-contrast
-            peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-500
+            peer-focus-visible:outline-solid peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-500
             dark:bg-gray-700"
         />
       </span>

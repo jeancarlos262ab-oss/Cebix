@@ -105,7 +105,7 @@ export default function GlobalSearch() {
         role="combobox"
         aria-expanded={open && results.length > 0}
         aria-controls={resultsId}
-        className="w-full rounded-full border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm text-gray-700 shadow-sm placeholder:text-gray-400 focus:border-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500"
+        className="w-full rounded-full border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm text-gray-700 shadow-xs placeholder:text-gray-400 focus:border-accent-400 focus:outline-hidden focus:ring-2 focus:ring-accent-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:placeholder:text-gray-500"
       />
 
       {open && query && (

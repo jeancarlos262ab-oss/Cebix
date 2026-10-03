@@ -4,6 +4,7 @@ import UploadDropzone from "./UploadDropzone";
 import ParcelRow from "./ParcelRow";
 import ParcelFormModal from "./ParcelFormModal";
 import Pagination from "../ui/Pagination";
+import FullscreenLink from "../ui/FullscreenLink";
 import usePagination from "../../hooks/usePagination";
 import { useParcels } from "../../context/ParcelsContext";
 import useParcelActions from "../../hooks/useParcelActions";
@@ -26,7 +27,7 @@ export default function ParcelsTable() {
           <button
             type="button"
             onClick={() => exportParcelsCSV(parcels)}
-            className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
+            className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-xs transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
           >
             <Download size={15} className="text-accent-600 dark:text-accent-400" />
             Exportar reporte
@@ -34,7 +35,7 @@ export default function ParcelsTable() {
           <button
             type="button"
             onClick={() => setModal("add")}
-            className="flex items-center gap-1.5 rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-accent-contrast shadow-sm transition-colors hover:bg-accent-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
+            className="flex items-center gap-1.5 rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
           >
             <Plus size={15} />
             Agregar parcela
@@ -46,7 +47,12 @@ export default function ParcelsTable() {
         <UploadDropzone onParsed={importParcels} />
       </div>
 
-      <div ref={tableRef} className="mt-4 overflow-x-auto overflow-y-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
+      {/* Justo encima de la tabla, alineado a la derecha. */}
+      <div className="mt-4 flex justify-end">
+        <FullscreenLink />
+      </div>
+
+      <div ref={tableRef} className="mt-1 overflow-x-auto overflow-y-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
         <table className="w-full min-w-[680px] border-collapse text-left">
           <thead>
             <tr className="border-b border-gray-200 text-xs font-medium text-gray-500 dark:border-gray-800 dark:text-gray-400">

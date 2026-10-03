@@ -85,7 +85,7 @@ export default function AuthShell({ children }) {
           <motion.div layoutScroll className="flex flex-1 items-start justify-center px-5 py-10 sm:px-8 lg:w-[540px] lg:flex-none lg:overflow-y-auto lg:py-16 xl:w-[600px]">
             <section className="w-full max-w-md">
               {activeTab && (
-                <div className="mb-12 flex h-[4.5rem] justify-center lg:h-20 xl:h-24">
+                <div className="mb-12 flex h-18 justify-center lg:h-20 xl:h-24">
                   <Logo size="display" tone="inherit" showText={false} className="opacity-40 dark:opacity-20" />
                 </div>
               )}

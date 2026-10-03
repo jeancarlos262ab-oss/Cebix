@@ -57,7 +57,7 @@ function ScrollableTabs({ tabs, active, onChange }) {
   };
 
   const arrowBase =
-    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-accent-600 shadow-sm transition-colors duration-200 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:bg-black dark:text-accent-400 dark:hover:bg-gray-800";
+    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-accent-600 shadow-xs transition-colors duration-200 hover:bg-gray-100 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:bg-black dark:text-accent-400 dark:hover:bg-gray-800";
 
   return (
     <div className="relative mt-3 flex items-center gap-2">
@@ -85,7 +85,7 @@ function ScrollableTabs({ tabs, active, onChange }) {
             aria-selected={active === tab}
             onClick={(e) => handleSelect(tab, e)}
             className={[
-              "relative shrink-0 pb-3 pt-1 transition-colors duration-200 focus:outline-none focus-visible:text-accent-600",
+              "relative shrink-0 pb-3 pt-1 transition-colors duration-200 focus:outline-hidden focus-visible:text-accent-600",
               active === tab
                 ? "text-accent-600"
                 : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300",
@@ -249,7 +249,7 @@ export default function ParcelSummary() {
             Máximo estimado
           </li>
           <li className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: "var(--chart-2)" }} />
+            <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: "var(--accent-500)" }} />
             Promedio estimado
           </li>
         </ul>

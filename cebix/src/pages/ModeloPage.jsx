@@ -39,12 +39,9 @@ function Section({ title, description, children }) {
   );
 }
 
-function Kpi({ label, value, unit, large = true, highlight = false }) {
+function Kpi({ label, value, unit, large = true }) {
   return (
     <div className="relative p-5">
-      {highlight && (
-        <span className="absolute inset-y-0 left-0 w-0.5 bg-accent-500" aria-hidden="true" />
-      )}
       <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
       <p
         className={`mt-2 font-bold leading-tight text-gray-900 dark:text-gray-100 ${
@@ -66,7 +63,7 @@ function ResumenTab() {
     <div className="space-y-10">
       <div className="grid grid-cols-2 lg:grid-cols-[1.7fr_1fr_1fr_1fr]">
         <div className="col-span-2 lg:col-span-1">
-          <Kpi label="Modelo seleccionado" value={modelSummary.selected} large={false} highlight />
+          <Kpi label="Modelo seleccionado" value={modelSummary.selected} large={false} />
         </div>
         <Kpi label="Parcelas de entrenamiento" value={modelSummary.trainingParcels} />
         <Kpi label="RMSE" value={modelSummary.rmse} unit="ton/ha" />

@@ -18,7 +18,7 @@ function ChartTooltip({ active, payload, label, unit }) {
 }
 
 /**
- * Barras grises del valor máximo detrás de las barras turquesa del valor promedio, por categoría.
+ * Barras grises del valor máximo detrás de las barras del valor promedio, en color de acento, por categoría.
  *
  * @param {{data: {label: string, max: number, mean: number}[], unit?: string}} props
  */
@@ -36,7 +36,7 @@ function MiniBarChart({ data, unit = "ton/ha" }) {
           />
           <Tooltip content={<ChartTooltip unit={unit} />} cursor={false} />
           <Bar isAnimationActive={false} dataKey="max" fill="var(--chart-track)" radius={0} barSize={14} />
-          <Bar isAnimationActive={false} dataKey="mean" fill="var(--chart-2)" radius={0} barSize={8} />
+          <Bar isAnimationActive={false} dataKey="mean" fill="var(--accent-500)" radius={0} barSize={8} />
         </BarChart>
       </ResponsiveContainer>
     </div>

@@ -140,7 +140,7 @@ function CustomMapControls({
 
   return (
     <div
-      className={`absolute z-10 flex ${horizontal ? "flex-row" : "flex-col"} items-center gap-1 rounded-2xl border border-white/10 bg-black/85 p-1.5 text-gray-100 shadow-lg ${positionClasses}`}
+      className={`absolute z-10 flex ${horizontal ? "flex-row" : "flex-col"} items-center gap-1 rounded-full border border-white/10 bg-black/85 p-1.5 text-gray-100 shadow-lg ${positionClasses}`}
       role="group"
       aria-label="Controles del mapa"
     >

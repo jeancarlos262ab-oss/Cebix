@@ -8,7 +8,7 @@ import { useParcels } from "../context/ParcelsContext";
  * (por ejemplo, un rechazo de Supabase) en lugar de anunciar un éxito que no ocurrió.
  */
 export default function useParcelActions() {
-  const { addParcel, updateParcel, removeParcel } = useParcels();
+  const { addParcel, updateParcel, removeParcel, removeParcels } = useParcels();
 
   /** Crea (target = null) o edita (target = parcela) y avisa solo si de verdad se guardó. */
   const saveParcel = useCallback(
@@ -29,6 +29,18 @@ export default function useParcelActions() {
     [removeParcel]
   );
 
+  /** Elimina varias parcelas a la vez (selección múltiple). Recibe la lista de parcelas completas. */
+  const deleteParcels = useCallback(
+    async (list) => {
+      const result = await removeParcels(list.map((parcel) => parcel.id));
+      if (!result?.error) {
+        toast.success(list.length === 1 ? `${list[0].name} eliminada.` : `${list.length} parcelas eliminadas.`);
+      }
+      return result;
+    },
+    [removeParcels]
+  );
+
   /** Alta de varias parcelas (CSV), una por una. Devuelve cuántas fallaron y el primer motivo. */
   const importParcels = useCallback(
     async (records) => {
@@ -46,5 +58,5 @@ export default function useParcelActions() {
     [addParcel]
   );
 
-  return { saveParcel, deleteParcel, importParcels };
+  return { saveParcel, deleteParcel, deleteParcels, importParcels };
 }

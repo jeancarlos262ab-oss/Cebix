@@ -58,7 +58,7 @@ function Pagination({ page, pageCount, pageSize, total, onPageChange, onPageSize
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="rounded-full border border-gray-200 bg-white py-1 pl-3 pr-2 text-sm font-medium text-gray-800 focus:border-accent-400 focus:outline-none focus:ring-2 focus:ring-accent-100 dark:border-gray-800 dark:bg-black dark:text-gray-200"
+              className="rounded-full border border-gray-200 bg-white py-1 pl-3 pr-2 text-sm font-medium text-gray-800 focus:border-accent-400 focus:outline-hidden focus:ring-2 focus:ring-accent-100 dark:border-gray-800 dark:bg-black dark:text-gray-200"
             >
               {PAGE_SIZE_OPTIONS.map((size) => (
                 <option key={size} value={size}>

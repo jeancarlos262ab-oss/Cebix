@@ -429,6 +429,39 @@ export function ParcelsProvider({ children }) {
     return { error: null };
   }, [analysis, analysisParcels, customParcels, persistAnalysis, submissions, uid]);
 
+  /**
+   * Elimina varias parcelas de una sola vez. No se puede llamar a removeParcel en bucle:
+   * cada llamada parte de la lista "vieja" de la corrida y las demás eliminaciones se perderían.
+   * Primero se borran las propias en Supabase (si falla, no se toca nada) y luego se actualiza
+   * la corrida del modelo y los envíos a comité en un solo paso.
+   */
+  const removeParcels = useCallback(async (ids) => {
+    const idSet = new Set(ids);
+    const customIds = customParcels.filter((p) => idSet.has(p.id)).map((p) => p.id);
+    const hasModelParcels = analysisParcels.some((p) => idSet.has(p.id));
+    if (!customIds.length && !hasModelParcels) return { error: new Error("No se encontraron las parcelas.") };
+
+    if (customIds.length) {
+      const { error: deleteError } = await supabase.from("parcels_custom").delete().in("id", customIds);
+      if (deleteError) return { error: deleteError };
+      setCustomParcels((prev) => prev.filter((parcel) => !idSet.has(parcel.id)));
+    }
+
+    if (hasModelParcels) {
+      const rest = analysisParcels.filter((p) => !idSet.has(p.id));
+      persistAnalysis(rest.length ? { ...analysis, parcels: rest } : null);
+    }
+
+    if (uid && Object.keys(submissions).some((key) => idSet.has(key) || idSet.has(Number(key)))) {
+      const restSubmissions = Object.fromEntries(
+        Object.entries(submissions).filter(([key]) => !idSet.has(key) && !idSet.has(Number(key)))
+      );
+      setStored((prev) => (prev.uid === uid ? { ...prev, submissions: restSubmissions } : prev));
+      appStorage.setJSON(scopedKey(SUBMISSIONS_KEY, uid), restSubmissions);
+    }
+    return { error: null };
+  }, [analysis, analysisParcels, customParcels, persistAnalysis, submissions, uid]);
+
   const submitToCommittee = useCallback((id) => {
     if (!uid) return;
     const next = { ...submissions, [id]: new Date().toISOString() };
@@ -449,6 +482,7 @@ export function ParcelsProvider({ children }) {
       addParcel,
       updateParcel,
       removeParcel,
+      removeParcels,
       isCustomParcel,
       customParcelsLoading: loading,
       customParcelsError: error,
@@ -466,6 +500,7 @@ export function ParcelsProvider({ children }) {
       addParcel,
       updateParcel,
       removeParcel,
+      removeParcels,
       isCustomParcel,
       loading,
       error,

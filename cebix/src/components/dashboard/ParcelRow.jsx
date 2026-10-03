@@ -119,7 +119,7 @@ function ParcelRow({ parcel, onEdit }) {
             className={[
               "p-1.5",
               onEdit
-                ? "text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                ? "text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
                 : "cursor-not-allowed text-gray-200 dark:text-gray-800",
             ].join(" ")}
           >

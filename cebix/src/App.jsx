@@ -21,6 +21,7 @@ const pageLoaders = {
   dashboard: () => import("./pages/DashboardPage"),
   parcelas: () => import("./pages/ParcelasPage"),
   parcelaDetalle: () => import("./pages/ParcelaDetallePage"),
+  parcelasHistorial: () => import("./pages/ParcelasHistorialPage"),
   modelo: () => import("./pages/ModeloPage"),
   mapa: () => import("./pages/MapaSatelitalPage"),
   predicciones: () => import("./pages/PrediccionesPage"),
@@ -32,6 +33,7 @@ const pageLoaders = {
 const DashboardPage = lazy(pageLoaders.dashboard);
 const ParcelasPage = lazy(pageLoaders.parcelas);
 const ParcelaDetallePage = lazy(pageLoaders.parcelaDetalle);
+const ParcelasHistorialPage = lazy(pageLoaders.parcelasHistorial);
 const ModeloPage = lazy(pageLoaders.modelo);
 const MapaSatelitalPage = lazy(pageLoaders.mapa);
 const PrediccionesPage = lazy(pageLoaders.predicciones);
@@ -63,6 +65,7 @@ function usePrefetchPages() {
       pageLoaders.modelo,
       pageLoaders.shap,
       pageLoaders.parcelaDetalle,
+      pageLoaders.parcelasHistorial,
       pageLoaders.ajustes,
       pageLoaders.perfil,
       pageLoaders.mapa,
@@ -102,9 +105,10 @@ function usePrefetchPages() {
 // "*") devuelven null y no se cachean.
 function pageKey(pathname) {
   const path = pathname.replace(/\/+$/, "") || "/";
-  if (["/", "/parcelas", "/modelo", "/mapa", "/predicciones", "/shap", "/ajustes", "/perfil"].includes(path)) {
+  if (["/", "/parcelas", "/parcelas/historial", "/modelo", "/mapa", "/predicciones", "/shap", "/ajustes", "/perfil"].includes(path)) {
     return path;
   }
+  // (/parcelas/historial es una ruta fija: se evalúa antes que el detalle por id.)
   // Todas las parcelas comparten un solo slot de detalle (evita acumular un
   // mapa por cada parcela abierta).
   if (/^\/parcelas\/[^/]+$/.test(path)) return "/parcelas/:id";
@@ -245,6 +249,7 @@ export default function App() {
         <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/parcelas" element={<ParcelasPage />} />
+          <Route path="/parcelas/historial" element={<ParcelasHistorialPage />} />
           <Route path="/parcelas/:id" element={<ParcelaDetallePage />} />
           <Route path="/modelo" element={<ModeloPage />} />
           <Route path="/mapa" element={<MapaSatelitalPage />} />

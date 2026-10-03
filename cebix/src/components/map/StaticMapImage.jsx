@@ -80,7 +80,7 @@ export default function StaticMapImage({
         </div>
       )}
 
-      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[95%]">
+      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-[-95%]">
         <LocationPin size={26} />
       </div>
     </button>

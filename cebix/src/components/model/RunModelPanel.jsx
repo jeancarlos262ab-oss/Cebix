@@ -12,6 +12,7 @@ import {
   TrendingUp,
   UploadCloud,
 } from "lucide-react";
+import { PiFileTextFill } from "react-icons/pi";
 import { animateScroll } from "react-scroll";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
@@ -140,31 +141,33 @@ export default function RunModelPanel() {
           title="Prepara tu archivo"
           description="El CSV necesita estas columnas; el de ejemplo trae el formato exacto."
         >
-          <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 p-4 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-600 dark:bg-accent-500/10 dark:text-accent-400">
-                <FileSpreadsheet size={18} className="text-accent-600 dark:text-accent-400" />
-              </span>
-              <div className="min-w-0">
-                <div className="flex flex-wrap gap-1.5">
-                  {requiredColumns.map((c) => (
-                    <span
-                      key={c}
-                      className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                    >
-                      {c}
-                    </span>
-                  ))}
-                </div>
-                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                  Estado: {STATES.join(", ")}. Opcionales: Municipio, area_ha, lat y lng (para el mapa y las tablas).
-                </p>
+          <div className="relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-gray-200 p-4 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
+            {/* Icono grande sin fondo en la esquina inferior izquierda (espejo del que llevan
+                las métricas con cornerIcon a la derecha), saliendo del borde de la tarjeta. */}
+            <PiFileTextFill
+              aria-hidden="true"
+              size={64}
+              className="pointer-events-none absolute -bottom-3 left-4 text-gray-300 dark:text-gray-700"
+            />
+            <div className="relative z-10 min-w-0 pl-20">
+              <div className="flex flex-wrap gap-1.5">
+                {requiredColumns.map((c) => (
+                  <span
+                    key={c}
+                    className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                  >
+                    {c}
+                  </span>
+                ))}
               </div>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Estado: {STATES.join(", ")}. Opcionales: Municipio, area_ha, lat y lng (para el mapa y las tablas).
+              </p>
             </div>
             <a
               href={EXAMPLE_CSV_URL}
               download
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="relative z-10 inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               <Download size={16} className="text-accent-600 dark:text-accent-400" />
               Descargar CSV de ejemplo
@@ -215,7 +218,7 @@ export default function RunModelPanel() {
             <button
               type="submit"
               disabled={!file || loading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent-500 px-5 py-2.5 text-sm font-semibold text-accent-contrast shadow-sm transition-colors hover:bg-accent-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent-500 px-5 py-2.5 text-sm font-semibold text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black sm:w-auto"
             >
               {loading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
               {loading ? "Ejecutando modelo..." : "Ejecutar modelo"}

@@ -176,7 +176,7 @@ function PrediccionesPageContent() {
               <select
                 value={selectedId}
                 onChange={(e) => setSelectedId(Number(e.target.value))}
-                className="w-full appearance-none rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-black py-2.5 pl-4 pr-10 text-sm font-medium text-gray-800 dark:text-gray-200 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+                className="w-full appearance-none rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-black py-2.5 pl-4 pr-10 text-sm font-medium text-gray-800 dark:text-gray-200 shadow-xs focus:border-accent-500 focus:outline-hidden focus:ring-1 focus:ring-accent-500"
               >
                 {parcels.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -213,7 +213,7 @@ function PrediccionesPageContent() {
             <button
               type="button"
               onClick={handleSubmit}
-              className={`mt-8 flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black ${
+              className={`mt-8 flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold shadow-xs transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black ${
                 justSubmitted
                   ? "bg-ndvi-600 text-white"
                   : "bg-accent-500 text-accent-contrast hover:bg-accent-600"
@@ -243,7 +243,6 @@ function PrediccionesPageContent() {
             {/* Métricas clave */}
             <JoinedCells className="grid-cols-2 lg:grid-cols-4">
               <div className={CELL}>
-                <span className="absolute inset-y-0 left-0 w-0.5 bg-accent-500" aria-hidden="true" />
                 <StatCard
                   label="Rendimiento esperado"
                   value={`${parcel.yieldEstimate.toFixed(1)} ton/ha`}
