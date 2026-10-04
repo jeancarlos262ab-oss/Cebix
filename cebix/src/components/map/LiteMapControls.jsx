@@ -113,11 +113,11 @@ function LiteMapControls({
   }[position] || "bottom-3 right-3";
 
   const horizontal = orientation === "horizontal";
-  const separatorClass = horizontal ? "mx-1 h-6 w-px bg-white/10" : "my-1 h-px w-6 bg-white/10";
+  const separatorClass = horizontal ? "mx-0.5 h-6 w-px bg-white/15" : "my-0.5 h-px w-6 bg-white/15";
 
   return (
     <div
-      className={`absolute z-1000 flex ${horizontal ? "flex-row" : "flex-col"} items-center gap-1 rounded-full border border-white/10 bg-black/85 p-1.5 text-gray-100 shadow-lg ${positionClasses}`}
+      className={`absolute z-1000 flex ${horizontal ? "flex-row" : "flex-col"} items-center gap-0.5 rounded-lg border border-white/15 bg-black/90 p-1 text-gray-100 ${positionClasses}`}
       role="group"
       aria-label="Controles del mapa"
     >
@@ -167,13 +167,13 @@ const ControlButton = memo(function ControlButton({
       disabled={disabled}
       aria-label={label}
       title={title}
-      className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
+      className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
         disabled
           ? "cursor-not-allowed text-gray-500 opacity-50"
-          : "text-accent-400 hover:bg-white/10 hover:text-accent-400 active:bg-white/20"
+          : "text-gray-200 hover:bg-white/10 active:bg-white/20"
       }`}
     >
-      <Icon size={16} />
+      <Icon size={16} strokeWidth={1.75} />
     </button>
   );
 });

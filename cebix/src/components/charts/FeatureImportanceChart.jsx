@@ -37,13 +37,13 @@ export default function FeatureImportanceChart({ data }) {
                 <span className="text-sm leading-snug text-gray-800 dark:text-gray-200">
                   {row.feature}
                 </span>
-                <span className="font-display shrink-0 text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                <span className="font-display shrink-0 text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">
                   {SIGN[row.direction] ?? ""}
                   {row.magnitude.toFixed(2)}
                 </span>
               </div>
               <div
-                className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800"
+                className="mt-1.5 h-1.5 w-full overflow-hidden bg-gray-100 dark:bg-gray-800"
                 role="img"
                 aria-label={`${row.feature}: impacto ${row.direction} de ${row.magnitude.toFixed(2)}`}
               >

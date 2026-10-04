@@ -12,7 +12,6 @@ import {
   TrendingUp,
   UploadCloud,
 } from "lucide-react";
-import { PiFileTextFill } from "react-icons/pi";
 import { animateScroll } from "react-scroll";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
@@ -142,19 +141,12 @@ export default function RunModelPanel() {
           description="El CSV necesita estas columnas; el de ejemplo trae el formato exacto."
         >
           <div className="relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-gray-200 p-4 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
-            {/* Icono grande sin fondo en la esquina inferior izquierda (espejo del que llevan
-                las métricas con cornerIcon a la derecha), saliendo del borde de la tarjeta. */}
-            <PiFileTextFill
-              aria-hidden="true"
-              size={64}
-              className="pointer-events-none absolute -bottom-3 left-4 text-gray-300 dark:text-gray-700"
-            />
-            <div className="relative z-10 min-w-0 pl-20">
+            <div className="relative z-10 min-w-0">
               <div className="flex flex-wrap gap-1.5">
                 {requiredColumns.map((c) => (
                   <span
                     key={c}
-                    className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300"
                   >
                     {c}
                   </span>
@@ -167,9 +159,9 @@ export default function RunModelPanel() {
             <a
               href={EXAMPLE_CSV_URL}
               download
-              className="relative z-10 inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="relative z-10 inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
-              <Download size={16} className="text-accent-600 dark:text-accent-400" />
+              <Download size={16} strokeWidth={1.75} className="text-gray-400" />
               Descargar CSV de ejemplo
             </a>
           </div>
@@ -190,16 +182,16 @@ export default function RunModelPanel() {
               onDrop={handleDrop}
               className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-4 py-8 text-center transition-colors focus-within:ring-2 focus-within:ring-accent-500 ${
                 dragging
-                  ? "border-accent-500 bg-accent-50 dark:bg-accent-500/10"
+                  ? "border-accent-500 bg-gray-50 dark:bg-gray-900"
                   : file
-                  ? "border-accent-500/60 bg-accent-50/50 dark:bg-accent-500/5"
+                  ? "border-gray-400 bg-gray-50 dark:border-gray-600 dark:bg-gray-900/60"
                   : "border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
               }`}
             >
               {file ? (
-                <FileSpreadsheet size={26} className="text-accent-600 dark:text-accent-400" />
+                <FileSpreadsheet size={24} strokeWidth={1.5} className="text-gray-500 dark:text-gray-400" />
               ) : (
-                <UploadCloud size={26} className="text-accent-600 dark:text-accent-400" />
+                <UploadCloud size={24} strokeWidth={1.5} className="text-gray-400 dark:text-gray-500" />
               )}
               <span className="max-w-full truncate text-sm font-medium text-gray-900 dark:text-gray-100">
                 {file ? file.name : "Elegir archivo CSV"}
@@ -218,18 +210,18 @@ export default function RunModelPanel() {
             <button
               type="submit"
               disabled={!file || loading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent-500 px-5 py-2.5 text-sm font-semibold text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent-500 px-5 py-2.5 text-sm font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black sm:w-auto"
             >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+              {loading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} strokeWidth={1.75} />}
               {loading ? "Ejecutando modelo..." : "Ejecutar modelo"}
             </button>
             <button
               type="button"
               onClick={handleExample}
               disabled={loading}
-              className="ml-0 mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 sm:ml-3 sm:mt-0 sm:w-auto"
+              className="ml-0 mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 sm:ml-3 sm:mt-0 sm:w-auto"
             >
-              <FlaskConical size={16} className="text-accent-600 dark:text-accent-400" />
+              <FlaskConical size={16} strokeWidth={1.75} className="text-gray-400" />
               Probar con el archivo de ejemplo
             </button>
           </form>
@@ -257,17 +249,17 @@ export default function RunModelPanel() {
               <span className="flex gap-2">
                 <Link
                   to="/"
-                  className="inline-flex items-center gap-1.5 rounded-full bg-accent-500 px-3 py-1.5 font-semibold text-accent-contrast hover:bg-accent-600"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 font-medium text-accent-contrast hover:bg-accent-600"
                 >
-                  <LayoutGrid size={13} />
+                  <LayoutGrid size={13} strokeWidth={1.75} />
                   Ver en el dashboard
                 </Link>
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
                 >
-                  <Trash2 size={13} />
+                  <Trash2 size={13} strokeWidth={1.75} />
                   Borrar resultados
                 </button>
               </span>
@@ -400,7 +392,7 @@ function ResultsTable({ results }) {
                 <td className="whitespace-nowrap px-4 py-3 text-gray-600 dark:text-gray-400">
                   {r.Estado}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right font-display text-base font-bold tabular-nums">
+                <td className="whitespace-nowrap px-4 py-3 text-right font-display text-base font-semibold tabular-nums">
                   {r.yieldEstimate}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 tabular-nums text-gray-500 dark:text-gray-400">
@@ -440,7 +432,7 @@ function ResultsTable({ results }) {
 function ResultsPlaceholder({ loading }) {
   const bar = {
     height: 10,
-    borderRadius: 999,
+    borderRadius: 2,
     enableAnimation: loading,
   };
 
@@ -477,7 +469,7 @@ function Step({ n, title, description, last = false, children }) {
           className="absolute left-3.5 top-9 -bottom-10 w-px -translate-x-1/2 bg-gray-200 dark:bg-gray-800"
         />
       )}
-      <span className="relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-500 text-sm font-semibold text-accent-contrast">
+      <span className="relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-xs font-medium tabular-nums text-gray-600 dark:border-gray-700 dark:bg-black dark:text-gray-300">
         {n}
       </span>
       <div className="min-w-0 flex-1">

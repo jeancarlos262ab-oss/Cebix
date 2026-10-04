@@ -44,7 +44,7 @@ function Kpi({ label, value, unit, large = true }) {
     <div className="relative p-5">
       <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
       <p
-        className={`mt-2 font-bold leading-tight text-gray-900 dark:text-gray-100 ${
+        className={`mt-2 font-semibold leading-tight text-gray-900 dark:text-gray-100 ${
           large ? "font-display text-2xl" : "text-base"
         }`}
       >
@@ -95,7 +95,7 @@ function ResumenTab() {
                       className="absolute left-3 top-8 bottom-0 w-px -translate-x-1/2 bg-gray-200 dark:bg-gray-800"
                     />
                   )}
-                  <span className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-500 text-xs font-semibold text-accent-contrast">
+                  <span className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-xs font-medium tabular-nums text-gray-600 dark:border-gray-700 dark:bg-black dark:text-gray-300">
                     {i + 1}
                   </span>
                   <div className="min-w-0">
@@ -128,7 +128,7 @@ function DatosTab() {
           {featureGroups.map((group) => (
             <div key={group.group} className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
               <div className="flex items-center gap-2.5 bg-gray-50 px-5 py-3 dark:bg-gray-900">
-                <span className={`h-2 w-2 shrink-0 rounded-full ${GROUP_DOT[group.color]}`} />
+                <span className={`h-2 w-2 shrink-0 rounded-xs ${GROUP_DOT[group.color]}`} />
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   {group.group}
                 </p>
@@ -140,7 +140,7 @@ function DatosTab() {
                     className="flex items-start gap-3 px-5 py-3 text-sm text-gray-700 dark:text-gray-300"
                   >
                     <span
-                      className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${GROUP_DOT[group.color]}`}
+                      className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-xs ${GROUP_DOT[group.color]}`}
                       aria-hidden="true"
                     />
                     {f}
@@ -163,20 +163,18 @@ function DatosTab() {
                 className="flex h-full flex-col rounded-2xl border border-gray-200 p-5 dark:border-gray-800"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-600 dark:bg-accent-500/10 dark:text-accent-400">
-                    <Icon size={18} />
-                  </span>
+                  <Icon size={20} strokeWidth={1.5} className="shrink-0 text-gray-400 dark:text-gray-500" />
                   <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    className={`rounded px-2 py-0.5 text-xs font-medium ${
                       training
-                        ? "bg-accent-50 text-accent-700 dark:bg-accent-500/10 dark:text-accent-400"
+                        ? "border border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300"
                         : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
                     }`}
                   >
                     {source.use}
                   </span>
                 </div>
-                <p className="mt-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                <p className="mt-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
                   {source.name}
                 </p>
                 <p className="mt-1.5 text-sm leading-relaxed text-gray-600 dark:text-gray-400">

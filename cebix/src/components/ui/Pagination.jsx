@@ -16,10 +16,10 @@ function getPageItems(current, count) {
 }
 
 const BASE_BTN =
-  "flex h-8 min-w-8 items-center justify-center rounded-full border px-2 text-sm font-medium transition-colors";
+  "flex h-8 min-w-8 items-center justify-center rounded-lg border px-2 text-sm font-medium transition-colors";
 const IDLE_BTN =
-  "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800";
-const ACTIVE_BTN = "border-accent-500 bg-accent-500 text-accent-contrast";
+  "border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800";
+const ACTIVE_BTN = "border-gray-900 bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900";
 const DISABLED_BTN = "cursor-not-allowed opacity-40 hover:bg-white dark:hover:bg-black";
 
 /**
@@ -58,7 +58,7 @@ function Pagination({ page, pageCount, pageSize, total, onPageChange, onPageSize
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="rounded-full border border-gray-200 bg-white py-1 pl-3 pr-2 text-sm font-medium text-gray-800 focus:border-accent-400 focus:outline-hidden focus:ring-2 focus:ring-accent-100 dark:border-gray-800 dark:bg-black dark:text-gray-200"
+              className="rounded-lg border border-gray-300 bg-white py-1 pl-3 pr-2 text-sm font-medium text-gray-800 focus:border-accent-500 focus:outline-hidden focus:ring-1 focus:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-200"
             >
               {PAGE_SIZE_OPTIONS.map((size) => (
                 <option key={size} value={size}>
@@ -78,7 +78,7 @@ function Pagination({ page, pageCount, pageSize, total, onPageChange, onPageSize
           onClick={() => onPageChange(page - 1)}
           className={[BASE_BTN, IDLE_BTN, page <= 1 ? DISABLED_BTN : ""].join(" ")}
         >
-          <ChevronLeft size={16} className="text-accent-600 dark:text-accent-400" />
+          <ChevronLeft size={16} strokeWidth={1.75} className="text-gray-500 dark:text-gray-400" />
         </button>
 
         {/* En pantallas chicas los números no caben: solo "3 / 20". */}
@@ -113,7 +113,7 @@ function Pagination({ page, pageCount, pageSize, total, onPageChange, onPageSize
           onClick={() => onPageChange(page + 1)}
           className={[BASE_BTN, IDLE_BTN, page >= pageCount ? DISABLED_BTN : ""].join(" ")}
         >
-          <ChevronRight size={16} className="text-accent-600 dark:text-accent-400" />
+          <ChevronRight size={16} strokeWidth={1.75} className="text-gray-500 dark:text-gray-400" />
         </button>
       </div>
     </nav>

@@ -17,6 +17,15 @@ verificación pendiente en `backend/README_BACKEND.md`.
 La pestaña *Validación del cálculo* muestra únicamente resultados reales: ejecuta
 `backend/validate_gee.py` y guarda su salida como `src/data/earthEngineValidation.json`.
 
+### Globo 3D de la pantalla satelital
+
+`/satelite` abre en un globo terráqueo 3D hecho con **Canvas 2D (sin WebGL ni librerías)**:
+`GlobeMap.jsx` (interacción y vuelo), `globeRender.js` (render por CPU, función pura) y
+`globeTexture.js` (une teselas Esri z=2 y z=3 en un bitmap). Solo redibuja al arrastrar, hacer zoom
+o volar; en reposo no consume CPU. Desde el globo se entra con animación al mapa plano
+(Leaflet) para dibujar, y el botón **Globo** de la barra regresa. Con una parcela ya dibujada o un
+GeoJSON importado se abre directo el mapa plano.
+
 ## Requisitos
 
 - Node.js 18 o superior

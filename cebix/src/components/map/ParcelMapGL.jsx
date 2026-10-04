@@ -62,6 +62,9 @@ const BASEMAPS = {
           source: "esri-imagery",
           minzoom: 0,
           maxzoom: 22,
+          // Sin fundido entre teselas: durante el fundido la tesela nueva se mezcla con la
+          // vecina/padre y deja una línea clara en cada borde (la "cuadrícula" del mapa).
+          paint: { "raster-fade-duration": 0, "raster-opacity": 1 },
         },
       ],
     },
@@ -90,6 +93,9 @@ const BASEMAPS = {
           source: "esri-topo",
           minzoom: 0,
           maxzoom: 22,
+          // Sin fundido entre teselas: durante el fundido la tesela nueva se mezcla con la
+          // vecina/padre y deja una línea clara en cada borde (la "cuadrícula" del mapa).
+          paint: { "raster-fade-duration": 0, "raster-opacity": 1 },
         },
       ],
     },
@@ -117,6 +123,9 @@ const BASEMAPS = {
           source: "esri-gray-light",
           minzoom: 0,
           maxzoom: 22,
+          // Sin fundido entre teselas: durante el fundido la tesela nueva se mezcla con la
+          // vecina/padre y deja una línea clara en cada borde (la "cuadrícula" del mapa).
+          paint: { "raster-fade-duration": 0, "raster-opacity": 1 },
         },
       ],
     },
@@ -144,6 +153,9 @@ const BASEMAPS = {
           source: "esri-gray-dark",
           minzoom: 0,
           maxzoom: 22,
+          // Sin fundido entre teselas: durante el fundido la tesela nueva se mezcla con la
+          // vecina/padre y deja una línea clara en cada borde (la "cuadrícula" del mapa).
+          paint: { "raster-fade-duration": 0, "raster-opacity": 1 },
         },
       ],
     },
@@ -240,10 +252,10 @@ const ToolbarIconButton = memo(function ToolbarIconButton({ icon: Icon, label, a
       aria-label={label}
       aria-pressed={active}
       className={[
-        "flex h-8 w-8 items-center justify-center transition-colors rounded-full",
+        "flex h-8 w-8 items-center justify-center transition-colors rounded-md",
         active
-          ? "bg-white/20 text-accent-400"
-          : "text-accent-400 hover:bg-white/10 hover:text-accent-400",
+          ? "bg-white/20 text-white"
+          : "text-gray-200 hover:bg-white/10",
       ].join(" ")}
     >
       <Icon size={16} />
@@ -264,7 +276,7 @@ function MapControls({
   onToggleBoundaries,
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 rounded-full border border-white/10 bg-black/85 p-1.5 text-gray-100 shadow-lg">
+    <div className="flex flex-col items-center gap-0.5 rounded-lg border border-white/15 bg-black/90 p-1 text-gray-100">
       {!viewOnly && (
         <>
           {LAYERS.map((l) => (
@@ -277,7 +289,7 @@ function MapControls({
             />
           ))}
 
-          <div className="my-1 h-px w-6 bg-white/10" aria-hidden="true" />
+          <div className="my-0.5 h-px w-6 bg-white/15" aria-hidden="true" />
         </>
       )}
 
@@ -291,7 +303,7 @@ function MapControls({
         />
       ))}
 
-      <div className="my-1 h-px w-6 bg-white/10" aria-hidden="true" />
+      <div className="my-0.5 h-px w-6 bg-white/15" aria-hidden="true" />
 
       <ToolbarIconButton
         icon={Milestone}
@@ -311,11 +323,11 @@ const MapLegend = memo(function MapLegend({ layer }) {
   // Semáforo: flota directo sobre el mapa, sin contenedor ni título.
   if (layer !== "ndvi") return <RiskTrafficLight />;
   return (
-    <div className="rounded-full border border-white/10 bg-black/85 px-4 py-3.5 text-gray-100 shadow-lg">
+    <div className="rounded-lg border border-white/15 bg-black/90 px-3.5 py-3 text-gray-100">
       <ul className="space-y-1.5">
         {items.map((item) => (
           <li key={item.label} className="flex items-center gap-2 text-[11px] text-gray-200">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+            <span className="h-2.5 w-2.5 shrink-0 rounded-xs" style={{ backgroundColor: item.color }} />
             {item.label}
           </li>
         ))}
@@ -607,6 +619,7 @@ function ParcelMapGL({
         touchZoomRotate={true}
         touchPitch={false}
         attributionControl={false}
+        fadeDuration={0}
         interactiveLayerIds={viewOnly ? [] : ["parcels-layer"]}
         onClick={handleMapClick}
         onMouseEnter={handleMouseEnter}
@@ -681,7 +694,7 @@ function ParcelMapGL({
                   <button
                     type="button"
                     onClick={() => flyToParcel(popupInfo)}
-                    className="flex-1 rounded-full bg-white px-3 py-2 text-xs font-semibold text-black transition-colors hover:bg-gray-200"
+                    className="flex-1 rounded-md bg-white px-3 py-2 text-xs font-medium text-black transition-colors hover:bg-gray-200"
                   >
                     Acercar a parcela
                   </button>
@@ -689,9 +702,9 @@ function ParcelMapGL({
                 <button
                   type="button"
                   onClick={() => openInGoogleMaps(popupInfo.lat, popupInfo.lng)}
-                  className="flex flex-1 items-center justify-center gap-1 rounded-full border border-white/20 px-3 py-2 text-xs font-semibold text-gray-200 transition-colors hover:bg-white/10"
+                  className="flex flex-1 items-center justify-center gap-1 rounded-md border border-white/20 px-3 py-2 text-xs font-medium text-gray-200 transition-colors hover:bg-white/10"
                 >
-                  <ExternalLink size={12} className="text-accent-400" />
+                  <ExternalLink size={12} className="text-gray-400" />
                   Google Maps
                 </button>
               </div>

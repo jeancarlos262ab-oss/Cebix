@@ -27,17 +27,17 @@ export default function ParcelsTable() {
           <button
             type="button"
             onClick={() => exportParcelsCSV(parcels)}
-            className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-xs transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
+            className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-700 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
           >
-            <Download size={15} className="text-accent-600 dark:text-accent-400" />
+            <Download size={15} strokeWidth={1.75} className="text-gray-400" />
             Exportar reporte
           </button>
           <button
             type="button"
             onClick={() => setModal("add")}
-            className="flex items-center gap-1.5 rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
+            className="flex items-center gap-1.5 rounded-lg bg-accent-500 px-3.5 py-2 text-sm font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
           >
-            <Plus size={15} />
+            <Plus size={15} strokeWidth={1.75} />
             Agregar parcela
           </button>
         </div>

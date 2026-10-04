@@ -57,7 +57,7 @@ function ScrollableTabs({ tabs, active, onChange }) {
   };
 
   const arrowBase =
-    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-accent-600 shadow-xs transition-colors duration-200 hover:bg-gray-100 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:bg-black dark:text-accent-400 dark:hover:bg-gray-800";
+    "flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-500 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-800 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200";
 
   return (
     <div className="relative mt-3 flex items-center gap-2">
@@ -68,7 +68,7 @@ function ScrollableTabs({ tabs, active, onChange }) {
           onClick={() => scrollByDir(-1)}
           className={arrowBase}
         >
-          <ChevronLeft size={16} />
+          <ChevronLeft size={16} strokeWidth={1.75} />
         </button>
       )}
 
@@ -85,9 +85,9 @@ function ScrollableTabs({ tabs, active, onChange }) {
             aria-selected={active === tab}
             onClick={(e) => handleSelect(tab, e)}
             className={[
-              "relative shrink-0 pb-3 pt-1 transition-colors duration-200 focus:outline-hidden focus-visible:text-accent-600",
+              "relative shrink-0 pb-3 pt-1 transition-colors duration-200 focus:outline-hidden focus-visible:text-gray-900",
               active === tab
-                ? "text-accent-600"
+                ? "text-gray-900 dark:text-white"
                 : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300",
             ].join(" ")}
           >
@@ -95,7 +95,7 @@ function ScrollableTabs({ tabs, active, onChange }) {
             {active === tab && (
               <motion.div
                 layoutId="parcelSummaryTabIndicator"
-                className="absolute inset-x-0 bottom-0 h-0.5 bg-accent-600"
+                className="absolute inset-x-0 bottom-0 h-0.5 bg-accent-500"
                 transition={{ type: "spring", stiffness: 450, damping: 38 }}
               />
             )}
@@ -110,7 +110,7 @@ function ScrollableTabs({ tabs, active, onChange }) {
           onClick={() => scrollByDir(1)}
           className={arrowBase}
         >
-          <ChevronRight size={16} />
+          <ChevronRight size={16} strokeWidth={1.75} />
         </button>
       )}
     </div>
@@ -206,11 +206,11 @@ export default function ParcelSummary() {
                 )}
               </div>
             ) : (
-              <dl className="mt-2">
+              <dl className="mt-2 divide-y divide-gray-100 border-b border-gray-100 dark:divide-gray-800/70 dark:border-gray-800/70">
                 {summaryRows.map((row) => (
                   <div key={row.label} className="flex items-baseline justify-between gap-4 py-3">
                     <dt className="text-sm text-gray-500 dark:text-gray-400">{row.label}</dt>
-                    <dd className="font-display shrink-0 text-base font-bold tabular-nums text-gray-900 dark:text-gray-100">{row.value}</dd>
+                    <dd className="font-display shrink-0 text-base font-semibold tabular-nums text-gray-900 dark:text-gray-100">{row.value}</dd>
                   </div>
                 ))}
               </dl>
@@ -235,9 +235,9 @@ export default function ParcelSummary() {
             onClick={() => exportRegionYield(regionRows)}
             aria-label="Descargar CSV de esta serie"
             title="Descargar CSV de esta serie"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 text-accent-600 hover:bg-gray-50 dark:border-gray-700 dark:text-accent-400 dark:hover:bg-gray-800"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
           >
-            <Download size={14} />
+            <Download size={14} strokeWidth={1.75} />
           </button>
         </div>
         <div className="mt-4">

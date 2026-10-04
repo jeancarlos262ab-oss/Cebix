@@ -12,7 +12,7 @@ const ROW = "h-6"; // misma altura en texto y luces para que se alineen
 
 /**
  * Leyenda de elegibilidad minimalista: el texto flota directo sobre el mapa y
- * las tres luces van en una caja en forma de píldora (sin bordes ni brillo).
+ * las tres luces van en una caja rectangular (sin bordes ni brillo).
  */
 function RiskTrafficLight() {
   return (
@@ -28,10 +28,10 @@ function RiskTrafficLight() {
         ))}
       </ul>
 
-      <div className="flex shrink-0 flex-col rounded-full bg-black px-1.5 py-2" aria-hidden="true">
+      <div className="flex shrink-0 flex-col rounded-md bg-black px-1.5 py-2" aria-hidden="true">
         {RISK_LEVELS.map((item) => (
           <span key={item.label} className={`flex ${ROW} items-center justify-center`}>
-            <span className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
+            <span className="h-3 w-3 rounded-xs" style={{ backgroundColor: item.color }} />
           </span>
         ))}
       </div>

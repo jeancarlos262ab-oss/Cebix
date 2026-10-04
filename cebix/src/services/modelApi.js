@@ -6,9 +6,47 @@
 export const API_URL = (import.meta.env.VITE_MODEL_API_URL || "http://localhost:8000").replace(/\/$/, "");
 export const EXAMPLE_CSV_URL = `${API_URL}/example-csv`;
 
-async function readError(res) {
-  const detail = await res.json().catch(() => ({}));
-  return typeof detail.detail === "string" ? detail.detail : `El backend respondió ${res.status}`;
+/** Error de la API con los datos reales de la respuesta (código HTTP, URL y cuerpo crudo). */
+export class ApiError extends Error {
+  constructor(message, { status, url, raw } = {}) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.url = url;
+    this.raw = raw;
+  }
+}
+
+// FastAPI manda `detail` como texto, como lista de errores de validación (422) o como objeto.
+function detailToText(detail) {
+  if (detail == null) return "";
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail))
+    return detail
+      .map((d) => {
+        if (typeof d === "string") return d;
+        const loc = Array.isArray(d?.loc) ? d.loc.filter((x) => x !== "body").join(".") : "";
+        const msg = d?.msg ?? JSON.stringify(d);
+        return loc ? `${loc}: ${msg}` : msg;
+      })
+      .join("\n");
+  if (typeof detail === "object") return detail.message ?? detail.error ?? JSON.stringify(detail);
+  return String(detail);
+}
+
+/** Convierte una respuesta no exitosa en un ApiError con el mensaje real del servidor. */
+export async function errorFromResponse(res) {
+  const raw = (await res.text().catch(() => "")).trim();
+  let detail = "";
+  try {
+    const json = JSON.parse(raw);
+    detail = detailToText(json?.detail ?? json?.message ?? json?.error ?? json);
+  } catch {
+    // Cuerpo que no es JSON (p. ej. la página de error de un proxy): no se usa como mensaje.
+    detail = raw && !raw.startsWith("<") ? raw.slice(0, 500) : "";
+  }
+  const message = detail || `El backend respondió ${res.status}${res.statusText ? ` ${res.statusText}` : ""}`;
+  return new ApiError(message, { status: res.status, url: res.url, raw: raw.slice(0, 4000) });
 }
 
 /** POST /predict-csv — ejecuta el modelo real sobre un File. Devuelve { n_parcelas, predicciones }. */
@@ -16,14 +54,14 @@ export async function predictCsv(file) {
   const formData = new FormData();
   formData.append("file", file);
   const res = await fetch(`${API_URL}/predict-csv`, { method: "POST", body: formData });
-  if (!res.ok) throw new Error(await readError(res));
+  if (!res.ok) throw await errorFromResponse(res);
   return res.json();
 }
 
 /** GET /model-info — métricas de validación, SHAP global, comparación de algoritmos, textos. */
 export async function fetchModelInfo() {
   const res = await fetch(`${API_URL}/model-info`);
-  if (!res.ok) throw new Error(await readError(res));
+  if (!res.ok) throw await errorFromResponse(res);
   return res.json();
 }
 
@@ -36,7 +74,9 @@ export async function fetchExampleFile() {
 }
 
 export function friendlyError(err) {
-  return err.message === "Failed to fetch"
-    ? "No se pudo conectar al backend. Si está en Render/Railway con plan gratuito puede tardar ~30 s en despertar; intenta de nuevo."
-    : err.message;
+  // Los navegadores usan un TypeError genérico cuando la petición ni siquiera llega a respuesta.
+  if (err instanceof TypeError) {
+    return `No se pudo conectar con el backend (${API_URL}). El navegador no recibió respuesta: el servidor está apagado o inalcanzable, la URL es incorrecta o bloquea el origen (CORS). Error del navegador: ${err.message}`;
+  }
+  return err.message;
 }

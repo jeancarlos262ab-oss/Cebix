@@ -17,7 +17,7 @@ import { yieldHistogram } from "../../utils/parcelStats";
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg bg-gray-900 px-2.5 py-1.5 text-xs text-white shadow-lg">
+    <div className="rounded-md bg-gray-900 px-2.5 py-1.5 text-xs text-white">
       <p className="font-semibold">{label} ton/ha</p>
       <p className="text-gray-300 dark:text-gray-600">
         {payload[0].value} parcela{payload[0].value === 1 ? "" : "s"}
@@ -91,9 +91,9 @@ export default function YieldDistribution() {
               data
             )
           }
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 text-accent-600 hover:bg-gray-50 dark:border-gray-700 dark:text-accent-400 dark:hover:bg-gray-800"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
         >
-          <Download size={16} />
+          <Download size={16} strokeWidth={1.75} />
         </button>
       </div>
 

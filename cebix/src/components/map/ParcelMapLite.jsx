@@ -14,6 +14,7 @@
 import { LEFT_FADE_LENGTH, softFadeGradient } from "./edgeFade";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
+import "../../utils/leafletSeams";
 import { MapContainer, TileLayer, CircleMarker, Marker, Popup, GeoJSON } from "react-leaflet";
 import { locationPinHtml, PIN_SIZE, PIN_TIP_OFFSET } from "./LocationPin";
 import cebadaMapIcon from "../../assets/cebada_map.webp";
@@ -144,10 +145,10 @@ const ToolbarIconButton = memo(function ToolbarIconButton({ icon: Icon, label, a
       aria-label={label}
       aria-pressed={active}
       className={[
-        "flex h-8 w-8 items-center justify-center transition-colors rounded-full",
+        "flex h-8 w-8 items-center justify-center transition-colors rounded-md",
         active
-          ? "bg-white/20 text-accent-400"
-          : "text-accent-400 hover:bg-white/10 hover:text-accent-400",
+          ? "bg-white/20 text-white"
+          : "text-gray-200 hover:bg-white/10",
       ].join(" ")}
     >
       <Icon size={16} />
@@ -165,7 +166,7 @@ function MapControlsPanel({
   onToggleBoundaries,
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 rounded-full border border-white/10 bg-black/85 p-1.5 text-gray-100 shadow-lg">
+    <div className="flex flex-col items-center gap-0.5 rounded-lg border border-white/15 bg-black/90 p-1 text-gray-100">
       {!viewOnly && (
         <>
           {LAYERS.map((l) => (
@@ -178,7 +179,7 @@ function MapControlsPanel({
             />
           ))}
 
-          <div className="my-1 h-px w-6 bg-white/10" aria-hidden="true" />
+          <div className="my-0.5 h-px w-6 bg-white/15" aria-hidden="true" />
         </>
       )}
 
@@ -192,7 +193,7 @@ function MapControlsPanel({
         />
       ))}
 
-      <div className="my-1 h-px w-6 bg-white/10" aria-hidden="true" />
+      <div className="my-0.5 h-px w-6 bg-white/15" aria-hidden="true" />
 
       <ToolbarIconButton
         icon={Milestone}
@@ -209,11 +210,11 @@ const MapLegend = memo(function MapLegend({ layer }) {
   // Semáforo: flota directo sobre el mapa, sin contenedor ni título.
   if (layer !== "ndvi") return <RiskTrafficLight />;
   return (
-    <div className="rounded-full border border-white/10 bg-black/85 px-4 py-3.5 text-gray-100 shadow-lg">
+    <div className="rounded-lg border border-white/15 bg-black/90 px-3.5 py-3 text-gray-100">
       <ul className="space-y-1.5">
         {items.map((item) => (
           <li key={item.label} className="flex items-center gap-2 text-[11px] text-gray-200">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+            <span className="h-2.5 w-2.5 shrink-0 rounded-xs" style={{ backgroundColor: item.color }} />
             {item.label}
           </li>
         ))}
@@ -457,7 +458,7 @@ function ParcelMapLite({
                       <dt className="text-[11px] text-gray-400">NDVI</dt>
                       <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-bold text-white">
                         <span
-                          className="h-2 w-2 shrink-0 rounded-full"
+                          className="h-2 w-2 shrink-0 rounded-xs"
                           style={{ backgroundColor: ndviToColor(parcel.ndvi) }}
                         />
                         {parcel.ndvi.toFixed(2)}
@@ -467,7 +468,7 @@ function ParcelMapLite({
                       <dt className="text-[11px] text-gray-400">Elegibilidad</dt>
                       <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-white">
                         <span
-                          className="h-2 w-2 shrink-0 rounded-full"
+                          className="h-2 w-2 shrink-0 rounded-xs"
                           style={{ backgroundColor: RISK_HEX[parcel.riskColor] ?? "#9ca3af" }}
                         />
                         {parcel.risk}
@@ -480,7 +481,7 @@ function ParcelMapLite({
                       <button
                         type="button"
                         onClick={() => flyToParcel(parcel)}
-                        className="flex-1 rounded-full bg-white px-3 py-2 text-xs font-semibold text-black transition-colors hover:bg-gray-200"
+                        className="flex-1 rounded-md bg-white px-3 py-2 text-xs font-medium text-black transition-colors hover:bg-gray-200"
                       >
                         Acercar a parcela
                       </button>
@@ -488,9 +489,9 @@ function ParcelMapLite({
                     <button
                       type="button"
                       onClick={() => openInGoogleMaps(parcel.lat, parcel.lng)}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-white/20 px-3 py-2 text-xs font-semibold text-gray-200 transition-colors hover:bg-white/10"
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-white/20 px-3 py-2 text-xs font-medium text-gray-200 transition-colors hover:bg-white/10"
                     >
-                      <ExternalLink size={12} className="text-accent-400" />
+                      <ExternalLink size={12} className="text-gray-400" />
                       Google Maps
                     </button>
                   </div>

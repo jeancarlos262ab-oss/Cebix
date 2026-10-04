@@ -65,11 +65,84 @@ const LEVELS = [
  * espaciado de sombra que ParcelEmblem usa para cebada.png. Incluye el
  * desglose de rangos por nivel y una barra de progreso del score.
  *
- * @param {{score: number}} props
+ * `sober`: variante sin degradados ni colores chillones (usada en Predicciones y Parcela satelital):
+ * la imagen sigue sobresaliendo igual, pero la barra y el desglose son planos y de línea fina.
+ *
+ * @param {{score: number, sober?: boolean}} props
  */
-function Semaphore({ score }) {
+function Semaphore({ score, sober = false }) {
   const active = LEVELS.find((level) => level.test(score)) ?? LEVELS[2];
   const clamped = Math.max(0, Math.min(100, score));
+
+  if (sober) {
+    return (
+      <div className="rounded-2xl border border-gray-200 p-5 pb-0 dark:border-gray-800">
+        <div className="flex items-center gap-4">
+          <div className="relative flex h-40 shrink-0 items-center justify-center overflow-visible">
+            <img
+              src={active.image}
+              alt={`Semáforo en ${active.label}`}
+              draggable={false}
+              decoding="async"
+              fetchPriority="high"
+              onDragStart={(e) => e.preventDefault()}
+              onContextMenu={(e) => e.preventDefault()}
+              style={{ WebkitUserDrag: "none", userSelect: "none" }}
+              className="h-[115%] w-auto max-w-none -translate-y-8 drop-shadow-[-6px_8px_3px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out hover:scale-[0.97]"
+            />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">Score de elegibilidad</p>
+            <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">{score} / 100</p>
+            <p className="mt-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+              <span className="h-2 w-2" style={{ backgroundColor: active.color }} aria-hidden="true" />
+              {active.label}
+            </p>
+          </div>
+        </div>
+
+        <div className="relative mt-5">
+          <div className="flex h-1.5 gap-px">
+            {LEVELS.map((level) => (
+              <div
+                key={level.key}
+                style={{
+                  flexGrow: level.max - level.min + 1,
+                  backgroundColor: level.color,
+                  opacity: level.key === active.key ? 1 : 0.28,
+                }}
+              />
+            ))}
+          </div>
+          <div className="absolute -top-1 h-3.5 w-0.5 bg-gray-900 dark:bg-white" style={{ left: `calc(${clamped}% - 1px)` }} />
+        </div>
+
+        <ul className="-mx-5 mt-4 divide-y divide-gray-100 border-t border-gray-100 dark:divide-gray-800/70 dark:border-gray-800/70">
+          {LEVELS.map((level) => {
+            const isActive = level.key === active.key;
+            return (
+              <li
+                key={level.key}
+                className={`flex items-start gap-3 px-5 py-3 last:rounded-b-2xl ${isActive ? "bg-gray-50 dark:bg-gray-900/60" : ""}`}
+              >
+                <span
+                  className={`mt-1.5 h-2 w-2 shrink-0 ${isActive ? "" : "bg-gray-300 dark:bg-gray-700"}`}
+                  style={isActive ? { backgroundColor: level.color } : undefined}
+                />
+                <div className={`min-w-0 flex-1 ${isActive ? "" : "opacity-55"}`}>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{level.label}</p>
+                    <span className="shrink-0 text-xs tabular-nums text-gray-500 dark:text-gray-400">{level.range}</span>
+                  </div>
+                  <p className="mt-0.5 text-xs leading-relaxed text-gray-600 dark:text-gray-400">{level.description}</p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-2xl border border-gray-200 p-4 pb-0 dark:border-gray-800">

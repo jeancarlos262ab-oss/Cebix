@@ -288,11 +288,11 @@
 .maplibregl-popup-content,
 .leaflet-popup-content-wrapper {
   padding: 12px 14px;
-  border-radius: 16px;
+  border-radius: 8px;
   background: rgba(0, 0, 0, 0.92) !important;
   color: #f3f4f6 !important;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: none;
 }
 
 .leaflet-popup-content-wrapper {
@@ -470,4 +470,9 @@ html.dark .app-corner-glow {
     color-mix(in srgb, var(--accent-500) 11%, transparent) 45%,
     transparent 80%
   );
+}
+
+/* Mapas sin costuras entre teselas (ver utils/leafletSeams.js) */
+.leaflet-tile {
+  outline: 1px solid transparent;
 }

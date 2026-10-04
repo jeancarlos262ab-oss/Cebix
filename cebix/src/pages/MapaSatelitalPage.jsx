@@ -39,37 +39,37 @@ function MapaSatelitalPageContent() {
               basemap="satellite"
               edgeFade={!isFullscreen}
               controlsLeftClassName="left-3"
-              controlsTopClassName="top-[66px] lg:top-3"
+              controlsTopClassName="top-[62px] lg:top-3"
             />
           </div>
 
           {/* Botón de menú: solo hace falta en móvil/tablet, donde el sidebar vive detrás
               de un drawer (en escritorio ya está siempre visible: lg:hidden). Va en la
               esquina superior izquierda, ENCIMA de la barra de opciones de vista, que en
-              móvil se baja con controlsTopClassName="top-[66px]" (en escritorio queda en top-3).
-              Mide 46px: el mismo ancho que la barra vertical (32px de botón + 6px de padding
+              móvil se baja con controlsTopClassName="top-[62px]" (en escritorio queda en top-3).
+              Mide 42px: el mismo ancho que la barra vertical (32px de botón + 4px de padding
               + 1px de borde por lado). */}
           <div className="pointer-events-none absolute left-3 top-3 z-1000 lg:hidden">
             <button
               type="button"
               onClick={toggle}
               aria-label="Abrir menú"
-              className="pointer-events-auto flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full bg-black/85 text-gray-400 shadow-lg hover:bg-white/10"
+              className="pointer-events-auto flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg border border-white/15 bg-black/90 text-gray-200 hover:bg-white/10"
             >
-              <Menu size={20} className="text-accent-400" />
+              <Menu size={20} strokeWidth={1.75} />
             </button>
           </div>
         </div>
 
         <section
           aria-labelledby="regiones-title"
-          className="w-full border-t border-gray-800 bg-black px-4 py-4 text-gray-100 sm:px-6 lg:absolute lg:bottom-3 lg:left-3 lg:z-1000 lg:w-72 lg:rounded-4xl lg:border lg:border-white/10 lg:bg-black/85 lg:p-6 lg:shadow-lg"
+          className="w-full border-t border-gray-800 bg-black px-4 py-4 text-gray-100 sm:px-6 lg:absolute lg:bottom-3 lg:left-3 lg:z-1000 lg:w-72 lg:rounded-lg lg:border lg:border-white/15 lg:bg-black/90 lg:p-5"
         >
           <h2 id="regiones-title" className="font-display text-sm font-semibold">
             Regiones cubiertas
           </h2>
           <p className="mt-1 text-xs leading-relaxed text-gray-400">
-            {parcels.length} parcelas activas con imagen Sentinel-2 procesada en Earth Engine.
+            {parcels.length} parcelas activas con imagen satelital Sentinel-2.
           </p>
 
           <dl className="mt-4 space-y-3 pt-4 text-xs">
@@ -82,14 +82,14 @@ function MapaSatelitalPageContent() {
                       <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: r.color }} />
                       {r.region}
                     </dt>
-                    <dd className="font-display text-sm font-bold tabular-nums">
+                    <dd className="font-display text-sm font-semibold tabular-nums">
                       {r.parcelCount}
                       <span className="ml-1 text-[11px] font-medium text-gray-500">
                         parcela{r.parcelCount === 1 ? "" : "s"}
                       </span>
                     </dd>
                   </div>
-                  <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/10" aria-hidden="true">
+                  <div className="mt-1.5 h-1 w-full overflow-hidden bg-white/10" aria-hidden="true">
                     <div className="h-full" style={{ width: `${share}%`, backgroundColor: r.color }} />
                   </div>
                 </div>

@@ -26,20 +26,20 @@ export default function ValidationTable({ rows }) {
       <dl className="mb-5 grid grid-cols-3 gap-4 sm:max-w-xl">
         <div>
           <dt className="text-xs text-gray-500 dark:text-gray-400">Parcelas comparadas</dt>
-          <dd className="font-display mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">{rows.length}</dd>
+          <dd className="font-display mt-1 text-xl font-semibold text-gray-900 dark:text-gray-100">{rows.length}</dd>
         </div>
         <div>
           <dt className="text-xs text-gray-500 dark:text-gray-400">Dentro de tolerancia</dt>
-          <dd className="font-display mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">
+          <dd className="font-display mt-1 text-xl font-semibold text-gray-900 dark:text-gray-100">
             {Math.round((okCount / cells.length) * 100)}%
-            <span className="ml-1 text-xs font-medium text-gray-400">
+            <span className="ml-1 text-xs font-normal text-gray-400">
               ({okCount}/{cells.length})
             </span>
           </dd>
         </div>
         <div>
           <dt className="text-xs text-gray-500 dark:text-gray-400">Mayor desviación</dt>
-          <dd className="font-display mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">
+          <dd className="font-display mt-1 text-xl font-semibold text-gray-900 dark:text-gray-100">
             {worst > 0 ? "+" : ""}
             {worst.toFixed(1)}%
           </dd>
@@ -71,10 +71,10 @@ export default function ValidationTable({ rows }) {
                     <td key={r.id} className="px-3 py-2.5 text-right">
                       <span
                         title={`Oficial ${r.official[f.key]} · GEE ${r.gee[f.key]}`}
-                        className={`inline-block min-w-[3.75rem] rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ${
+                        className={`inline-block min-w-[3.75rem] rounded px-1.5 py-0.5 text-xs tabular-nums ${
                           ok
-                            ? "bg-ndvi-400/15 text-ndvi-700 dark:bg-ndvi-500/15 dark:text-ndvi-400"
-                            : "bg-red-500/10 text-red-700 dark:text-red-400"
+                            ? "text-gray-600 dark:text-gray-300"
+                            : "bg-red-500/10 font-semibold text-red-700 dark:text-red-400"
                         }`}
                       >
                         {d === null ? "—" : `${d > 0 ? "+" : ""}${d.toFixed(1)}%`}

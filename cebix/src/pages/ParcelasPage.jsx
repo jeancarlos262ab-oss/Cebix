@@ -114,17 +114,17 @@ function ParcelasPageContent() {
             <button
               type="button"
               onClick={() => exportParcelsCSV(filtered, `cebix-parcelas-${region.toLowerCase()}${risk === "all" ? "" : `-${risk}`}.csv`)}
-              className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-xs transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
+              className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-700 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
             >
-              <Download size={15} className="text-accent-600 dark:text-accent-400" />
+              <Download size={15} strokeWidth={1.75} className="text-gray-400" />
               Exportar
             </button>
             <button
               type="button"
               onClick={() => setModal("add")}
-              className="flex items-center gap-1.5 rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
+              className="flex items-center gap-1.5 rounded-lg bg-accent-500 px-3.5 py-2 text-sm font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
             >
-              <Plus size={15} />
+              <Plus size={15} strokeWidth={1.75} />
               Agregar parcela
             </button>
           </div>
@@ -155,16 +155,16 @@ function ParcelasPageContent() {
                     aria-pressed={active}
                     onClick={() => handleRegionChange(r)}
                     className={[
-                      "flex w-full items-center justify-between gap-3 rounded-full px-4 py-2 text-left text-sm font-medium transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500",
+                      "flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500",
                       active
-                        ? "bg-accent-500 text-accent-contrast shadow-xs"
-                        : "text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-900",
+                        ? "bg-gray-100 font-semibold text-gray-900 dark:bg-gray-800 dark:text-gray-100"
+                        : "font-medium text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-900",
                     ].join(" ")}
                   >
                     {r}
                     <span
-                      className={`text-xs font-semibold tabular-nums ${
-                        active ? "opacity-80" : "text-gray-400 dark:text-gray-500"
+                      className={`text-xs tabular-nums ${
+                        active ? "font-medium text-gray-600 dark:text-gray-300" : "text-gray-400 dark:text-gray-500"
                       }`}
                     >
                       {regionCounts[r]}
@@ -193,7 +193,7 @@ function ParcelasPageContent() {
             </div>
 
             {/* Distribución de un vistazo; al filtrar, los demás niveles se atenúan. */}
-            <div className="mt-4 flex h-1.5 w-full gap-0.5 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800" aria-hidden="true">
+            <div className="mt-4 flex h-1.5 w-full gap-0.5 overflow-hidden bg-gray-100 dark:bg-gray-800" aria-hidden="true">
               {riskCounts.map((r) => (
                 <div
                   key={r.key}
@@ -220,13 +220,13 @@ function ParcelasPageContent() {
                     disabled={empty}
                     onClick={() => handleRiskChange(r.key)}
                     className={[
-                      "flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left text-sm transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500",
+                      "flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500",
                       active
                         ? "bg-gray-100 dark:bg-gray-800"
                         : "hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:hover:bg-gray-900",
                     ].join(" ")}
                   >
-                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: r.color }} />
+                    <span className="h-2 w-2 shrink-0 rounded-xs" style={{ backgroundColor: r.color }} />
                     <span
                       className={`flex-1 truncate ${
                         active
@@ -237,7 +237,7 @@ function ParcelasPageContent() {
                       {r.label}
                     </span>
                     <span className="w-9 text-right text-xs tabular-nums text-gray-400 dark:text-gray-500">{share}%</span>
-                    <span className="w-7 text-right font-display text-sm font-bold tabular-nums text-gray-900 dark:text-gray-100">
+                    <span className="w-7 text-right font-display text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                       {r.count}
                     </span>
                   </button>

@@ -6,7 +6,7 @@ export function SourceChip({ source }) {
   return (
     <span
       title={s.dataset}
-      className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+      className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300"
     >
       {s.label}
     </span>

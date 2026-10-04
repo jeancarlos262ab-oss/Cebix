@@ -7,27 +7,16 @@ import {
   Check,
   ChevronDown,
   Copy,
-  Download,
   FileUp,
-  Gauge,
   Loader2,
-  Pencil,
   RotateCcw,
-  Ruler,
-  Satellite,
-  Sparkles,
   Square,
-  X,
 } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import InfoButton from "../components/ui/InfoButton";
-import StatCard from "../components/ui/StatCard";
-import Semaphore from "../components/ui/Semaphore";
-import ConfidenceRange from "../components/charts/ConfidenceRange";
-import FeatureImportanceChart from "../components/charts/FeatureImportanceChart";
 import GeometryMap from "../components/earthengine/GeometryMap";
 import RunProgress from "../components/earthengine/RunProgress";
-import FeaturesTable from "../components/earthengine/FeaturesTable";
+import ParcelResult from "../components/earthengine/ParcelResult";
 import ValidationTable from "../components/earthengine/ValidationTable";
 import { classifyRisk, scoreFromInputs } from "../context/ParcelsContext";
 import { STEP_MS, predictFromGeometry } from "../services/earthEngineApi";
@@ -54,7 +43,10 @@ const TABS = [
 ];
 
 const FIELD =
-  "w-full rounded-full border border-gray-200 bg-white px-3.5 py-2 text-sm text-gray-800 focus:border-accent-500 focus:outline-hidden focus:ring-1 focus:ring-accent-500 disabled:opacity-50 dark:border-gray-700 dark:bg-black dark:text-gray-200";
+  "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-accent-500 focus:outline-hidden focus:ring-1 focus:ring-accent-500 disabled:opacity-50 dark:border-gray-700 dark:bg-black dark:text-gray-200";
+
+const BTN =
+  "inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800";
 
 function SectionHeader({ title, description }) {
   return (
@@ -89,15 +81,13 @@ function SelectField({ value, onChange, disabled, children }) {
 }
 
 function Notice({ tone = "warn", children }) {
-  const styles =
-    tone === "error"
-      ? "bg-red-500/10 text-red-700 dark:text-red-400"
-      : tone === "info"
-        ? "bg-gray-100 text-gray-600 dark:bg-gray-900 dark:text-gray-300"
-        : "bg-accent-50 text-accent-700 dark:bg-accent-500/10 dark:text-accent-400";
+  const border = tone === "error" ? "border-red-500" : tone === "info" ? "border-gray-300 dark:border-gray-700" : "border-amber-500";
   return (
-    <p role={tone === "error" ? "alert" : undefined} className={`flex items-start gap-2 rounded-xl px-3 py-2 text-xs leading-relaxed ${styles}`}>
-      <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+    <p
+      role={tone === "error" ? "alert" : undefined}
+      className={`flex items-start gap-2 border-l-2 bg-gray-50 py-2 pl-3 pr-3 text-xs leading-relaxed text-gray-700 dark:bg-gray-900/60 dark:text-gray-300 ${border}`}
+    >
+      <AlertTriangle size={13} strokeWidth={1.75} className={`mt-0.5 shrink-0 ${tone === "error" ? "text-red-600 dark:text-red-400" : "text-gray-500"}`} />
       <span>{children}</span>
     </p>
   );
@@ -112,40 +102,28 @@ function DetailRow({ label, children }) {
   );
 }
 
-function JoinedCells({ className = "", children }) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
-      <div className={`-mb-px -mr-px grid ${className}`}>{children}</div>
-    </div>
-  );
-}
-const CELL = "relative overflow-hidden border-b border-r border-gray-200 p-5 dark:border-gray-800";
-
-/** Los tres pasos del flujo, con su estado. */
+/** Los tres pasos del flujo, con su estado. Texto numerado y una línea fina bajo el paso en curso. */
 function Stepper({ step, running }) {
   const steps = ["Dibuja la parcela", "Calcula los índices", "Revisa la predicción"];
   return (
-    <ol className="flex flex-wrap items-center gap-x-2 gap-y-2 text-sm">
+    <ol className="grid grid-cols-3 gap-x-4 text-sm">
       {steps.map((label, i) => {
         const done = i < step;
         const active = i === step;
         return (
-          <li key={label} className="flex items-center gap-2">
-            <span
-              className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                done
-                  ? "bg-ndvi-500 text-white"
-                  : active
-                    ? "bg-accent-500 text-accent-contrast"
-                    : "border border-gray-300 text-gray-400 dark:border-gray-700"
-              }`}
-            >
-              {done ? <Check size={13} strokeWidth={3} /> : active && running ? <Loader2 size={12} className="animate-spin" /> : i + 1}
+          <li
+            key={label}
+            aria-current={active ? "step" : undefined}
+            className={`flex min-w-0 items-center gap-2 border-t-2 pt-2.5 ${
+              active ? "border-accent-500" : done ? "border-gray-400 dark:border-gray-600" : "border-gray-200 dark:border-gray-800"
+            }`}
+          >
+            <span className={`text-xs tabular-nums ${active || done ? "text-gray-500 dark:text-gray-400" : "text-gray-300 dark:text-gray-600"}`}>
+              {done ? <Check size={13} strokeWidth={2} /> : active && running ? <Loader2 size={13} className="animate-spin" /> : String(i + 1).padStart(2, "0")}
             </span>
-            <span className={active || done ? "font-medium text-gray-900 dark:text-gray-100" : "text-gray-400 dark:text-gray-500"}>
+            <span className={`truncate ${active ? "font-medium text-gray-900 dark:text-gray-100" : done ? "text-gray-600 dark:text-gray-300" : "text-gray-400 dark:text-gray-500"}`}>
               {label}
             </span>
-            {i < steps.length - 1 && <span className="mx-1 hidden h-px w-8 bg-gray-200 dark:bg-gray-800 sm:block" />}
           </li>
         );
       })}
@@ -156,21 +134,16 @@ function Stepper({ step, running }) {
 /** Estado vacío: cómo funciona, antes de calcular. */
 function HowItWorks() {
   const items = [
-    { icon: Pencil, title: "Dibuja el contorno", text: "Marca los vértices sobre la imagen satelital o importa un GeoJSON en lat/lng (EPSG:4326)." },
-    { icon: Satellite, title: "Se leen los satélites", text: "Sentinel-2, Landsat y CHIRPS (fuentes abiertas) se resumen dentro de tu polígono, ventana por ventana." },
-    { icon: Gauge, title: "El modelo predice", text: "El Random Forest estima el rendimiento, su intervalo al 90 % y qué variables pesaron más." },
+    { title: "Dibuja el contorno", text: "Marca los vértices sobre la imagen satelital o importa un GeoJSON en lat/lng (EPSG:4326)." },
+    { title: "Lectura de satélites", text: "Sentinel-2, Landsat y CHIRPS (fuentes abiertas) se resumen dentro del polígono, ventana por ventana." },
+    { title: "Predicción del modelo", text: "El Random Forest estima el rendimiento, su intervalo al 90 % y qué variables pesaron más." },
   ];
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
-      {items.map(({ icon: Icon, title, text }, i) => (
-        <div key={title} className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
-          <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-50 text-accent-600 dark:bg-accent-500/10 dark:text-accent-400">
-              <Icon size={15} />
-            </span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Paso {i + 1}</span>
-          </div>
-          <h3 className="mt-3 font-display text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+    <div className="grid gap-x-8 gap-y-6 sm:grid-cols-3">
+      {items.map(({ title, text }, i) => (
+        <div key={title} className="border-t border-gray-200 pt-4 dark:border-gray-800">
+          <span className="text-xs tabular-nums text-gray-400 dark:text-gray-500">{String(i + 1).padStart(2, "0")}</span>
+          <h3 className="mt-1.5 font-display text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
           <p className="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{text}</p>
         </div>
       ))}
@@ -348,8 +321,13 @@ function NuevaParcelaTab() {
     } catch (err) {
       clearTimers();
       if (err.name === "AbortError") return;
-      setError(err.message || "No se pudieron calcular los índices.");
+      const message = err.message || "Error desconocido (la petición falló sin mensaje).";
+      setError({ message, status: err.status, url: err.url, raw: err.raw });
       setPhase("error");
+      toast.error("No se pudieron calcular los índices", {
+        description: err.status ? `${message} (HTTP ${err.status})` : message,
+        duration: 10000,
+      });
     }
   }
 
@@ -446,17 +424,17 @@ function NuevaParcelaTab() {
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={running}
-              className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              className={BTN}
             >
-              <FileUp size={13} className="text-accent-600 dark:text-accent-400" /> Importar GeoJSON
+              <FileUp size={13} strokeWidth={1.75} className="text-gray-400" /> Importar GeoJSON
             </button>
             <button
               type="button"
               onClick={copyGeoJSON}
               disabled={!closed}
-              className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              className={BTN}
             >
-              <Copy size={13} className="text-accent-600 dark:text-accent-400" /> Copiar GeoJSON
+              <Copy size={13} strokeWidth={1.75} className="text-gray-400" /> Copiar GeoJSON
             </button>
           </div>
         </section>
@@ -466,7 +444,7 @@ function NuevaParcelaTab() {
             <button
               type="button"
               onClick={cancel}
-              className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              className={`${BTN} w-full gap-2 px-4 py-2.5 text-sm font-medium`}
             >
               <Square size={14} /> Cancelar cálculo
             </button>
@@ -475,9 +453,9 @@ function NuevaParcelaTab() {
               type="button"
               onClick={run}
               disabled={!canRun}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black"
             >
-              <Calculator size={15} />
+              <Calculator size={15} strokeWidth={1.75} />
               {result ? "Recalcular índices satelitales" : "Calcular índices satelitales"}
             </button>
           )}
@@ -517,34 +495,46 @@ function NuevaParcelaTab() {
           {running && <RunProgress current={stepIdx} elapsedSec={elapsed} year={anio} />}
 
           {phase === "error" && (
-            <div className="flex flex-col items-start gap-4 rounded-2xl border border-red-300/60 bg-red-500/5 p-6 dark:border-red-500/30">
-              <div className="flex items-start gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-500/10 text-red-600 dark:text-red-400">
-                  <X size={17} />
-                </span>
-                <div>
-                  <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">No se pudieron calcular los índices</h2>
-                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{error}</p>
-                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    {/^Faltan librerías/.test(error ?? "")
-                      ? "Es un problema de instalación del servidor, no de tu parcela: reinstala las dependencias del backend y reinícialo. Puedes ver el detalle en /satellite-status del backend."
-                      : "Causas frecuentes: el servidor gratuito estaba dormido (reintenta en unos segundos), la fuente de imágenes no respondió o ya hay otro cálculo en curso."}
-                  </p>
-                </div>
+            <div className="space-y-4 border-l-2 border-red-500 bg-gray-50 py-4 pl-5 pr-5 dark:bg-gray-900/60">
+              <div>
+                <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">No se pudieron calcular los índices</h2>
+                <p className="mt-1 whitespace-pre-line break-words text-sm text-gray-600 dark:text-gray-400">{error?.message}</p>
+                {(error?.status || error?.url || error?.raw) && (
+                  <details className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                    <summary className="cursor-pointer select-none font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">
+                      Detalle técnico
+                    </summary>
+                    <dl className="mt-2 space-y-1">
+                      {error.status ? (
+                        <div className="flex gap-2">
+                          <dt className="shrink-0 font-medium">Código HTTP:</dt>
+                          <dd className="tabular-nums">{error.status}</dd>
+                        </div>
+                      ) : null}
+                      {error.url ? (
+                        <div className="flex gap-2">
+                          <dt className="shrink-0 font-medium">Endpoint:</dt>
+                          <dd className="break-all">{error.url}</dd>
+                        </div>
+                      ) : null}
+                    </dl>
+                    {error.raw ? (
+                      <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-md bg-black/5 p-3 font-mono text-[11px] leading-relaxed dark:bg-white/5">
+                        {error.raw}
+                      </pre>
+                    ) : null}
+                  </details>
+                )}
               </div>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={run}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-accent-500 px-4 py-2 text-sm font-semibold text-accent-contrast hover:bg-accent-600"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-medium text-accent-contrast hover:bg-accent-600"
                 >
-                  <RotateCcw size={14} /> Reintentar
+                  <RotateCcw size={13} strokeWidth={1.75} /> Reintentar
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setPhase("idle")}
-                  className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                >
+                <button type="button" onClick={() => setPhase("idle")} className={BTN}>
                   Editar parcela
                 </button>
               </div>
@@ -566,72 +556,19 @@ function NuevaParcelaTab() {
                 </div>
               )}
 
-              <section className={stale ? "opacity-60 transition-opacity" : "transition-opacity"}>
-                <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-                  <SectionHeader
-                    title={`Predicción · ${ran.name}`}
-                    description={`${ran.estado} · ciclo ${ran.anio} · ${formatHa(ran.ha)} ha`}
-                  />
-                </div>
-
-                <JoinedCells className="grid-cols-2 lg:grid-cols-4">
-                  <div className={CELL}>
-                    <StatCard cornerIcon icon={Gauge} label="Rendimiento esperado" value={`${result.yieldEstimate.toFixed(1)} ton/ha`} hint={`± ${view.half.toFixed(1)} ton/ha`} />
-                  </div>
-                  <div className={CELL}>
-                    <StatCard cornerIcon icon={Sparkles} label="Intervalo al 90 %" value={`${result.ic90_inferior.toFixed(1)} – ${result.ic90_superior.toFixed(1)}`} hint="ton/ha" />
-                  </div>
-                  <div className={CELL}>
-                    <StatCard cornerIcon icon={Check} label="Score de elegibilidad" value={`${view.score} / 100`} hint={view.risk.risk} />
-                  </div>
-                  <div className={CELL}>
-                    <StatCard cornerIcon icon={Ruler} label="Superficie" value={`${formatHa(ran.ha)} ha`} hint={`Ciclo ${ran.anio}`} />
-                  </div>
-                </JoinedCells>
-
-                {/* El semáforo sobresale hacia arriba (así es en Predicciones): mt-14 le da el aire que necesita. */}
-                <div className="mt-14 grid items-start gap-10 xl:grid-cols-2">
-                  <div className="space-y-10">
-                    <div>
-                      <h3 className="mb-4 font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Rendimiento esperado a cosecha</h3>
-                      <ConfidenceRange estimate={result.yieldEstimate} confidence={view.half} />
-                    </div>
-                    <div>
-                      <h3 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Variables que más influyeron</h3>
-                      <p className="mb-5 mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-                        Contribución SHAP de cada variable calculada en vivo: suma o resta al rendimiento de esta parcela.
-                      </p>
-                      <FeatureImportanceChart data={result.shap} />
-                    </div>
-                  </div>
-                  <Semaphore score={view.score} />
-                </div>
-              </section>
-
-              <section className={stale ? "opacity-60" : ""}>
-                <SectionHeader
-                  title="Variables calculadas desde satélite"
-                  description="Para cada escena se promedia el índice dentro del polígono y, entre las escenas de la ventana, se toma la mediana."
-                />
-                <FeaturesTable features={view.features} />
-              </section>
-
-              <section className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => downloadBlob(`${ran.name}_features_${ran.anio}.json`, JSON.stringify({ ID_POLIGONO: ran.name, Estado: ran.estado, anio: ran.anio, features: view.features }, null, 2))}
-                  className="inline-flex items-center gap-2 rounded-full bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast shadow-xs hover:bg-accent-600"
-                >
-                  <Download size={15} /> Descargar features (JSON)
-                </button>
-                <button
-                  type="button"
-                  onClick={clearAll}
-                  className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                >
-                  <RotateCcw size={15} className="text-accent-600 dark:text-accent-400" /> Nueva parcela
-                </button>
-              </section>
+              <ParcelResult
+                result={result}
+                view={view}
+                ran={ran}
+                stale={stale}
+                onDownload={() =>
+                  downloadBlob(
+                    `${ran.name}_features_${ran.anio}.json`,
+                    JSON.stringify({ ID_POLIGONO: ran.name, Estado: ran.estado, anio: ran.anio, features: view.features }, null, 2),
+                  )
+                }
+                onReset={clearAll}
+              />
             </>
           )}
         </div>
@@ -651,7 +588,7 @@ function ValidacionTab() {
       {REAL_VALIDATION ? (
         <ValidationTable rows={REAL_VALIDATION} />
       ) : (
-        <div className="rounded-2xl border border-dashed border-gray-300 p-8 dark:border-gray-700">
+        <div className="rounded-2xl border border-gray-200 p-6 dark:border-gray-800">
           <h3 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Aún no se ha corrido la validación</h3>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
             Esta pestaña solo muestra resultados reales. Para generarlos, desde la carpeta <code>backend/</code> ejecuta{" "}
@@ -665,18 +602,18 @@ function ValidacionTab() {
       <div className="grid gap-6 md:grid-cols-2">
         <div className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
           <h3 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Criterio de aceptación</h3>
-          <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
-            <li>• Índices espectrales y precipitación: diferencia dentro de ±15 %.</li>
-            <li>• Densidad de observaciones: puede diferir más (±30 %); si es sistemático, se ajusta o se documenta.</li>
-            <li>• Diferencias pequeñas son normales: distinta versión del procesamiento atmosférico o geometría exacta.</li>
+          <ul className="mt-3 list-disc space-y-2 pl-4 text-sm text-gray-600 marker:text-gray-300 dark:text-gray-400 dark:marker:text-gray-600">
+            <li>Índices espectrales y precipitación: diferencia dentro de ±15 %.</li>
+            <li>Densidad de observaciones: puede diferir más (±30 %); si es sistemático, se ajusta o se documenta.</li>
+            <li>Diferencias pequeñas son normales: distinta versión del procesamiento atmosférico o geometría exacta.</li>
           </ul>
         </div>
         <div className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
           <h3 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Si algo sale fuera de rango, revisa</h3>
-          <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
-            <li>• Que el polígono esté en lat/lng y no en UTM.</li>
-            <li>• Que se use promedio por escena → mediana por ventana, y no un compuesto por píxel.</li>
-            <li>• Que la lluvia sume los 61 días de abril y mayo (si falta un día, el backend no devuelve el valor).</li>
+          <ul className="mt-3 list-disc space-y-2 pl-4 text-sm text-gray-600 marker:text-gray-300 dark:text-gray-400 dark:marker:text-gray-600">
+            <li>Que el polígono esté en lat/lng y no en UTM.</li>
+            <li>Que se use promedio por escena → mediana por ventana, y no un compuesto por píxel.</li>
+            <li>Que la lluvia sume los 61 días de abril y mayo (si falta un día, el backend no devuelve el valor).</li>
           </ul>
         </div>
       </div>

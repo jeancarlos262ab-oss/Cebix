@@ -1,27 +1,12 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ChevronDown,
-  Gauge,
-  Percent,
-  Droplets,
-  Leaf,
-  Send,
-  CheckCircle2,
-  Sprout,
-  Sun,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-} from "lucide-react";
+import { ChevronDown, Send, CheckCircle2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
-import StatCard from "../components/ui/StatCard";
-import Semaphore from "../components/ui/Semaphore";
 import InfoButton from "../components/ui/InfoButton";
-import ConfidenceRange from "../components/charts/ConfidenceRange";
-import FeatureImportanceChart from "../components/charts/FeatureImportanceChart";
+import Semaphore from "../components/ui/Semaphore";
 import StaticMapImage from "../components/map/StaticMapImage";
+import { Contributions, Label, Row, SummaryPanel } from "../components/results/ReportParts";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { useModelInfo } from "../context/ModelInfoContext";
 import { generateCreditReportPDF } from "../utils/creditReport";
@@ -31,17 +16,17 @@ const chartQuestions = [
   {
     question: "¿Qué muestra la gráfica de rendimiento esperado a cosecha?",
     answer:
-      "Ubica el rendimiento estimado (en ton/ha) sobre una escala fija de 0 al máximo observado. La franja sombreada alrededor del punto es el intervalo de confianza al 90%: entre más angosta, más segura es la predicción del modelo para esa parcela.",
+      "Ubica el rendimiento estimado (en ton/ha) sobre una escala fija de 0 a 6. La marca es la estimación y el tramo sombreado es el intervalo de confianza al 90%: entre más angosto, más segura es la predicción del modelo para esa parcela.",
   },
   {
-    question: "¿Cómo se interpreta la gráfica de variables que más influyeron?",
+    question: "¿Cómo se interpreta la contribución de las variables?",
     answer:
-      "Es la contribución SHAP de cada variable satelital y climática sobre la predicción de esa parcela. Las barras en color de acento suman al rendimiento estimado; las barras en rojo restan. Entre más larga la barra, mayor fue el peso de esa variable en el resultado.",
+      "Es la contribución SHAP de cada variable satelital y climática sobre la predicción de esa parcela. Las barras salen de un eje central: las que van a la derecha suman al rendimiento estimado y las que van a la izquierda restan. Entre más larga la barra, mayor fue el peso de esa variable en el resultado.",
   },
   {
     question: "¿Por qué dos parcelas con el mismo NDVI pueden tener predicciones distintas?",
     answer:
-      "El modelo combina varias variables satelitales y climáticas a la vez, no solo el NDVI. La gráfica de variables que más influyeron muestra exactamente cuáles pesaron más en cada caso particular.",
+      "El modelo combina varias variables satelitales y climáticas a la vez, no solo el NDVI. La contribución de las variables muestra exactamente cuáles pesaron más en cada caso particular.",
   },
 ];
 
@@ -56,21 +41,6 @@ function SectionHeader({ title, description }) {
     </div>
   );
 }
-
-/**
- * Contenedor de celdas pegadas: un solo borde exterior y las celdas
- * compartiendo línea, sin fondo. El -mr-px/-mb-px del interior esconde el
- * borde sobrante de la última columna/fila aunque el grid se reacomode.
- */
-function JoinedCells({ className = "", children }) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
-      <div className={`-mb-px -mr-px grid ${className}`}>{children}</div>
-    </div>
-  );
-}
-
-const CELL = "relative overflow-hidden border-b border-r border-gray-200 p-5 dark:border-gray-800";
 
 /** Fila etiqueta/valor de las fichas. */
 function DetailRow({ label, children }) {
@@ -117,31 +87,17 @@ function PrediccionesPageContent() {
   }, [parcels, parcel.region]);
 
   const climateVariables = useMemo(() => {
-    const deltaMeta = (value, avg) => {
-      if (!avg) return { deltaIcon: Minus, deltaLabel: "Sin referencia regional" };
-      const diff = ((value - avg) / avg) * 100;
-      if (Math.abs(diff) < 0.5) {
-        return { deltaIcon: Minus, deltaLabel: "En línea con el promedio regional" };
-      }
-      return {
-        deltaIcon: diff > 0 ? TrendingUp : TrendingDown,
-        deltaLabel: `${diff > 0 ? "+" : ""}${diff.toFixed(0)}% vs. promedio de ${parcel.region}`,
-      };
+    const fmtInt = (v) => Number(v).toLocaleString("es-MX", { maximumFractionDigits: 0 });
+    const row = (label, value, avg, fmt) => {
+      const base = { label, value: fmt(value), avg: avg ? fmt(avg) : "—" };
+      if (!avg) return { ...base, icon: Minus, diff: "Sin referencia" };
+      const d = ((value - avg) / avg) * 100;
+      if (Math.abs(d) < 0.5) return { ...base, icon: Minus, diff: "En línea" };
+      return { ...base, icon: d > 0 ? TrendingUp : TrendingDown, diff: `${d > 0 ? "+" : "−"}${Math.abs(d).toFixed(0)} %` };
     };
-
     return [
-      {
-        label: "EVI",
-        value: parcel.evi.toFixed(2),
-        icon: Sprout,
-        ...deltaMeta(parcel.evi, regionAverages.evi),
-      },
-      {
-        label: "GDD acumulados",
-        value: `${parcel.gdd}`,
-        icon: Sun,
-        ...deltaMeta(parcel.gdd, regionAverages.gdd),
-      },
+      row("EVI", parcel.evi, regionAverages.evi, (v) => Number(v).toFixed(2)),
+      row("GDD acumulados", parcel.gdd, regionAverages.gdd, fmtInt),
     ];
   }, [parcel, regionAverages]);
 
@@ -193,7 +149,7 @@ function PrediccionesPageContent() {
 
           <section>
             <SectionHeader title="Elegibilidad" />
-            <Semaphore score={parcel.score} />
+            <Semaphore score={parcel.score} sober />
           </section>
 
           <section>
@@ -238,130 +194,102 @@ function PrediccionesPageContent() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.28, ease: "easeInOut" }}
-            className="min-w-0 space-y-14"
+            className="min-w-0 space-y-10"
           >
-            {/* Métricas clave */}
-            <JoinedCells className="grid-cols-2 lg:grid-cols-4">
-              <div className={CELL}>
-                <StatCard
-                  label="Rendimiento esperado"
-                  value={`${parcel.yieldEstimate.toFixed(1)} ton/ha`}
-                  hint={`± ${parcel.confidence.toFixed(1)} ton/ha`}
-                  icon={Gauge}
-                  tone="navy"
-                  cornerIcon
-                />
-              </div>
-              <div className={CELL}>
-                <StatCard
-                  label="Score de elegibilidad"
-                  value={`${parcel.score} / 100`}
-                  hint="Semáforo de riesgo"
-                  icon={Percent}
-                  tone="navy"
-                  cornerIcon
-                />
-              </div>
-              <div className={CELL}>
-                <StatCard
-                  label="NDVI pico"
-                  value={parcel.ndvi.toFixed(2)}
-                  hint="Máximo del ciclo"
-                  icon={Leaf}
-                  tone="navy"
-                  cornerIcon
-                />
-              </div>
-              <div className={CELL}>
-                <StatCard
-                  label="Precipitación"
-                  value={`${parcel.precip} mm`}
-                  hint="Acumulada en el ciclo"
-                  icon={Droplets}
-                  tone="navy"
-                  cornerIcon
-                />
-              </div>
-            </JoinedCells>
+            {/* Encabezado */}
+            <header className="border-b border-gray-200 pb-4 dark:border-gray-800">
+              <Label>Predicción</Label>
+              <h2 className="mt-1 truncate font-display text-lg font-semibold text-gray-900 dark:text-gray-100">{parcel.name}</h2>
+              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                {parcel.municipio}, {parcel.region} · {parcel.area}
+              </p>
+            </header>
 
-            {/* Rendimiento a cosecha + ubicación */}
-            <section className="grid grid-cols-1 gap-10 sm:grid-cols-[1fr_300px]">
+            {/* Resumen */}
+            <SummaryPanel
+              yieldEstimate={parcel.yieldEstimate}
+              half={parcel.confidence}
+              low={Math.max(0, parcel.yieldEstimate - parcel.confidence)}
+              high={parcel.yieldEstimate + parcel.confidence}
+              score={parcel.score}
+              rows={[
+                { label: "NDVI pico", value: parcel.ndvi.toFixed(2) },
+                { label: "Precipitación del ciclo", value: `${parcel.precip} mm` },
+              ]}
+            />
+
+            {/* Contribución de cada variable */}
+            <section>
+              <Label>Contribución de las variables</Label>
+              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                Valores SHAP de {parcel.name}, ordenados por magnitud: cuánto suma o resta cada variable a la estimación.
+              </p>
+              <Contributions data={parcel.shap} />
+            </section>
+
+            {/* Ubicación + ficha técnica */}
+            <section className="grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-2">
               <div className="min-w-0">
-                <SectionHeader
-                  title="Rendimiento esperado a cosecha"
-                  description="Estimación del modelo con su intervalo de confianza sobre la escala de rendimiento."
-                />
-                <ConfidenceRange estimate={parcel.yieldEstimate} confidence={parcel.confidence} />
+                <Label>Ubicación</Label>
+                <div className="mt-3">
+                  {hasCoords(parcel) ? (
+                    <StaticMapImage lat={parcel.lat} lng={parcel.lng} zoom={15} height={220} rounded />
+                  ) : (
+                    <div className="flex h-[220px] items-center justify-center rounded-2xl border border-dashed border-gray-300 px-4 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                      El CSV no incluye coordenadas (lat, lng): no se puede mostrar la ubicación.
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="min-w-0">
-                <SectionHeader title="Ubicación" description={`${parcel.municipio}, ${parcel.region}`} />
-                {hasCoords(parcel) ? (
-                  <StaticMapImage lat={parcel.lat} lng={parcel.lng} zoom={15} height={200} rounded />
-                ) : (
-                  <div className="flex h-[200px] items-center justify-center rounded-2xl bg-gray-50 px-4 text-center text-sm text-gray-500 dark:bg-gray-900 dark:text-gray-400">
-                    El CSV no incluye coordenadas (lat, lng): no se puede mostrar la ubicación.
-                  </div>
-                )}
+                <Label>Ficha técnica</Label>
+                <dl className="mt-3 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 dark:divide-gray-800/70 dark:border-gray-800">
+                  <Row label="ID de polígono">{parcel.polygonId}</Row>
+                  <Row label="Región">
+                    {parcel.region} ({parcel.regionCode})
+                  </Row>
+                  <Row label="Coordenadas">{hasCoords(parcel) ? `${parcel.lat.toFixed(4)}, ${parcel.lng.toFixed(4)}` : "—"}</Row>
+                  <Row label="Origen del dato">
+                    <span className="font-normal leading-snug">{originLabel}</span>
+                  </Row>
+                </dl>
               </div>
             </section>
 
-            {/* Variables SHAP + ficha técnica */}
-            <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1fr_280px]">
-              <section className="min-w-0">
-                <SectionHeader
-                  title="Variables que más influyeron"
-                  description={`Contribución SHAP de cada variable a la predicción de ${parcel.name}.`}
-                />
-                <FeatureImportanceChart data={parcel.shap} />
-              </section>
-
-              <section>
-                <SectionHeader title="Ficha técnica" />
-                <div className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
-                  <dl>
-                    <DetailRow label="ID de polígono">{parcel.polygonId}</DetailRow>
-                    <DetailRow label="Región">
-                      {parcel.region} ({parcel.regionCode})
-                    </DetailRow>
-                    <DetailRow label="Coordenadas">
-                      {hasCoords(parcel) ? `${parcel.lat.toFixed(4)}, ${parcel.lng.toFixed(4)}` : "—"}
-                    </DetailRow>
-                  </dl>
-                  <div className="mt-3">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Origen del dato</p>
-                    <p className="mt-1 text-sm font-medium leading-snug text-gray-900 dark:text-gray-100">{originLabel}</p>
-                  </div>
-                </div>
-              </section>
-            </div>
-
             {/* Otras variables vs. promedio regional */}
             <section>
-              <SectionHeader
-                title="Otras variables vs. promedio regional"
-                description={`EVI y grados-día de ${parcel.name}, comparados contra el promedio de las ${regionAverages.count} parcelas de ${parcel.region}.`}
-              />
-              <JoinedCells className="grid-cols-1 sm:grid-cols-2">
-                {climateVariables.map((v) => (
-                  <div key={v.label} className={CELL}>
-                    <p className="relative z-10 text-sm text-gray-500 dark:text-gray-400">{v.label}</p>
-                    <p className="font-display relative z-10 mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      {v.value}
-                    </p>
-                    <p className="relative z-10 mt-1 flex items-center gap-1.5 pr-12 text-xs text-gray-500 dark:text-gray-400">
-                      <v.deltaIcon size={12} />
-                      {v.deltaLabel}
-                    </p>
-                    <v.icon
-                      aria-hidden="true"
-                      size={64}
-                      strokeWidth={1.75}
-                      className="pointer-events-none absolute -bottom-5 -right-2 -rotate-12 text-accent-600 dark:text-accent-400"
-                    />
-                  </div>
-                ))}
-              </JoinedCells>
+              <Label>Otras variables vs. promedio regional</Label>
+              <p className="mb-3 mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                EVI y grados-día de {parcel.name}, comparados contra el promedio de las {regionAverages.count} parcelas de {parcel.region}.
+              </p>
+              <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-800">
+                <table className="w-full min-w-[440px] text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:border-gray-800 dark:text-gray-500">
+                      <th className="px-4 py-2.5 font-medium">Variable</th>
+                      <th className="px-4 py-2.5 text-right font-medium">Parcela</th>
+                      <th className="px-4 py-2.5 text-right font-medium">Promedio regional</th>
+                      <th className="px-4 py-2.5 text-right font-medium">Diferencia</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {climateVariables.map((v) => (
+                      <tr key={v.label} className="border-b border-gray-100 last:border-0 dark:border-gray-800/70">
+                        <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{v.label}</td>
+                        <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-900 dark:text-gray-100">{v.value}</td>
+                        <td className="px-4 py-3 text-right tabular-nums text-gray-500 dark:text-gray-400">{v.avg}</td>
+                        <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-300">
+                          <span className="inline-flex items-center justify-end gap-1.5 tabular-nums">
+                            <v.icon size={13} className="text-gray-400 dark:text-gray-500" />
+                            {v.diff}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </section>
           </motion.div>
         </AnimatePresence>

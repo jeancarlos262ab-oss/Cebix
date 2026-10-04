@@ -5,7 +5,7 @@ function ChartTooltip({ active, payload, label, unit }) {
   if (!active || !payload?.length) return null;
   const row = payload[0].payload;
   return (
-    <div className="rounded-lg bg-gray-900 px-2.5 py-1.5 text-xs text-white shadow-lg">
+    <div className="rounded-md bg-gray-900 px-2.5 py-1.5 text-xs text-white">
       <p className="font-semibold">{label}</p>
       <p className="text-gray-300 dark:text-gray-600">
         Promedio {row.mean} {unit}

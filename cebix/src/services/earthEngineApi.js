@@ -9,7 +9,7 @@
  * muestra el error tal cual. Las cifras que ves salen siempre de imágenes satelitales reales
  * y del modelo entrenado.
  */
-import { API_URL, friendlyError } from "./modelApi";
+import { API_URL, ApiError, errorFromResponse, friendlyError } from "./modelApi";
 
 /**
  * Milisegundos que dura cada paso en la lista de avance. Es solo una ESTIMACIÓN visual (la
@@ -18,9 +18,10 @@ import { API_URL, friendlyError } from "./modelApi";
 export const STEP_MS = 5000;
 
 export async function predictFromGeometry(payload, { signal } = {}) {
+  const url = `${API_URL}/predict-from-geometry`;
   let res;
   try {
-    res = await fetch(`${API_URL}/predict-from-geometry`, {
+    res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -28,11 +29,8 @@ export async function predictFromGeometry(payload, { signal } = {}) {
     });
   } catch (err) {
     if (err.name === "AbortError") throw err;
-    throw new Error(friendlyError(err));
+    throw new ApiError(friendlyError(err), { url, raw: String(err) });
   }
-  if (!res.ok) {
-    const detail = await res.json().catch(() => ({}));
-    throw new Error(typeof detail.detail === "string" ? detail.detail : `El backend respondió ${res.status}`);
-  }
+  if (!res.ok) throw await errorFromResponse(res);
   return res.json();
 }
