@@ -526,8 +526,9 @@ function NuevaParcelaTab() {
                   <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">No se pudieron calcular los índices</h2>
                   <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{error}</p>
                   <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    Causas frecuentes: el servidor gratuito estaba dormido (reintenta en unos segundos), la fuente de imágenes no respondió
-                    o ya hay otro cálculo en curso.
+                    {/^Faltan librerías/.test(error ?? "")
+                      ? "Es un problema de instalación del servidor, no de tu parcela: reinstala las dependencias del backend y reinícialo. Puedes ver el detalle en /satellite-status del backend."
+                      : "Causas frecuentes: el servidor gratuito estaba dormido (reintenta en unos segundos), la fuente de imágenes no respondió o ya hay otro cálculo en curso."}
                   </p>
                 </div>
               </div>

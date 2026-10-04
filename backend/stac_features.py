@@ -95,14 +95,25 @@ _run_lock = threading.Lock()
 
 
 def status() -> dict:
-    """Diagnóstico sin tocar la red: ¿están instaladas las librerías?"""
-    missing = []
+    """Diagnóstico sin tocar la red: ¿se pueden importar las librerías? Si no, dice por qué."""
+    import sys
+
+    problems = {}
     for mod, pkg in (("rasterio", "rasterio"), ("pystac_client", "pystac-client")):
         try:
             __import__(mod)
-        except ImportError:
-            missing.append(pkg)
-    return {"provider": "stac", "ready": not missing, "missing_packages": missing, "stac_api": STAC_API_URL}
+        except ImportError as e:
+            # «No module named» = no instalado; cualquier otro texto = instalado pero roto (p. ej. falta una DLL de GDAL)
+            problems[pkg] = {"instalado": "No module named" not in str(e), "detalle": " ".join(str(e).split())[:200]}
+    return {
+        "provider": "stac",
+        "ready": not problems,
+        "missing_packages": list(problems),
+        "problems": problems,
+        "python": sys.version.split()[0],
+        "executable": sys.executable,
+        "stac_api": STAC_API_URL,
+    }
 
 
 def _require_libs():
@@ -110,7 +121,11 @@ def _require_libs():
     if not st["ready"]:
         from gee_features import GeeNotConfigured
 
-        raise GeeNotConfigured("Faltan librerías en el servidor: pip install " + " ".join(st["missing_packages"]))
+        detail = "; ".join(f"{p}: {'instalado pero falla al cargar (' + i['detalle'] + ')' if i['instalado'] else 'no instalado'}" for p, i in st["problems"].items())
+        raise GeeNotConfigured(
+            f"Faltan librerías en el servidor ({detail}). Con el entorno que ejecuta uvicorn (Python {st['python']}) corre: "
+            f"python -m pip install -r requirements.txt  y reinicia el servidor. Revisa {'/satellite-status'} para ver el detalle."
+        )
 
 
 def _retry(fn, *args, tries: int = READ_TRIES):
