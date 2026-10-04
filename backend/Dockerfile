@@ -3,6 +3,12 @@ FROM python:3.11-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
+# Librerías del SISTEMA que necesita rasterio (sus wheels traen GDAL, pero no estas). Sin libexpat1 falla con
+# «libexpat.so.1: cannot open shared object file». Detectadas con readelf sobre rasterio 1.5.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libexpat1 zlib1g libstdc++6 ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY requirements.txt .

@@ -152,6 +152,13 @@ python validate_gee.py --csv ../ml/02_datos_procesados/features_completo.csv --s
 ```
 Imprime la diferencia porcentual por variable y guarda `validacion_gee.json`; cópialo a `cebix/src/data/earthEngineValidation.json`.
 
+### Si `/satellite-status` o la pantalla dicen «Faltan librerías en el servidor»
+
+- `rasterio: no instalado` → `python -m pip install -r requirements.txt` en el MISMO entorno que ejecuta `uvicorn`, y reiniciar.
+- `libexpat.so.1: cannot open shared object file` → falta una librería del **sistema**, no de Python. En Docker ya se instala en el `Dockerfile`
+  (`libexpat1`); hay que **reconstruir la imagen** (en Render: nuevo despliegue sin caché). En un Debian/Ubuntu propio: `sudo apt-get install -y libexpat1`.
+- `pip` no puede instalar `rasterio` → casi siempre la versión de Python; usa 3.11 o 3.12.
+
 ### ¿Es realmente gratis?
 
 Los datos sí: Sentinel-2 y Landsat son abiertos, y tanto Earth Search como CHIRPS se leen sin llave ni registro. Earth Search aclara que es de uso libre

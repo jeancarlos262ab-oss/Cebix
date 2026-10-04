@@ -122,10 +122,12 @@ def _require_libs():
         from gee_features import GeeNotConfigured
 
         detail = "; ".join(f"{p}: {'instalado pero falla al cargar (' + i['detalle'] + ')' if i['instalado'] else 'no instalado'}" for p, i in st["problems"].items())
-        raise GeeNotConfigured(
-            f"Faltan librerías en el servidor ({detail}). Con el entorno que ejecuta uvicorn (Python {st['python']}) corre: "
-            f"python -m pip install -r requirements.txt  y reinicia el servidor. Revisa {'/satellite-status'} para ver el detalle."
-        )
+        if any(i["instalado"] and "shared object" in i["detalle"] for i in st["problems"].values()):
+            # Python sí está instalado; lo que falta es una librería del SISTEMA (típico de imágenes Docker mínimas).
+            fix = "Falta una librería del sistema operativo, no de Python: en Docker/Debian instala libexpat1 (apt-get install -y libexpat1) y vuelve a construir la imagen."
+        else:
+            fix = f"Con el entorno que ejecuta uvicorn (Python {st['python']}) corre: python -m pip install -r requirements.txt y reinicia el servidor."
+        raise GeeNotConfigured(f"Faltan librerías en el servidor ({detail}). {fix} Detalle en /satellite-status.")
 
 
 def _retry(fn, *args, tries: int = READ_TRIES):
