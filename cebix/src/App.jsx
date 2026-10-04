@@ -24,6 +24,7 @@ const pageLoaders = {
   parcelasHistorial: () => import("./pages/ParcelasHistorialPage"),
   modelo: () => import("./pages/ModeloPage"),
   mapa: () => import("./pages/MapaSatelitalPage"),
+  earthEngine: () => import("./pages/EarthEnginePage"),
   predicciones: () => import("./pages/PrediccionesPage"),
   shap: () => import("./pages/ValidacionSHAPPage"),
   ajustes: () => import("./pages/AjustesPage"),
@@ -36,6 +37,7 @@ const ParcelaDetallePage = lazy(pageLoaders.parcelaDetalle);
 const ParcelasHistorialPage = lazy(pageLoaders.parcelasHistorial);
 const ModeloPage = lazy(pageLoaders.modelo);
 const MapaSatelitalPage = lazy(pageLoaders.mapa);
+const EarthEnginePage = lazy(pageLoaders.earthEngine);
 const PrediccionesPage = lazy(pageLoaders.predicciones);
 const ValidacionSHAPPage = lazy(pageLoaders.shap);
 const AjustesPage = lazy(pageLoaders.ajustes);
@@ -68,6 +70,7 @@ function usePrefetchPages() {
       pageLoaders.parcelasHistorial,
       pageLoaders.ajustes,
       pageLoaders.perfil,
+      pageLoaders.earthEngine,
       pageLoaders.mapa,
     ];
     const idle = window.requestIdleCallback ?? ((cb) => window.setTimeout(cb, 600));
@@ -105,7 +108,7 @@ function usePrefetchPages() {
 // "*") devuelven null y no se cachean.
 function pageKey(pathname) {
   const path = pathname.replace(/\/+$/, "") || "/";
-  if (["/", "/parcelas", "/parcelas/historial", "/modelo", "/mapa", "/predicciones", "/shap", "/ajustes", "/perfil"].includes(path)) {
+  if (["/", "/parcelas", "/parcelas/historial", "/modelo", "/mapa", "/predicciones", "/satelite", "/shap", "/ajustes", "/perfil"].includes(path)) {
     return path;
   }
   // (/parcelas/historial es una ruta fija: se evalúa antes que el detalle por id.)
@@ -254,6 +257,7 @@ export default function App() {
           <Route path="/modelo" element={<ModeloPage />} />
           <Route path="/mapa" element={<MapaSatelitalPage />} />
           <Route path="/predicciones" element={<PrediccionesPage />} />
+          <Route path="/satelite" element={<EarthEnginePage />} />
           <Route path="/shap" element={<ValidacionSHAPPage />} />
           <Route path="/ejecutar-modelo" element={<Navigate to="/modelo?tab=ejecutar" replace />} />
           <Route path="/ajustes" element={<AjustesPage />} />

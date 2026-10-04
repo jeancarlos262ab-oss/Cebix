@@ -18,6 +18,11 @@ Endpoints:
   POST /predict          — una o varias parcelas en JSON -> predicción real
   POST /predict-csv      — un CSV (mismo formato que features_predict.csv del pipeline)
                             -> predicción real de cada fila, en JSON
+  POST /predict-from-geometry — un polígono GeoJSON + año: calcula las 10 features en vivo desde
+                            satélite y corre el modelo. Proveedor por defecto: fuentes abiertas
+                            sin cuenta (stac_features.py); opcional: Google Earth Engine
+                            (gee_features.py), con FEATURES_PROVIDER=gee.
+  GET  /satellite-status — ¿qué proveedor está activo y está listo? (sin llamar a la red)
 
 Correr localmente:
     pip install -r requirements.txt
@@ -41,6 +46,9 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+
+import gee_features
+import stac_features
 
 MODEL_PATH = os.environ.get("MODEL_PATH", os.path.join(os.path.dirname(__file__), "model_artifact.joblib"))
 META_PATH = os.environ.get("MODEL_META_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "model_meta.json"))
@@ -258,4 +266,70 @@ async def predict_csv(file: UploadFile = File(...)):
             {"ID_POLIGONO": ids[i], "Estado": estados[i], **_meta(df, i), **results[i]}
             for i in range(len(ids))
         ],
+    }
+
+
+# ─────────────────────────── Earth Engine: parcela nueva dibujada en el mapa ───────────────────────────
+
+
+class GeometryRequest(BaseModel):
+    ID_POLIGONO: str = Field(min_length=1, max_length=80)
+    Estado: str = Field(default="Puebla", description="Hidalgo, Puebla o Tlaxcala (define el margen de confianza)")
+    geometry: dict = Field(description="GeoJSON Polygon en lng/lat (EPSG:4326)")
+    anio: int = Field(default=2025, description="Año del ciclo abril–octubre. El modelo se entrenó con 2025.")
+
+
+def _provider() -> str:
+    p = os.environ.get("FEATURES_PROVIDER", "stac").strip().lower()
+    return p if p in ("stac", "gee") else "stac"
+
+
+def _extract(geometry: dict, year: int) -> dict:
+    if _provider() == "gee":
+        return gee_features.extract_features_gee(geometry, year)
+    return stac_features.extract_features_stac(geometry, year)
+
+
+@app.get("/satellite-status")
+def satellite_status():
+    """Diagnóstico sin tocar la red: proveedor activo y si sus librerías/credenciales están listas."""
+    if _provider() == "gee":
+        return {"provider": "gee", "ready": gee_features.configured(), **gee_features.status()}
+    return stac_features.status()
+
+
+@app.post("/predict-from-geometry")
+def predict_from_geometry(payload: GeometryRequest):
+    """
+    Calcula en vivo las 10 features de una parcela nueva desde satélite y corre el modelo.
+    Con el proveedor por defecto (fuentes abiertas, sin cuenta) tarda ~30–90 s. Un solo cálculo a la vez.
+
+    Errores: 422 geometría/año inválidos o sin datos satelitales, 429 otro cálculo en curso,
+    502 falla de la fuente de imágenes, 503 librerías o credenciales faltantes en el servidor.
+    """
+    try:
+        extracted = _extract(payload.geometry, payload.anio)
+    except gee_features.GeeError as e:
+        raise HTTPException(status_code=e.status, detail=e.message) from None
+
+    features = extracted["features"]
+    df = pd.DataFrame([features]).astype(float)  # None -> NaN: el imputer entrenado los rellena
+    result = run_inference(df, [payload.Estado])[0]
+
+    advertencias = list(extracted["advertencias"])
+    if payload.anio != 2025:
+        advertencias.append(f"El modelo se entrenó con el ciclo 2025; para {payload.anio} extrapola (clima distinto).")
+    artifact, _ = get_artifact()
+    if payload.Estado not in artifact["rmse_by_region"]:
+        advertencias.append(f"«{payload.Estado}» no es un estado de entrenamiento: se usó el margen de confianza global.")
+
+    return {
+        "ID_POLIGONO": payload.ID_POLIGONO,
+        "Estado": payload.Estado,
+        "anio": payload.anio,
+        "proveedor": _provider(),
+        "area_ha": extracted["area_ha"],
+        "features_calculadas": features,
+        "advertencias": advertencias,
+        **result,
     }

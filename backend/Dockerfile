@@ -9,6 +9,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY main.py .
+COPY gee_features.py .
+COPY stac_features.py .
 COPY model_artifact.joblib .
 COPY model_meta.json .
 COPY data ./data

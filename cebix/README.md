@@ -4,26 +4,18 @@ Dashboard de predicción de rendimiento de cebada y elegibilidad crediticia,
 construido sobre el dataset del Reto AgroCebada 2026 (Sentinel-2/Landsat,
 Planet, CHIRPS, CHIRTS-ERA5, INEGI CEM 4.0).
 
-## Estructura del proyecto
+## Pantalla «Parcela satelital» (`/satelite`)
 
-```
-src/        frontend (React + Vite): dashboard, mapa, predicciones, SHAP
-backend/    API FastAPI que EJECUTA el modelo real en cada request
-ml/         pipeline de features, entrenamiento, validación y CSV de entrega a FIRA
-render.yaml despliegue del backend en Render (apunta a backend/)
-```
+Permite dibujar (o importar en GeoJSON) una parcela nueva y obtener su predicción con las 10
+variables del modelo calculadas en vivo desde imágenes satelitales reales.
 
-**El frontend no trae datos del modelo escritos en el código.** Todo viene de la API:
+No hay datos simulados: la pantalla llama a `POST /predict-from-geometry` del backend, que lee
+Sentinel-2, Landsat y CHIRPS (fuentes abiertas, sin cuenta ni tarjeta) y ejecuta el modelo.
+Si el backend no responde o no puede calcular, se muestra el error. Detalles, límites y
+verificación pendiente en `backend/README_BACKEND.md`.
 
-| Qué se muestra | De dónde sale |
-|---|---|
-| Predicciones, IC 90 %, SHAP local, coordenadas | `POST /predict-csv` (el modelo corre en cada llamada) |
-| RMSE / MAE / R², comparación de algoritmos, SHAP global, preguntas guía, pasos de validación | `GET /model-info` |
-| CSV de ejemplo (59 parcelas de evaluación) | `GET /example-csv` |
-
-Las gráficas del dashboard (rendimiento por estado, distribución, rangos) se calculan en el
-navegador con las parcelas de la última corrida del modelo. Si no hay corrida, no hay datos:
-las pantallas piden ejecutar el modelo o subir un CSV.
+La pestaña *Validación del cálculo* muestra únicamente resultados reales: ejecuta
+`backend/validate_gee.py` y guarda su salida como `src/data/earthEngineValidation.json`.
 
 ## Requisitos
 

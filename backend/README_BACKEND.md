@@ -97,15 +97,75 @@ El dashboard (`src/services/modelApi.js`) ya consume esta API: ejecuta el modelo
 | GET | `/example-csv` | CSV de ejemplo: 59 parcelas de evaluación con `lat`/`lng` |
 | POST | `/predict` | JSON con una o varias parcelas → predicción real |
 | POST | `/predict-csv` | Sube un CSV (mismo formato que `features_predict.csv`) → predicción real de cada fila |
+| POST | `/predict-from-geometry` | Polígono GeoJSON + año → calcula las 10 features en vivo desde satélite (fuentes abiertas, sin cuenta) y predice (30–90 s) |
+| GET | `/satellite-status` | Proveedor activo y si está listo (no llama a la red) |
+
+## Parcelas nuevas desde satélite (`POST /predict-from-geometry`)
+
+Sin cuentas, sin tarjeta y sin cuota: usa solo fuentes abiertas que se leen de forma anónima (`stac_features.py`).
+
+| Variable | Fuente |
+|---|---|
+| NDVI, EVI, LAI, NDWI, NDTI, STI (8 de las 10 features) | Sentinel-2 L2A, catálogo abierto **Earth Search** (Element 84, AWS Open Data). Se descarga solo el recorte de la parcela (COG) |
+| Conteo de escenas (`bas_n_obs_ciclo`) | Metadatos de Sentinel-2 + Landsat 8/9 (T1, nubes ≤ 40 %), contando fechas distintas |
+| Lluvia abr–may | **CHIRPS v2.0** diario (UCSB-CHC), COG anónimo, 61 días, ponderado por fracción de píxel cubierta |
+
+Método idéntico al del dataset oficial: promedio del polígono por escena → mediana por ventana fenológica.
+
+```bash
+curl http://localhost:8000/satellite-status      # {"provider":"stac","ready":true,...}
+curl -X POST http://localhost:8000/predict-from-geometry -H "Content-Type: application/json" -d '{
+  "ID_POLIGONO": "NUEVA_01", "Estado": "Puebla", "anio": 2025,
+  "geometry": {"type": "Polygon", "coordinates": [[[-98.43,19.28],[-98.429,19.28],[-98.429,19.281],[-98.43,19.281],[-98.43,19.28]]]}
+}'
+```
+
+Respuesta: `features_calculadas` (las 10), `yieldEstimate`, `ic90_inferior/superior`, `confidence`, `shap`, `area_ha`,
+`proveedor` y `advertencias` (avisos legibles: año distinto de 2025, pocas escenas, variable sin datos…).
+
+**Códigos de error**
+
+| Código | Cuándo |
+|---|---|
+| 422 | Geometría inválida (no Polygon, UTM, se cruza, <0.05 ha o >5000 ha), año fuera de 2018–hoy, o se obtuvieron datos de menos de 7 de las 10 variables |
+| 429 | Ya hay otro cálculo en curso (se procesa uno a la vez para cuidar la memoria) |
+| 502 | La fuente de imágenes o el catálogo no respondieron (reintenta en unos minutos) |
+| 503 | Faltan librerías en el servidor |
+
+**Variables de entorno opcionales** (por si cambian las rutas públicas, sin tocar código): `STAC_API_URL`, `STAC_S2_COLLECTION`,
+`STAC_LS_COLLECTION`, `CHIRPS_URL_TEMPLATE`, `STAC_WORKERS`, `GEE_MAX_AREA_HA`.
+
+### Qué está verificado y qué NO (decirlo así en el reporte)
+
+- **Verificado** con imágenes sintéticas en disco: lectura del recorte, máscara del polígono, remuestreo del SWIR de 20 a 10 m, fórmulas de los
+  6 índices, mediana por ventana, descarte de duplicados reprocesados, conteo de fechas (excluye Landsat 7 y categoría T2), lluvia de 61 días con
+  ponderación entre píxeles y rechazo si falta un día, errores HTTP, y el flujo completo frontend → backend → modelo.
+- **NO verificado contra los servicios reales** (el entorno de desarrollo no tenía internet): la ruta pública de CHIRPS, los nombres de colección y
+  de banda de Earth Search (`blue, red, nir, swir16, swir22`), la escala/offset de reflectancia que publica, el uso de memoria en el plan gratuito de
+  Render y la velocidad real. Primera ejecución recomendada: `curl /satellite-status`, luego `python validate_gee.py ... --n 1`.
+- **Los números pueden diferir del dataset oficial** (otra versión de procesamiento, píxeles de borde, LAI con valores no finitos descartados píxel a
+  píxel). Por eso la validación del Paso 8 es obligatoria antes de citar resultados:
+
+```bash
+pip install geopandas
+python validate_gee.py --csv ../ml/02_datos_procesados/features_completo.csv --shp ruta/a/Parcelas_Reto_AGC_CONJUNTO.shp --n 5
+```
+Imprime la diferencia porcentual por variable y guarda `validacion_gee.json`; cópialo a `cebix/src/data/earthEngineValidation.json`.
+
+### ¿Es realmente gratis?
+
+Los datos sí: Sentinel-2 y Landsat son abiertos, y tanto Earth Search como CHIRPS se leen sin llave ni registro. Earth Search aclara que es de uso libre
+**sin garantía de servicio**, así que puede ser lento o fallar a ratos. El hospedaje es aparte: el plan gratuito de Render duerme el servicio y tiene
+límites de memoria (no los medí con esta carga).
+
+### Opcional: Google Earth Engine
+
+`gee_features.py` sigue disponible con `FEATURES_PROVIDER=gee`, pero Earth Engine exige una cuenta de facturación activa (no se cobra el uso no
+comercial) y tiene cuota mensual de cómputo. Requiere `pip install earthengine-api` y `GEE_SERVICE_ACCOUNT_JSON`. No se usa por defecto y no se probó
+contra Earth Engine real.
 
 ## Limitación honesta (decirla en el reporte/demo si preguntan)
 
-Este backend ejecuta el modelo real sobre features YA CALCULADAS (las 10 columnas que
-`ml/01_pipeline_features/build_features.py` extrae de satélite/clima/topografía). No recalcula esas features
-en vivo a partir de una geometría nueva dibujada en el mapa — eso requeriría conectar
-Google Earth Engine en tiempo real (gratis). Ya está lista la guía paso a paso para
-que un compañero lo implemente: ver `GUIA_GOOGLE_EARTH_ENGINE.md` en la raíz del paquete.
-El modelo final ya no usa Planet (de pago), así que todas sus features son reproducibles
-con fuentes gratuitas. Lo que sí resuelve de verdad: cualquier CSV con esas 10
-columnas —incluyendo el que use el jurado para verificar— se predice en vivo, con el
-modelo real, no con una tabla fija.
+`/predict` y `/predict-csv` ejecutan el modelo real sobre features YA CALCULADAS. Las parcelas nuevas dibujadas en el mapa
+solo se pueden predecir con `/predict-from-geometry`, que lee satélites reales pero cuyo parecido con el dataset oficial
+depende de que la validación del Paso 8 haya pasado. El modelo final ya no usa Planet (de pago): todas sus features son reproducibles con fuentes gratuitas.

@@ -5,6 +5,7 @@ import {
   Satellite,
   BarChart3,
   ShieldCheck,
+  Globe,
 } from "lucide-react";
 
 export const generalNav = [
@@ -16,6 +17,7 @@ export const generalNav = [
 
 export const workspaceNav = [
   { label: "Predicciones", icon: BarChart3, to: "/predicciones" },
+  { label: "Parcela satelital", icon: Globe, to: "/satelite" },
   { label: "Validación SHAP", icon: ShieldCheck, to: "/shap" },
 ];
 

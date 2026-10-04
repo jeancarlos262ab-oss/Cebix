@@ -189,7 +189,7 @@ export default function Sidebar() {
           ].join(" ")}
         >
           {/* Mismo logo y misma posición en ambos estados: al contraer solo se oculta el texto. */}
-          <Logo size="md" showText={!collapsed} />
+          <Logo size="sm" showText={!collapsed} />
           {collapsed && (
             // Al pasar el cursor, el icono del logo se cambia por el de expandir
             // (sin mover nada: va encima del logo, centrado en él).

@@ -1,8 +1,8 @@
 import { memo, useEffect, useRef } from "react";
 
 /**
- * Logo de CEBIX: isotipo dibujado con <canvas> (cuatro piezas con esquinas
- * achaflanadas que forman una "X" abierta) + wordmark CEBIX.
+ * Logo de CEBIX: isotipo dibujado con <canvas> (cuatro piezas achaflanadas que forman
+ * una "X" abierta) + wordmark CEBIX.
  *
  * El isotipo toma el color del texto del contenedor (`currentColor`), así que
  * funciona en tema claro/oscuro y sobre el panel de marca del Login. Como el
@@ -15,7 +15,7 @@ import { memo, useEffect, useRef } from "react";
  *   size?: "sm" | "md" | "lg" | "xl" | "hero" | "display",
  *   tone?: "auto" | "contrast" | "inherit" | "white",
  *   showText?: boolean,   // false => solo el isotipo
- *   aspect?: number,      // ancho/alto del isotipo (1 = cuadrado; >1 = estirado)
+ *   aspect?: number,      // estiramiento horizontal del isotipo (1 = proporción natural; >1 = más ancho)
  * }} props
  * tone "contrast" usa siempre --accent-contrast (fondos sólidos de acento);
  * "white" fuerza blanco siempre; "inherit" toma el color del contenedor (panel de marca de Login/Signup);
@@ -31,21 +31,28 @@ const SIZES = {
   display: "text-6xl lg:text-7xl xl:text-8xl",
 };
 
-/* ---- Geometría del isotipo (cuadrícula de 737 × 737) ---- */
-const U = 737;
-// Pieza superior izquierda (cuadrante de 352 × 352, chaflanes a 45°). Las otras
-// tres son su reflejo en x e y, así que el hueco central es idéntico (33) en
-// horizontal y en vertical.
-const PIECE = [
-  [0, 0],
-  [204, 0],
-  [352, 148],
-  [352, 352],
-  [135, 352],
-  [0, 217],
+/* ---- Geometría del isotipo (cuadrícula de 1252.90 × 737) ---- */
+const W0 = 1252.90;
+const H0 = 737;
+const RATIO = W0 / H0; // proporción natural del isotipo (rectangular, más ancho que alto)
+// Alto del isotipo en em (el ancho sale de RATIO). Solo el isotipo: 0.7em.
+// Junto al wordmark CEBIX va más grande (1.05em) para que pese más que el título.
+const MARK_H = 0.7;
+const MARK_H_WITH_TEXT = 1.05;
+
+// Isotipo original de CEBIX, sin perspectiva: cuatro piezas con esquinas
+// achaflanadas que forman una "X" abierta, ensanchadas 1.7× en horizontal (hueco
+// central de 33, igual en ambos sentidos) para que se vean rectangulares. Las
+// piezas son reflejo una de otra en x e y. Los huecos blancos son geometría
+// real, así que el fondo queda transparente.
+const PIECES = [
+  [[0.00, 0.00], [353.49, 0.00], [609.95, 148.00], [609.95, 352.00], [233.93, 352.00], [0.00, 217.00]],
+  [[1252.90, 0.00], [899.41, 0.00], [642.95, 148.00], [642.95, 352.00], [1018.97, 352.00], [1252.90, 217.00]],
+  [[0.00, 737.00], [353.49, 737.00], [609.95, 589.00], [609.95, 385.00], [233.93, 385.00], [0.00, 520.00]],
+  [[1252.90, 737.00], [899.41, 737.00], [642.95, 589.00], [642.95, 385.00], [1018.97, 385.00], [1252.90, 520.00]],
 ];
 
-function drawMark(canvas, aspect = 1) {
+function drawMark(canvas) {
   const rect = canvas.getBoundingClientRect();
   if (!rect.width || !rect.height) return;
 
@@ -59,37 +66,29 @@ function drawMark(canvas, aspect = 1) {
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = getComputedStyle(canvas).color;
 
-  // Alto fijo = U unidades; ancho = U × aspect. El hueco central (33) se
-  // mantiene igual en horizontal y vertical aunque el isotipo se estire: solo
-  // las piezas se ensanchan.
-  const s = h / U;
-  const W = U * aspect;
-  const kx = (W - 33) / (2 * 352);
+  // El canvas ya tiene la proporción del isotipo (× `aspect`, que estira en horizontal).
+  const sx = w / W0;
+  const sy = h / H0;
 
-  [false, true].forEach((flipY) => {
-    [false, true].forEach((flipX) => {
-      ctx.beginPath();
-      PIECE.forEach(([px, py], i) => {
-        const ux = px * kx;
-        const x = (flipX ? W - ux : ux) * s;
-        const y = (flipY ? U - py : py) * s;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
-      ctx.closePath();
-      ctx.fill();
+  PIECES.forEach((piece) => {
+    ctx.beginPath();
+    piece.forEach(([px, py], i) => {
+      if (i === 0) ctx.moveTo(px * sx, py * sy);
+      else ctx.lineTo(px * sx, py * sy);
     });
+    ctx.closePath();
+    ctx.fill();
   });
 }
 
-function LogoMark({ className = "", aspect = 1 }) {
+function LogoMark({ className = "", aspect = 1, height = MARK_H }) {
   const ref = useRef(null);
 
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return undefined;
 
-    const redraw = () => drawMark(canvas, aspect);
+    const redraw = () => drawMark(canvas);
     redraw();
 
     const ro = new ResizeObserver(redraw);
@@ -107,14 +106,14 @@ function LogoMark({ className = "", aspect = 1 }) {
       ro.disconnect();
       mo.disconnect();
     };
-  }, [aspect]);
+  }, []);
 
   return (
     <canvas
       ref={ref}
       aria-hidden="true"
       className={`block shrink-0 ${className}`}
-      style={{ width: `${0.95 * aspect}em`, height: "0.95em" }}
+      style={{ width: `${height * RATIO * aspect}em`, height: `${height}em` }}
     />
   );
 }
@@ -132,7 +131,7 @@ function Logo({ className = "", size = "md", tone = "auto", showText = true, asp
       aria-label="CEBIX"
       className={`inline-flex select-none items-center gap-[0.32em] leading-none ${toneClass} ${SIZES[size]} ${className}`}
     >
-      <LogoMark aspect={aspect} />
+      <LogoMark aspect={aspect} height={showText ? MARK_H_WITH_TEXT : MARK_H} />
       {showText && (
         <span
           aria-hidden="true"

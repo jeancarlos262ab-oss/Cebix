@@ -6,3 +6,7 @@ export_model.py
 README_BACKEND.md
 setup_venv.*
 run.*
+gee-service-account*.json
+*-service-account*.json
+.env
+validate_gee.py
