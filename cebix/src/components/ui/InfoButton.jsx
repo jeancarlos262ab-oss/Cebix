@@ -5,13 +5,13 @@ import { Info, X } from "lucide-react";
  * Botón de información que abre un panel explicando, en formato pregunta y
  * respuesta, cómo funciona esta parte del programa.
  *
- * Mismo aspecto en todas las pantallas: circular, con borde, fondo del color
- * del fondo de la app (blanco / negro) e icono en el color de acento.
+ * Mismo aspecto en todas las pantallas: solo el icono en el color de acento,
+ * sin borde ni fondo (el aro de foco solo aparece al navegar con teclado).
  *
  * @param {{title: string, questions: {question: string, answer: string}[]}} props
  */
 const BUTTON_STYLE =
-  "rounded-full border border-gray-200 bg-white text-accent-500 transition-colors hover:border-accent-500 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-700 dark:bg-black";
+  "rounded-full text-accent-600 transition-colors hover:text-accent-700 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:text-accent-400 dark:hover:text-accent-500";
 
 export default function InfoButton({ title = "Acerca de este panel", questions, children }) {
   const [open, setOpen] = useState(false);
@@ -24,7 +24,7 @@ export default function InfoButton({ title = "Acerca de este panel", questions, 
         aria-label="Información del programa"
         className={`flex h-9 w-9 shrink-0 items-center justify-center ${BUTTON_STYLE}`}
       >
-        <Info size={16} className="text-accent-600 dark:text-accent-400" />
+        <Info size={24} />
       </button>
 
       {open && (

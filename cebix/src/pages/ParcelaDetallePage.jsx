@@ -5,13 +5,10 @@ import { ArrowLeft, FileDown, Pencil, Trash2 } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import ParcelMap from "../components/map/ParcelMap";
 import Semaphore from "../components/ui/Semaphore";
-import StatCard from "../components/ui/StatCard";
-import ConfidenceRange from "../components/charts/ConfidenceRange";
-import FeatureImportanceChart from "../components/charts/FeatureImportanceChart";
+import { Contributions, Label, RangeBar, Row } from "../components/results/ReportParts";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { useModelInfo } from "../context/ModelInfoContext";
 import { generateCreditReportPDF } from "../utils/creditReport";
-import { Droplets, Leaf, Sun } from "lucide-react";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import ParcelFormModal from "../components/dashboard/ParcelFormModal";
@@ -112,87 +109,73 @@ function ParcelaDetallePageContent() {
             </div>
           </div>
 
-          {/* Mismo diseño que las métricas de Predicciones: celdas unidas por una línea, con el
-              icono grande en la esquina inferior derecha (StatCard cornerIcon). */}
+          {/* Indicadores del ciclo: celdas unidas por una línea fina, sin iconos ni énfasis de color. */}
           <section className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
             {[
-              { label: "NDVI pico", value: parcel.ndvi.toFixed(2), hint: "Máximo del ciclo", icon: Leaf },
-              { label: "Precipitación", value: `${formatNumber(parcel.precip)} mm`, hint: "Acumulada en el ciclo", icon: Droplets },
-              { label: "GDD acumulados", value: formatNumber(parcel.gdd), hint: "Grados-día del ciclo", icon: Sun },
+              { label: "NDVI pico", value: parcel.ndvi.toFixed(2), hint: "Máximo del ciclo" },
+              { label: "Precipitación", value: `${formatNumber(parcel.precip)} mm`, hint: "Acumulada en el ciclo" },
+              { label: "GDD acumulados", value: formatNumber(parcel.gdd), hint: "Grados-día del ciclo" },
             ].map((stat) => (
               <div
                 key={stat.label}
-                className="relative flex min-w-0 flex-1 flex-col justify-center overflow-hidden border-b border-gray-200 p-5 last:border-b-0 dark:border-gray-800"
+                className="flex min-w-0 flex-1 flex-col justify-center border-b border-gray-200 p-5 last:border-b-0 dark:border-gray-800"
               >
-                <StatCard {...stat} tone="navy" cornerIcon />
+                <Label>{stat.label}</Label>
+                <p className="mt-1.5 font-display text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                  {stat.value}
+                </p>
+                <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{stat.hint}</p>
               </div>
             ))}
           </section>
 
-          <Semaphore score={parcel.score} />
+          <Semaphore score={parcel.score} sober />
         </div>
 
         <div className="grid grid-cols-1 items-start gap-10 xl:grid-cols-[minmax(0,1fr)_360px]">
           {/* Columna principal */}
           <div className="min-w-0 space-y-10">
             <section className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
-              <h2 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">
-                Rendimiento estimado
-              </h2>
-              <div className="mt-4">
-                <ConfidenceRange estimate={parcel.yieldEstimate} confidence={parcel.confidence} />
-              </div>
+              <Label>Rendimiento estimado</Label>
+              <p className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span className="font-display text-4xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                  {parcel.yieldEstimate.toFixed(1)}
+                </span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">ton/ha</span>
+                <span className="ml-1 text-sm tabular-nums text-gray-500 dark:text-gray-400">
+                  ± {parcel.confidence.toFixed(1)} (90 % de confianza)
+                </span>
+              </p>
+              <RangeBar estimate={parcel.yieldEstimate} half={parcel.confidence} />
             </section>
 
             <section className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
-              <h2 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">
-                Por qué el modelo predijo esto (SHAP local)
-              </h2>
-              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+              <Label>Por qué el modelo predijo esto (SHAP local)</Label>
+              <p className="mt-1.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
                 Contribución de cada variable al rendimiento estimado de esta parcela.
               </p>
-              <div className="mt-4">
-                <FeatureImportanceChart data={parcel.shap} height={200} />
-              </div>
+              <Contributions data={parcel.shap} />
             </section>
           </div>
 
           {/* Columna lateral */}
           <aside className="min-w-0 space-y-10">
-            <section className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
-              <h2 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">
-                Ficha de la parcela
-              </h2>
-              <dl className="mt-4 space-y-3.5 text-sm">
-                <div className="flex justify-between gap-3">
-                  <dt className="text-gray-500 dark:text-gray-400">Superficie</dt>
-                  <dd className="font-display font-bold text-gray-900 dark:text-gray-100">{parcel.area}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-gray-500 dark:text-gray-400">Municipio</dt>
-                  <dd className="font-medium text-gray-900 dark:text-gray-100">{parcel.municipio}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-gray-500 dark:text-gray-400">Región</dt>
-                  <dd className="font-medium text-gray-900 dark:text-gray-100">{parcel.region}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-gray-500 dark:text-gray-400">EVI</dt>
-                  <dd className="font-display font-bold text-gray-900 dark:text-gray-100">{parcel.evi.toFixed(2)}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-gray-500 dark:text-gray-400">Coordenadas</dt>
-                  <dd className="font-display font-bold text-gray-900 dark:text-gray-100">
-                    {hasCoords(parcel) ? `${parcel.lat.toFixed(3)}, ${parcel.lng.toFixed(3)}` : "—"}
-                  </dd>
-                </div>
+            <section>
+              <Label>Ficha de la parcela</Label>
+              <dl className="mt-3 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 dark:divide-gray-800/70 dark:border-gray-800">
+                <Row label="Superficie">{parcel.area}</Row>
+                <Row label="Municipio">{parcel.municipio}</Row>
+                <Row label="Región">{parcel.region}</Row>
+                <Row label="EVI">{parcel.evi.toFixed(2)}</Row>
+                <Row label="Coordenadas">
+                  {hasCoords(parcel) ? `${parcel.lat.toFixed(3)}, ${parcel.lng.toFixed(3)}` : "—"}
+                </Row>
                 {submittedAt && (
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-gray-500 dark:text-gray-400">Enviado a comité</dt>
-                    <dd className="font-medium text-ndvi-600 dark:text-ndvi-400">
+                  <Row label="Enviado a comité">
+                    <span className="text-ndvi-600 dark:text-ndvi-400">
                       {new Date(submittedAt).toLocaleDateString("es-MX")}
-                    </dd>
-                  </div>
+                    </span>
+                  </Row>
                 )}
               </dl>
             </section>

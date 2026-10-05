@@ -102,28 +102,61 @@ function DetailRow({ label, children }) {
   );
 }
 
-/** Los tres pasos del flujo, con su estado. Texto numerado y una línea fina bajo el paso en curso. */
+/** Círculo numerado de un paso, solo relleno y en escala de grises: "done" (check) | "active" (oscuro) | "pending" (claro). */
+function StepDot({ n, state, running = false }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-medium tabular-nums transition-colors duration-200 ${
+        state === "done"
+          ? "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+          : state === "active"
+            ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900"
+            : "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500"
+      }`}
+    >
+      {state === "done" ? <Check size={12} strokeWidth={2.5} /> : state === "active" && running ? <Loader2 size={12} className="animate-spin" /> : n}
+    </span>
+  );
+}
+
+/** Nodo con la línea que lo une al siguiente (ocupa todo el ancho de su columna). Lo usa HowItWorks. */
+function StepNode({ n, state, last, lineClass = "" }) {
+  return (
+    <div className="flex items-center" aria-hidden="true">
+      <StepDot n={n} state={state} />
+      {!last && (
+        <span
+          className={`mx-2 h-px flex-1 transition-colors duration-200 ${lineClass} ${state === "done" ? "bg-gray-400 dark:bg-gray-500" : "bg-gray-200 dark:bg-gray-800"}`}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Los tres pasos del flujo, juntos y en fila: círculo + nombre, con una línea corta hacia el que sigue. */
 function Stepper({ step, running }) {
   const steps = ["Dibuja la parcela", "Calcula los índices", "Revisa la predicción"];
   return (
-    <ol className="grid grid-cols-3 gap-x-4 text-sm">
+    <ol className="flex flex-wrap items-center gap-x-2 gap-y-2 text-[13px]">
       {steps.map((label, i) => {
-        const done = i < step;
-        const active = i === step;
+        const state = i < step ? "done" : i === step ? "active" : "pending";
         return (
-          <li
-            key={label}
-            aria-current={active ? "step" : undefined}
-            className={`flex min-w-0 items-center gap-2 border-t-2 pt-2.5 ${
-              active ? "border-accent-500" : done ? "border-gray-400 dark:border-gray-600" : "border-gray-200 dark:border-gray-800"
-            }`}
-          >
-            <span className={`text-xs tabular-nums ${active || done ? "text-gray-500 dark:text-gray-400" : "text-gray-300 dark:text-gray-600"}`}>
-              {done ? <Check size={13} strokeWidth={2} /> : active && running ? <Loader2 size={13} className="animate-spin" /> : String(i + 1).padStart(2, "0")}
-            </span>
-            <span className={`truncate ${active ? "font-medium text-gray-900 dark:text-gray-100" : done ? "text-gray-600 dark:text-gray-300" : "text-gray-400 dark:text-gray-500"}`}>
+          <li key={label} aria-current={state === "active" ? "step" : undefined} className="flex items-center gap-2">
+            <StepDot n={i + 1} state={state} running={running} />
+            <span
+              className={
+                state === "active" ? "font-medium text-gray-900 dark:text-gray-100" : state === "done" ? "text-gray-600 dark:text-gray-300" : "text-gray-400 dark:text-gray-500"
+              }
+            >
               {label}
             </span>
+            {i < steps.length - 1 && (
+              <span
+                aria-hidden="true"
+                className={`ml-1 h-px w-6 transition-colors duration-200 sm:w-10 ${state === "done" ? "bg-gray-400 dark:bg-gray-500" : "bg-gray-200 dark:bg-gray-800"}`}
+              />
+            )}
           </li>
         );
       })}
@@ -131,7 +164,7 @@ function Stepper({ step, running }) {
   );
 }
 
-/** Estado vacío: cómo funciona, antes de calcular. */
+/** Estado vacío: cómo funciona, antes de calcular. Mismo tren de tres estaciones. */
 function HowItWorks() {
   const items = [
     { title: "Dibuja el contorno", text: "Marca los vértices sobre la imagen satelital o importa un GeoJSON en lat/lng (EPSG:4326)." },
@@ -139,15 +172,15 @@ function HowItWorks() {
     { title: "Predicción del modelo", text: "El Random Forest estima el rendimiento, su intervalo al 90 % y qué variables pesaron más." },
   ];
   return (
-    <div className="grid gap-x-8 gap-y-6 sm:grid-cols-3">
+    <ol className="grid gap-y-8 sm:grid-cols-3">
       {items.map(({ title, text }, i) => (
-        <div key={title} className="border-t border-gray-200 pt-4 dark:border-gray-800">
-          <span className="text-xs tabular-nums text-gray-400 dark:text-gray-500">{String(i + 1).padStart(2, "0")}</span>
-          <h3 className="mt-1.5 font-display text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+        <li key={title} className="min-w-0 sm:pr-6">
+          <StepNode n={i + 1} state={i === 0 ? "active" : "pending"} last={i === items.length - 1} lineClass="hidden sm:block" />
+          <h3 className="mt-4 font-display text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
           <p className="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{text}</p>
-        </div>
+        </li>
       ))}
-    </div>
+    </ol>
   );
 }
 

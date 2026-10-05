@@ -18,12 +18,12 @@ const INV_2PI = 1 / (2 * Math.PI);
  * Vector unitario (x derecha, y arriba, z hacia el usuario).
  */
 export const LIGHT = [-0.45, 0.5, 0.74];
-const WRAP = 0.05; // suaviza el terminador (0 = corte duro)
-const AMBIENT = 0.06; // luz mínima en el lado en sombra
+export const WRAP = 0.05; // suaviza el terminador (0 = corte duro)
+export const AMBIENT = 0.06; // luz mínima en el lado en sombra
 // Bruma atmosférica: tinte azul ligero en todo el globo + más intenso hacia el borde.
-const HAZE = [112, 165, 238]; // azul medio-claro
-const HAZE_BASE = 0.08;
-const HAZE_RIM = 0.6;
+export const HAZE = [112, 165, 238]; // azul medio-claro
+export const HAZE_BASE = 0.08;
+export const HAZE_RIM = 0.6;
 /**
  * @param {Uint32Array} out   buffer RGBA (cw*ch) — se asume ya en cero
  * @param {number} cw         ancho en píxeles

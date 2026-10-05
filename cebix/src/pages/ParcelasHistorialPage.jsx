@@ -1,14 +1,14 @@
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Check, ChevronRight, Gauge, LandPlot, Leaf, Minus, Pencil, Search, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, Minus, Pencil, Search, Trash2, X } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
-import CategoryTag from "../components/ui/CategoryTag";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import Pagination from "../components/ui/Pagination";
 import ParcelFormModal from "../components/dashboard/ParcelFormModal";
 import usePagination from "../hooks/usePagination";
 import useParcelActions from "../hooks/useParcelActions";
 import { useParcels } from "../context/ParcelsContext";
+import { RISK_COLORS } from "../utils/riskColors";
 
 const REGION_FILTERS = ["Todas", "Hidalgo", "Tlaxcala", "Puebla"];
 
@@ -16,6 +16,16 @@ const REGION_FILTERS = ["Todas", "Hidalgo", "Tlaxcala", "Puebla"];
 // (el rendimiento y la elegibilidad pasan a la segunda línea de la parcela).
 const ROW_GRID =
   "grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 lg:grid-cols-[auto_minmax(0,2fr)_110px_150px_70px_minmax(0,1.2fr)_auto]";
+
+/** Nivel de elegibilidad sobrio: punto plano del color del semáforo y texto neutro. */
+function RiskLabel({ label, color }) {
+  return (
+    <span className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+      <span className="h-2 w-2 shrink-0" style={{ backgroundColor: RISK_COLORS[color] ?? "#9ca3af" }} aria-hidden="true" />
+      {label}
+    </span>
+  );
+}
 
 /** Casilla propia (no depende de plugins de formularios). `indeterminate` = selección parcial. */
 function Checkbox({ checked, indeterminate = false, onChange, label }) {
@@ -33,8 +43,8 @@ function Checkbox({ checked, indeterminate = false, onChange, label }) {
       className={[
         "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500",
         on
-          ? "border-accent-500 bg-accent-500 text-accent-contrast"
-          : "border-gray-300 bg-white hover:border-accent-500 dark:border-gray-500 dark:bg-gray-900",
+          ? "border-gray-900 bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900"
+          : "border-gray-300 bg-white hover:border-gray-500 dark:border-gray-600 dark:bg-black dark:hover:border-gray-400",
       ].join(" ")}
     >
       {indeterminate ? <Minus size={13} strokeWidth={3} /> : checked ? <Check size={13} strokeWidth={3} /> : null}
@@ -50,10 +60,10 @@ const HistoryRow = memo(function HistoryRow({ parcel, selected, onToggle, onEdit
       onClick={() => navigate(`/parcelas/${parcel.id}`)}
       className={[
         ROW_GRID,
-        "group cursor-pointer border-b border-gray-100 px-4 py-3.5 transition-colors last:border-0 dark:border-gray-800",
+        "group cursor-pointer border-b border-gray-100 px-4 py-3.5 transition-colors last:border-0 dark:border-gray-800/70",
         selected
-          ? "bg-gray-100 shadow-[inset_3px_0_0_0_var(--accent-500)] dark:bg-gray-800"
-          : "hover:bg-gray-50 dark:hover:bg-gray-800/60",
+          ? "bg-gray-50 dark:bg-gray-900/60"
+          : "hover:bg-gray-50 dark:hover:bg-gray-900/40",
       ].join(" ")}
     >
       <Checkbox
@@ -62,10 +72,9 @@ const HistoryRow = memo(function HistoryRow({ parcel, selected, onToggle, onEdit
         label={`${selected ? "Quitar de la selección" : "Seleccionar"} ${parcel.name}`}
       />
 
-      <div className="flex min-w-0 items-center gap-3">
-        <LandPlot size={20} className="shrink-0 text-accent-600 dark:text-accent-400" />
+      <div className="flex min-w-0 items-center">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{parcel.name}</p>
+          <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{parcel.name}</p>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-gray-500 dark:text-gray-400">
             <span>{parcel.area}</span>
             {parcel.polygonId && (
@@ -79,32 +88,26 @@ const HistoryRow = memo(function HistoryRow({ parcel, selected, onToggle, onEdit
             <span className="lg:hidden">{parcel.yieldEstimate.toFixed(1)} ton/ha</span>
             <span className="text-gray-300 dark:text-gray-700 lg:hidden">·</span>
             <span className="lg:hidden">
-              <CategoryTag label={parcel.risk} color={parcel.riskColor} />
+              <RiskLabel label={parcel.risk} color={parcel.riskColor} />
             </span>
           </p>
         </div>
       </div>
 
-      <div className="hidden items-center gap-2 lg:flex">
-        <Gauge size={13} className="shrink-0 text-accent-600 dark:text-accent-400" />
-        <p className="font-display text-sm font-bold text-gray-800 dark:text-gray-200">
-          {parcel.yieldEstimate.toFixed(1)}{" "}
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">ton/ha</span>
-        </p>
-      </div>
+      <p className="hidden text-sm tabular-nums text-gray-900 dark:text-gray-100 lg:block">
+        {parcel.yieldEstimate.toFixed(1)}{" "}
+        <span className="text-xs text-gray-500 dark:text-gray-400">ton/ha</span>
+      </p>
 
       <div className="hidden items-center justify-between gap-2 pr-4 lg:flex">
-        <CategoryTag label={parcel.risk} color={parcel.riskColor} />
-        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{parcel.score}</span>
+        <RiskLabel label={parcel.risk} color={parcel.riskColor} />
+        <span className="text-xs tabular-nums text-gray-500 dark:text-gray-400">{parcel.score}</span>
       </div>
 
-      <div className="hidden items-center gap-1.5 lg:flex">
-        <Leaf size={13} className="shrink-0 text-accent-600 dark:text-accent-400" />
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{parcel.ndvi.toFixed(2)}</span>
-      </div>
+      <span className="hidden text-sm tabular-nums text-gray-900 dark:text-gray-100 lg:block">{parcel.ndvi.toFixed(2)}</span>
 
       <div className="hidden min-w-0 lg:block">
-        <p className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">{parcel.municipio}</p>
+        <p className="truncate text-sm text-gray-900 dark:text-gray-100">{parcel.municipio}</p>
         <p className="truncate text-xs text-gray-500 dark:text-gray-400">{parcel.region}</p>
       </div>
 
@@ -117,7 +120,7 @@ const HistoryRow = memo(function HistoryRow({ parcel, selected, onToggle, onEdit
             e.stopPropagation();
             onEdit(parcel);
           }}
-          className="rounded-full p-1.5 text-accent-600 hover:bg-gray-100 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:text-accent-400 dark:hover:bg-gray-800"
+          className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-900 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-100"
         >
           <Pencil size={15} />
         </button>
@@ -129,13 +132,13 @@ const HistoryRow = memo(function HistoryRow({ parcel, selected, onToggle, onEdit
             e.stopPropagation();
             onDelete(parcel);
           }}
-          className="rounded-full p-1.5 text-red-600 hover:bg-red-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-red-500 dark:text-red-400 dark:hover:bg-red-500/10"
+          className="rounded-full p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-red-500 dark:text-gray-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
         >
           <Trash2 size={15} />
         </button>
         <ChevronRight
           size={15}
-          className="text-accent-600 transition-transform group-hover:translate-x-0.5 dark:text-accent-400"
+          className="text-gray-300 transition-transform group-hover:translate-x-0.5 dark:text-gray-600"
         />
       </div>
     </div>
@@ -263,7 +266,7 @@ function ParcelasHistorialContent() {
             to="/parcelas"
             className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-xs transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
           >
-            <ArrowLeft size={15} className="text-accent-600 dark:text-accent-400" />
+            <ArrowLeft size={15} className="text-gray-500 dark:text-gray-400" />
             Volver a Parcelas
           </Link>
         }
@@ -277,7 +280,7 @@ function ParcelasHistorialContent() {
           <label className="relative min-w-[220px] flex-1">
             <Search
               size={15}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-accent-600 dark:text-accent-400"
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
             />
             <input
               type="search"
@@ -287,7 +290,7 @@ function ParcelasHistorialContent() {
                 resetPage();
               }}
               placeholder="Buscar por nombre, municipio o código"
-              className="w-full rounded-full border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm text-gray-800 placeholder:text-gray-400 focus:border-accent-400 focus:outline-hidden focus:ring-2 focus:ring-accent-100 dark:border-gray-800 dark:bg-black dark:text-gray-200 dark:focus:ring-gray-700"
+              className="w-full rounded-full border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm text-gray-800 placeholder:text-gray-400 focus:border-accent-500 focus:outline-hidden focus:ring-1 focus:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-200"
             />
           </label>
 
@@ -303,14 +306,14 @@ function ParcelasHistorialContent() {
                   className={[
                     "flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500",
                     active
-                      ? "bg-accent-500 text-accent-contrast shadow-xs"
-                      : "text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-900",
+                      ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100"
+                      : "text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-900 dark:hover:text-gray-100",
                   ].join(" ")}
                 >
                   {r}
                   <span
                     className={`text-xs font-semibold tabular-nums ${
-                      active ? "opacity-80" : "text-gray-400 dark:text-gray-500"
+                      active ? "text-gray-500 dark:text-gray-400" : "text-gray-400 dark:text-gray-500"
                     }`}
                   >
                     {regionCounts[r]}
@@ -326,7 +329,7 @@ function ParcelasHistorialContent() {
           className={[
             "flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-colors",
             count > 0
-              ? "border-accent-500 bg-gray-50 dark:bg-gray-900"
+              ? "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/60"
               : "border-gray-200 dark:border-gray-800",
           ].join(" ")}
         >
@@ -357,7 +360,7 @@ function ParcelasHistorialContent() {
                 onClick={clearSelection}
                 className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:text-gray-300 dark:hover:bg-gray-900"
               >
-                <X size={15} className="text-accent-600 dark:text-accent-400" />
+                <X size={15} className="text-gray-400 dark:text-gray-500" />
                 Cancelar
               </button>
             )}
@@ -379,7 +382,7 @@ function ParcelasHistorialContent() {
             <div
               className={[
                 ROW_GRID,
-                "hidden border-b border-gray-200 px-4 py-3 text-xs font-medium text-gray-500 dark:border-gray-800 dark:text-gray-400 lg:grid",
+                "hidden border-b border-gray-200 px-4 py-3 text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:border-gray-800 dark:text-gray-500 lg:grid",
               ].join(" ")}
             >
               <span className="w-5" aria-hidden="true" />

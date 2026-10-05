@@ -11,7 +11,6 @@
 .auth-root {
   --barley: #d4a63c;
   --barley-hover: #e0b650;
-  --barley-ring: rgba(212, 166, 60, 0.4);
   --on-barley: #1a1204;
   --radius: 999px; /* píldora, como botones y buscador del dashboard */
   --radius-box: 1.25rem; /* cajas con varias líneas de texto */
@@ -286,7 +285,7 @@ html:not(.dark) .auth-sun {
   color: var(--ink);
   font-size: 0.9375rem;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 
 .auth-input::placeholder {
@@ -299,7 +298,6 @@ html:not(.dark) .auth-sun {
 
 .auth-input:focus {
   border-color: var(--ink);
-  box-shadow: 0 0 0 3px var(--barley-ring);
 }
 
 .auth-input:-webkit-autofill {

@@ -50,12 +50,7 @@ function NavSection({ title, items, collapsed }) {
                   <Icon
                     size={18}
                     strokeWidth={isActive ? 2.25 : 2}
-                    className={[
-                      "shrink-0",
-                      isActive
-                        ? "text-accent-700 dark:text-accent-400"
-                        : "text-accent-600 dark:text-accent-400",
-                    ].join(" ")}
+                    className="shrink-0"
                   />
                   {!collapsed && <span className="flex-1 text-left truncate">{label}</span>}
                   {!collapsed && badge && (
@@ -198,9 +193,9 @@ export default function Sidebar() {
               onClick={() => setCollapsed(false)}
               aria-label="Expandir menú"
               title="Expandir menú"
-              className="absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center bg-white opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100 dark:bg-black"
+              className="absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center bg-white text-gray-600 opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100 dark:bg-black dark:text-gray-300"
             >
-              <PanelLeft size={18} className="text-accent-600 dark:text-accent-400" />
+              <PanelLeft size={18} />
             </button>
           )}
           {isDesktop && !collapsed && (
@@ -211,7 +206,7 @@ export default function Sidebar() {
               title="Contraer menú"
               className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
             >
-              <Menu size={18} className="text-accent-600 dark:text-accent-400" />
+              <Menu size={18} />
             </button>
           )}
           <button
@@ -220,7 +215,7 @@ export default function Sidebar() {
             aria-label="Cerrar menú"
             className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 lg:hidden"
           >
-            <X size={16} className="text-accent-600 dark:text-accent-400" />
+            <X size={16} />
           </button>
         </div>
 
@@ -263,7 +258,7 @@ export default function Sidebar() {
                     {user?.email || ""}
                   </span>
                 </span>
-                <ChevronRight size={16} className="shrink-0 text-accent-600 dark:text-accent-400" />
+                <ChevronRight size={16} className="shrink-0 text-gray-500 dark:text-gray-400" />
               </>
             )}
           </NavLink>
@@ -276,7 +271,7 @@ export default function Sidebar() {
               collapsed ? "justify-center px-0" : "gap-3 px-4",
             ].join(" ")}
           >
-            <LogOut size={18} className="shrink-0 text-accent-600 dark:text-accent-400" />
+            <LogOut size={18} className="shrink-0" />
             {!collapsed && <span>Cerrar sesión</span>}
           </button>
         </div>

@@ -9,20 +9,22 @@ import { estadoBounds } from "../../utils/polygon";
 import { ESTADOS } from "../../data/earthEngine";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
 import { loadGlobeTexture } from "./globeTexture";
-import { projectPoint, renderSphere } from "./globeRender";
+import { projectPoint } from "./globeRender";
+import { SphereLayer } from "./globeLayer";
 
 /**
  * Globo 3D ligero: Canvas 2D puro, sin WebGL ni librerías.
  * Solo se redibuja cuando algo cambia (arrastre, zoom, vuelo): en reposo no gasta CPU.
+ *
+ * La esfera la pinta SphereLayer (globeLayer.js / globeFast.js): girar de lado no hace
+ * trigonometría por píxel, y el zoom re-escala el último cuadro hasta que se asienta.
+ * La referencia exacta sigue siendo renderSphere() en globeRender.js.
  */
 
 const D2R = Math.PI / 180;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 2.6;
-// Presupuesto de píxeles que se calculan en CPU para la esfera (se escala al tamaño de pantalla).
-// El costo es el mismo en una ventana chica que en pantalla completa.
-const BUDGET_MOVING = 60000; // mientras se arrastra / vuela
-const BUDGET_IDLE = 300000; // en reposo
+// El presupuesto de píxeles de la esfera (en movimiento / en reposo) vive en globeLayer.js.
 const MAX_DPR = 1.5; // el lienzo con contornos y textos no pasa de esta densidad
 const STUDY_BOUNDS = [
   [17.8, -99.6],
@@ -57,7 +59,8 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
   const settleTimer = useRef(0);
   const drag = useRef(null);
   const pin = useRef({ x: 0, y: 0, visible: false });
-  const buffers = useRef({ img: null, img32: null, off: null });
+  const layer = useRef(null);
+  if (!layer.current) layer.current = new SphereLayer({ collectStats: !!import.meta.env.DEV });
   const pageActive = usePageActive() && active;
   const activeRef = useRef(pageActive);
   activeRef.current = pageActive;
@@ -92,37 +95,19 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
     const lon0 = lon * D2R;
     const lat0 = lat * D2R;
 
-    // Esfera: se calcula en un búfer chico (según el presupuesto) y se escala al lienzo.
-    const x0 = Math.max(0, Math.floor(cx - R));
-    const x1 = Math.min(cw, Math.ceil(cx + R));
-    const y0 = Math.max(0, Math.floor(cy - R));
-    const y1 = Math.min(ch, Math.ceil(cy + R));
-    const vw = x1 - x0;
-    const vh = y1 - y0;
-    if (vw > 1 && vh > 1) {
-      const budget = fast.current ? BUDGET_MOVING : BUDGET_IDLE;
-      const k = Math.min(1, Math.sqrt(budget / (vw * vh)));
-      const bw = Math.max(2, Math.ceil(vw * k));
-      const bh = Math.max(2, Math.ceil(vh * k));
-      // Dimensiones del búfer redondeadas a 32 para no realocar en cada cuadro del vuelo.
-      const aw = Math.ceil(bw / 32) * 32;
-      const ah = Math.ceil(bh / 32) * 32;
-      const b = buffers.current;
-      if (!b.img || b.img.width !== aw || b.img.height !== ah) {
-        b.img = new ImageData(aw, ah);
-        b.img32 = new Uint32Array(b.img.data.buffer);
-        b.off = document.createElement("canvas");
-        b.off.width = aw;
-        b.off.height = ah;
-        b.offCtx = b.off.getContext("2d");
-      }
-      b.img32.fill(0);
-      renderSphere(b.img32, aw, ah, (cx - x0) * k, (cy - y0) * k, R * k, lon0, lat0, tex.current.z3 || tex.current.z2);
-      b.offCtx.putImageData(b.img, 0, 0);
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "low";
-      ctx.drawImage(b.off, 0, 0, bw, bh, x0, y0, bw / k, bh / k);
-    }
+    // Esfera: tablas precalculadas + desplazamiento por giro (ver globeLayer.js).
+    layer.current.setTexture(tex.current.z3 || tex.current.z2 || null);
+    layer.current.draw(ctx, {
+      cw,
+      ch,
+      cx,
+      cy,
+      R,
+      lon0,
+      lat0,
+      fast: fast.current,
+      reference: import.meta.env.DEV && !!window.__globePerf?.reference,
+    });
 
     const pt = { x: 0, y: 0 };
     const line = (coords, close = false) => {
@@ -212,7 +197,7 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
       const dl = ((to.lon - from.lon + 540) % 360) - 180; // camino corto
       const t0 = performance.now();
       const step = (now) => {
-        const t = Math.min(1, (now - t0) / ms);
+        const t = Math.min(1, Math.max(0, (now - t0) / ms)); // rAF puede dar una marca algo anterior a t0
         const e = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
         view.current = {
           lon: normLon(from.lon + dl * e),
@@ -282,6 +267,24 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
       dead = true;
     };
   }, [requestRender]);
+
+  // Cronómetro de desarrollo: en la consola del navegador,
+  //   __globePerf.report()          → ms por tipo de cuadro (geom | tilt | lateral | scale | ref)
+  //   __globePerf.reset()           → reinicia los contadores
+  //   __globePerf.reference = true  → usa el render anterior (renderSphere por píxel) para comparar
+  useEffect(() => {
+    if (!import.meta.env.DEV) return undefined;
+    const l = layer.current;
+    window.__globePerf = {
+      layer: l, // l.quality = factor de resolución actual (1 = completo)
+      reference: false,
+      report: () => console.table(l.report()),
+      reset: () => l.resetStats(),
+    };
+    return () => {
+      delete window.__globePerf;
+    };
+  }, []);
 
   // Animación de entrada: viene girando hacia México, o se aleja si regresa del mapa plano.
   // El globo es una sola instancia: se reutiliza cada vez que se vuelve a él.
