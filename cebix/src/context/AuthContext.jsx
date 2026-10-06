@@ -79,7 +79,7 @@ export function AuthProvider({ children }) {
   // usuario sin confirmar (o reutiliza uno pendiente) y manda el código de
   // 6 dígitos por Gmail SMTP.
   const signUp = useCallback(
-    ({ email, password, name, role, region }) => sendSignupOtp({ email, password, name, role, region }),
+    ({ email, password, name }) => sendSignupOtp({ email, password, name }),
     []
   );
 

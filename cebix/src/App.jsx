@@ -209,19 +209,27 @@ function PageSlot({ active, entry }) {
 
 function AuthenticatedLayout() {
   usePrefetchPages();
-  // En el mapa satelital se oculta el degradado de la esquina superior izquierda.
-  const onMap = useLocation().pathname === "/mapa";
+  // En el mapa satelital el mapa ocupa TODA la pantalla (también detrás del
+  // sidebar, que flota encima) y no hay degradado de la esquina.
+  const onMap = useLocation().pathname.replace(/\/+$/, "") === "/mapa";
+
+  // El <main> cambia de tamaño al entrar/salir del mapa: se avisa a los mapas
+  // (MapLibre y Leaflet escuchan el resize de la ventana) para que se ajusten.
+  useEffect(() => {
+    const id = window.requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+    return () => window.cancelAnimationFrame(id);
+  }, [onMap]);
 
   return (
     <SidebarProvider>
       <div className="relative isolate flex h-screen w-full overflow-hidden supports-[height:100dvh]:h-dvh bg-white dark:bg-black">
         {/* Degradado fijo de la esquina superior izquierda: va detrás del panel y de todas las pantallas. */}
         <div className={`app-corner-glow pointer-events-none absolute inset-0 -z-10 ${onMap ? "hidden" : ""}`} aria-hidden="true" />
-        <Sidebar />
+        <Sidebar floating={onMap} />
 
         <main
           id="app-scroll"
-          className="relative min-w-0 flex-1 overflow-y-auto"
+          className={`min-w-0 overflow-y-auto ${onMap ? "absolute inset-0" : "relative flex-1"}`}
         >
           {/* Suspense propio: al abrir una pantalla por primera vez solo cambia el
               contenido; el sidebar ya no desaparece detrás del spinner global. */}

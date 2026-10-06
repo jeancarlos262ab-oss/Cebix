@@ -7,8 +7,6 @@ function toUser(profile, currentUser) {
     id: profile.id,
     name: profile.name,
     email: profile.email ?? (profile.id === currentUser?.id ? currentUser.email : ""),
-    role: profile.role,
-    region: profile.region,
     avatar: profile.avatar_url ?? `https://i.pravatar.cc/72?u=${profile.id}`,
     status: profile.status,
     twoFactor: Boolean(profile.two_factor),
@@ -18,8 +16,6 @@ function toUser(profile, currentUser) {
 function toProfilePatch(patch) {
   const fields = {
     name: patch.name,
-    role: patch.role,
-    region: patch.region,
     status: patch.status,
     avatar_url: patch.avatar ?? patch.avatar_url,
     two_factor: patch.twoFactor ?? patch.two_factor,

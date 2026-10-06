@@ -32,7 +32,7 @@ export default function RunProgress({ current, elapsedSec, year }) {
   const stateOf = (i) => (i < current ? "done" : i === current ? "running" : "pending");
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800" aria-live="polite">
+    <section className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800" aria-live="polite">
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 px-5 py-4">
         <div className="min-w-0">
           <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Cálculo de índices satelitales</h2>

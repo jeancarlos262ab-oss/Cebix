@@ -128,7 +128,9 @@ function SignOutConfirm({ onCancel, onConfirm, loading }) {
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ floating = false }) {
+  // floating: en escritorio el sidebar sale del flujo y flota sobre el contenido
+  // (lo usa el mapa satelital, que ocupa toda la pantalla por detrás).
   const { mobileOpen, close, collapsed: collapsedPref, setCollapsed } = useSidebar();
   // El modo "solo iconos" existe únicamente en escritorio (lg+). En móvil/tablet el
   // drawer siempre se muestra completo, aunque se haya contraído antes en escritorio.
@@ -173,7 +175,9 @@ export default function Sidebar() {
           "fixed inset-y-3 left-3 z-50 flex shrink-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card transition-transform duration-200 ease-out lg:transition-none dark:border-gray-800 dark:bg-black",
           collapsed ? "lg:w-20" : "lg:w-[264px]",
           "w-[264px] max-w-[calc(100vw-1.5rem)]",
-          "lg:static lg:inset-auto lg:m-3 lg:translate-x-0",
+          floating
+            ? "lg:absolute lg:inset-y-3 lg:left-3 lg:m-0 lg:translate-x-0"
+            : "lg:static lg:inset-auto lg:m-3 lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-[calc(100%+0.75rem)]",
         ].join(" ")}
       >

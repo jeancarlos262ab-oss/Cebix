@@ -176,7 +176,7 @@ function FlatGeometryMap({
         : "Pulsa «Dibujar parcela» y marca el contorno sobre la imagen";
 
   return (
-    <div className="relative h-full min-h-[440px] w-full overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
+    <div className="relative h-full min-h-[440px] w-full overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
       <MapContainer
         ref={setMap}
         bounds={startBounds}
@@ -246,9 +246,26 @@ function FlatGeometryMap({
         <MapSync fitKey={fitKey} points={points} />
       </MapContainer>
 
-      {/* Herramientas de dibujo */}
+      {/* Herramientas de dibujo (a la izquierda) y cambio de vista (separado, al final) */}
       <div className="pointer-events-none absolute left-3 top-3 z-1000">
         <div className={`pointer-events-auto flex items-center gap-0.5 p-1 ${PANEL}`}>
+          {drawing ? (
+            <button type="button" onClick={onFinish} disabled={!ready || locked} className={PRIMARY}>
+              <Check size={14} /> Terminar
+            </button>
+          ) : (
+            <button type="button" onClick={onStartDrawing} disabled={locked} className={PRIMARY}>
+              {closed ? <MousePointer2 size={14} /> : <Pencil size={14} />}
+              {closed ? "Redibujar" : "Dibujar parcela"}
+            </button>
+          )}
+          <button type="button" aria-label="Deshacer último vértice" title="Deshacer último vértice" onClick={onUndo} disabled={!drawing || !points.length || locked} className={GHOST}>
+            <Undo2 size={14} /> <span className="hidden sm:inline">Deshacer</span>
+          </button>
+          <button type="button" aria-label="Borrar parcela" title="Borrar parcela" onClick={onClear} disabled={!points.length || locked} className={GHOST}>
+            <Eraser size={14} /> <span className="hidden sm:inline">Borrar</span>
+          </button>
+          <span className="mx-1 h-5 w-px bg-white/15" aria-hidden="true" />
           <button
             type="button"
             aria-label="Ver el globo"
@@ -260,23 +277,7 @@ function FlatGeometryMap({
             disabled={locked}
             className={GHOST}
           >
-            <Globe size={14} strokeWidth={1.75} /> Globo
-          </button>
-          {drawing ? (
-            <button type="button" onClick={onFinish} disabled={!ready || locked} className={PRIMARY}>
-              <Check size={14} /> Terminar
-            </button>
-          ) : (
-            <button type="button" onClick={onStartDrawing} disabled={locked} className={PRIMARY}>
-              {closed ? <MousePointer2 size={14} /> : <Pencil size={14} />}
-              {closed ? "Redibujar" : "Dibujar parcela"}
-            </button>
-          )}
-          <button type="button" onClick={onUndo} disabled={!drawing || !points.length || locked} className={GHOST}>
-            <Undo2 size={14} /> Deshacer
-          </button>
-          <button type="button" onClick={onClear} disabled={!points.length || locked} className={GHOST}>
-            <Eraser size={14} /> Borrar
+            <Globe size={14} strokeWidth={1.75} /> <span className="hidden sm:inline">Globo</span>
           </button>
         </div>
       </div>
@@ -284,12 +285,13 @@ function FlatGeometryMap({
       {/* Zoom y saltos a cada estado */}
       <div className="pointer-events-none absolute right-3 top-3 z-1000 flex flex-col items-end gap-2">
         <div className={`pointer-events-auto flex flex-col overflow-hidden ${PANEL}`}>
+          <span className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wider text-gray-500">Ir a</span>
           {ESTADOS.map((name, i) => (
             <button
               key={name}
               type="button"
               onClick={() => map?.flyToBounds(estadoBounds(name), { duration: 0.8 })}
-              className={`px-3 py-1.5 text-left text-[11px] font-medium text-gray-300 hover:bg-white/10 ${i ? "border-t border-white/10" : ""}`}
+              className="px-3 py-1.5 text-left text-[11px] font-medium text-gray-300 hover:bg-white/10"
             >
               {name}
             </button>
@@ -305,10 +307,15 @@ function FlatGeometryMap({
         onToggleFullscreen={onToggleFullscreen}
       />
 
-      <div className="pointer-events-none absolute bottom-3 left-3 right-16 z-1000">
-        <p className={STATUS}>
+      <div className="pointer-events-none absolute bottom-3 left-3 right-16 z-1000 flex flex-col items-start gap-1.5">
+        <p className={STATUS} role="status">
+          <span
+            aria-hidden="true"
+            className={`mr-2 inline-block size-1.5 align-middle ${locked ? "animate-pulse bg-amber-400" : drawing ? "bg-white" : "bg-white/40"}`}
+          />
           {status}
         </p>
+        <p className="bg-black/60 px-1.5 py-0.5 text-[10px] text-gray-300">Imagen: Esri, Maxar, Earthstar Geographics</p>
       </div>
     </div>
   );
@@ -363,6 +370,9 @@ export default function GeometryMap(props) {
     }
   }
 
+  // Si se empieza a dibujar desde el panel (no desde el globo), se pasa al mapa plano sobre la zona de estudio.
+  if (props.drawing && view === "globe") goFlat(START_BOUNDS);
+
   const pane = (on) =>
     `absolute inset-0 transition-[opacity,visibility] duration-300 ${on ? "visible opacity-100" : "invisible opacity-0"}`;
 
@@ -371,7 +381,7 @@ export default function GeometryMap(props) {
     <div ref={boxRef} className="relative h-full min-h-[440px] w-full [&:fullscreen]:bg-black">
       {globeCreated && (
         <div className={pane(view === "globe")}>
-          <Suspense fallback={<div className="h-full w-full rounded-2xl bg-black" />}>
+          <Suspense fallback={<div className="h-full w-full rounded-lg bg-black" />}>
             <GlobeMap
               entry={globeEntry}
               active={view === "globe"}

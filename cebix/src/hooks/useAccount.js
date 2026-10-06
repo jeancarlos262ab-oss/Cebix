@@ -6,8 +6,6 @@ function toAccount(profile, user) {
   return {
     name: profile?.name ?? user?.user_metadata?.name ?? "",
     email: user?.email ?? "",
-    role: profile?.role ?? user?.user_metadata?.role ?? "",
-    region: profile?.region ?? user?.user_metadata?.region ?? "",
     avatar: profile?.avatar_url ?? "",
     twoFactor: Boolean(profile?.two_factor),
     status: profile?.status ?? "",
@@ -17,8 +15,6 @@ function toAccount(profile, user) {
 function toProfilePatch(patch) {
   const fields = {
     name: patch.name,
-    role: patch.role,
-    region: patch.region,
     status: patch.status,
     avatar_url: patch.avatar ?? patch.avatar_url,
     two_factor: patch.twoFactor ?? patch.two_factor,

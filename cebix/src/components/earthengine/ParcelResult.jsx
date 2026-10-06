@@ -43,18 +43,18 @@ export default function ParcelResult({ result, view, ran, stale, onDownload, onR
         rows={[{ label: "Superficie", value: `${formatHa(ran.ha)} ha` }]}
       />
 
-      {/* Contribución de cada variable + semáforo (la imagen sobresale hacia arriba: el margen superior le da su aire) */}
-      <section className="grid items-start gap-x-12 gap-y-12 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="min-w-0">
-          <Label>Contribución de las variables</Label>
-          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-            Valores SHAP de esta parcela, ordenados por magnitud: cuánto suma o resta cada variable a la estimación.
-          </p>
-          <Contributions data={result.shap} />
-        </div>
-        <div className="mt-6 xl:mt-7">
-          <Semaphore score={view.score} sober />
-        </div>
+      {/* Semáforo a todo el ancho (la imagen sobresale hacia arriba: el relleno superior le da su aire) */}
+      <div className="pt-6">
+        <Semaphore score={view.score} sober horizontal />
+      </div>
+
+      {/* Contribución de cada variable */}
+      <section>
+        <Label>Contribución de las variables</Label>
+        <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+          Valores SHAP de esta parcela, ordenados por magnitud: cuánto suma o resta cada variable a la estimación.
+        </p>
+        <Contributions data={result.shap} />
       </section>
 
       {/* Variables calculadas */}

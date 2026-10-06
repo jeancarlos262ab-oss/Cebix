@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Menu } from "lucide-react";
 import ParcelMap from "../components/map/ParcelMap";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
@@ -7,23 +7,19 @@ import RequireAnalysis from "../components/ui/RequireAnalysis";
 
 function MapaSatelitalPageContent() {
   const { parcels, regionSummary } = useParcels();
-  const { toggle } = useSidebar();
+  const { toggle, collapsed } = useSidebar();
   const mappable = parcels.filter(hasCoords); // sin lat/lng no se dibuja (no se inventan ubicaciones)
   const [selectedId, setSelectedId] = useState(null);
 
-  // En pantalla completa se quitan los degradados de los bordes.
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  useEffect(() => {
-    const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
-  }, []);
+  // En escritorio el sidebar flota sobre el mapa (12px de margen + 264px, o 80px
+  // contraído): los controles y el panel se apartan de él con 12px de separación.
+  const controlsLeft = collapsed ? "lg:left-[104px]" : "lg:left-[288px]";
 
   const total = regionSummary.reduce((sum, r) => sum + r.parcelCount, 0);
 
   return (
-    // El mapa ocupa todo el espacio a la derecha del sidebar (arriba, abajo y
-    // derecha hasta el borde de la ventana) y nunca pasa por detrás de él.
+    // El mapa ocupa TODA la pantalla, también por detrás del sidebar, que flota
+    // encima (ver Sidebar floating). Sin degradados.
     <div className="flex h-full flex-col">
       {/* Mapa a todo el ancho y alto disponible. En pantallas grandes "Regiones
           cubiertas" flota dentro del mapa; en celulares va debajo, sin tapar nada.
@@ -37,8 +33,7 @@ function MapaSatelitalPageContent() {
               onSelect={setSelectedId}
               height="100%"
               basemap="satellite"
-              edgeFade={!isFullscreen}
-              controlsLeftClassName="left-3"
+              controlsLeftClassName={`left-3 ${controlsLeft}`}
               controlsTopClassName="top-[62px] lg:top-3"
             />
           </div>
@@ -63,7 +58,7 @@ function MapaSatelitalPageContent() {
 
         <section
           aria-labelledby="regiones-title"
-          className="w-full border-t border-gray-800 bg-black px-4 py-4 text-gray-100 sm:px-6 lg:absolute lg:bottom-3 lg:left-3 lg:z-1000 lg:w-72 lg:rounded-lg lg:border lg:border-white/15 lg:bg-black/90 lg:p-5"
+          className={`w-full border-t border-gray-800 bg-black px-4 py-4 text-gray-100 sm:px-6 lg:absolute lg:bottom-3 ${controlsLeft} lg:z-1000 lg:w-72 lg:rounded-lg lg:border lg:border-white/15 lg:bg-black/90 lg:p-5`}
         >
           <h2 id="regiones-title" className="font-display text-sm font-semibold">
             Regiones cubiertas

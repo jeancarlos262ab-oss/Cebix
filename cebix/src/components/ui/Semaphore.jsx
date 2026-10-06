@@ -68,11 +68,86 @@ const LEVELS = [
  * `sober`: variante sin degradados ni colores chillones (usada en Predicciones y Parcela satelital):
  * la imagen sigue sobresaliendo igual, pero la barra y el desglose son planos y de línea fina.
  *
- * @param {{score: number, sober?: boolean}} props
+ * `horizontal` (solo con `sober`): contenedor a todo el ancho; imagen y score a la izquierda, barra a la derecha
+ * y los tres niveles en columnas. Solo lo usa Parcela satelital.
+ *
+ * @param {{score: number, sober?: boolean, horizontal?: boolean}} props
  */
-function Semaphore({ score, sober = false }) {
+function Semaphore({ score, sober = false, horizontal = false }) {
   const active = LEVELS.find((level) => level.test(score)) ?? LEVELS[2];
   const clamped = Math.max(0, Math.min(100, score));
+
+  if (sober && horizontal) {
+    return (
+      <div className="rounded-lg border border-gray-200 p-5 pb-0 dark:border-gray-800">
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+          <div className="flex items-center gap-4">
+            <div className="relative flex h-40 shrink-0 items-center justify-center overflow-visible">
+              <img
+                src={active.image}
+                alt={`Semáforo en ${active.label}`}
+                draggable={false}
+                decoding="async"
+                fetchPriority="high"
+                onDragStart={(e) => e.preventDefault()}
+                onContextMenu={(e) => e.preventDefault()}
+                style={{ WebkitUserDrag: "none", userSelect: "none" }}
+                className="h-[115%] w-auto max-w-none -translate-y-8 drop-shadow-[-6px_8px_3px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out hover:scale-[0.97]"
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">Score de elegibilidad</p>
+              <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">{score} / 100</p>
+              <p className="mt-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+                <span className="h-2 w-2" style={{ backgroundColor: active.color }} aria-hidden="true" />
+                {active.label}
+              </p>
+            </div>
+          </div>
+
+          <div className="relative min-w-[220px] flex-1 py-2">
+            <div className="flex h-1.5 gap-px">
+              {LEVELS.map((level) => (
+                <div
+                  key={level.key}
+                  style={{
+                    flexGrow: level.max - level.min + 1,
+                    backgroundColor: level.color,
+                    opacity: level.key === active.key ? 1 : 0.28,
+                  }}
+                />
+              ))}
+            </div>
+            <div className="absolute top-1 h-3.5 w-0.5 bg-gray-900 dark:bg-white" style={{ left: `calc(${clamped}% - 1px)` }} />
+          </div>
+        </div>
+
+        <ul className="-mx-5 mt-5 grid divide-y divide-gray-100 border-t border-gray-100 dark:divide-gray-800/70 dark:border-gray-800/70 md:grid-cols-3 md:divide-x md:divide-y-0">
+          {LEVELS.map((level) => {
+            const isActive = level.key === active.key;
+            return (
+              <li
+                key={level.key}
+                className={`flex items-start gap-3 px-5 py-3 max-md:last:rounded-b-lg md:first:rounded-bl-lg md:last:rounded-br-lg ${isActive ? "bg-gray-50 dark:bg-gray-900/60" : ""}`}
+              >
+                <span
+                  className={`mt-1.5 h-2 w-2 shrink-0 ${isActive ? "" : "bg-gray-300 dark:bg-gray-700"}`}
+                  style={isActive ? { backgroundColor: level.color } : undefined}
+                />
+                <div className={`min-w-0 flex-1 ${isActive ? "" : "opacity-55"}`}>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{level.label}</p>
+                    <span className="shrink-0 text-xs tabular-nums text-gray-500 dark:text-gray-400">{level.range}</span>
+                  </div>
+                  <p className="mt-0.5 text-xs leading-relaxed text-gray-600 dark:text-gray-400">{level.description}</p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  }
 
   if (sober) {
     return (

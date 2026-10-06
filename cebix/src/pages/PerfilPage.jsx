@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { User, Pencil, KeyRound, ShieldCheck, CalendarDays, Mail, Building2 } from "lucide-react";
+import { User, Pencil, KeyRound, ShieldCheck, CalendarDays, Mail } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import SettingsSection from "../components/settings/SettingsSection";
 import Toggle from "../components/settings/Toggle";
@@ -61,13 +61,6 @@ export default function PerfilPage() {
               <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
                 <Mail size={12} className="shrink-0 text-accent-600 dark:text-accent-400" />
                 <span className="truncate">{account.email}</span>
-                {account.role && (
-                  <>
-                    <span className="text-gray-300 dark:text-gray-700">·</span>
-                    <Building2 size={12} className="shrink-0 text-accent-600 dark:text-accent-400" />
-                    <span className="truncate">{account.role}</span>
-                  </>
-                )}
               </p>
               <p className="mt-1 flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
                 <CalendarDays size={12} className="shrink-0 text-accent-600 dark:text-accent-400" />

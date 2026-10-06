@@ -32,8 +32,8 @@ async function callOtpApi(path, body) {
 }
 
 /** Pide (o reenvía) el código de registro; crea la cuenta sin confirmar si no existía. */
-export function sendSignupOtp({ email, password, name, role, region }) {
-  return callOtpApi("/api/send-otp", { type: "signup", email, password, name, role, region });
+export function sendSignupOtp({ email, password, name }) {
+  return callOtpApi("/api/send-otp", { type: "signup", email, password, name });
 }
 
 /** Confirma el código de 6 dígitos del registro. */

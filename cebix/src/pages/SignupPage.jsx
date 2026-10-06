@@ -1,15 +1,11 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Mail, Lock, MapPin, Briefcase, MailCheck } from "lucide-react";
+import { User, Mail, Lock, MailCheck } from "lucide-react";
 import AuthLayout from "../components/auth/AuthLayout";
 import AuthField, { PasswordToggle } from "../components/auth/AuthField";
-import AuthSelect from "../components/auth/AuthSelect";
 import AuthButton from "../components/auth/AuthButton";
 import { useAuth } from "../context/AuthContext";
-
-const REGIONS = ["Nacional", "Hidalgo", "Tlaxcala", "Puebla"];
-const ROLES = ["Administradora", "Analista de crédito", "Agrónomo de campo"];
 
 // Los mensajes de error ahora vienen de nuestras funciones /api/send-otp y
 // /api/verify-otp (ver src/services/otpApi.js), no de Supabase, así que los
@@ -61,8 +57,6 @@ export default function SignupPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    region: "Nacional",
-    role: "Agrónomo de campo",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -91,9 +85,9 @@ export default function SignupPage() {
 
     setSubmitting(true);
     const { error: signUpError } = await signUp({
-      ...form,
       name: form.name.trim(),
       email: form.email.trim(),
+      password: form.password,
     });
 
     if (signUpError) {
@@ -205,11 +199,6 @@ export default function SignupPage() {
                 : undefined
             }
           />
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <AuthSelect label="Región" icon={MapPin} name="region" value={form.region} onChange={handleChange} options={REGIONS} />
-            <AuthSelect label="Rol solicitado" icon={Briefcase} name="role" value={form.role} onChange={handleChange} options={ROLES} />
-          </div>
 
           <div className="pt-2">
             <AuthButton loading={submitting} loadingLabel="Creando cuenta...">

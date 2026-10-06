@@ -9,6 +9,7 @@ import {
   Copy,
   FileUp,
   Loader2,
+  Pencil,
   RotateCcw,
   Square,
 } from "lucide-react";
@@ -47,6 +48,9 @@ const FIELD =
 
 const BTN =
   "inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800";
+
+const BTN_DARK =
+  "inline-flex items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200";
 
 function SectionHeader({ title, description }) {
   return (
@@ -93,15 +97,6 @@ function Notice({ tone = "warn", children }) {
   );
 }
 
-function DetailRow({ label, children }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 py-2.5 first:pt-0 last:pb-0">
-      <dt className="text-sm text-gray-500 dark:text-gray-400">{label}</dt>
-      <dd className="text-right text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">{children}</dd>
-    </div>
-  );
-}
-
 /** Círculo numerado de un paso, solo relleno y en escala de grises: "done" (check) | "active" (oscuro) | "pending" (claro). */
 function StepDot({ n, state, running = false }) {
   return (
@@ -120,67 +115,44 @@ function StepDot({ n, state, running = false }) {
   );
 }
 
-/** Nodo con la línea que lo une al siguiente (ocupa todo el ancho de su columna). Lo usa HowItWorks. */
-function StepNode({ n, state, last, lineClass = "" }) {
+/** Sección numerada del panel de trabajo: el número pasa a ✓ cuando el paso queda resuelto. */
+function PanelSection({ n, state, title, running = false, children }) {
   return (
-    <div className="flex items-center" aria-hidden="true">
-      <StepDot n={n} state={state} />
-      {!last && (
-        <span
-          className={`mx-2 h-px flex-1 transition-colors duration-200 ${lineClass} ${state === "done" ? "bg-gray-400 dark:bg-gray-500" : "bg-gray-200 dark:bg-gray-800"}`}
-        />
-      )}
+    <section className="p-5">
+      <header className="mb-4 flex items-center gap-3">
+        <StepDot n={n} state={state} running={running} />
+        <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function Metric({ label, wide = false, children }) {
+  return (
+    <div className={`bg-white px-3 py-2.5 dark:bg-black ${wide ? "col-span-3" : ""}`}>
+      <dt className="text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{label}</dt>
+      <dd className="mt-0.5 truncate text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">{children}</dd>
     </div>
   );
 }
 
-/** Los tres pasos del flujo, juntos y en fila: círculo + nombre, con una línea corta hacia el que sigue. */
-function Stepper({ step, running }) {
-  const steps = ["Dibuja la parcela", "Calcula los índices", "Revisa la predicción"];
-  return (
-    <ol className="flex flex-wrap items-center gap-x-2 gap-y-2 text-[13px]">
-      {steps.map((label, i) => {
-        const state = i < step ? "done" : i === step ? "active" : "pending";
-        return (
-          <li key={label} aria-current={state === "active" ? "step" : undefined} className="flex items-center gap-2">
-            <StepDot n={i + 1} state={state} running={running} />
-            <span
-              className={
-                state === "active" ? "font-medium text-gray-900 dark:text-gray-100" : state === "done" ? "text-gray-600 dark:text-gray-300" : "text-gray-400 dark:text-gray-500"
-              }
-            >
-              {label}
-            </span>
-            {i < steps.length - 1 && (
-              <span
-                aria-hidden="true"
-                className={`ml-1 h-px w-6 transition-colors duration-200 sm:w-10 ${state === "done" ? "bg-gray-400 dark:bg-gray-500" : "bg-gray-200 dark:bg-gray-800"}`}
-              />
-            )}
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
-/** Estado vacío: cómo funciona, antes de calcular. Mismo tren de tres estaciones. */
-function HowItWorks() {
+/** Estado vacío: qué se lee, cuánto tarda y qué se obtiene. Sustituye al antiguo "Cómo funciona". */
+function Facts() {
   const items = [
-    { title: "Dibuja el contorno", text: "Marca los vértices sobre la imagen satelital o importa un GeoJSON en lat/lng (EPSG:4326)." },
-    { title: "Lectura de satélites", text: "Sentinel-2, Landsat y CHIRPS (fuentes abiertas) se resumen dentro del polígono, ventana por ventana." },
-    { title: "Predicción del modelo", text: "El Random Forest estima el rendimiento, su intervalo al 90 % y qué variables pesaron más." },
+    { label: "Fuentes", text: "Sentinel-2, Landsat y CHIRPS (datos abiertos), resumidos dentro del polígono." },
+    { label: "Cálculo", text: "10 variables por ventana fenológica. Tarda entre 30 y 90 s." },
+    { label: "Resultado", text: "Rendimiento estimado, intervalo al 90 % y peso SHAP de cada variable." },
   ];
   return (
-    <ol className="grid gap-y-8 sm:grid-cols-3">
-      {items.map(({ title, text }, i) => (
-        <li key={title} className="min-w-0 sm:pr-6">
-          <StepNode n={i + 1} state={i === 0 ? "active" : "pending"} last={i === items.length - 1} lineClass="hidden sm:block" />
-          <h3 className="mt-4 font-display text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
-          <p className="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{text}</p>
-        </li>
+    <dl className="grid gap-px overflow-hidden rounded-lg border border-gray-200 bg-gray-200 dark:border-gray-800 dark:bg-gray-800 sm:grid-cols-3">
+      {items.map(({ label, text }) => (
+        <div key={label} className="bg-white p-4 dark:bg-black">
+          <dt className="text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{label}</dt>
+          <dd className="mt-1.5 text-sm leading-relaxed text-gray-600 dark:text-gray-400">{text}</dd>
+        </div>
       ))}
-    </ol>
+    </dl>
   );
 }
 
@@ -385,128 +357,26 @@ function NuevaParcelaTab() {
     return { features: f, half, score, risk: classifyRisk(score) };
   }, [result]);
 
-  const step = phase === "done" ? 3 : running || closed ? 1 : 0;
+  // Estado de cada paso del panel.
+  const s1 = closed ? "done" : "active";
+  const s2 = !closed ? "pending" : phase === "done" ? "done" : "active";
+  const s3 = phase === "done" && !stale ? "done" : canRun || running ? "active" : "pending";
+
+  const drawHint =
+    points.length === 0
+      ? drawing
+        ? "Haz clic sobre el mapa para marcar el primer vértice."
+        : "Dibuja el contorno sobre la imagen satelital o importa un GeoJSON (lat/lng, EPSG:4326)."
+      : points.length < 3
+        ? `${points.length} de 3 vértices mínimos. Sigue marcando sobre el mapa.`
+        : `${points.length} vértices. Cierra con «Terminar» o tocando el primer punto.`;
 
   return (
-    <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[320px_1fr] lg:gap-12">
-      {/* ── Columna izquierda: datos y geometría ── */}
-      <aside className="min-w-0 space-y-9">
-        <section>
-          <SectionHeader title="Datos de la parcela" description="El ID y el estado se envían junto con el polígono." />
-          <div className="space-y-4">
-            <Field label="ID de la parcela">
-              <input value={name} onChange={(e) => setName(e.target.value)} disabled={running} placeholder="NUEVA_01" className={FIELD} />
-            </Field>
-            <Field
-              label="Estado"
-              hint={info?.detected && estadoManual === null ? `Detectado por la ubicación: ${info.detected}` : "Define el margen de confianza del resultado."}
-            >
-              <SelectField
-                value={estado}
-                disabled={running}
-                onChange={(e) => setEstadoManual(e.target.value)}
-              >
-                {ESTADOS.map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </SelectField>
-            </Field>
-            <Field label="Año del ciclo">
-              <SelectField value={anio} disabled={running} onChange={(e) => setAnio(Number(e.target.value))}>
-                {YEARS.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                    {y === TRAINED_YEAR ? " · año de entrenamiento" : ""}
-                  </option>
-                ))}
-              </SelectField>
-            </Field>
-          </div>
-        </section>
-
-        <section>
-          <SectionHeader title="Geometría" />
-          {info ? (
-            <dl>
-              <DetailRow label="Vértices">{points.length}</DetailRow>
-              <DetailRow label="Superficie">{formatHa(info.ha)} ha</DetailRow>
-              <DetailRow label="Perímetro">{formatDistance(info.perimeter)}</DetailRow>
-              <DetailRow label="Centroide">
-                {info.center[0].toFixed(5)}, {info.center[1].toFixed(5)}
-              </DetailRow>
-            </dl>
-          ) : (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {points.length ? `${points.length} vértice${points.length === 1 ? "" : "s"} marcados. Cierra el polígono para ver su superficie.` : "Aún no hay parcela dibujada."}
-            </p>
-          )}
-
-          {warnings.length > 0 && (
-            <div className="mt-4 space-y-2">
-              {warnings.map((w) => (
-                <Notice key={w.text} tone={w.tone}>
-                  {w.text}
-                </Notice>
-              ))}
-            </div>
-          )}
-
-          <div className="mt-5 flex flex-wrap gap-2">
-            <input ref={fileRef} type="file" accept=".geojson,.json,application/geo+json,application/json" onChange={handleFile} className="hidden" />
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              disabled={running}
-              className={BTN}
-            >
-              <FileUp size={13} strokeWidth={1.75} className="text-gray-400" /> Importar GeoJSON
-            </button>
-            <button
-              type="button"
-              onClick={copyGeoJSON}
-              disabled={!closed}
-              className={BTN}
-            >
-              <Copy size={13} strokeWidth={1.75} className="text-gray-400" /> Copiar GeoJSON
-            </button>
-          </div>
-        </section>
-
-        <section>
-          {running ? (
-            <button
-              type="button"
-              onClick={cancel}
-              className={`${BTN} w-full gap-2 px-4 py-2.5 text-sm font-medium`}
-            >
-              <Square size={14} /> Cancelar cálculo
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={run}
-              disabled={!canRun}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black"
-            >
-              <Calculator size={15} strokeWidth={1.75} />
-              {result ? "Recalcular índices satelitales" : "Calcular índices satelitales"}
-            </button>
-          )}
-          <p className="mt-3 text-center text-xs leading-relaxed text-gray-400 dark:text-gray-500">
-            {canRun || running
-              ? "Tarda entre 30 y 90 s: se leen imágenes reales de 10 variables."
-              : info?.crosses
-                ? "Corrige el contorno para poder calcular."
-                : "Dibuja y cierra una parcela para poder calcular."}
-          </p>
-        </section>
-      </aside>
-
-      {/* ── Columna principal ── */}
-      <div className="min-w-0 space-y-10">
-        <div className="space-y-4">
-          <Stepper step={step} running={running} />
-          <div className="h-[460px] sm:h-[520px]">
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        {/* ── Mapa: protagonista de la pantalla ── */}
+        <div className="relative min-h-[460px] sm:min-h-[560px] lg:min-h-[640px]">
+          <div className="absolute inset-0">
             <GeometryMap
               points={points}
               closed={closed}
@@ -522,89 +392,190 @@ function NuevaParcelaTab() {
           </div>
         </div>
 
-        <div ref={resultsRef} className="scroll-mt-6 space-y-12">
-          {phase === "idle" && !result && <HowItWorks />}
+        {/* ── Panel de trabajo: tres pasos, de arriba abajo ── */}
+        <aside className="min-w-0 self-start divide-y divide-gray-200 rounded-lg border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+          <PanelSection n={1} state={s1} title="Contorno de la parcela">
+            {info ? (
+              <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-gray-200 bg-gray-200 dark:border-gray-800 dark:bg-gray-800">
+                <Metric label="Superficie">{formatHa(info.ha)} ha</Metric>
+                <Metric label="Perímetro">{formatDistance(info.perimeter)}</Metric>
+                <Metric label="Vértices">{points.length}</Metric>
+                <Metric label="Centroide" wide>
+                  {info.center[0].toFixed(5)}, {info.center[1].toFixed(5)}
+                </Metric>
+              </dl>
+            ) : (
+              <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{drawHint}</p>
+            )}
 
-          {running && <RunProgress current={stepIdx} elapsedSec={elapsed} year={anio} />}
+            {warnings.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {warnings.map((w) => (
+                  <Notice key={w.text} tone={w.tone}>
+                    {w.text}
+                  </Notice>
+                ))}
+              </div>
+            )}
 
-          {phase === "error" && (
-            <div className="space-y-4 border-l-2 border-red-500 bg-gray-50 py-4 pl-5 pr-5 dark:bg-gray-900/60">
-              <div>
-                <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">No se pudieron calcular los índices</h2>
-                <p className="mt-1 whitespace-pre-line break-words text-sm text-gray-600 dark:text-gray-400">{error?.message}</p>
-                {(error?.status || error?.url || error?.raw) && (
-                  <details className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                    <summary className="cursor-pointer select-none font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">
-                      Detalle técnico
-                    </summary>
-                    <dl className="mt-2 space-y-1">
-                      {error.status ? (
-                        <div className="flex gap-2">
-                          <dt className="shrink-0 font-medium">Código HTTP:</dt>
-                          <dd className="tabular-nums">{error.status}</dd>
-                        </div>
-                      ) : null}
-                      {error.url ? (
-                        <div className="flex gap-2">
-                          <dt className="shrink-0 font-medium">Endpoint:</dt>
-                          <dd className="break-all">{error.url}</dd>
-                        </div>
-                      ) : null}
-                    </dl>
-                    {error.raw ? (
-                      <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-md bg-black/5 p-3 font-mono text-[11px] leading-relaxed dark:bg-white/5">
-                        {error.raw}
-                      </pre>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <input ref={fileRef} type="file" accept=".geojson,.json,application/geo+json,application/json" onChange={handleFile} className="hidden" />
+              {!closed && !drawing && (
+                <button type="button" onClick={startDrawing} disabled={running} className={BTN_DARK}>
+                  <Pencil size={13} strokeWidth={1.75} /> Dibujar parcela
+                </button>
+              )}
+              <button type="button" onClick={() => fileRef.current?.click()} disabled={running} className={BTN}>
+                <FileUp size={13} strokeWidth={1.75} className="text-gray-400" /> Importar GeoJSON
+              </button>
+              {closed && (
+                <button type="button" onClick={copyGeoJSON} className={BTN}>
+                  <Copy size={13} strokeWidth={1.75} className="text-gray-400" /> Copiar
+                </button>
+              )}
+            </div>
+          </PanelSection>
+
+          <PanelSection n={2} state={s2} title="Datos del ciclo">
+            <div className="space-y-4">
+              <Field label="ID de la parcela">
+                <input value={name} onChange={(e) => setName(e.target.value)} disabled={running} placeholder="NUEVA_01" className={FIELD} />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Estado">
+                  <SelectField value={estado} disabled={running} onChange={(e) => setEstadoManual(e.target.value)}>
+                    {ESTADOS.map((s) => (
+                      <option key={s}>{s}</option>
+                    ))}
+                  </SelectField>
+                </Field>
+                <Field label="Año del ciclo">
+                  <SelectField value={anio} disabled={running} onChange={(e) => setAnio(Number(e.target.value))}>
+                    {YEARS.map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </SelectField>
+                </Field>
+              </div>
+              <p className="text-xs leading-relaxed text-gray-400 dark:text-gray-500">
+                {info?.detected && estadoManual === null ? `Estado detectado por la ubicación: ${info.detected}. ` : "El estado define el margen de confianza. "}
+                Modelo entrenado con el ciclo {TRAINED_YEAR}.
+              </p>
+            </div>
+          </PanelSection>
+
+          <PanelSection n={3} state={s3} running={running} title="Predicción">
+            {running ? (
+              <button type="button" onClick={cancel} className={`${BTN} w-full gap-2 px-4 py-2.5 text-sm font-medium`}>
+                <Square size={14} /> Cancelar cálculo
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={run}
+                disabled={!canRun}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black"
+              >
+                <Calculator size={15} strokeWidth={1.75} />
+                {result ? "Recalcular índices satelitales" : "Calcular índices satelitales"}
+              </button>
+            )}
+            <p className="mt-3 text-xs leading-relaxed text-gray-400 dark:text-gray-500">
+              {canRun || running
+                ? "Se leen imágenes reales de 10 variables. Tarda entre 30 y 90 s."
+                : info?.crosses
+                  ? "Corrige el contorno para poder calcular."
+                  : "Cierra el contorno de la parcela para habilitar el cálculo."}
+            </p>
+          </PanelSection>
+        </aside>
+      </div>
+
+      {/* ── Resultados, a todo el ancho ── */}
+      <div ref={resultsRef} className="scroll-mt-6 space-y-12">
+        {phase === "idle" && !result && <Facts />}
+
+        {running && <RunProgress current={stepIdx} elapsedSec={elapsed} year={anio} />}
+
+        {phase === "error" && (
+          <div className="space-y-4 border-l-2 border-red-500 bg-gray-50 py-4 pl-5 pr-5 dark:bg-gray-900/60">
+            <div>
+              <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">No se pudieron calcular los índices</h2>
+              <p className="mt-1 whitespace-pre-line break-words text-sm text-gray-600 dark:text-gray-400">{error?.message}</p>
+              {(error?.status || error?.url || error?.raw) && (
+                <details className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                  <summary className="cursor-pointer select-none font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">
+                    Detalle técnico
+                  </summary>
+                  <dl className="mt-2 space-y-1">
+                    {error.status ? (
+                      <div className="flex gap-2">
+                        <dt className="shrink-0 font-medium">Código HTTP:</dt>
+                        <dd className="tabular-nums">{error.status}</dd>
+                      </div>
                     ) : null}
-                  </details>
+                    {error.url ? (
+                      <div className="flex gap-2">
+                        <dt className="shrink-0 font-medium">Endpoint:</dt>
+                        <dd className="break-all">{error.url}</dd>
+                      </div>
+                    ) : null}
+                  </dl>
+                  {error.raw ? (
+                    <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-md bg-black/5 p-3 font-mono text-[11px] leading-relaxed dark:bg-white/5">
+                      {error.raw}
+                    </pre>
+                  ) : null}
+                </details>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={run}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-medium text-accent-contrast hover:bg-accent-600"
+              >
+                <RotateCcw size={13} strokeWidth={1.75} /> Reintentar
+              </button>
+              <button type="button" onClick={() => setPhase("idle")} className={BTN}>
+                Editar parcela
+              </button>
+            </div>
+          </div>
+        )}
+
+        {result && view && ran && (
+          <>
+            {(stale || result.advertencias?.length > 0) && (
+              <div className="space-y-2">
+                {result.advertencias?.map((w) => (
+                  <Notice key={w}>{w}</Notice>
+                ))}
+                {stale && (
+                  <Notice>
+                    Cambiaste el contorno, el estado o el año después de calcular. Pulsa «Recalcular índices satelitales» para actualizar este resultado.
+                  </Notice>
                 )}
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={run}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-medium text-accent-contrast hover:bg-accent-600"
-                >
-                  <RotateCcw size={13} strokeWidth={1.75} /> Reintentar
-                </button>
-                <button type="button" onClick={() => setPhase("idle")} className={BTN}>
-                  Editar parcela
-                </button>
-              </div>
-            </div>
-          )}
+            )}
 
-          {result && view && ran && (
-            <>
-              {(stale || result.advertencias?.length > 0) && (
-                <div className="space-y-2">
-                  {result.advertencias?.map((w) => (
-                    <Notice key={w}>{w}</Notice>
-                  ))}
-                  {stale && (
-                    <Notice>
-                      Cambiaste el contorno, el estado o el año después de calcular. Pulsa «Recalcular índices satelitales» para actualizar este resultado.
-                    </Notice>
-                  )}
-                </div>
-              )}
-
-              <ParcelResult
-                result={result}
-                view={view}
-                ran={ran}
-                stale={stale}
-                onDownload={() =>
-                  downloadBlob(
-                    `${ran.name}_features_${ran.anio}.json`,
-                    JSON.stringify({ ID_POLIGONO: ran.name, Estado: ran.estado, anio: ran.anio, features: view.features }, null, 2),
-                  )
-                }
-                onReset={clearAll}
-              />
-            </>
-          )}
-        </div>
+            <ParcelResult
+              result={result}
+              view={view}
+              ran={ran}
+              stale={stale}
+              onDownload={() =>
+                downloadBlob(
+                  `${ran.name}_features_${ran.anio}.json`,
+                  JSON.stringify({ ID_POLIGONO: ran.name, Estado: ran.estado, anio: ran.anio, features: view.features }, null, 2),
+                )
+              }
+              onReset={clearAll}
+            />
+          </>
+        )}
       </div>
     </div>
   );
@@ -621,7 +592,7 @@ function ValidacionTab() {
       {REAL_VALIDATION ? (
         <ValidationTable rows={REAL_VALIDATION} />
       ) : (
-        <div className="rounded-2xl border border-gray-200 p-6 dark:border-gray-800">
+        <div className="rounded-lg border border-gray-200 p-6 dark:border-gray-800">
           <h3 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Aún no se ha corrido la validación</h3>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
             Esta pestaña solo muestra resultados reales. Para generarlos, desde la carpeta <code>backend/</code> ejecuta{" "}
@@ -633,7 +604,7 @@ function ValidacionTab() {
       )}
 
       <div className="grid gap-6 md:grid-cols-2">
-        <div className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
+        <div className="rounded-lg border border-gray-200 p-5 dark:border-gray-800">
           <h3 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Criterio de aceptación</h3>
           <ul className="mt-3 list-disc space-y-2 pl-4 text-sm text-gray-600 marker:text-gray-300 dark:text-gray-400 dark:marker:text-gray-600">
             <li>Índices espectrales y precipitación: diferencia dentro de ±15 %.</li>
@@ -641,7 +612,7 @@ function ValidacionTab() {
             <li>Diferencias pequeñas son normales: distinta versión del procesamiento atmosférico o geometría exacta.</li>
           </ul>
         </div>
-        <div className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
+        <div className="rounded-lg border border-gray-200 p-5 dark:border-gray-800">
           <h3 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Si algo sale fuera de rango, revisa</h3>
           <ul className="mt-3 list-disc space-y-2 pl-4 text-sm text-gray-600 marker:text-gray-300 dark:text-gray-400 dark:marker:text-gray-600">
             <li>Que el polígono esté en lat/lng y no en UTM.</li>
@@ -672,8 +643,8 @@ export default function EarthEnginePage() {
         }
       />
 
-      <div className="mt-6 px-4 sm:px-6 lg:px-8">
-        <div role="tablist" className="-mb-px flex gap-6 overflow-x-auto scrollbar-none">
+      <div className="mt-4 px-4 sm:px-6 lg:px-8">
+        <div role="tablist" className="flex gap-6 overflow-x-auto border-b border-gray-200 scrollbar-none dark:border-gray-800">
           {TABS.map((t) => {
             const active = t.key === tab;
             return (
@@ -683,7 +654,7 @@ export default function EarthEnginePage() {
                 role="tab"
                 aria-selected={active}
                 onClick={() => setParams({ tab: t.key }, { replace: true })}
-                className={`shrink-0 border-b-2 pb-3 text-sm font-medium transition-colors ${
+                className={`-mb-px shrink-0 border-b-2 pb-3 text-sm font-medium transition-colors ${
                   active
                     ? "border-accent-500 text-gray-900 dark:text-white"
                     : "border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
@@ -696,7 +667,7 @@ export default function EarthEnginePage() {
         </div>
       </div>
 
-      <div className="px-4 py-8 sm:px-6 lg:px-8">
+      <div className="px-4 py-6 sm:px-6 lg:px-8">
         {/* La pestaña de dibujo permanece montada para no perder el polígono ni el resultado al cambiar de pestaña. */}
         <div hidden={tab !== "nueva"}>
           <NuevaParcelaTab />

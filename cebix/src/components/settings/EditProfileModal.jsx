@@ -9,7 +9,7 @@ function validate(form) {
 }
 
 export default function EditProfileModal({ account, onClose, onSave }) {
-  const [form, setForm] = useState({ name: account.name, email: account.email, role: account.role });
+  const [form, setForm] = useState({ name: account.name, email: account.email });
   const [errors, setErrors] = useState({});
 
   function set(field, value) {
@@ -60,10 +60,6 @@ export default function EditProfileModal({ account, onClose, onSave }) {
               {errors.email && <span className="text-red-500">{errors.email}</span>}
             </span>
             <input value={form.email} onChange={(e) => set("email", e.target.value)} className={inputClass(errors.email)} />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Rol</span>
-            <input value={form.role} onChange={(e) => set("role", e.target.value)} className={inputClass()} />
           </label>
         </div>
 
