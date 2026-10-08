@@ -356,7 +356,7 @@ export default function GeometryMap(props) {
     setView("flat");
   };
   const goGlobe = (c) => {
-    setGlobeEntry((e) => ({ key: e.key + 1, ...c, zoom: 2.4 }));
+    setGlobeEntry((e) => ({ key: e.key + 1, ...c, zoom: 5.4 }));
     setGlobeCreated(true);
     setView("globe");
   };

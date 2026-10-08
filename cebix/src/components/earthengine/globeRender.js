@@ -20,10 +20,12 @@ const INV_2PI = 1 / (2 * Math.PI);
 export const LIGHT = [-0.45, 0.5, 0.74];
 export const WRAP = 0.05; // suaviza el terminador (0 = corte duro)
 export const AMBIENT = 0.06; // luz mínima en el lado en sombra
-// Bruma atmosférica: tinte azul ligero en todo el globo + más intenso hacia el borde.
-export const HAZE = [112, 165, 238]; // azul medio-claro
-export const HAZE_BASE = 0.08;
-export const HAZE_RIM = 0.6;
+// Atmósfera: filtro azulado sobre el propio disco del planeta (velo uniforme + más intenso hacia
+// el borde, tipo fresnel). Se calcula SOLO dentro de la esfera: no hay halo ni resplandor por
+// fuera del limbo, el borde del planeta queda nítido contra el espacio.
+export const HAZE = [96, 152, 236]; // azul atmosférico
+export const HAZE_BASE = 0.2; // velo azul parejo en todo el globo (antes 0.08)
+export const HAZE_RIM = 0.5; // refuerzo hacia el borde
 /**
  * @param {Uint32Array} out   buffer RGBA (cw*ch) — se asume ya en cero
  * @param {number} cw         ancho en píxeles

@@ -11,6 +11,7 @@ import estadosBoundaries from "../../data/estadosBoundaries.json";
 import { loadGlobeTexture } from "./globeTexture";
 import { projectPoint } from "./globeRender";
 import { SphereLayer } from "./globeLayer";
+import { createSky } from "./globeStars";
 
 /**
  * Globo 3D ligero: Canvas 2D puro, sin WebGL ni librerías.
@@ -22,8 +23,12 @@ import { SphereLayer } from "./globeLayer";
  */
 
 const D2R = Math.PI / 180;
+// Tamaño del planeta en reposo (zoom 1): su radio es BASE_R · lado menor del lienzo. Pequeño, como
+// en Google Earth (un planeta flotando en el espacio). El zoom máximo sube para que, al entrar a
+// la zona, el planeta siga llenando la pantalla igual que antes (0.43 x 2.6 = 0.19 x 5.9).
+const BASE_R = 0.19;
 const MIN_ZOOM = 1;
-const MAX_ZOOM = 2.6;
+const MAX_ZOOM = 5.9;
 // El presupuesto de píxeles de la esfera (en movimiento / en reposo) vive en globeLayer.js.
 const MAX_DPR = 1.5; // el lienzo con contornos y textos no pasa de esta densidad
 const STUDY_BOUNDS = [
@@ -61,6 +66,8 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
   const pin = useRef({ x: 0, y: 0, visible: false });
   const layer = useRef(null);
   if (!layer.current) layer.current = new SphereLayer({ collectStats: !!import.meta.env.DEV });
+  const sky = useRef(null);
+  if (!sky.current) sky.current = createSky();
   const pageActive = usePageActive() && active;
   const activeRef = useRef(pageActive);
   activeRef.current = pageActive;
@@ -89,11 +96,14 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
     ctx.clearRect(0, 0, cw, ch);
 
     const { lon, lat, zoom } = view.current;
-    const R = Math.min(w, h) * 0.43 * zoom * q;
+    const R = Math.min(w, h) * BASE_R * zoom * q;
     const cx = cw / 2;
     const cy = ch / 2;
     const lon0 = lon * D2R;
     const lat0 = lat * D2R;
+
+    // Cielo: estrellas y constelaciones detrás del globo, giran con él (ver globeStars.js).
+    sky.current.draw(ctx, { cw, ch, lon0, lat0, q, zoom, fast: fast.current });
 
     // Esfera: tablas precalculadas + desplazamiento por giro (ver globeLayer.js).
     layer.current.setTexture(tex.current.z3 || tex.current.z2 || null);
@@ -328,7 +338,7 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
   }, [busy, requestRender, stopMotion]);
 
   /* ───────────── puntero ───────────── */
-  const degPerPx = () => 57.2958 / (Math.min(dims.current.w, dims.current.h) * 0.43 * view.current.zoom);
+  const degPerPx = () => 57.2958 / (Math.min(dims.current.w, dims.current.h) * BASE_R * view.current.zoom);
   const nearPin = (e) => {
     const r = canvasRef.current.getBoundingClientRect();
     return pin.current.visible && Math.hypot(e.clientX - r.left - pin.current.x, e.clientY - r.top - pin.current.y) < 16;

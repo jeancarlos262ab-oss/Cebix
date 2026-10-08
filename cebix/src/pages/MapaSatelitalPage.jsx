@@ -19,7 +19,7 @@ function MapaSatelitalPageContent() {
 
   return (
     // El mapa ocupa TODA la pantalla, también por detrás del sidebar, que flota
-    // encima (ver Sidebar floating). Sin degradados.
+    // encima (ver Sidebar floating), con un degradado oscuro detrás de él.
     <div className="flex h-full flex-col">
       {/* Mapa a todo el ancho y alto disponible. En pantallas grandes "Regiones
           cubiertas" flota dentro del mapa; en celulares va debajo, sin tapar nada.
@@ -37,6 +37,34 @@ function MapaSatelitalPageContent() {
               controlsTopClassName="top-[62px] lg:top-3"
             />
           </div>
+
+          {/* Degradado a la izquierda, DETRÁS del sidebar (que flota encima con
+              z-50): oscurece el borde del mapa y se desvanece hacia la derecha,
+              para que el sidebar se integre con la imagen. Solo escritorio; su
+              ancho sigue al del sidebar (expandido / contraído). Va por debajo de
+              los controles (z-1000) y no bloquea el mapa (pointer-events-none). */}
+          <div
+            aria-hidden="true"
+            className={`pointer-events-none absolute inset-y-0 left-0 z-900 hidden transition-[width] duration-200 ease-out lg:block ${
+              collapsed ? "w-[240px]" : "w-[480px]"
+            }`}
+            style={{
+              background:
+                "linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.7) 20%, rgba(0,0,0,0.5) 42%, rgba(0,0,0,0.28) 65%, rgba(0,0,0,0.1) 85%, rgba(0,0,0,0) 100%)",
+            }}
+          />
+
+          {/* Degradado inferior: oscurece el borde de abajo del mapa y se desvanece
+              hacia arriba. Mismas reglas que el izquierdo (debajo de los controles,
+              sin bloquear el mapa). */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-900 h-[200px]"
+            style={{
+              background:
+                "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.7) 20%, rgba(0,0,0,0.5) 42%, rgba(0,0,0,0.28) 65%, rgba(0,0,0,0.1) 85%, rgba(0,0,0,0) 100%)",
+            }}
+          />
 
           {/* Botón de menú: solo hace falta en móvil/tablet, donde el sidebar vive detrás
               de un drawer (en escritorio ya está siempre visible: lg:hidden). Va en la

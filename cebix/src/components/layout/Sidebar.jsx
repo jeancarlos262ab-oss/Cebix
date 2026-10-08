@@ -20,7 +20,7 @@ function NavSection({ title, items, collapsed }) {
           className={[
             // Siempre ocupa su lugar (una sola línea) para que la separación
             // vertical sea idéntica con el sidebar contraído.
-            "overflow-hidden whitespace-nowrap px-4 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500",
+            "overflow-hidden whitespace-nowrap px-4 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 transition-colors duration-300 ease-out",
             collapsed ? "invisible" : "",
           ].join(" ")}
         >
@@ -37,7 +37,7 @@ function NavSection({ title, items, collapsed }) {
               className={({ isActive }) =>
                 [
                   // Alto fijo: idéntico con el sidebar expandido y contraído.
-                  "flex h-[34px] w-full items-center text-sm font-medium transition-colors",
+                  "flex h-[34px] w-full items-center text-sm font-medium transition-colors duration-300 ease-out",
                   collapsed ? "justify-center px-0" : "gap-2.5 px-4",
                   isActive
                     ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
@@ -54,7 +54,7 @@ function NavSection({ title, items, collapsed }) {
                   />
                   {!collapsed && <span className="flex-1 text-left truncate">{label}</span>}
                   {!collapsed && badge && (
-                    <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-300 mr-1">
+                    <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-300 mr-1 transition-colors duration-300 ease-out">
                       {badge}
                     </span>
                   )}
@@ -172,7 +172,17 @@ export default function Sidebar({ floating = false }) {
 
       <aside
         className={[
-          "fixed inset-y-3 left-3 z-50 flex shrink-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card transition-transform duration-200 ease-out lg:transition-none dark:border-gray-800 dark:bg-black",
+          "fixed inset-y-3 left-3 z-50 flex shrink-0 flex-col overflow-hidden rounded-2xl duration-300 ease-out",
+          // Transición suave al pasar de/al mapa satelital (fondo, borde y sombra). En móvil además
+          // anima el deslizamiento del drawer; en escritorio no hay deslizamiento (lg:translate-x-0).
+          "transition-[transform,background-color,border-color,box-shadow] lg:transition-[background-color,border-color,box-shadow]",
+          // Sobre el mapa satelital: mismo fondo y borde que la barra vertical de
+          // zoom (bg-black/90 + border-white/15, ver mapUi.js). La clase "dark"
+          // fuerza los colores de texto/hover oscuros dentro del sidebar aunque
+          // la app esté en modo claro, para que se lea sobre ese fondo.
+          floating
+            ? "dark border border-white/15 bg-black/90"
+            : "border border-gray-200 bg-white shadow-card dark:border-gray-800 dark:bg-black",
           collapsed ? "lg:w-20" : "lg:w-[264px]",
           "w-[264px] max-w-[calc(100vw-1.5rem)]",
           floating
@@ -183,12 +193,13 @@ export default function Sidebar({ floating = false }) {
       >
         <div
           className={[
-            "relative flex h-[61px] items-center gap-2.5 border-b border-gray-100 py-4 dark:border-gray-800",
+            "relative flex h-[61px] items-center gap-2.5 border-b border-gray-100 py-4 dark:border-gray-800 transition-colors duration-300 ease-out",
             collapsed ? "justify-center px-0" : "px-4",
           ].join(" ")}
         >
           {/* Mismo logo y misma posición en ambos estados: al contraer solo se oculta el texto. */}
-          <Logo size="sm" showText={!collapsed} />
+          {/* Sobre el mapa satelital el fondo es siempre oscuro: logo (isotipo + texto) en blanco. */}
+          <Logo size="sm" showText={!collapsed} tone={floating ? "white" : "auto"} />
           {collapsed && (
             // Al pasar el cursor, el icono del logo se cambia por el de expandir
             // (sin mover nada: va encima del logo, centrado en él).
@@ -197,7 +208,7 @@ export default function Sidebar({ floating = false }) {
               onClick={() => setCollapsed(false)}
               aria-label="Expandir menú"
               title="Expandir menú"
-              className="absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center bg-white text-gray-600 opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100 dark:bg-black dark:text-gray-300"
+              className="absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center bg-white text-gray-600 opacity-0 transition-[opacity,color,background-color] duration-300 hover:opacity-100 focus-visible:opacity-100 dark:bg-black dark:text-gray-300"
             >
               <PanelLeft size={18} />
             </button>
@@ -208,7 +219,7 @@ export default function Sidebar({ floating = false }) {
               onClick={() => setCollapsed(true)}
               aria-label="Contraer menú"
               title="Contraer menú"
-              className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+              className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 transition-colors duration-300 ease-out"
             >
               <Menu size={18} />
             </button>
@@ -217,7 +228,7 @@ export default function Sidebar({ floating = false }) {
             type="button"
             onClick={close}
             aria-label="Cerrar menú"
-            className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 lg:hidden"
+            className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 transition-colors duration-300 ease-out lg:hidden"
           >
             <X size={16} />
           </button>
@@ -233,12 +244,12 @@ export default function Sidebar({ floating = false }) {
           />
         </nav>
 
-        <div className="border-t border-gray-100 py-2 dark:border-gray-800">
+        <div className="border-t border-gray-100 py-2 dark:border-gray-800 transition-colors duration-300 ease-out">
           <NavLink
             to="/perfil"
             title={collapsed ? profile?.name || user?.email || "Perfil" : undefined}
             className={[
-              "flex w-full items-center py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-900",
+              "flex w-full items-center py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors duration-300 ease-out",
               collapsed ? "justify-center px-0" : "gap-3 px-4",
             ].join(" ")}
           >
@@ -250,19 +261,19 @@ export default function Sidebar({ floating = false }) {
                 decoding="async"
                 className="h-full w-full rounded-full object-cover"
               />
-              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-green-500 dark:border-gray-900" />
+              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-green-500 dark:border-gray-900 transition-colors duration-300 ease-out" />
             </span>
             {!collapsed && (
               <>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-gray-900 dark:text-white">
+                  <span className="block truncate text-sm font-semibold text-gray-900 dark:text-white transition-colors duration-300 ease-out">
                     {profile?.name || user?.email || "Perfil"}
                   </span>
-                  <span className="block truncate text-xs text-gray-500 dark:text-gray-400">
+                  <span className="block truncate text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300 ease-out">
                     {user?.email || ""}
                   </span>
                 </span>
-                <ChevronRight size={16} className="shrink-0 text-gray-500 dark:text-gray-400" />
+                <ChevronRight size={16} className="shrink-0 text-gray-500 dark:text-gray-400 transition-colors duration-300 ease-out" />
               </>
             )}
           </NavLink>
@@ -271,7 +282,7 @@ export default function Sidebar({ floating = false }) {
             onClick={() => setConfirmOpen(true)}
             title={collapsed ? "Cerrar sesión" : undefined}
             className={[
-              "flex h-[34px] w-full items-center text-left text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-white",
+              "flex h-[34px] w-full items-center text-left text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-white transition-colors duration-300 ease-out",
               collapsed ? "justify-center px-0" : "gap-3 px-4",
             ].join(" ")}
           >

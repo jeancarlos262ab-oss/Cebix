@@ -81,12 +81,29 @@ function drawMark(canvas) {
   });
 }
 
-function LogoMark({ className = "", aspect = 1, height = MARK_H }) {
+function LogoMark({ className = "", aspect = 1, height = MARK_H, tone = "auto" }) {
   const ref = useRef(null);
+  const redrawRef = useRef(null); // redibujo animado, compartido por el efecto de tono y el observer
+  const mounted = useRef(false);
 
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return undefined;
+
+    // El color del logo cambia con una transición CSS (p. ej. al entrar/salir del mapa satelital o
+    // al cambiar de tema). El canvas no entiende transiciones, así que se redibuja en cada cuadro
+    // mientras dura (leyendo el color ya interpolado) y queda con el color final.
+    let id = 0;
+    const animateRedraw = (ms = 450) => {
+      cancelAnimationFrame(id);
+      const t0 = performance.now();
+      const tick = (t) => {
+        drawMark(canvas);
+        if (t - t0 < ms) id = requestAnimationFrame(tick);
+      };
+      id = requestAnimationFrame(tick);
+    };
+    redrawRef.current = animateRedraw;
 
     const redraw = () => drawMark(canvas);
     redraw();
@@ -95,18 +112,29 @@ function LogoMark({ className = "", aspect = 1, height = MARK_H }) {
     ro.observe(canvas);
 
     // Cambio de tema o acento: el color heredado cambia sin que cambie el tamaño.
-    // Doble rAF: espera a que el navegador aplique el nuevo tema antes de leer el color.
-    const mo = new MutationObserver(() => requestAnimationFrame(() => requestAnimationFrame(redraw)));
+    const mo = new MutationObserver(() => animateRedraw());
     mo.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ["class", "data-accent", "data-theme"],
     });
 
     return () => {
+      cancelAnimationFrame(id);
+      redrawRef.current = null;
       ro.disconnect();
       mo.disconnect();
     };
   }, []);
+
+  // Cambio de tono (o de una clase "dark" de un contenedor, como el sidebar sobre el mapa
+  // satelital): cambia el color heredado pero no el tamaño ni <html>.
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true; // primer montaje: ya lo dibujó el efecto anterior
+      return;
+    }
+    redrawRef.current?.();
+  }, [tone]);
 
   return (
     <canvas
@@ -129,9 +157,9 @@ function Logo({ className = "", size = "md", tone = "auto", showText = true, asp
     <span
       role="img"
       aria-label="CEBIX"
-      className={`inline-flex select-none items-center gap-[0.32em] leading-none ${toneClass} ${SIZES[size]} ${className}`}
+      className={`inline-flex select-none items-center gap-[0.32em] leading-none transition-colors duration-300 ease-out ${toneClass} ${SIZES[size]} ${className}`}
     >
-      <LogoMark aspect={aspect} height={showText ? MARK_H_WITH_TEXT : MARK_H} />
+      <LogoMark aspect={aspect} height={showText ? MARK_H_WITH_TEXT : MARK_H} tone={tone} />
       {showText && (
         <span
           aria-hidden="true"
