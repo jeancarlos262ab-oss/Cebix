@@ -162,3 +162,9 @@ alter table public.otp_codes enable row level security;
 --   '0 * * * *',
 --   $$ delete from public.otp_codes where expires_at < now() - interval '1 day' $$
 -- );
+
+-- ============================================================
+-- 4) AVATARS (fotos de perfil, Supabase Storage)
+-- ============================================================
+-- Bucket público "avatars" con una carpeta por usuario. Ver avatars_storage.sql
+-- (es el mismo bloque; si ya corriste este archivo completo, corre ese también).

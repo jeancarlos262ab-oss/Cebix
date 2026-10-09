@@ -6,6 +6,38 @@ coinciden EXACTO (0 diferencias) con las que ya teníamos calculadas offline en
 `ml/03_modelo/resultados_3_FINAL_top10_sin_planet/predicciones_finales.csv`. Es el modelo real
 corriendo por request, no una copia de resultados guardados.
 
+## Estructura del backend
+
+```
+backend/
+├── app/
+│   ├── main.py                 # crea la app FastAPI (CORS + routers)
+│   ├── config.py               # rutas de archivos y variables de entorno
+│   ├── schemas.py              # modelos de entrada (Pydantic)
+│   ├── api/                    # endpoints, uno por tema
+│   │   ├── health.py           #   GET /health, /
+│   │   ├── model.py            #   GET /features, /model-info, /example-csv
+│   │   ├── predict.py          #   POST /predict, /predict-csv
+│   │   └── satellite.py        #   GET /satellite-status, POST /predict-from-geometry
+│   └── services/               # lógica de negocio
+│       ├── model_service.py    #   carga del modelo + inferencia (IC90, SHAP local)
+│       ├── satellite_service.py#   elige proveedor (stac / gee)
+│       └── features/
+│           ├── stac.py         #   features desde fuentes abiertas (por defecto)
+│           └── gee.py          #   features desde Google Earth Engine (opcional)
+├── models/                     # model_artifact.joblib + model_meta.json
+├── data/                       # ejemplo_features_predict.csv (lo sirve /example-csv)
+├── scripts/                    # herramientas que NO van al contenedor
+│   ├── export_model.py         #   reentrena y regenera models/model_artifact.joblib
+│   ├── validate_gee.py         #   valida el cálculo satelital contra el dataset oficial
+│   └── run.sh, run.bat, setup_venv.sh, setup_venv.bat
+├── Dockerfile, render.yaml, requirements.txt
+└── README_BACKEND.md
+```
+
+El comando de arranque es `uvicorn app.main:app` (antes `main:app`). Las URLs de la API no cambiaron,
+así que el frontend no necesita ajustes.
+
 ## Correrlo local (con entorno virtual)
 
 Requiere Python 3.11 o 3.12. Las dependencias quedan aisladas en `backend/.venv`.
@@ -13,15 +45,15 @@ Requiere Python 3.11 o 3.12. Las dependencias quedan aisladas en `backend/.venv`
 **Linux / macOS**
 ```bash
 cd backend
-./setup_venv.sh     # crea .venv e instala requirements (solo la primera vez)
-./run.sh            # activa .venv y arranca en http://localhost:8000
+./scripts/setup_venv.sh     # crea .venv e instala requirements (solo la primera vez)
+./scripts/run.sh            # activa .venv y arranca en http://localhost:8000
 ```
 
 **Windows**
 ```bat
 cd backend
-setup_venv.bat
-run.bat
+scripts\setup_venv.bat
+scripts\run.bat
 ```
 
 **Manual**
@@ -29,12 +61,12 @@ run.bat
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8000
 deactivate                       # para salir del entorno
 ```
 
-`scikit-learn` está fijado en 1.8.0 porque `model_artifact.joblib` se guardó con esa
-versión; con otra sale `InconsistentVersionWarning`. Si reentrenas con `export_model.py`,
+`scikit-learn` está fijado en 1.8.0 porque `models/model_artifact.joblib` se guardó con esa
+versión; con otra sale `InconsistentVersionWarning`. Si reentrenas con `scripts/export_model.py`,
 actualiza ese pin a la versión con la que lo regeneres.
 
 Pruébalo:
@@ -45,13 +77,13 @@ curl http://localhost:8000/model-info
 curl -X POST http://localhost:8000/predict-csv -F "file=@ruta/a/features_predict.csv"
 ```
 
-`model_artifact.joblib` ya está incluido (el modelo ya entrenado — no hace falta
+`models/model_artifact.joblib` ya está incluido (el modelo ya entrenado — no hace falta
 reentrenar para usar el backend). Si vuelven a correr `select_features.py` con otras
 features, regeneren el artefacto:
 
 ```bash
-python export_model.py          # usa ../ml/02_datos_procesados/features_train.csv por defecto
-python ../ml/03_modelo/build_model_meta.py   # regenera model_meta.json (lo que sirve /model-info)
+python scripts/export_model.py          # usa ../ml/02_datos_procesados/features_train.csv por defecto
+python ../ml/03_modelo/build_model_meta.py   # regenera models/model_meta.json (lo que sirve /model-info)
 ```
 
 `numpy` está limitado a `<2.4` porque desde la 2.4 exige una CPU con instrucciones X86_V2
@@ -93,7 +125,7 @@ El dashboard (`src/services/modelApi.js`) ya consume esta API: ejecuta el modelo
 | GET | `/` | Confirma que el servicio está vivo y qué modelo cargó |
 | GET | `/health` | Chequeo ligero (no carga el modelo); lo usa Render |
 | GET | `/features` | Lista las 10 features que el modelo espera, con nombre legible |
-| GET | `/model-info` | Métricas de validación, comparación de algoritmos, SHAP global, preguntas guía (de `model_meta.json`) |
+| GET | `/model-info` | Métricas de validación, comparación de algoritmos, SHAP global, preguntas guía (de `models/model_meta.json`) |
 | GET | `/example-csv` | CSV de ejemplo: 59 parcelas de evaluación con `lat`/`lng` |
 | POST | `/predict` | JSON con una o varias parcelas → predicción real |
 | POST | `/predict-csv` | Sube un CSV (mismo formato que `features_predict.csv`) → predicción real de cada fila |
@@ -102,7 +134,7 @@ El dashboard (`src/services/modelApi.js`) ya consume esta API: ejecuta el modelo
 
 ## Parcelas nuevas desde satélite (`POST /predict-from-geometry`)
 
-Sin cuentas, sin tarjeta y sin cuota: usa solo fuentes abiertas que se leen de forma anónima (`stac_features.py`).
+Sin cuentas, sin tarjeta y sin cuota: usa solo fuentes abiertas que se leen de forma anónima (`app/services/features/stac.py`).
 
 | Variable | Fuente |
 |---|---|
@@ -142,13 +174,13 @@ Respuesta: `features_calculadas` (las 10), `yieldEstimate`, `ic90_inferior/super
   ponderación entre píxeles y rechazo si falta un día, errores HTTP, y el flujo completo frontend → backend → modelo.
 - **NO verificado contra los servicios reales** (el entorno de desarrollo no tenía internet): la ruta pública de CHIRPS, los nombres de colección y
   de banda de Earth Search (`blue, red, nir, swir16, swir22`), la escala/offset de reflectancia que publica, el uso de memoria en el plan gratuito de
-  Render y la velocidad real. Primera ejecución recomendada: `curl /satellite-status`, luego `python validate_gee.py ... --n 1`.
+  Render y la velocidad real. Primera ejecución recomendada: `curl /satellite-status`, luego `python scripts/validate_gee.py ... --n 1`.
 - **Los números pueden diferir del dataset oficial** (otra versión de procesamiento, píxeles de borde, LAI con valores no finitos descartados píxel a
   píxel). Por eso la validación del Paso 8 es obligatoria antes de citar resultados:
 
 ```bash
 pip install geopandas
-python validate_gee.py --csv ../ml/02_datos_procesados/features_completo.csv --shp ruta/a/Parcelas_Reto_AGC_CONJUNTO.shp --n 5
+python scripts/validate_gee.py --csv ../ml/02_datos_procesados/features_completo.csv --shp ruta/a/Parcelas_Reto_AGC_CONJUNTO.shp --n 5
 ```
 Imprime la diferencia porcentual por variable y guarda `validacion_gee.json`; cópialo a `cebix/src/data/earthEngineValidation.json`.
 
@@ -167,7 +199,7 @@ límites de memoria (no los medí con esta carga).
 
 ### Opcional: Google Earth Engine
 
-`gee_features.py` sigue disponible con `FEATURES_PROVIDER=gee`, pero Earth Engine exige una cuenta de facturación activa (no se cobra el uso no
+`app/services/features/gee.py` sigue disponible con `FEATURES_PROVIDER=gee`, pero Earth Engine exige una cuenta de facturación activa (no se cobra el uso no
 comercial) y tiene cuota mensual de cómputo. Requiere `pip install earthengine-api` y `GEE_SERVICE_ACCOUNT_JSON`. No se usa por defecto y no se probó
 contra Earth Engine real.
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { User, Pencil, KeyRound, ShieldCheck, CalendarDays, Mail } from "lucide-react";
+import Avatar from "../components/ui/Avatar";
 import TopBar from "../components/layout/TopBar";
 import SettingsSection from "../components/settings/SettingsSection";
 import Toggle from "../components/settings/Toggle";
@@ -46,13 +47,7 @@ export default function PerfilPage() {
         {/* Identidad */}
         <SettingsSection icon={User} title="Identidad" description="Cómo te ven los demás dentro de CEBIX">
           <div className="flex flex-col items-start gap-5 py-3 sm:flex-row sm:items-center">
-            <img
-              src={account.avatar || `https://i.pravatar.cc/128?u=${user?.id ?? "cebix"}`}
-              alt={account.name || "Foto de perfil"}
-              loading="lazy"
-              decoding="async"
-              className="h-16 w-16 shrink-0 rounded-full object-cover"
-            />
+            <Avatar src={account.avatar} name={account.name || account.email} className="h-16 w-16" textClass="text-lg" />
 
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
@@ -121,9 +116,14 @@ export default function PerfilPage() {
         <EditProfileModal
           account={account}
           onClose={() => setShowEditProfile(false)}
-          onSave={(fields) => {
-            updateAccount(fields);
+          onSave={async (fields) => {
+            const { error } = await updateAccount(fields);
+            if (error) {
+              toast.error(error.message || "No se pudo actualizar el perfil.");
+              return false;
+            }
             toast.success("Perfil actualizado.");
+            return true;
           }}
         />
       )}

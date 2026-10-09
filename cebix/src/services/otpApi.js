@@ -46,6 +46,11 @@ export function sendResetOtp({ email }) {
   return callOtpApi("/api/send-otp", { type: "reset", email });
 }
 
+/** Solo comprueba que el código de recuperación sea correcto (no lo consume). */
+export function checkResetOtpApi({ email, code }) {
+  return callOtpApi("/api/verify-otp", { type: "reset_check", email, code });
+}
+
 /** Confirma el código de recuperación y establece la contraseña nueva. */
 export function verifyResetOtpApi({ email, code, newPassword }) {
   return callOtpApi("/api/verify-otp", { type: "reset", email, code, newPassword });

@@ -1,3 +1,4 @@
+import Avatar from "../ui/Avatar";
 import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { getPageRegistry } from "../../utils/pageRegistry";
@@ -254,13 +255,7 @@ export default function Sidebar({ floating = false }) {
             ].join(" ")}
           >
             <span className="relative h-9 w-9 shrink-0 rounded-full bg-gray-200">
-              <img
-                src={profile?.avatar_url || `https://i.pravatar.cc/72?u=${user?.id ?? "cebix"}`}
-                alt={profile?.name || user?.email || "Perfil"}
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full rounded-full object-cover"
-              />
+              <Avatar src={profile?.avatar_url} name={profile?.name || user?.email} className="h-full w-full" />
               <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-green-500 dark:border-gray-900 transition-colors duration-300 ease-out" />
             </span>
             {!collapsed && (

@@ -49,20 +49,21 @@ function getResetErrorMessage(error) {
 const HEADINGS = {
   login: { title: "Inicia sesión", subtitle: "Accede a tu espacio de trabajo CEBIX." },
   forgot: { title: "Recupera tu contraseña", subtitle: "Te enviaremos un código de 6 dígitos a tu correo." },
-  reset: { title: "Elige una contraseña nueva", subtitle: "Escribe el código que te enviamos y tu nueva contraseña." },
+  code: { title: "Revisa tu correo", subtitle: "Escribe el código de 6 dígitos que te enviamos." },
+  reset: { title: "Elige una contraseña nueva", subtitle: "Código listo. Ahora escribe tu contraseña nueva." },
   done: { title: "Todo listo", subtitle: "Tu contraseña se actualizó correctamente." },
 };
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { signIn, sendPasswordResetOtp, verifyPasswordResetOtp } = useAuth();
+  const { signIn, sendPasswordResetOtp, verifyPasswordResetOtp, checkPasswordResetOtp } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // "login" = formulario normal · "forgot" = pedir el correo para
-  // recuperar contraseña · "reset" = llegó el código, aquí se escribe y se
-  // elige la contraseña nueva · "done" = contraseña actualizada.
+  // recuperar contraseña · "code" = escribir el código que llegó · "reset" =
+  // elegir la contraseña nueva · "done" = contraseña actualizada.
   const [mode, setMode] = useState("login");
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [resetCode, setResetCode] = useState("");
@@ -104,6 +105,24 @@ export default function LoginPage() {
       return;
     }
 
+    setMode("code");
+  }
+
+  // Paso 2: se valida el código en el servidor (sin consumirlo) y solo si es
+  // correcto se muestran los campos de la contraseña nueva.
+  async function handleCodeSubmit(event) {
+    event.preventDefault();
+    if (resetCode.length < 6) return;
+
+    setSubmitting(true);
+    const { error: checkError } = await checkPasswordResetOtp(recoveryEmail.trim(), resetCode.trim());
+    setSubmitting(false);
+
+    if (checkError) {
+      toast.error(getResetErrorMessage(checkError));
+      return;
+    }
+
     setMode("reset");
   }
 
@@ -138,6 +157,11 @@ export default function LoginPage() {
 
     if (verifyError) {
       toast.error(getResetErrorMessage(verifyError));
+      // Por si el código venció entre un paso y otro: volver al paso del código.
+      if (["invalid", "no_code", "expired"].includes(verifyError.message)) {
+        setResetCode("");
+        setMode("code");
+      }
       return;
     }
 
@@ -235,17 +259,17 @@ export default function LoginPage() {
         </>
       )}
 
-      {mode === "reset" && (
+      {mode === "code" && (
         <>
           <div className="auth-notice mb-6">
             <MailCheck size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
             <span>
               Si <strong className="font-semibold">{recoveryEmail}</strong> tiene una cuenta, te enviamos un código de
-              6 dígitos. Escríbelo junto con tu contraseña nueva.
+              6 dígitos. Escríbelo para continuar.
             </span>
           </div>
 
-          <form className="space-y-5" onSubmit={handleResetSubmit}>
+          <form className="space-y-5" onSubmit={handleCodeSubmit}>
             <AuthField
               label="Código de verificación"
               required
@@ -259,8 +283,40 @@ export default function LoginPage() {
                 setResetCode(e.target.value.replace(/\D/g, "").slice(0, 6));
               }}
               className="auth-code"
+              autoFocus
             />
 
+            <AuthButton loading={submitting} loadingLabel="Verificando..." disabled={resetCode.length < 6}>
+              Continuar
+            </AuthButton>
+          </form>
+
+          <p className="auth-muted mt-6 flex flex-wrap items-center justify-center gap-x-1.5 text-center text-sm">
+            <span>¿No llegó el código?</span>
+            <button type="button" onClick={handleResendCode} disabled={resending} className="auth-link disabled:opacity-60">
+              {resending ? "Enviando..." : resent ? "Reenviado ✓" : "Reenviar código"}
+            </button>
+          </p>
+          <p className="mt-3 text-center text-sm">
+            <button
+              type="button"
+              onClick={() => {
+                setResetCode("");
+                setMode("forgot");
+              }}
+              className="auth-quiet"
+            >
+              ¿Correo incorrecto? Volver
+            </button>
+          </p>
+
+          <BackToLogin onClick={backToLogin} />
+        </>
+      )}
+
+      {mode === "reset" && (
+        <>
+          <form className="space-y-5" onSubmit={handleResetSubmit}>
             <AuthField
               label="Contraseña nueva"
               icon={Lock}
@@ -274,6 +330,7 @@ export default function LoginPage() {
                 setNewPassword((current) => ({ ...current, password: e.target.value }));
               }}
               rightElement={<PasswordToggle shown={showNewPassword} onToggle={() => setShowNewPassword((v) => !v)} />}
+              autoFocus
             />
 
             <AuthField
@@ -295,15 +352,14 @@ export default function LoginPage() {
               }
             />
 
-            <AuthButton loading={submitting} loadingLabel="Guardando..." disabled={resetCode.length < 6}>
+            <AuthButton loading={submitting} loadingLabel="Guardando...">
               Cambiar contraseña
             </AuthButton>
           </form>
 
-          <p className="auth-muted mt-6 flex flex-wrap items-center justify-center gap-x-1.5 text-center text-sm">
-            <span>¿No llegó el código?</span>
-            <button type="button" onClick={handleResendCode} disabled={resending} className="auth-link disabled:opacity-60">
-              {resending ? "Enviando..." : resent ? "Reenviado ✓" : "Reenviar código"}
+          <p className="mt-6 text-center text-sm">
+            <button type="button" onClick={() => setMode("code")} className="auth-quiet">
+              Cambiar el código
             </button>
           </p>
 

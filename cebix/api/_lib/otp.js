@@ -63,10 +63,10 @@ export async function createOtp({ email, type, userId }) {
 }
 
 /**
- * Verifica un código para (email, type). Si es válido lo marca como usado
- * (consumed = true) para que no se pueda reutilizar y devuelve la fila.
+ * Busca el código vigente de (email, type) y lo compara, SIN consumirlo.
+ * Sirve para validar el código en un paso aparte antes de pedir la contraseña nueva.
  */
-export async function verifyAndConsumeOtp({ email, type, code }) {
+export async function checkOtp({ email, type, code }) {
   const admin = supabaseAdmin();
   const normalizedEmail = email.trim().toLowerCase();
   const normalizedCode = String(code).trim();
@@ -86,11 +86,23 @@ export async function verifyAndConsumeOtp({ email, type, code }) {
   if (new Date(row.expires_at).getTime() < Date.now()) return { ok: false, reason: "expired" };
   if (row.code !== normalizedCode) return { ok: false, reason: "mismatch" };
 
+  return { ok: true, row };
+}
+
+/**
+ * Verifica un código para (email, type). Si es válido lo marca como usado
+ * (consumed = true) para que no se pueda reutilizar y devuelve la fila.
+ */
+export async function verifyAndConsumeOtp({ email, type, code }) {
+  const result = await checkOtp({ email, type, code });
+  if (!result.ok) return result;
+
+  const admin = supabaseAdmin();
   const { error: consumeError } = await admin
     .from("otp_codes")
     .update({ consumed: true })
-    .eq("id", row.id);
+    .eq("id", result.row.id);
   if (consumeError) throw consumeError;
 
-  return { ok: true, row };
+  return result;
 }

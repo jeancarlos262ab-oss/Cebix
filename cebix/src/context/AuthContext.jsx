@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../services/supabaseClient";
 import { resetPageRegistry } from "../utils/pageRegistry";
-import { sendSignupOtp, sendResetOtp, verifySignupOtpApi, verifyResetOtpApi } from "../services/otpApi";
+import { sendSignupOtp, sendResetOtp, verifySignupOtpApi, verifyResetOtpApi, checkResetOtpApi } from "../services/otpApi";
 
 const AuthContext = createContext(null);
 
@@ -83,6 +83,12 @@ export function AuthProvider({ children }) {
     []
   );
 
+  // Mezcla cambios en el perfil ya cargado (p. ej. la foto nueva) para que la barra lateral
+  // y el resto de pantallas se actualicen al instante, sin volver a pedirlo a Supabase.
+  const patchProfile = useCallback((patch) => {
+    setProfile((current) => (current ? { ...current, ...patch } : current));
+  }, []);
+
   const signOut = useCallback(async () => {
     const result = await supabase.auth.signOut();
     await applySession(null);
@@ -111,6 +117,9 @@ export function AuthProvider({ children }) {
   // no); el código en sí se valida después con verifyResetOtp.
   const sendPasswordResetOtp = useCallback((email) => sendResetOtp({ email }), []);
 
+  // Comprueba el código sin consumirlo, para validarlo antes de pedir la contraseña nueva.
+  const checkPasswordResetOtp = useCallback((email, code) => checkResetOtpApi({ email, code }), []);
+
   // Confirma el código de recuperación y deja la contraseña nueva. No
   // depende de ninguna sesión temporal: la función serverless valida el
   // código y cambia la contraseña directamente con la Service Role Key.
@@ -124,6 +133,7 @@ export function AuthProvider({ children }) {
       user,
       profile,
       loading,
+      patchProfile,
       signIn,
       signUp,
       signOut,
@@ -131,11 +141,13 @@ export function AuthProvider({ children }) {
       resendSignupOtp,
       sendPasswordResetOtp,
       verifyPasswordResetOtp,
+      checkPasswordResetOtp,
     }),
     [
       user,
       profile,
       loading,
+      patchProfile,
       signIn,
       signUp,
       signOut,
@@ -143,6 +155,7 @@ export function AuthProvider({ children }) {
       resendSignupOtp,
       sendPasswordResetOtp,
       verifyPasswordResetOtp,
+      checkPasswordResetOtp,
     ]
   );
 

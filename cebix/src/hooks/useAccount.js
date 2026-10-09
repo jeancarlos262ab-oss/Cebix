@@ -16,7 +16,8 @@ function toProfilePatch(patch) {
   const fields = {
     name: patch.name,
     status: patch.status,
-    avatar_url: patch.avatar ?? patch.avatar_url,
+    // `in` y no `??`: quitar la foto manda avatar = null y debe llegar a la base.
+    avatar_url: "avatar" in patch ? patch.avatar : patch.avatar_url,
     two_factor: patch.twoFactor ?? patch.two_factor,
   };
 
@@ -25,7 +26,7 @@ function toProfilePatch(patch) {
 
 /** Cuenta de la persona autenticada, sincronizada con AuthContext y Supabase. */
 export default function useAccount() {
-  const { user, profile } = useAuth();
+  const { user, profile, patchProfile } = useAuth();
   const [overrides, setOverrides] = useState({});
 
   useEffect(() => {
@@ -51,9 +52,10 @@ export default function useAccount() {
       if (error) return { error };
     }
 
+    if (Object.keys(profilePatch).length > 0) patchProfile(profilePatch);
     setOverrides((current) => ({ ...current, ...patch }));
     return { error: null };
-  }, []);
+  }, [user, patchProfile]);
 
   return { account, updateAccount };
 }

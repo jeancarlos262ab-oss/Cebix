@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "./_lib/supabaseAdmin.js";
-import { verifyAndConsumeOtp } from "./_lib/otp.js";
+import { verifyAndConsumeOtp, checkOtp } from "./_lib/otp.js";
 
 const REASON_MESSAGES = {
   not_found: "no_code",
@@ -37,6 +37,18 @@ export default async function handler(req, res) {
         return;
       }
 
+      res.status(200).json({ ok: true });
+      return;
+    }
+
+    // Solo comprueba que el código sea correcto (no lo consume ni cambia nada):
+    // lo usa la pantalla del código antes de mostrar los campos de contraseña.
+    if (type === "reset_check") {
+      const result = await checkOtp({ email, type: "reset", code });
+      if (!result.ok) {
+        res.status(400).json({ error: REASON_MESSAGES[result.reason] || "invalid" });
+        return;
+      }
       res.status(200).json({ ok: true });
       return;
     }

@@ -4,8 +4,8 @@ metadata (RMSE por región, features, labels) en un solo archivo .joblib que el
 backend de inferencia (backend/main.py) carga al arrancar.
 
 Uso:
-    python export_model.py --train ../ml/02_datos_procesados/features_train.csv --out ./model_artifact.joblib
-    # después: python ../ml/03_modelo/build_model_meta.py   (regenera model_meta.json)
+    python scripts/export_model.py --train ../ml/02_datos_procesados/features_train.csv --out models/model_artifact.joblib
+    # después: python ../ml/03_modelo/build_model_meta.py   (regenera models/model_meta.json)
 """
 import argparse
 import os
@@ -16,8 +16,10 @@ import numpy as np
 from sklearn.metrics import mean_squared_error
 
 # train_model.py puede estar junto a este archivo, en ../03_modelo (paquete original) o en la raíz del repo.
-_HERE = os.path.dirname(os.path.abspath(__file__))
-for _p in (_HERE, os.path.join(_HERE, "..", "ml", "03_modelo"), os.path.join(_HERE, "03_modelo"), os.path.join(_HERE, "..", "03_modelo"), os.path.join(_HERE, "..")):
+_HERE = os.path.dirname(os.path.abspath(__file__))          # backend/scripts
+_BACKEND = os.path.dirname(_HERE)                              # backend
+_REPO = os.path.dirname(_BACKEND)                              # raíz del repo (donde vive ml/)
+for _p in (_HERE, os.path.join(_REPO, "ml", "03_modelo"), os.path.join(_BACKEND, "ml", "03_modelo"), os.path.join(_REPO, "03_modelo"), _REPO):
     if os.path.exists(os.path.join(_p, "train_model.py")):
         sys.path.insert(0, _p)
         break
@@ -84,7 +86,7 @@ def main(train_path, out_path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train", default=os.path.join(_HERE, "..", "ml", "02_datos_procesados", "features_train.csv"))
-    parser.add_argument("--out", default=os.path.join(_HERE, "model_artifact.joblib"))
+    parser.add_argument("--train", default=os.path.join(_REPO, "ml", "02_datos_procesados", "features_train.csv"))
+    parser.add_argument("--out", default=os.path.join(_BACKEND, "models", "model_artifact.joblib"))
     args = parser.parse_args()
     main(args.train, args.out)

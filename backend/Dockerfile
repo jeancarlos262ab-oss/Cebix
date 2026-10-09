@@ -14,13 +14,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY main.py .
-COPY gee_features.py .
-COPY stac_features.py .
-COPY model_artifact.joblib .
-COPY model_meta.json .
+COPY app ./app
+COPY models ./models
 COPY data ./data
 
 # Render inyecta $PORT (10000 por defecto); en local cae a 8000.
 EXPOSE 8000
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers"]

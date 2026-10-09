@@ -10,7 +10,7 @@ features_completo.csv), compara las 10 columnas y deja:
 
 Uso (desde backend/, con la clave a la mano y fuera del repo):
     pip install -r requirements.txt geopandas
-    python validate_gee.py \\
+    python scripts/validate_gee.py \\
         --csv ../ml/02_datos_procesados/features_completo.csv \\
         --shp ruta/a/Parcelas_Reto_AGC_CONJUNTO.shp \\
         --n 5 --out validacion_gee.json
@@ -21,12 +21,16 @@ Criterio: índices y lluvia dentro de ±15 %; bas_n_obs_ciclo puede diferir más
 
 import argparse
 import json
+import os
 import sys
 
 import pandas as pd
 
-import gee_features as g
-import stac_features as st
+# Permite `python scripts/validate_gee.py` desde backend/ (agrega backend/ al path para importar `app`).
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from app.services.features import gee as g  # noqa: E402
+from app.services.features import stac as st  # noqa: E402
 
 TOL_DEFAULT, TOL_NOBS = 15.0, 30.0
 

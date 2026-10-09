@@ -15,7 +15,7 @@ Si el backend no responde o no puede calcular, se muestra el error. Detalles, l�
 verificación pendiente en `backend/README_BACKEND.md`.
 
 La pestaña *Validación del cálculo* muestra únicamente resultados reales: ejecuta
-`backend/validate_gee.py` y guarda su salida como `src/data/earthEngineValidation.json`.
+`backend/scripts/validate_gee.py` y guarda su salida como `src/data/earthEngineValidation.json`.
 
 ### Globo 3D de la pantalla satelital
 
@@ -37,8 +37,8 @@ GeoJSON importado se abre directo el mapa plano.
 
 ```bash
 cd backend
-./setup_venv.sh        # Windows: setup_venv.bat  (solo la primera vez)
-./run.sh               # Windows: run.bat -> http://localhost:8000
+./scripts/setup_venv.sh   # Windows: scripts\setup_venv.bat  (solo la primera vez)
+./scripts/run.sh          # Windows: scripts\run.bat -> http://localhost:8000
 ```
 
 **2. Frontend** (en otra terminal, desde la raíz):
@@ -88,8 +88,8 @@ Una cuenta nueva puede crear parcelas sin ejecutar antes el modelo.
 ## Si reentrenas el modelo
 
 ```bash
-cd backend && python export_model.py          # regenera model_artifact.joblib
-python ../ml/03_modelo/build_model_meta.py    # regenera model_meta.json (métricas + SHAP global)
+cd backend && python scripts/export_model.py  # regenera models/model_artifact.joblib
+python ../ml/03_modelo/build_model_meta.py    # regenera models/model_meta.json (métricas + SHAP global)
 ```
 
 Sin el segundo paso, `/model-info` seguiría mostrando las métricas del modelo anterior.

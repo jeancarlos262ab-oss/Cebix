@@ -10,10 +10,10 @@ de forma anónima:
     descarga el recorte de la parcela (unos KB por banda), no la escena entera.
   * Lluvia -> CHIRPS v2.0 diario (Climate Hazards Center, UCSB), también COG anónimo.
 
-Método (igual que el dataset oficial y que gee_features.py): por cada escena se promedia el
+Método (igual que el dataset oficial y que gee.py): por cada escena se promedia el
 índice dentro del polígono y, entre las escenas de cada ventana fenológica, se toma la mediana.
 
-Diferencias a conocer frente a Earth Engine (por eso hay que correr validate_features.py):
+Diferencias a conocer frente a Earth Engine (por eso hay que correr scripts/validate_gee.py):
   * Un píxel con valor no finito (p. ej. LAI con SAVI >= 0.69) se descarta píxel a píxel; en
     Earth Engine la guía dice que esa escena «no aporta». Puede mover un poco el LAI.
   * Píxel dentro del polígono = su centro cae dentro (Earth Engine pondera por fracción cubierta).
@@ -42,7 +42,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import numpy as np
 
-from gee_features import (
+from app.services.features.gee import (
     CLOUD_MAX,
     FEATURE_KEYS,
     MAX_MISSING,
@@ -119,7 +119,7 @@ def status() -> dict:
 def _require_libs():
     st = status()
     if not st["ready"]:
-        from gee_features import GeeNotConfigured
+        from app.services.features.gee import GeeNotConfigured
 
         detail = "; ".join(f"{p}: {'instalado pero falla al cargar (' + i['detalle'] + ')' if i['instalado'] else 'no instalado'}" for p, i in st["problems"].items())
         if any(i["instalado"] and "shared object" in i["detalle"] for i in st["problems"].values()):
@@ -346,7 +346,7 @@ def _search(client, collection: str, geometry: dict, year: int) -> list:
 def extract_features_stac(geometry_geojson: dict, year: int = 2025) -> dict:
     """
     Calcula las 10 features del modelo para un polígono, solo con fuentes abiertas.
-    Misma forma de salida que gee_features.extract_features_gee:
+    Misma forma de salida que gee.extract_features_gee:
         {"features": {...10...}, "advertencias": [...], "area_ha": float}
     """
     geometry, area_ha = validate_geometry(geometry_geojson)
