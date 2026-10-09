@@ -16,7 +16,7 @@
  * Módulo puro (sin DOM): se puede probar en Node. La referencia exacta sigue
  * siendo renderSphere() de globeRender.js.
  */
-import { LIGHT, WRAP, AMBIENT, HAZE, HAZE_BASE, HAZE_RIM } from "./globeRender.js";
+import { LIGHT, WRAP, AMBIENT, SHADE_GAMMA, HAZE, HAZE_BASE, HAZE_RIM, HAZE_FLOOR } from "./globeRender.js";
 
 const INV_2PI = 1 / (2 * Math.PI);
 const HALF_PI = Math.PI / 2;
@@ -220,14 +220,15 @@ export class SphereRaster {
         const dot = nx * L0 + ny * L1 + nz * L2;
         let lit = ((dot + WRAP) / (1 + WRAP)) * 1.2;
         lit = lit < 0 ? 0 : lit > 1 ? 1 : lit;
+        lit = Math.pow(lit, SHADE_GAMMA);
         const s = AMBIENT + (1 - AMBIENT) * lit;
         const fr = 1 - nz;
         const hz = HAZE_BASE + HAZE_RIM * fr * fr * (0.2 + 0.8 * lit);
-        const hk = (0.25 + 0.75 * s) * hz;
+        const hk = (HAZE_FLOOR + (1 - HAZE_FLOOR) * s) * hz;
         const q = 6 * n;
         sh[q] = s * (1 - hz);
-        sh[q + 1] = (s + 0.03 * (1 - lit)) * (1 - hz);
-        sh[q + 2] = (s + 0.04 * (1 - lit)) * (1 - hz);
+        sh[q + 1] = s * (1 - hz);
+        sh[q + 2] = s * (1 - hz);
         sh[q + 3] = HAZE[0] * hk;
         sh[q + 4] = HAZE[1] * hk;
         sh[q + 5] = HAZE[2] * hk;

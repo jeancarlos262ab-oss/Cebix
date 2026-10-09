@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "./supabaseAdmin.js";
 
-const OTP_TTL_MINUTES = 10;
+export const OTP_TTL_MINUTES = 10;
 const RESEND_COOLDOWN_SECONDS = 30;
 
 function generateCode() {

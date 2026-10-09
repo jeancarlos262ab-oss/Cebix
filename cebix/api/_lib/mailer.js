@@ -1,4 +1,6 @@
 import nodemailer from "nodemailer";
+import { buildOtpEmail } from "./otpEmail.js";
+import { OTP_TTL_MINUTES } from "./otp.js";
 
 // Variables de entorno requeridas en el proyecto de Vercel:
 //   GMAIL_USER          -> la cuenta de Gmail/Workspace que envía los correos
@@ -28,7 +30,7 @@ function transporter() {
   return cached;
 }
 
-export async function sendMail({ to, subject, html, text }) {
+export async function sendMail({ to, subject, html, text, attachments }) {
   const fromName = process.env.GMAIL_FROM_NAME || "CEBIX";
   const user = process.env.GMAIL_USER;
 
@@ -38,33 +40,25 @@ export async function sendMail({ to, subject, html, text }) {
     subject,
     text,
     html,
+    attachments,
   });
 }
 
-function codeBlockHtml(code) {
-  return `
-    <div style="font-family: Arial, Helvetica, sans-serif; max-width: 420px; margin: 0 auto;">
-      <p style="font-size: 14px; color: #374151;">Tu código de verificación es:</p>
-      <p style="font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #111827; margin: 16px 0;">${code}</p>
-      <p style="font-size: 13px; color: #6b7280;">Vence en 10 minutos. Si tú no solicitaste este código, puedes ignorar este correo.</p>
-    </div>
-  `;
+// Correo con el diseño de email-preview/preview-otp-email.html (plantilla en otpEmail.js).
+function sendOtpEmail(to, code, type, name) {
+  const { subject, html, text, attachments } = buildOtpEmail({
+    code,
+    type,
+    name,
+    minutes: OTP_TTL_MINUTES,
+  });
+  return sendMail({ to, subject, html, text, attachments });
 }
 
-export function sendSignupOtpEmail(to, code) {
-  return sendMail({
-    to,
-    subject: `${code} es tu código de verificación de CEBIX`,
-    text: `Tu código de verificación de CEBIX es ${code}. Vence en 10 minutos.`,
-    html: codeBlockHtml(code),
-  });
+export function sendSignupOtpEmail(to, code, name) {
+  return sendOtpEmail(to, code, "signup", name);
 }
 
-export function sendResetOtpEmail(to, code) {
-  return sendMail({
-    to,
-    subject: `${code} es tu código para restablecer tu contraseña de CEBIX`,
-    text: `Tu código para restablecer tu contraseña de CEBIX es ${code}. Vence en 10 minutos.`,
-    html: codeBlockHtml(code),
-  });
+export function sendResetOtpEmail(to, code, name) {
+  return sendOtpEmail(to, code, "reset", name);
 }

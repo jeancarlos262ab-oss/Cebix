@@ -19,13 +19,15 @@ const INV_2PI = 1 / (2 * Math.PI);
  */
 export const LIGHT = [-0.45, 0.5, 0.74];
 export const WRAP = 0.05; // suaviza el terminador (0 = corte duro)
-export const AMBIENT = 0.06; // luz mínima en el lado en sombra
+export const AMBIENT = 0.012; // luz mínima en el lado en sombra (casi negro, como Google Earth)
+export const SHADE_GAMMA = 1.45; // >1 oscurece más rápido hacia el terminador
 // Atmósfera: filtro azulado sobre el propio disco del planeta (velo uniforme + más intenso hacia
 // el borde, tipo fresnel). Se calcula SOLO dentro de la esfera: no hay halo ni resplandor por
 // fuera del limbo, el borde del planeta queda nítido contra el espacio.
-export const HAZE = [96, 152, 236]; // azul atmosférico
-export const HAZE_BASE = 0.2; // velo azul parejo en todo el globo (antes 0.08)
-export const HAZE_RIM = 0.5; // refuerzo hacia el borde
+export const HAZE = [135, 195, 255]; // azul celeste atmosférico
+export const HAZE_BASE = 0.26; // filtro azul claro parejo en todo el globo
+export const HAZE_RIM = 0.7; // refuerzo hacia el borde
+export const HAZE_FLOOR = 0.1; // cuánta bruma se ve en la sombra (bajo = sombra limpia y oscura)
 /**
  * @param {Uint32Array} out   buffer RGBA (cw*ch) — se asume ya en cero
  * @param {number} cw         ancho en píxeles
@@ -108,19 +110,21 @@ export function renderSphere(out, cw, ch, cx, cy, R, lon0, lat0, tex) {
       const dot = nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2];
       let lit = ((dot + WRAP) / (1 + WRAP)) * 1.2;
       lit = lit < 0 ? 0 : lit > 1 ? 1 : lit;
+      lit = Math.pow(lit, SHADE_GAMMA);
       const s = AMBIENT + (1 - AMBIENT) * lit;
-      // En sombra el color se oscurece un poco menos en azul (luz de cielo/espacio).
+      // La sombra oscurece los tres canales por igual (sin luz azul de relleno).
       r *= s;
-      g *= s * 1.0 + 0.03 * (1 - lit);
-      b *= s + 0.04 * (1 - lit);
+      g *= s;
+      b *= s;
 
       // Bruma azul de lejanía: ligera al centro, más fuerte en el borde (fresnel),
       // y más visible del lado iluminado.
       const fr = 1 - nz;
       const hz = HAZE_BASE + HAZE_RIM * fr * fr * (0.2 + 0.8 * lit);
-      r += (HAZE[0] * (0.25 + 0.75 * s) - r) * hz;
-      g += (HAZE[1] * (0.25 + 0.75 * s) - g) * hz;
-      b += (HAZE[2] * (0.25 + 0.75 * s) - b) * hz;
+      const hf = HAZE_FLOOR + (1 - HAZE_FLOOR) * s;
+      r += (HAZE[0] * hf - r) * hz;
+      g += (HAZE[1] * hf - g) * hz;
+      b += (HAZE[2] * hf - b) * hz;
       out[row + px] = 0xff000000 | ((b > 255 ? 255 : b) << 16) | ((g > 255 ? 255 : g) << 8) | (r > 255 ? 255 : r);
     }
   }

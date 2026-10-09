@@ -62,7 +62,9 @@ export default async function handler(req, res) {
 
       const result = await createOtp({ email, type: "signup", userId });
       if (!result.throttled) {
-        await sendSignupOtpEmail(email, result.code);
+        // En un reenvío el formulario no trae el nombre: se toma del usuario ya creado.
+        const displayName = name || existing?.user_metadata?.name;
+        await sendSignupOtpEmail(email, result.code, displayName);
       }
       res.status(200).json({ ok: true });
       return;
@@ -74,7 +76,7 @@ export default async function handler(req, res) {
       if (existing) {
         const result = await createOtp({ email, type: "reset", userId: existing.id });
         if (!result.throttled) {
-          await sendResetOtpEmail(email, result.code);
+          await sendResetOtpEmail(email, result.code, existing.user_metadata?.name);
         }
       }
       res.status(200).json({ ok: true });
