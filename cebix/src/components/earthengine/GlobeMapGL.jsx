@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
+// MapLibre 6 carga su worker (el que procesa GeoJSON: estados, parcela y malla) desde un archivo aparte.
+// Vite no lo copia solo al build, así que se empaqueta aquí y se le indica la URL.
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { Check, Crosshair, Eraser, MousePointer2, Pencil, Undo2 } from "lucide-react";
 import MapControls from "./MapControls";
 import { GHOST, PANEL, PRIMARY, STATUS } from "./mapUi";
@@ -20,6 +23,8 @@ import "maplibre-gl/dist/maplibre-gl.css";
  * Controlado por el padre, igual que el mapa plano: `points` ([lat,lng][]), `closed` y `drawing`.
  * @param onFail   () => void  si MapLibre GL no pudo arrancar o se perdió el contexto WebGL
  */
+
+maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
 const STUDY_BOUNDS = [
   [17.8, -99.6],
