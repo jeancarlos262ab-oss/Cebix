@@ -11,6 +11,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { getAccentHex } from "../../utils/accentColors";
 import { estadoBounds } from "../../utils/polygon";
 import { parcelGridLines } from "../../utils/parcelGrid";
+import { createStarsLayer } from "./globeStarsGL";
 import { ESTADOS } from "../../data/earthEngine";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -210,6 +211,12 @@ export default function GlobeMapGL({
     // "Listo" en cuanto el estilo carga (no espera a las teselas: así la parcela se dibuja aunque
     // las imágenes tarden o fallen).
     const markReady = () => {
+      // Estrellas y Vía Láctea en WebGL, por debajo de todo (el globo las tapa; solo se ve el espacio).
+      try {
+        if (!map.getLayer("sky-stars")) map.addLayer(createStarsLayer(), "bg");
+      } catch (err) {
+        console.warn("No se pudo crear el cielo estrellado:", err);
+      }
       map.setPaintProperty("estados-line", "line-color", colorRef.current);
       map.setPaintProperty("estados-fill", "fill-color", colorRef.current);
       setReady(true);
