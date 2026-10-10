@@ -40,6 +40,9 @@ const STYLE = {
   version: 8,
   projection: { type: "globe" },
   sources: {
+    estados: { type: "geojson", data: estadosBoundaries },
+    parcel: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
+    "parcel-grid": { type: "geojson", data: { type: "FeatureCollection", features: [] } },
     imagery: {
       type: "raster",
       tiles: [ESRI_IMAGERY],
@@ -64,6 +67,12 @@ const STYLE = {
       source: "imagery",
       paint: { "raster-fade-duration": 0 },
     },
+    { id: "estados-line", type: "line", source: "estados", paint: { "line-color": "#ffffff", "line-width": 1.2 } },
+    { id: "parcel-fill", type: "fill", source: "parcel", filter: ["==", ["geometry-type"], "Polygon"], paint: { "fill-color": "#fff", "fill-opacity": 0.08 } },
+    { id: "parcel-grid-casing", type: "line", source: "parcel-grid", paint: { "line-color": "#000", "line-width": 3.5, "line-opacity": 0.35 } },
+    { id: "parcel-grid-line", type: "line", source: "parcel-grid", paint: { "line-color": "#fff", "line-width": 1.5 } },
+    { id: "parcel-casing", type: "line", source: "parcel", layout: { "line-join": "miter" }, paint: { "line-color": "#000", "line-width": 5, "line-opacity": 0.5 } },
+    { id: "parcel-line", type: "line", source: "parcel", layout: { "line-join": "miter" }, paint: { "line-color": "#fff", "line-width": 2.5 } },
   ],
 };
 
@@ -148,7 +157,7 @@ export default function GlobeMapGL({
   }, []);
 
   /* ───────────── creación del mapa (una sola vez) ───────────── */
-  useEffect(() => {
+  const createMap = useCallback(() => {
     let map;
     try {
       map = new maplibregl.Map({
@@ -172,18 +181,15 @@ export default function GlobeMapGL({
     mapRef.current = map;
     map.touchZoomRotate.disableRotation();
 
-    map.on("load", () => {
-      map.addSource("estados", { type: "geojson", data: estadosBoundaries });
-      map.addLayer({ id: "estados-line", type: "line", source: "estados", paint: { "line-color": colorRef.current, "line-width": 1.2 } });
-      map.addSource("parcel", { type: "geojson", data: EMPTY });
-      map.addSource("parcel-grid", { type: "geojson", data: EMPTY });
-      map.addLayer({ id: "parcel-fill", type: "fill", source: "parcel", filter: ["==", ["geometry-type"], "Polygon"], paint: { "fill-color": "#fff", "fill-opacity": 0.08 } });
-      map.addLayer({ id: "parcel-grid-casing", type: "line", source: "parcel-grid", paint: { "line-color": "#000", "line-width": 3.5, "line-opacity": 0.35 } });
-      map.addLayer({ id: "parcel-grid-line", type: "line", source: "parcel-grid", paint: { "line-color": "#fff", "line-width": 1.5 } });
-      map.addLayer({ id: "parcel-casing", type: "line", source: "parcel", paint: { "line-color": "#000", "line-width": 5, "line-opacity": 0.5 }, layout: { "line-join": "miter" } });
-      map.addLayer({ id: "parcel-line", type: "line", source: "parcel", paint: { "line-color": "#fff", "line-width": 2.5 }, layout: { "line-join": "miter" } });
+    // "Listo" en cuanto el estilo carga (no espera a las teselas: así la parcela se dibuja aunque
+    // las imágenes tarden o fallen).
+    const markReady = () => {
+      map.setPaintProperty("estados-line", "line-color", colorRef.current);
       setReady(true);
-    });
+      map.resize();
+    };
+    if (map.isStyleLoaded()) markReady();
+    else map.once("style.load", markReady);
 
     map.on("error", (e) => {
       if (e?.sourceId === "imagery") setTilesError(true);
@@ -237,6 +243,28 @@ export default function GlobeMapGL({
       pinRef.current = null;
     };
   }, []);
+  // MapLibre se crea solo cuando el contenedor ya tiene tamaño: si nace oculto (pantalla en segundo
+  // plano, pestaña sin abrir) con 0×0 px, las capas vectoriales (parcela, malla, estados) no se pintan.
+  useEffect(() => {
+    const el = mapEl.current;
+    let teardown;
+    let ro;
+    const sized = () => el.clientWidth > 0 && el.clientHeight > 0;
+    if (sized()) teardown = createMap();
+    else {
+      ro = new ResizeObserver(() => {
+        if (!sized()) return;
+        ro.disconnect();
+        ro = null;
+        teardown = createMap();
+      });
+      ro.observe(el);
+    }
+    return () => {
+      ro?.disconnect();
+      teardown?.();
+    };
+  }, [createMap]);
   const goStudyRef = useRef(goStudy);
   goStudyRef.current = goStudy;
 
