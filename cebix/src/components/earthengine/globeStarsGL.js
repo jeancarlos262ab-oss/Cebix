@@ -4,8 +4,8 @@
  *
  *  - Se añade DEBAJO de todas las capas (`map.addLayer(layer, "bg")`): el globo la tapa y solo se ve el
  *    espacio alrededor del planeta.
- *  - Estrellas = un solo buffer de puntos (gl.POINTS) calculado una vez; la Vía Láctea = un cuadrilátero
- *    de pantalla completa cuyo shader la dibuja de forma procedural (banda inclinada + ruido).
+ *  - Estrellas = un solo buffer de puntos (gl.POINTS) calculado una vez; la mancha difusa = un cuadrilátero
+ *    de pantalla completa cuyo shader la dibuja de forma procedural (franja inclinada + ruido suave).
  *  - El cielo gira con el planeta: se rota con el centro del mapa (lng, lat) y se proyecta con una
  *    acimutal equidistante centrada en el eje de la cámara, igual que globeStars.js.
  *  - No tiene animación propia: solo se pinta cuando el mapa se repinta (en reposo no gasta nada).
@@ -13,12 +13,12 @@
 
 /** Ajustes rápidos (mismo significado que SKY en globeStars.js). */
 export const SKY_GL = {
-  stars: 4200, // estrellas de campo
-  grains: 5000, // estrellas diminutas concentradas en la banda de la Vía Láctea
-  milkyWay: true,
+  stars: 3000, // estrellas de campo (pocas y tenues, como en Google Earth)
+  grains: 1500, // estrellas diminutas, algo más densas a lo largo de la mancha (solo si haze)
+  haze: true, // mancha tenue y difusa que cruza las estrellas, estilo Google Earth (false = solo estrellas)
   reach: 1.5, // ángulo (rad) desde el eje de la cámara que llega a la esquina del lienzo
   zoom: 0.03, // cuánto se acerca el cielo con el zoom (0 = nada)
-  milkyWayStrength: 0.55, // intensidad de la Vía Láctea (0–1)
+  hazeStrength: 0.5, // intensidad de la mancha (0–1)
 };
 
 const TINTS = [
@@ -38,8 +38,8 @@ function mulberry32(seed) {
   };
 }
 
-// Normal del plano de la Vía Láctea (vector unitario) y base de la banda: la misma inclinación para
-// las estrellas diminutas (CPU) y para el brillo difuso (shader).
+// Normal del plano de la mancha (vector unitario): la misma inclinación para las estrellas diminutas
+// (CPU) y para el brillo difuso (shader).
 const BAND_N = (() => {
   const v = [0.34, 0.86, 0.38];
   const l = Math.hypot(...v);
@@ -80,7 +80,7 @@ function buildStars({ stars, grains }) {
   for (let i = 0; i < grains; i++) {
     const t = 2 * Math.PI * rnd();
     const g = (rnd() + rnd() + rnd() - 1.5) / 1.5; // casi gaussiano
-    const off = g * 0.2; // anchura de la banda (rad)
+    const off = g * 0.12; // anchura de la mancha (rad)
     // punto sobre el círculo máximo, desplazado hacia la normal
     let x = Math.cos(t) * ax + Math.sin(t) * bx + off * nx;
     let y = Math.cos(t) * ay + Math.sin(t) * by + off * ny;
@@ -89,7 +89,7 @@ function buildStars({ stars, grains }) {
     x /= l;
     y /= l;
     z /= l;
-    push(x, y, z, 1.2, TINTS[rnd() < 0.8 ? 0 : 2], 0.14 + 0.2 * rnd());
+    push(x, y, z, 1.2, TINTS[0], 0.12 + 0.16 * rnd());
   }
   return new Float32Array(out);
 }
@@ -179,18 +179,14 @@ void main() {
   vec3 v = vec3(dir * sin(ang), -cos(ang));
   vec3 p = normalize(v * uRot); // v * M == transpose(M) * v
 
-  float lat = dot(p, uBandN);                     // distancia angular (aprox.) a la banda
-  float band = exp(-pow(lat / 0.20, 2.0));        // banda ancha y suave
-  float core = exp(-pow(lat / 0.07, 2.0));        // núcleo más brillante
-  float patch = fbm(p * 3.0);                     // irregularidad del brillo
-  float lane = smoothstep(0.52, 0.72, fbm(p * 7.0 + 11.0)) * band; // vetas de polvo
-
-  float glow = (band * 0.55 + core * 0.7) * (0.45 + 0.9 * patch);
-  glow *= 1.0 - 0.75 * lane;
-  vec3 warm = vec3(0.87, 0.77, 0.64);
-  vec3 cool = vec3(0.69, 0.75, 0.84);
-  vec3 col = mix(cool, warm, smoothstep(0.35, 0.8, patch)) * glow * uStrength * 0.42;
-  gl_FragColor = vec4(col, glow * uStrength * 0.42);
+  // Mancha: una franja estrecha y suave, de brillo desigual, sin colores ni vetas.
+  float lat = dot(p, uBandN);
+  float haze = exp(-pow(lat / 0.085, 2.0));
+  float soft = exp(-pow(lat / 0.22, 2.0)) * 0.25;
+  float patch = 0.35 + 0.65 * smoothstep(0.25, 0.75, fbm(p * 2.2));
+  float a = (haze + soft) * patch * uStrength * 0.16;
+  vec3 col = vec3(0.80, 0.85, 0.95) * a; // blanco azulado muy tenue
+  gl_FragColor = vec4(col, a);
 }`;
 
 function compile(gl, type, src) {
@@ -287,7 +283,7 @@ export function createStarsLayer(opts = {}) {
         uDpr: gl.getUniformLocation(starProg, "uDpr"),
         uMaxAng: gl.getUniformLocation(starProg, "uMaxAng"),
       };
-      if (cfg.milkyWay) {
+      if (cfg.haze) {
         skyProg = program(gl, SKY_VS, SKY_FS);
         skyLoc = {
           aPos: gl.getAttribLocation(skyProg, "aPos"),
@@ -321,7 +317,7 @@ export function createStarsLayer(opts = {}) {
       ctx.enable(ctx.BLEND);
       ctx.blendFunc(ctx.ONE, ctx.ONE_MINUS_SRC_ALPHA);
 
-      // 1) Vía Láctea (pantalla completa).
+      // 1) Mancha difusa (pantalla completa).
       if (skyProg) {
         ctx.useProgram(skyProg);
         ctx.bindBuffer(ctx.ARRAY_BUFFER, quadBuf);
@@ -332,7 +328,7 @@ export function createStarsLayer(opts = {}) {
         ctx.uniform1f(skyLoc.uK, k);
         ctx.uniform1f(skyLoc.uMaxAng, maxAng);
         ctx.uniform3f(skyLoc.uBandN, BAND_N[0], BAND_N[1], BAND_N[2]);
-        ctx.uniform1f(skyLoc.uStrength, cfg.milkyWayStrength);
+        ctx.uniform1f(skyLoc.uStrength, cfg.hazeStrength);
         ctx.drawArrays(ctx.TRIANGLE_STRIP, 0, 4);
         ctx.disableVertexAttribArray(skyLoc.aPos);
       }
