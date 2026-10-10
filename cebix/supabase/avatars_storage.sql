@@ -3,14 +3,17 @@
 -- Fotos de perfil: bucket público "avatars" donde cada persona solo puede escribir,
 -- reemplazar y borrar dentro de su propia carpeta (<user_id>/...). Cualquiera puede VER
 -- las fotos (la URL pública se guarda en profiles.avatar_url y se muestra a todo el equipo).
--- Límite 2 MB y solo imágenes: el frontend ya las reduce a 256x256 antes de subirlas,
--- pero esto lo hace cumplir el servidor aunque alguien salte la interfaz.
+-- Por cada foto se guardan DOS archivos: la original tal cual (para verla en grande, sin perder
+-- calidad) y una miniatura 256x256 (para la barra lateral, ligera). Límite 10 MB y solo imágenes;
+-- lo hace cumplir el servidor aunque alguien salte la interfaz.
+
+alter table public.profiles add column if not exists avatar_full_url text;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('avatars', 'avatars', true, 2097152, array['image/webp', 'image/jpeg', 'image/png'])
+values ('avatars', 'avatars', true, 10485760, array['image/webp', 'image/jpeg', 'image/png'])
 on conflict (id) do update
   set public = true,
-      file_size_limit = 2097152,
+      file_size_limit = 10485760,
       allowed_mime_types = array['image/webp', 'image/jpeg', 'image/png'];
 
 drop policy if exists "avatars: ver" on storage.objects;

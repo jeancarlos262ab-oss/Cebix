@@ -4,6 +4,7 @@ import { useModelInfo } from "./ModelInfoContext";
 import { appStorage } from "../services/AppStorage";
 import { useAuth } from "./AuthContext";
 import { supabase } from "../services/supabaseClient";
+import { syncPortfolio } from "../services/notificationsApi";
 
 const SUBMISSIONS_KEY = "cebix-committee-submissions";
 const ANALYSIS_KEY = "cebix-analysis-v1";
@@ -329,6 +330,30 @@ export function ParcelsProvider({ children }) {
     }
     return Array.from(counts.values()).sort((a, b) => b.parcelCount - a.parcelCount);
   }, [parcels]);
+
+  // Sincroniza el portafolio con el servidor para las alertas de riesgo y el resumen semanal por correo.
+  // Espera 2.5 s sin cambios (agrupa ediciones o una importación completa en un solo aviso) y solo
+  // envía cuando cambia algo realmente.
+  const syncedRef = useRef({ uid: null, sig: "" });
+  useEffect(() => {
+    if (authLoading || loading || !uid || stored.uid !== uid) return undefined;
+    const compact = parcels.map((p) => ({
+      id: String(p.polygonId ?? p.id),
+      name: p.name,
+      region: p.region,
+      riskColor: p.riskColor,
+      score: p.score,
+      yieldEstimate: p.yieldEstimate,
+      area: p.area,
+    }));
+    const sig = JSON.stringify(compact);
+    if (syncedRef.current.uid === uid && syncedRef.current.sig === sig) return undefined;
+    const timer = setTimeout(async () => {
+      const { error: syncError } = await syncPortfolio(compact);
+      if (!syncError) syncedRef.current = { uid, sig };
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [authLoading, loading, uid, stored.uid, parcels]);
 
   // Lista más reciente de parcelas, para que varias altas seguidas (importar un CSV) no repitan código.
   const latestRef = useRef([]);

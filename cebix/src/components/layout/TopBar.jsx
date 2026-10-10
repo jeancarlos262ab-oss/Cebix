@@ -1,12 +1,14 @@
 import { Menu } from "lucide-react";
 import GlobalSearch from "./GlobalSearch";
 import { useSidebar } from "../../context/SidebarContext";
+import { usePreferences } from "../../context/PreferencesContext";
 
 /**
  * @param {{title: string, subtitle?: string, actions?: React.ReactNode, hideSearch?: boolean}} props
  */
 export default function TopBar({ title, subtitle, actions, hideSearch = false }) {
   const { toggle } = useSidebar();
+  const { t } = usePreferences();
 
   return (
     <header className="flex flex-wrap items-start justify-between gap-4 px-4 pt-4 sm:px-6 sm:pt-6 lg:px-8">
@@ -14,15 +16,15 @@ export default function TopBar({ title, subtitle, actions, hideSearch = false })
         <button
           type="button"
           onClick={toggle}
-          aria-label="Abrir menú"
+          aria-label={t("Abrir menú")}
           className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-transparent dark:text-gray-400 dark:hover:bg-gray-800 lg:hidden"
         >
           <Menu size={18} className="text-accent-600 dark:text-accent-400" />
         </button>
         <div className="min-w-0">
-          <h1 className="truncate font-display text-xl font-bold text-gray-900 dark:text-white">{title}</h1>
+          <h1 className="truncate font-display text-xl font-bold text-gray-900 dark:text-white">{t(title)}</h1>
           {subtitle && (
-            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>
+            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{t(subtitle)}</p>
           )}
         </div>
       </div>

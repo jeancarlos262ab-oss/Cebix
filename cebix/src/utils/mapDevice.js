@@ -57,28 +57,57 @@ export function detectLowEndDevice() {
 }
 
 /**
- * Motor de mapas forzado. Hoy siempre se usa el mapa ligero (Leaflet).
+ * ¿El navegador puede crear un contexto WebGL de verdad (con aceleración por hardware)?
+ * `failIfMajorPerformanceCaveat` hace que falle si solo hay WebGL por software (lento),
+ * y en ese caso conviene el mapa ligero. Libera el contexto de prueba al terminar.
+ *
+ * @returns {boolean}
+ */
+export function supportsWebGL() {
+  try {
+    if (typeof window === "undefined") return false;
+    const canvas = document.createElement("canvas");
+    const gl =
+      canvas.getContext("webgl2", { failIfMajorPerformanceCaveat: true }) ||
+      canvas.getContext("webgl", { failIfMajorPerformanceCaveat: true });
+    if (!gl) return false;
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Motor de mapas forzado (para pruebas):
  *
  *   "lite" → siempre Leaflet (ParcelMapLite)
  *   "gl"   → siempre MapLibre GL (ParcelMapGL)
- *   null   → automático según el equipo (detectLowEndDevice)
- *
- * La lógica de MapLibre GL y la detección automática se conservan intactas:
- * para volver a usarlas basta con cambiar este valor a null.
+ *   null   → automático: MapLibre GL si el equipo acepta WebGL; si no, Leaflet.
  */
-export const FORCED_MAP_ENGINE = "lite";
+export const FORCED_MAP_ENGINE = null;
+
+// Se vuelve true si MapLibre GL falla al arrancar aunque la detección dijera que sí.
+let glFailed = false;
+
+const detectEngine = lazySingleton(() => {
+  appStorage.remove(STORAGE_KEY);
+  if (FORCED_MAP_ENGINE) return FORCED_MAP_ENGINE;
+  return supportsWebGL() ? "gl" : "lite";
+});
+
+/** Avisa de que MapLibre GL no pudo iniciar: desde ahora todos los mapas usan Leaflet. */
+export function reportGLFailure() {
+  glFailed = true;
+}
 
 /**
- * Resuelve qué motor usar. Es un singleton: la decisión (y la detección del
- * equipo, que crea un contexto WebGL) se hace una sola vez y todas las
- * pantallas con mapa reutilizan el mismo resultado. Además borra la
- * preferencia manual que haya quedado guardada de la versión anterior
- * (cuando existía el botón de cambio).
+ * Resuelve qué motor usar. La detección (que crea un contexto WebGL de prueba) se hace una
+ * sola vez y todas las pantallas con mapa reutilizan el resultado.
  *
  * @returns {"gl" | "lite"}
  */
-export const resolveMapEngine = lazySingleton(() => {
-  appStorage.remove(STORAGE_KEY);
-  if (FORCED_MAP_ENGINE) return FORCED_MAP_ENGINE;
-  return detectLowEndDevice() ? "lite" : "gl";
-});
+export function resolveMapEngine() {
+  if (glFailed) return "lite";
+  return detectEngine();
+}

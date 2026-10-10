@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
-import "../../utils/leafletSeams";
 import { MapContainer, TileLayer, Pane, Polygon, Polyline, Marker, GeoJSON, useMap, useMapEvents } from "react-leaflet";
 import { Check, Eraser, Globe, MousePointer2, Pencil, Undo2 } from "lucide-react";
 import MapControls from "./MapControls";
@@ -8,13 +7,16 @@ import { GHOST, PANEL, PRIMARY, STATUS } from "./mapUi";
 import { preloadWorldTiles } from "./tilePreload";
 import { usePageActive } from "../../context/PageActiveContext";
 import { estadoBounds } from "../../utils/polygon";
+import { reportGLFailure, resolveMapEngine } from "../../utils/mapDevice";
 import { parcelGridLines } from "../../utils/parcelGrid";
 import { ESTADOS } from "../../data/earthEngine";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
 import "leaflet/dist/leaflet.css";
 
-// El globo (Canvas 2D) se carga solo cuando se necesita.
-const GlobeMap = lazy(() => import("./GlobeMap"));
+// Globo 3D, cargado solo cuando se necesita. Si el equipo acepta WebGL se usa MapLibre GL con
+// proyección de globo; si no (PCs sin potencia / sin aceleración), el globo ligero de Canvas 2D.
+const GlobeMapCanvas = lazy(() => import("./GlobeMap"));
+const GlobeMapGL = lazy(() => import("./GlobeMapGL"));
 
 const SATELLITE = {
   url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -322,7 +324,7 @@ function FlatGeometryMap({
 }
 
 /**
- * Pantalla de parcela satelital: arranca en un globo 3D ligero (Canvas 2D, sin WebGL)
+ * Pantalla de parcela satelital: arranca en un globo 3D (MapLibre GL con proyección de globo; en equipos sin WebGL, un globo ligero de Canvas 2D)
  * y entra al mapa plano para dibujar. Si ya hay una parcela o se importa un GeoJSON,
  * va directo al mapa plano.
  */
@@ -335,6 +337,10 @@ export default function GeometryMap(props) {
   const [flatEntry, setFlatEntry] = useState({ key: 0, target: null });
   const [globeEntry, setGlobeEntry] = useState({ key: 0, lat: 8, lon: -98.1 });
   const [lastFit, setLastFit] = useState(fitKey);
+  // MapLibre GL si el equipo acepta WebGL; si falla al arrancar, se cae al globo de Canvas 2D.
+  const [glFailed, setGlFailed] = useState(false);
+  const useGL = !glFailed && resolveMapEngine() === "gl";
+  const GlobeMap = useGL ? GlobeMapGL : GlobeMapCanvas;
   useEffect(() => {
     preloadWorldTiles();
   }, []);
@@ -399,6 +405,10 @@ export default function GeometryMap(props) {
                 }
                 goFlat(target);
                 if (draw && !hasDrawing) onStartDrawing();
+              }}
+              onFail={() => {
+                reportGLFailure();
+                setGlFailed(true);
               }}
               isFullscreen={isFullscreen}
               onToggleFullscreen={toggleFullscreen}

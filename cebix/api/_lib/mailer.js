@@ -30,7 +30,7 @@ function transporter() {
   return cached;
 }
 
-export async function sendMail({ to, subject, html, text, attachments }) {
+export async function sendMail({ to, subject, html, text, attachments, headers }) {
   const fromName = process.env.GMAIL_FROM_NAME || "CEBIX";
   const user = process.env.GMAIL_USER;
 
@@ -41,6 +41,7 @@ export async function sendMail({ to, subject, html, text, attachments }) {
     text,
     html,
     attachments,
+    headers,
   });
 }
 

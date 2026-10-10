@@ -14,12 +14,11 @@
 import { LEFT_FADE_LENGTH, softFadeGradient } from "./edgeFade";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
-import "../../utils/leafletSeams";
 import { MapContainer, TileLayer, CircleMarker, Marker, Popup, GeoJSON } from "react-leaflet";
 import { locationPinHtml, PIN_SIZE, PIN_TIP_OFFSET } from "./LocationPin";
 import cebadaMapIcon from "../../assets/cebada_map.webp";
 import LiteMapControls from "./LiteMapControls";
-import { ExternalLink, Gauge, Leaf, Map as MapIcon, Milestone, Mountain, Satellite as SatelliteIcon } from "lucide-react";
+import { ExternalLink, Gauge, Leaf, Map as MapIcon, Milestone, Moon, Mountain, Satellite as SatelliteIcon } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import { openInGoogleMaps } from "../../utils/googleMaps";
 import { getAccentHex } from "../../utils/accentColors";
@@ -83,6 +82,7 @@ const BASEMAP_BUTTONS = [
   { key: "satellite", label: "Satelital", icon: SatelliteIcon },
   { key: "terreno", label: "Terreno", icon: Mountain },
   { key: "theme", label: "Mapa (según tema)", icon: MapIcon },
+  { key: "oscuro", label: "Oscuro", icon: Moon },
 ];
 
 export { BASEMAPS_LITE };
@@ -162,6 +162,7 @@ function MapControlsPanel({
   onLayerChange,
   basemap,
   onBasemapChange,
+  basemapKeys,
   showBoundaries,
   onToggleBoundaries,
 }) {
@@ -183,7 +184,7 @@ function MapControlsPanel({
         </>
       )}
 
-      {BASEMAP_BUTTONS.map((b) => (
+      {BASEMAP_BUTTONS.filter((b) => (basemapKeys ? basemapKeys.includes(b.key) : b.key !== "oscuro")).map((b) => (
         <ToolbarIconButton
           key={b.key}
           icon={b.icon}
@@ -246,6 +247,8 @@ const MapLegend = memo(function MapLegend({ layer }) {
  *   edgeFade?: boolean,   // desvanece el mapa hacia el fondo de la app solo en el borde izquierdo (lg+), con el color del tema; para el mapa satelital junto al sidebar
  *   controlsLeftClassName?: string,   // offset izquierdo de la barra de capas (por defecto "left-3")
  *   controlsTopClassName?: string,   // clase de Tailwind para el offset superior de la barra de capas (por defecto "top-3"); útil cuando algo del layout de la página, como un título, ya ocupa esa esquina.
+ *   basemapKeys?: string[],   // botones de mapa base a mostrar (por defecto: satelital, terreno y mapa según tema)
+ *   zoomClassName?: string,   // clases extra para reubicar la barra de zoom
  *   controlsOrientation?: "vertical" | "horizontal",   // dirección de la barra de zoom (por defecto "vertical")
  * }} props
  */
@@ -253,6 +256,7 @@ function ParcelMapLite({
   parcels,
   selectedId,
   onSelect,
+  showPopup = true,
   height = 420,
   center = [19.9, -98.1],
   zoom = 8,
@@ -267,6 +271,8 @@ function ParcelMapLite({
   controlsLeftClassName = "left-3",
   edgeFade = false,
   controlsOrientation = "vertical",
+  zoomClassName = "",
+  basemapKeys,
 }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
@@ -335,7 +341,7 @@ function ParcelMapLite({
       const map = mapRef.current;
       if (map && flyTo) {
         const targetZoom = Math.max(map.getZoom(), 12);
-        map.flyTo([parcel.lat, parcel.lng], targetZoom, { duration: 0.6 });
+        map.flyTo([parcel.lat, parcel.lng], targetZoom, { duration: Math.min(1.8, 0.7 + Math.abs(targetZoom - map.getZoom()) * 0.13), easeLinearity: 0.2 });
       }
     },
     [parcels, styleFor]
@@ -351,7 +357,7 @@ function ParcelMapLite({
   const flyToParcel = useCallback((parcel) => {
     const map = mapRef.current;
     if (!map) return;
-    map.flyTo([parcel.lat, parcel.lng], GROUND_LEVEL_ZOOM, { duration: 0.8 });
+    map.flyTo([parcel.lat, parcel.lng], GROUND_LEVEL_ZOOM, { duration: Math.min(1.8, 0.7 + Math.abs(GROUND_LEVEL_ZOOM - map.getZoom()) * 0.13), easeLinearity: 0.2 });
     onSelect?.(parcel);
   }, [onSelect]);
 
@@ -425,78 +431,80 @@ function ParcelMapLite({
                 },
               }}
             >
-              <Popup className="parcel-popup" offset={[0, -6]}>
-                {/* Ojo: sin <p>. leaflet.css le pone margen a `.leaflet-popup-content p`
-                    y pisa las utilidades de Tailwind. */}
-                <div className="w-56 font-sans">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={cebadaMapIcon}
-                      alt=""
-                      width={26}
-                      height={44}
-                      draggable={false}
-                      className="h-11 w-auto shrink-0 select-none"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold leading-snug text-white">{parcel.name}</div>
-                      <div className="mt-0.5 text-xs text-gray-400">
-                        {parcel.municipio}, {parcel.region}
+              {showPopup && (
+                <Popup className="parcel-popup" offset={[0, -6]}>
+                  {/* Ojo: sin <p>. leaflet.css le pone margen a `.leaflet-popup-content p`
+                      y pisa las utilidades de Tailwind. */}
+                  <div className="w-56 font-sans">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={cebadaMapIcon}
+                        alt=""
+                        width={26}
+                        height={44}
+                        draggable={false}
+                        className="h-11 w-auto shrink-0 select-none"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold leading-snug text-white">{parcel.name}</div>
+                        <div className="mt-0.5 text-xs text-gray-400">
+                          {parcel.municipio}, {parcel.region}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <dl className="mt-3 grid grid-cols-2 gap-px border border-white/10 bg-white/10">
-                    <div className="bg-black px-2.5 py-2">
-                      <dt className="text-[11px] text-gray-400">Rendimiento</dt>
-                      <dd className="mt-0.5 text-sm font-bold text-white">
-                        {parcel.yieldEstimate.toFixed(1)}
-                        <span className="ml-1 text-[11px] font-medium text-gray-400">ton/ha</span>
-                      </dd>
-                    </div>
-                    <div className="bg-black px-2.5 py-2">
-                      <dt className="text-[11px] text-gray-400">NDVI</dt>
-                      <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-bold text-white">
-                        <span
-                          className="h-2 w-2 shrink-0 rounded-xs"
-                          style={{ backgroundColor: ndviToColor(parcel.ndvi) }}
-                        />
-                        {parcel.ndvi.toFixed(2)}
-                      </dd>
-                    </div>
-                    <div className="col-span-2 bg-black px-2.5 py-2">
-                      <dt className="text-[11px] text-gray-400">Elegibilidad</dt>
-                      <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-white">
-                        <span
-                          className="h-2 w-2 shrink-0 rounded-xs"
-                          style={{ backgroundColor: RISK_HEX[parcel.riskColor] ?? "#9ca3af" }}
-                        />
-                        {parcel.risk}
-                      </dd>
-                    </div>
-                  </dl>
+                    <dl className="mt-3 grid grid-cols-2 gap-px border border-white/10 bg-white/10">
+                      <div className="bg-black px-2.5 py-2">
+                        <dt className="text-[11px] text-gray-400">Rendimiento</dt>
+                        <dd className="mt-0.5 text-sm font-bold text-white">
+                          {parcel.yieldEstimate.toFixed(1)}
+                          <span className="ml-1 text-[11px] font-medium text-gray-400">ton/ha</span>
+                        </dd>
+                      </div>
+                      <div className="bg-black px-2.5 py-2">
+                        <dt className="text-[11px] text-gray-400">NDVI</dt>
+                        <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-bold text-white">
+                          <span
+                            className="h-2 w-2 shrink-0 rounded-xs"
+                            style={{ backgroundColor: ndviToColor(parcel.ndvi) }}
+                          />
+                          {parcel.ndvi.toFixed(2)}
+                        </dd>
+                      </div>
+                      <div className="col-span-2 bg-black px-2.5 py-2">
+                        <dt className="text-[11px] text-gray-400">Elegibilidad</dt>
+                        <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-white">
+                          <span
+                            className="h-2 w-2 shrink-0 rounded-xs"
+                            style={{ backgroundColor: RISK_HEX[parcel.riskColor] ?? "#9ca3af" }}
+                          />
+                          {parcel.risk}
+                        </dd>
+                      </div>
+                    </dl>
 
-                  <div className="mt-3 flex gap-1.5">
-                    {allowGroundView && (
+                    <div className="mt-3 flex gap-1.5">
+                      {allowGroundView && (
+                        <button
+                          type="button"
+                          onClick={() => flyToParcel(parcel)}
+                          className="flex-1 rounded-md bg-white px-3 py-2 text-xs font-medium text-black transition-colors hover:bg-gray-200"
+                        >
+                          Acercar a parcela
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={() => flyToParcel(parcel)}
-                        className="flex-1 rounded-md bg-white px-3 py-2 text-xs font-medium text-black transition-colors hover:bg-gray-200"
+                        onClick={() => openInGoogleMaps(parcel.lat, parcel.lng)}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-white/20 px-3 py-2 text-xs font-medium text-gray-200 transition-colors hover:bg-white/10"
                       >
-                        Acercar a parcela
+                        <ExternalLink size={12} className="text-gray-400" />
+                        Google Maps
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => openInGoogleMaps(parcel.lat, parcel.lng)}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-white/20 px-3 py-2 text-xs font-medium text-gray-200 transition-colors hover:bg-white/10"
-                    >
-                      <ExternalLink size={12} className="text-gray-400" />
-                      Google Maps
-                    </button>
+                    </div>
                   </div>
-                </div>
-              </Popup>
+                </Popup>
+              )}
             </CircleMarker>
           ))}
 
@@ -506,6 +514,7 @@ function ParcelMapLite({
           initialZoom={zoom}
           position="bottom-right"
           orientation={controlsOrientation}
+          className={zoomClassName}
           containerRef={containerRef}
         />
       </MapContainer>
@@ -531,6 +540,7 @@ function ParcelMapLite({
             onLayerChange={setLayer}
             basemap={basemap}
             onBasemapChange={handleBasemapChange}
+            basemapKeys={basemapKeys}
             showBoundaries={showBoundaries}
             onToggleBoundaries={setShowBoundaries}
           />

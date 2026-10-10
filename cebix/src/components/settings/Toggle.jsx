@@ -6,9 +6,9 @@ import { memo } from "react";
  *
  * @param {{checked: boolean, onChange: (v: boolean) => void, label?: string, description?: string}} props
  */
-function Toggle({ checked, onChange, label, description }) {
+function Toggle({ checked, onChange, label, description, disabled = false }) {
   return (
-    <label className="flex cursor-pointer items-start justify-between gap-4 py-3">
+    <label className={`flex items-start justify-between gap-4 py-3 ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}>
       <span className="min-w-0">
         {label && (
           <span className="block text-sm font-medium text-gray-900 dark:text-white">
@@ -27,6 +27,7 @@ function Toggle({ checked, onChange, label, description }) {
           type="checkbox"
           role="switch"
           checked={checked}
+          disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
           aria-label={label}
           className="peer sr-only"

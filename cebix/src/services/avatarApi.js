@@ -1,7 +1,7 @@
 import { supabase } from "./supabaseClient";
 
 const BUCKET = "avatars";
-export const AVATAR_SIZE = 256; // px del lado; se guarda cuadrada
+export const AVATAR_SIZE = 256; // miniatura cuadrada (barra lateral, perfil); la original se guarda aparte
 export const MAX_INPUT_BYTES = 10 * 1024 * 1024; // lo que se acepta elegir (se reduce antes de subir)
 export const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -30,8 +30,8 @@ function loadImage(file) {
 }
 
 /**
- * Recorta al centro en cuadrado y reduce a 256x256 (WebP, ~10-25 KB). Así la foto de un celular
- * de 5 MB no se sube entera ni hace lenta la barra lateral.
+ * Miniatura: recorta al centro en cuadrado y reduce a 256x256 (WebP, ~10-20 KB) para la barra
+ * lateral y el perfil. La foto ORIGINAL se sube aparte y sin tocar (ver uploadAvatar).
  */
 export async function prepareAvatar(file) {
   const img = await loadImage(file);
@@ -46,35 +46,53 @@ export async function prepareAvatar(file) {
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(img, sx, sy, side, side, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
 
-  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/webp", 0.85));
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/webp", 0.92));
   if (!blob) throw new Error("No se pudo procesar la imagen.");
   return blob;
 }
 
 /** Borra todas las fotos anteriores de la persona (queda una sola carpeta limpia). */
-async function removeAllFor(userId, keep) {
+async function removeAllFor(userId, keep = []) {
   const { data } = await supabase.storage.from(BUCKET).list(userId);
-  const stale = (data ?? []).map((f) => `${userId}/${f.name}`).filter((p) => p !== keep);
+  const stale = (data ?? []).map((f) => `${userId}/${f.name}`).filter((p) => !keep.includes(p));
   if (stale.length > 0) await supabase.storage.from(BUCKET).remove(stale);
 }
 
-/** Sube la foto ya preparada y devuelve su URL pública. */
-export async function uploadAvatar(userId, blob) {
-  // Nombre nuevo cada vez: evita que el navegador/CDN siga mostrando la foto vieja en caché.
-  const path = `${userId}/avatar-${Date.now()}.webp`;
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, blob, { contentType: "image/webp", cacheControl: "31536000", upsert: false });
-  if (error) throw error;
+const EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  removeAllFor(userId, path).catch(() => {}); // limpieza: si falla, no importa
-  return data.publicUrl;
+/**
+ * Sube la miniatura Y el archivo original sin tocar (mismos bytes, misma calidad).
+ * Devuelve { thumbUrl, fullUrl }.
+ */
+export async function uploadAvatar(userId, thumbBlob, originalFile) {
+  // Nombres nuevos cada vez: evita que el navegador/CDN siga mostrando la foto vieja en caché.
+  const stamp = Date.now();
+  const thumbPath = `${userId}/thumb-${stamp}.webp`;
+  const fullPath = `${userId}/original-${stamp}.${EXT[originalFile.type] ?? "jpg"}`;
+  const opts = { cacheControl: "31536000", upsert: false };
+
+  const { error: thumbError } = await supabase.storage
+    .from(BUCKET)
+    .upload(thumbPath, thumbBlob, { ...opts, contentType: "image/webp" });
+  if (thumbError) throw thumbError;
+
+  const { error: fullError } = await supabase.storage
+    .from(BUCKET)
+    .upload(fullPath, originalFile, { ...opts, contentType: originalFile.type });
+  if (fullError) {
+    await supabase.storage.from(BUCKET).remove([thumbPath]);
+    throw fullError;
+  }
+
+  const { data: thumb } = supabase.storage.from(BUCKET).getPublicUrl(thumbPath);
+  const { data: full } = supabase.storage.from(BUCKET).getPublicUrl(fullPath);
+  removeAllFor(userId, [thumbPath, fullPath]).catch(() => {}); // limpieza: si falla, no importa
+  return { thumbUrl: thumb.publicUrl, fullUrl: full.publicUrl };
 }
 
 /** Quita la foto guardada de la persona. */
 export async function deleteAvatar(userId) {
-  await removeAllFor(userId, null);
+  await removeAllFor(userId);
 }
 
 /** Traduce los errores típicos de Supabase Storage a algo que se entienda. */

@@ -20,6 +20,7 @@ import LiquidOrbLoader from "./LiquidOrbLoader";
 import { useModelInfo } from "../../context/ModelInfoContext";
 import { useParcels } from "../../context/ParcelsContext";
 import { EXAMPLE_CSV_URL, fetchExampleFile, friendlyError, predictCsv } from "../../hooks/useModelRunner";
+import { formatNumber } from "../../utils/intl";
 
 const STATES = ["Hidalgo", "Puebla", "Tlaxcala"];
 
@@ -325,7 +326,7 @@ function ResultsGuide({ results }) {
         <p className="mt-3 pt-3 text-gray-700 dark:text-gray-300">
           <span className="font-medium text-gray-900 dark:text-gray-100">Ejemplo: </span>
           la parcela {first.ID_POLIGONO} ({first.Estado}) daría cerca de {first.yieldEstimate} t/ha
-          (unos {kg.toLocaleString("es-MX")} kg por hectárea), y casi seguro entre{" "}
+          (unos {formatNumber(kg)} kg por hectárea), y casi seguro entre{" "}
           {first.ic90_inferior} y {first.ic90_superior}.
           {top && (
             <>

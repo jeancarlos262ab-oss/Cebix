@@ -31,6 +31,7 @@ function CustomMapControls({
   position = "bottom-right",
   orientation = "vertical",
   containerRef,
+  className = "",
 }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [canZoomIn, setCanZoomIn] = useState(true);
@@ -140,7 +141,7 @@ function CustomMapControls({
 
   return (
     <div
-      className={`absolute z-10 flex ${horizontal ? "flex-row" : "flex-col"} items-center gap-0.5 rounded-lg border border-white/15 bg-black/90 p-1 text-gray-100 ${positionClasses}`}
+      className={`absolute z-10 flex ${horizontal ? "flex-row" : "flex-col"} items-center gap-0.5 rounded-lg border border-white/15 bg-black/90 p-1 text-gray-100 ${positionClasses} ${className}`}
       role="group"
       aria-label="Controles del mapa"
     >

@@ -8,6 +8,7 @@ function toUser(profile, currentUser) {
     name: profile.name,
     email: profile.email ?? (profile.id === currentUser?.id ? currentUser.email : ""),
     avatar: profile.avatar_url ?? "",
+    avatarFull: profile.avatar_full_url ?? "",
     status: profile.status,
     twoFactor: Boolean(profile.two_factor),
   };
@@ -18,6 +19,7 @@ function toProfilePatch(patch) {
     name: patch.name,
     status: patch.status,
     avatar_url: "avatar" in patch ? patch.avatar : patch.avatar_url,
+    avatar_full_url: "avatarFull" in patch ? patch.avatarFull : patch.avatar_full_url,
     two_factor: patch.twoFactor ?? patch.two_factor,
   };
 

@@ -11,6 +11,8 @@ import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { useModelInfo } from "../context/ModelInfoContext";
 import { generateCreditReportPDF } from "../utils/creditReport";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
+import { formatDate, formatDateTime, formatNumber } from "../utils/intl";
+import { usePreferences } from "../context/PreferencesContext";
 
 const chartQuestions = [
   {
@@ -53,6 +55,7 @@ function DetailRow({ label, children }) {
 }
 
 function PrediccionesPageContent() {
+  const { t } = usePreferences();
   const { parcels, submissions, submitToCommittee } = useParcels();
   const { info } = useModelInfo();
   const [selectedId, setSelectedId] = useState(parcels[0].id);
@@ -87,7 +90,7 @@ function PrediccionesPageContent() {
   }, [parcels, parcel.region]);
 
   const climateVariables = useMemo(() => {
-    const fmtInt = (v) => Number(v).toLocaleString("es-MX", { maximumFractionDigits: 0 });
+    const fmtInt = (v) => formatNumber(v, { maximumFractionDigits: 0 });
     const row = (label, value, avg, fmt) => {
       const base = { label, value: fmt(value), avg: avg ? fmt(avg) : "—" };
       if (!avg) return { ...base, icon: Minus, diff: "Sin referencia" };
@@ -158,9 +161,9 @@ function PrediccionesPageContent() {
               <DetailRow label="Municipio">{parcel.municipio}</DetailRow>
               <DetailRow label="Superficie">{parcel.area}</DetailRow>
               {submittedAt && (
-                <DetailRow label="Última solicitud">
+                <DetailRow label={t("Última solicitud")}>
                   <span className="text-ndvi-600 dark:text-ndvi-400">
-                    {new Date(submittedAt).toLocaleDateString("es-MX")}
+                    {formatDate(submittedAt)}
                   </span>
                 </DetailRow>
               )}
@@ -180,7 +183,7 @@ function PrediccionesPageContent() {
             </button>
             {submittedAt && !justSubmitted && (
               <p className="mt-3 text-center text-xs text-gray-400 dark:text-gray-500">
-                Enviada el {new Date(submittedAt).toLocaleString("es-MX")}
+                {t("Enviada el")} {formatDateTime(submittedAt)}
               </p>
             )}
           </section>
@@ -229,22 +232,25 @@ function PrediccionesPageContent() {
 
             {/* Ubicación + ficha técnica */}
             <section className="grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-2">
-              <div className="min-w-0">
+              <div className="flex min-w-0 flex-col">
                 <Label>Ubicación</Label>
-                <div className="mt-3">
+                {/* El mapa toma el mismo alto que la ficha técnica (la fila del grid estira ambos). */}
+                <div className="relative mt-3 min-h-[160px] flex-1 max-md:min-h-[220px]">
                   {hasCoords(parcel) ? (
-                    <StaticMapImage lat={parcel.lat} lng={parcel.lng} zoom={15} height={220} rounded />
+                    <div className="absolute inset-0">
+                      <StaticMapImage lat={parcel.lat} lng={parcel.lng} zoom={17} height={260} rounded fill />
+                    </div>
                   ) : (
-                    <div className="flex h-[220px] items-center justify-center rounded-2xl border border-dashed border-gray-300 px-4 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                    <div className="flex h-full min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-gray-300 px-4 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
                       El CSV no incluye coordenadas (lat, lng): no se puede mostrar la ubicación.
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="min-w-0">
+              <div className="flex min-w-0 flex-col">
                 <Label>Ficha técnica</Label>
-                <dl className="mt-3 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 dark:divide-gray-800/70 dark:border-gray-800">
+                <dl className="mt-3 flex-1 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 dark:divide-gray-800/70 dark:border-gray-800">
                   <Row label="ID de polígono">{parcel.polygonId}</Row>
                   <Row label="Región">
                     {parcel.region} ({parcel.regionCode})

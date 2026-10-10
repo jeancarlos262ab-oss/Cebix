@@ -46,6 +46,12 @@ export const SKY = {
   direction: 1,
 };
 
+// Fracción de la resolución de la capa de brillo mientras el globo se mueve (en reposo: 1).
+const GLOW_FAST = 0.5;
+// Fracción de granos de la Vía Láctea y de estrellas tenues que se pintan mientras el globo se mueve.
+const GRAIN_FAST = 0.3;
+const STAR_FAST = 0.55;
+
 const TINTS = [
   [255, 255, 255], // blanca
   [170, 200, 255], // azulada
@@ -244,8 +250,13 @@ export function createSky({ stars = SKY.stars } = {}) {
   }
 
   /** Reproyecta brillo y polvo con la orientación actual (coste completo, a baja resolución). */
-  function buildLayers(cw, ch, zs, ks, sinL, cosL, sinP, cosP) {
+  function buildLayers(cw, ch, zs, ks, sinL, cosL, sinP, cosP, fast) {
     const sc = lay.w / lay.dw;
+    // El brillo es muy difuso (manchas de ≥ 70 px): mientras el globo se mueve se pinta a una
+    // fracción de la resolución, en la esquina del mismo lienzo (sin reasignar nada), y se
+    // escala al copiarlo. En reposo (fast = false) se pinta completo, igual que antes.
+    const gs = fast ? GLOW_FAST : 1;
+    lay.gs = gs;
     const lcx = (cw / 2 + MARGIN) * sc;
     const lcy = (ch / 2 + MARGIN) * sc;
     const lk = ks * sc;
@@ -253,17 +264,24 @@ export function createSky({ stars = SKY.stars } = {}) {
     const H = lay.h;
 
     const g = lay.glow.ctx;
+    const gW = Math.ceil(W * gs);
+    const gH = Math.ceil(H * gs);
     g.clearRect(0, 0, W, H);
     g.globalCompositeOperation = "lighter";
     for (let i = 0; i < GL.length; i += 6) {
+      const a = GL[i + 4] * 0.12;
+      if (a < 0.0015) continue; // invisible (<½ nivel de 8 bits)
       if (!skyProject(GL[i], GL[i + 1], GL[i + 2], sinL, cosL, sinP, cosP, lcx, lcy, lk, pt)) continue;
       const h = GL[i + 3] * lk;
       if (pt.x < -h || pt.x > W + h || pt.y < -h || pt.y > H + h) continue;
-      g.globalAlpha = GL[i + 4] * 0.12;
-      g.drawImage(sprites.glow[GL[i + 5]], pt.x - h, pt.y - h, h * 2, h * 2);
+      const hh = h * gs;
+      g.globalAlpha = a;
+      g.drawImage(sprites.glow[GL[i + 5]], pt.x * gs - hh, pt.y * gs - hh, hh * 2, hh * 2);
     }
     g.globalAlpha = 1;
     g.globalCompositeOperation = "source-over";
+    lay.gW = gW;
+    lay.gH = gH;
 
     const d = lay.dust.ctx;
     d.clearRect(0, 0, W, H);
@@ -334,7 +352,7 @@ export function createSky({ stars = SKY.stars } = {}) {
       // continua y recta. Reutilizar la capa desplazándola era más barato, pero cada
       // reconstrucción producía un pequeño salto y la Vía Láctea se veía avanzar "a golpes".
       // El coste se mantiene bajo porque las capas son de baja resolución.
-      buildLayers(cw, ch, zs, ks, sinM, cosM, sinQ, cosQ);
+      buildLayers(cw, ch, zs, ks, sinM, cosM, sinQ, cosQ, fast);
       const ox = 0;
       const oy = 0;
       const rx = ox - MARGIN;
@@ -343,18 +361,24 @@ export function createSky({ stars = SKY.stars } = {}) {
       ctx.imageSmoothingQuality = "low";
 
       // 1) Brillo difuso (capa).
-      ctx.drawImage(lay.glow.canvas, rx, ry, lay.dw, lay.dh);
+      ctx.drawImage(lay.glow.canvas, 0, 0, lay.gW, lay.gH, rx, ry, lay.dw, lay.dh);
 
       // 2) Estrellas diminutas de la banda: un solo trazo por color (a resolución completa).
+      // Mientras el globo se mueve se pinta solo una fracción de los granos (una muestra uniforme: el
+      // arreglo ya está barajado) con más opacidad, para que la banda conserve su brillo y textura.
+      // En reposo (fast = false) se pintan todos, igual que antes.
+      const gf = fast ? GRAIN_FAST : 1;
+      const ga = fast ? 1 / GRAIN_FAST : 1; // misma cobertura total (tope: opacidad 1)
       const grains = [
-        [G0, "rgba(214,222,240,0.34)"],
-        [G1, "rgba(255,226,188,0.38)"],
+        [G0, `rgba(214,222,240,${Math.min(1, 0.34 * ga).toFixed(3)})`],
+        [G1, `rgba(255,226,188,${Math.min(1, 0.38 * ga).toFixed(3)})`],
       ];
       const gs = 1.05 * q;
       for (const [arr, style] of grains) {
         ctx.fillStyle = style;
         ctx.beginPath();
-        for (let i = 0; i < arr.length; i += 3) {
+        const end = Math.floor(arr.length / 3 * gf) * 3;
+        for (let i = 0; i < end; i += 3) {
           if (!skyProject(arr[i], arr[i + 1], arr[i + 2], sinM, cosM, sinQ, cosQ, cx, cy, ks, pt)) continue;
           if (pt.x < 0 || pt.x > cw || pt.y < 0 || pt.y > ch) continue;
           ctx.rect(pt.x, pt.y, gs, gs);
@@ -367,15 +391,18 @@ export function createSky({ stars = SKY.stars } = {}) {
     }
 
     // Estrellas tenues y medias: un solo trazo por grupo.
+    const sf = fast ? STAR_FAST : 1;
+    const sa = fast ? 1 / STAR_FAST : 1;
     const groups = [
-      [T0, "rgba(205,218,245,0.42)", 1.1 * q],
+      [T0, `rgba(205,218,245,${Math.min(1, 0.42 * sa).toFixed(3)})`, 1.1 * q],
       [T1, "rgba(230,238,255,0.78)", 1.6 * q],
     ];
     for (const [arr, style, s] of groups) {
       ctx.fillStyle = style;
       ctx.beginPath();
       const h = s / 2;
-      for (let i = 0; i < arr.length; i += 3) {
+      const end = arr === T0 ? Math.floor(arr.length / 3 * sf) * 3 : arr.length;
+      for (let i = 0; i < end; i += 3) {
         if (!skyProject(arr[i], arr[i + 1], arr[i + 2], sinL, cosL, sinP, cosP, cx, cy, ks, pt)) continue;
         if (pt.x < 0 || pt.x > cw || pt.y < 0 || pt.y > ch) continue;
         ctx.rect(pt.x - h, pt.y - h, s, s);

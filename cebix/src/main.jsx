@@ -5,6 +5,7 @@ import "./index.css";
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
+import { PreferencesProvider } from "./context/PreferencesContext.jsx";
 import { ModelInfoProvider } from "./context/ModelInfoContext.jsx";
 import { ParcelsProvider } from "./context/ParcelsContext.jsx";
 import { UsersProvider } from "./context/UsersContext.jsx";
@@ -17,9 +18,11 @@ createRoot(document.getElementById("root")).render(
         <ModelInfoProvider>
           <ParcelsProvider>
             <UsersProvider>
-              <BrowserRouter>
-                <App />
-              </BrowserRouter>
+              <PreferencesProvider>
+                <BrowserRouter>
+                  <App />
+                </BrowserRouter>
+              </PreferencesProvider>
               <AppToaster />
             </UsersProvider>
           </ParcelsProvider>

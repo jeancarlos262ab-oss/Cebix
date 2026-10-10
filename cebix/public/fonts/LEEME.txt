@@ -1,0 +1,12 @@
+Copia aquí estos 5 archivos del zip helvetica-neue-5 (nombres exactos):
+
+  HelveticaNeueThin.otf     -> peso 100 (título «Mapa satelital»)
+  HelveticaNeueRoman.otf    -> peso 400 (texto normal)
+  HelveticaNeueMedium.otf   -> peso 500
+  HelveticaNeueBold.otf     -> pesos 600 y 700
+  HelveticaNeueHeavy.otf    -> peso 800 (logo)
+
+El resto (Light, Black, Italic...) la app no los usa; no hace falta copiarlos.
+
+Opcional pero recomendado: convertirlos a .woff2 (pesan ~4 veces menos y la app carga más rápido).
+Desde la raíz del proyecto:   python tools/fonts_a_woff2.py

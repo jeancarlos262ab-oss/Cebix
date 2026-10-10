@@ -6,9 +6,11 @@ import { ChevronRight, ChevronsUpDown, LogOut, Settings, X, Menu, PanelLeft } fr
 import { generalNav, workspaceNav } from "../../data/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { useSidebar } from "../../context/SidebarContext";
+import { usePreferences } from "../../context/PreferencesContext";
 import Logo from "../ui/Logo";
 
 function NavSection({ title, items, collapsed }) {
+  const { t } = usePreferences();
   // Re-renderiza al navegar para que cada enlace apunte a la pantalla tal
   // como se dejó (pestaña, filtro...), leyendo el registro singleton.
   const { pathname, search } = useLocation();
@@ -25,7 +27,7 @@ function NavSection({ title, items, collapsed }) {
             collapsed ? "invisible" : "",
           ].join(" ")}
         >
-          {title}
+          {t(title)}
         </p>
       )}
       <ul className="mt-2 space-y-0.5">
@@ -34,7 +36,7 @@ function NavSection({ title, items, collapsed }) {
             <NavLink
               to={to + (pathname === to ? search : saved.get(to) ?? "")}
               end={to === "/"}
-              title={collapsed ? label : undefined}
+              title={collapsed ? t(label) : undefined}
               className={({ isActive }) =>
                 [
                   // Alto fijo: idéntico con el sidebar expandido y contraído.
@@ -53,7 +55,7 @@ function NavSection({ title, items, collapsed }) {
                     strokeWidth={isActive ? 2.25 : 2}
                     className="shrink-0"
                   />
-                  {!collapsed && <span className="flex-1 text-left truncate">{label}</span>}
+                  {!collapsed && <span className="flex-1 text-left truncate">{t(label)}</span>}
                   {!collapsed && badge && (
                     <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-300 mr-1 transition-colors duration-300 ease-out">
                       {badge}
@@ -70,6 +72,7 @@ function NavSection({ title, items, collapsed }) {
 }
 
 function SignOutConfirm({ onCancel, onConfirm, loading }) {
+  const { t } = usePreferences();
   useEffect(() => {
     function onKey(e) {
       if (e.key === "Escape" && !loading) onCancel();
@@ -97,10 +100,10 @@ function SignOutConfirm({ onCancel, onConfirm, loading }) {
           </span>
           <div className="min-w-0">
             <h2 id="signout-title" className="font-display text-sm font-semibold text-gray-900 dark:text-white">
-              ¿Cerrar sesión?
+              {t("¿Cerrar sesión?")}
             </h2>
             <p id="signout-desc" className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Tendrás que iniciar sesión de nuevo para volver a entrar.
+              {t("Tendrás que iniciar sesión de nuevo para volver a entrar.")}
             </p>
           </div>
         </div>
@@ -113,7 +116,7 @@ function SignOutConfirm({ onCancel, onConfirm, loading }) {
             disabled={loading}
             className="rounded-full border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
           >
-            Cancelar
+            {t("Cancelar")}
           </button>
           <button
             type="button"
@@ -121,7 +124,7 @@ function SignOutConfirm({ onCancel, onConfirm, loading }) {
             disabled={loading}
             className="rounded-full bg-accent-500 px-4 py-2 text-sm font-semibold text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:opacity-60 dark:focus-visible:ring-offset-gray-900"
           >
-            {loading ? "Cerrando sesión..." : "Cerrar sesión"}
+            {loading ? t("Cerrando sesión...") : t("Cerrar sesión")}
           </button>
         </div>
       </div>
@@ -130,6 +133,7 @@ function SignOutConfirm({ onCancel, onConfirm, loading }) {
 }
 
 export default function Sidebar({ floating = false }) {
+  const { t } = usePreferences();
   // floating: en escritorio el sidebar sale del flujo y flota sobre el contenido
   // (lo usa el mapa satelital, que ocupa toda la pantalla por detrás).
   const { mobileOpen, close, collapsed: collapsedPref, setCollapsed } = useSidebar();
@@ -177,13 +181,10 @@ export default function Sidebar({ floating = false }) {
           // Transición suave al pasar de/al mapa satelital (fondo, borde y sombra). En móvil además
           // anima el deslizamiento del drawer; en escritorio no hay deslizamiento (lg:translate-x-0).
           "transition-[transform,background-color,border-color,box-shadow] lg:transition-[background-color,border-color,box-shadow]",
-          // Sobre el mapa satelital: mismo fondo y borde que la barra vertical de
-          // zoom (bg-black/90 + border-white/15, ver mapUi.js). La clase "dark"
-          // fuerza los colores de texto/hover oscuros dentro del sidebar aunque
-          // la app esté en modo claro, para que se lea sobre ese fondo.
-          floating
-            ? "dark border border-white/15 bg-black/90"
-            : "border border-gray-200 bg-white shadow-card dark:border-gray-800 dark:bg-black",
+          // Sobre el mapa satelital el contenedor es siempre negro (translúcido); "dark" fuerza
+          // los colores oscuros dentro del sidebar aunque la app esté en modo claro. Lo demás es igual.
+          "border border-gray-200 shadow-card dark:border-gray-800",
+          floating ? "dark bg-black/65" : "bg-white dark:bg-black",
           collapsed ? "lg:w-20" : "lg:w-[264px]",
           "w-[264px] max-w-[calc(100vw-1.5rem)]",
           floating
@@ -194,7 +195,8 @@ export default function Sidebar({ floating = false }) {
       >
         <div
           className={[
-            "relative flex h-[61px] items-center gap-2.5 border-b border-gray-100 py-4 dark:border-gray-800 transition-colors duration-300 ease-out",
+            "relative flex h-[61px] items-center gap-2.5 py-4 transition-colors duration-300 ease-out",
+            "border-b border-gray-100 dark:border-gray-800",
             collapsed ? "justify-center px-0" : "px-4",
           ].join(" ")}
         >
@@ -207,8 +209,8 @@ export default function Sidebar({ floating = false }) {
             <button
               type="button"
               onClick={() => setCollapsed(false)}
-              aria-label="Expandir menú"
-              title="Expandir menú"
+              aria-label={t("Expandir menú")}
+              title={t("Expandir menú")}
               className="absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center bg-white text-gray-600 opacity-0 transition-[opacity,color,background-color] duration-300 hover:opacity-100 focus-visible:opacity-100 dark:bg-black dark:text-gray-300"
             >
               <PanelLeft size={18} />
@@ -218,8 +220,8 @@ export default function Sidebar({ floating = false }) {
             <button
               type="button"
               onClick={() => setCollapsed(true)}
-              aria-label="Contraer menú"
-              title="Contraer menú"
+              aria-label={t("Contraer menú")}
+              title={t("Contraer menú")}
               className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 transition-colors duration-300 ease-out"
             >
               <Menu size={18} />
@@ -228,7 +230,7 @@ export default function Sidebar({ floating = false }) {
           <button
             type="button"
             onClick={close}
-            aria-label="Cerrar menú"
+            aria-label={t("Cerrar menú")}
             className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 transition-colors duration-300 ease-out lg:hidden"
           >
             <X size={16} />
@@ -248,7 +250,7 @@ export default function Sidebar({ floating = false }) {
         <div className="border-t border-gray-100 py-2 dark:border-gray-800 transition-colors duration-300 ease-out">
           <NavLink
             to="/perfil"
-            title={collapsed ? profile?.name || user?.email || "Perfil" : undefined}
+            title={collapsed ? profile?.name || user?.email || t("Perfil") : undefined}
             className={[
               "flex w-full items-center py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors duration-300 ease-out",
               collapsed ? "justify-center px-0" : "gap-3 px-4",
@@ -262,7 +264,7 @@ export default function Sidebar({ floating = false }) {
               <>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-gray-900 dark:text-white transition-colors duration-300 ease-out">
-                    {profile?.name || user?.email || "Perfil"}
+                    {profile?.name || user?.email || t("Perfil")}
                   </span>
                   <span className="block truncate text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300 ease-out">
                     {user?.email || ""}
@@ -275,14 +277,14 @@ export default function Sidebar({ floating = false }) {
           <button
             type="button"
             onClick={() => setConfirmOpen(true)}
-            title={collapsed ? "Cerrar sesión" : undefined}
+            title={collapsed ? t("Cerrar sesión") : undefined}
             className={[
               "flex h-[34px] w-full items-center text-left text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-white transition-colors duration-300 ease-out",
               collapsed ? "justify-center px-0" : "gap-3 px-4",
             ].join(" ")}
           >
             <LogOut size={18} className="shrink-0" />
-            {!collapsed && <span>Cerrar sesión</span>}
+            {!collapsed && <span>{t("Cerrar sesión")}</span>}
           </button>
         </div>
       </aside>

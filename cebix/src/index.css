@@ -472,7 +472,26 @@ html.dark .app-corner-glow {
   );
 }
 
-/* Mapas sin costuras entre teselas (ver utils/leafletSeams.js) */
-.leaflet-tile {
-  outline: 1px solid transparent;
+/* Mapa satelital: los controles internos del mapa (zoom, capas, leyenda) van sin contorno. */
+.map-flat [class*="border-white/15"] {
+  border-color: transparent;
+}
+
+/* Mapa satelital: mismo nivel de transparencia en barras de capas y zoom que en el resto de contenedores. */
+.map-flat [class*="bg-black/90"] {
+  background-color: rgb(0 0 0 / 0.65);
+}
+
+/* Columna con scroll del mapa: difuminado al inicio/final según haya más contenido (solo escritorio). */
+@media (min-width: 1024px) {
+  .scroll-fade {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top, 0px), #000 calc(100% - var(--fade-bottom, 0px)), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top, 0px), #000 calc(100% - var(--fade-bottom, 0px)), transparent 100%);
+  }
+}
+
+/* Tira de parcelas: desvanecido al inicio/final según el scroll horizontal. */
+.strip-fade {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-start, 0px), #000 calc(100% - var(--fade-end, 0px)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-start, 0px), #000 calc(100% - var(--fade-end, 0px)), transparent 100%);
 }

@@ -19,7 +19,7 @@ export const BUDGET_MOVING = 90000; // mientras se arrastra / vuela (antes: 6000
 export const BUDGET_IDLE = 300000; // en reposo
 export const ZOOM_LO = 0.8;
 export const ZOOM_HI = 1.25;
-export const FRAME_MS = 12; // si el muestreo pasa de esto, baja la resolución
+export const FRAME_MS = 13; // si el cuadro completo (cielo + esfera + trazos) pasa de esto, baja la resolución
 export const Q_MIN = 0.3;
 const SLACK = 1 / ZOOM_LO; // margen del raster para poder alejar sin dejar huecos
 const ADAPT_EVERY = 6;
@@ -35,7 +35,8 @@ const defaultImage = (w, h) =>
 const defaultNow = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
 
 export class SphereLayer {
-  constructor({ createCanvas = defaultCanvas, createImage = defaultImage, now = defaultNow, collectStats = false } = {}) {
+  constructor({ createCanvas = defaultCanvas, createImage = defaultImage, now = defaultNow, collectStats = false, budgetMoving = BUDGET_MOVING } = {}) {
+    this.budgetMoving = budgetMoving;
     this.createCanvas = createCanvas;
     this.createImage = createImage;
     this.now = now;
@@ -111,6 +112,15 @@ export class SphereLayer {
   }
 
   /**
+   * GlobeMap informa aquí cuánto tardó el cuadro COMPLETO (cielo + esfera + contornos). Si el equipo no
+   * llega, baja la resolución de la esfera en movimiento; si sobra margen, la sube. Los cuadros que
+   * reconstruyen la geometría o solo re-escalan no cuentan (no son representativos).
+   */
+  reportFrame(ms, fast) {
+    if (fast && (this.lastKind === "tilt" || this.lastKind === "lateral")) this._adapt(ms);
+  }
+
+  /**
    * @param {CanvasRenderingContext2D} ctx
    * @param {{cw:number,ch:number,cx:number,cy:number,R:number,lon0:number,lat0:number,fast:boolean,reference?:boolean}} p
    *        R, cx, cy y cw/ch en píxeles del lienzo; lon0/lat0 en radianes.
@@ -143,7 +153,7 @@ export class SphereLayer {
         this.geo = null;
         return { kind: "none", ms: 0 };
       }
-      const budget = fast ? BUDGET_MOVING * this.quality : BUDGET_IDLE;
+      const budget = fast ? this.budgetMoving * this.quality : BUDGET_IDLE;
       const k = Math.min(1, Math.sqrt(budget / (vw * vh)));
       const bw = Math.max(2, Math.ceil(vw * k));
       const bh = Math.max(2, Math.ceil(vh * k));
@@ -174,7 +184,7 @@ export class SphereLayer {
         renderSphere(g.img32, g.aw, g.ah, (cx - g.x0) * g.k, (cy - g.y0) * g.k, g.R * g.k, lon0, lat0, this.refTex);
         kind = "ref";
       } else {
-        this.raster.render(g.img32, lon0, lat0);
+        this.raster.render(g.img32, lon0, lat0, fast);
         kind = rebuilt ? "geom" : this.raster.lastTilt ? "tilt" : "lateral";
       }
       g.offCtx.putImageData(g.img, 0, 0);
@@ -184,7 +194,7 @@ export class SphereLayer {
     }
     const ms = this.now() - t0;
     this._record(kind, ms);
-    if (fast && (kind === "tilt" || kind === "lateral")) this._adapt(ms);
+    this.lastKind = kind;
 
     const s = R / g.R;
     ctx.imageSmoothingEnabled = true;

@@ -28,7 +28,8 @@ export default function EditProfileModal({ account, onClose, onSave }) {
 
   // Foto: se elige y se previsualiza aquí, pero NO se sube hasta pulsar «Guardar»
   // (así «Cancelar» no deja nada en el servidor).
-  const [photoBlob, setPhotoBlob] = useState(null); // foto nueva ya recortada a 256x256
+  const [photoFile, setPhotoFile] = useState(null); // archivo original elegido, sin tocar
+  const [photoBlob, setPhotoBlob] = useState(null); // miniatura 256x256 para la barra lateral
   const [photoPreview, setPhotoPreview] = useState(null); // URL local para mostrarla
   const [removePhoto, setRemovePhoto] = useState(false);
 
@@ -52,6 +53,7 @@ export default function EditProfileModal({ account, onClose, onSave }) {
     }
     try {
       const blob = await prepareAvatar(file);
+      setPhotoFile(file);
       setPhotoBlob(blob);
       setPhotoPreview(URL.createObjectURL(blob));
       setRemovePhoto(false);
@@ -61,6 +63,7 @@ export default function EditProfileModal({ account, onClose, onSave }) {
   }
 
   function handleRemove() {
+    setPhotoFile(null);
     setPhotoBlob(null);
     setPhotoPreview(null);
     setRemovePhoto(true);
@@ -75,11 +78,14 @@ export default function EditProfileModal({ account, onClose, onSave }) {
     setSaving(true);
     const fields = { ...form };
     try {
-      if (photoBlob) {
-        fields.avatar = await uploadAvatar(user.id, photoBlob);
+      if (photoBlob && photoFile) {
+        const { thumbUrl, fullUrl } = await uploadAvatar(user.id, photoBlob, photoFile);
+        fields.avatar = thumbUrl;
+        fields.avatarFull = fullUrl;
       } else if (removePhoto && account.avatar) {
         await deleteAvatar(user.id);
         fields.avatar = null;
+        fields.avatarFull = null;
       }
     } catch (err) {
       toast.error(avatarErrorMessage(err));
@@ -146,7 +152,7 @@ export default function EditProfileModal({ account, onClose, onSave }) {
                 </button>
               )}
             </div>
-            <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">JPG, PNG o WebP. Se recorta en cuadrado.</p>
+            <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">JPG, PNG o WebP. Se guarda con su calidad original.</p>
           </div>
           <input ref={fileRef} type="file" accept={ACCEPTED_TYPES.join(",")} onChange={handleFile} className="hidden" />
         </div>

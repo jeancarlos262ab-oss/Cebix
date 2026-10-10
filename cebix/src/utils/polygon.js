@@ -5,6 +5,7 @@
  */
 import { haversine } from "./geo";
 import estadosBoundaries from "../data/estadosBoundaries.json";
+import { formatNumber } from "./intl";
 
 const R = 6371008.8;
 const toRad = (d) => (d * Math.PI) / 180;
@@ -148,4 +149,4 @@ export function selfIntersects(points) {
   return false;
 }
 
-export const formatHa = (ha) => (ha < 10 ? ha.toFixed(2) : ha < 100 ? ha.toFixed(1) : Math.round(ha).toLocaleString("es-MX"));
+export const formatHa = (ha) => (ha < 10 ? ha.toFixed(2) : ha < 100 ? ha.toFixed(1) : formatNumber(Math.round(ha)));

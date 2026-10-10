@@ -1,10 +1,11 @@
 import { GEE_FEATURES, SOURCES } from "../../data/earthEngine";
 import { WindowChip } from "./SourceChip";
+import { formatNumber } from "../../utils/intl";
 
 const fmt = (value, digits) =>
   value === null || value === undefined || Number.isNaN(Number(value))
     ? "—"
-    : Number(value).toLocaleString("es-MX", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    : formatNumber(value, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
 /** Las 10 variables calculadas en vivo, con su fuente, ventana y valor. */
 export default function FeaturesTable({ features }) {

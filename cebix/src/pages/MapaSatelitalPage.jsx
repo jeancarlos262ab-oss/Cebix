@@ -1,52 +1,98 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Menu } from "lucide-react";
 import ParcelMap from "../components/map/ParcelMap";
+import ParcelStrip from "../components/map/explorer/ParcelStrip";
+import RegionBars from "../components/map/explorer/RegionBars";
+import RegionPills from "../components/map/explorer/RegionPills";
+import RiskLegend from "../components/map/explorer/RiskLegend";
+import ScrollColumn from "../components/map/explorer/ScrollColumn";
+import RiskTiles from "../components/map/explorer/RiskTiles";
+import SelectedParcelCard from "../components/map/explorer/SelectedParcelCard";
+import YieldCard from "../components/map/explorer/YieldCard";
+import RequireAnalysis from "../components/ui/RequireAnalysis";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { useSidebar } from "../context/SidebarContext";
-import RequireAnalysis from "../components/ui/RequireAnalysis";
+
+// Solo satelital real y oscuro, sin importar el tema de la app.
+const BASEMAP_KEYS = ["satellite", "oscuro"];
 
 function MapaSatelitalPageContent() {
-  const { parcels, regionSummary } = useParcels();
+  const { parcels } = useParcels();
   const { toggle, collapsed } = useSidebar();
-  const mappable = parcels.filter(hasCoords); // sin lat/lng no se dibuja (no se inventan ubicaciones)
+  const mappable = useMemo(() => parcels.filter(hasCoords), [parcels]); // sin lat/lng no se dibuja (no se inventan ubicaciones)
+  const [region, setRegion] = useState("all");
   const [selectedId, setSelectedId] = useState(null);
 
-  // En escritorio el sidebar flota sobre el mapa (12px de margen + 264px, o 80px
-  // contraído): los controles y el panel se apartan de él con 12px de separación.
-  const controlsLeft = collapsed ? "lg:left-[104px]" : "lg:left-[288px]";
+  // En escritorio el sidebar flota sobre el mapa (12px de margen + 264px, o 80px contraído).
+  // La barra de capas va a 12px de él (42px de ancho) y el resto del contenido a 12px de la barra.
+  const pillsLeft = collapsed ? "lg:left-[340px]" : "lg:left-[524px]"; // tras el título (más chico)
+  const contentLeft = collapsed ? "lg:left-[108px]" : "lg:left-[292px]";
 
-  const total = regionSummary.reduce((sum, r) => sum + r.parcelCount, 0);
+  const regionOptions = useMemo(() => {
+    const counts = new Map();
+    for (const p of mappable) counts.set(p.region, (counts.get(p.region) ?? 0) + 1);
+    const regions = [...counts].sort((a, b) => b[1] - a[1]).map(([key, count]) => ({ key, label: key, count }));
+    return { regions, pills: [{ key: "all", label: "Todas", count: mappable.length }, ...regions] };
+  }, [mappable]);
+
+  const visible = useMemo(
+    () => (region === "all" ? mappable : mappable.filter((p) => p.region === region)),
+    [mappable, region]
+  );
+  const selected = useMemo(() => visible.find((p) => p.id === selectedId) ?? null, [visible, selectedId]);
+
+  const riskCounts = useMemo(() => {
+    const counts = { green: 0, yellow: 0, red: 0 };
+    for (const p of visible) if (p.riskColor in counts) counts[p.riskColor] += 1;
+    return counts;
+  }, [visible]);
+
+  const scale = useMemo(() => {
+    const values = visible.flatMap((p) => [p.yieldEstimate, ...(p.ic90 ?? [])]).filter(Number.isFinite);
+    return values.length ? [Math.min(...values), Math.max(...values)] : [0, 1];
+  }, [visible]);
+
+  const ranked = useMemo(() => [...visible].sort((a, b) => b.yieldEstimate - a.yieldEstimate), [visible]);
+
+  const handleSelect = useCallback((parcel) => setSelectedId(parcel?.id ?? null), []);
+  const clearSelection = useCallback(() => setSelectedId(null), []);
+
+  useEffect(() => {
+    if (!selected) return undefined;
+    const onKey = (e) => e.key === "Escape" && clearSelection();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selected, clearSelection]);
+
+  const hidden = parcels.length - mappable.length;
 
   return (
     // El mapa ocupa TODA la pantalla, también por detrás del sidebar, que flota
     // encima (ver Sidebar floating), con un degradado oscuro detrás de él.
-    <div className="flex h-full flex-col">
-      {/* Mapa a todo el ancho y alto disponible. En pantallas grandes "Regiones
-          cubiertas" flota dentro del mapa; en celulares va debajo, sin tapar nada.
-          Sin título ni encabezado: el mapa ocupa toda la pantalla. */}
+    <div className="map-flat flex h-full flex-col">
       <div className="relative isolate flex flex-1 flex-col">
         <div className="relative min-h-[420px] flex-1">
           <div className="absolute inset-0">
             <ParcelMap
-              parcels={mappable}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
+              parcels={visible}
+              selectedId={selected?.id ?? null}
+              onSelect={handleSelect}
+              showPopup={false}
+              showLegend={false}
               height="100%"
               basemap="satellite"
-              controlsLeftClassName={`left-3 ${controlsLeft}`}
-              controlsTopClassName="top-[62px] lg:top-3"
+              basemapKeys={BASEMAP_KEYS}
+              controlsLeftClassName={`left-3 ${contentLeft}`}
+              controlsTopClassName="top-[62px] lg:top-[104px]"
             />
           </div>
 
-          {/* Degradado a la izquierda, DETRÁS del sidebar (que flota encima con
-              z-50): oscurece el borde del mapa y se desvanece hacia la derecha,
-              para que el sidebar se integre con la imagen. Solo escritorio; su
-              ancho sigue al del sidebar (expandido / contraído). Va por debajo de
-              los controles (z-1000) y no bloquea el mapa (pointer-events-none). */}
+          {/* Degradado a la izquierda, DETRÁS del sidebar: oscurece el borde del mapa y se
+              desvanece hacia la derecha. Solo escritorio; su ancho sigue al del sidebar. */}
           <div
             aria-hidden="true"
             className={`pointer-events-none absolute inset-y-0 left-0 z-900 hidden transition-[width] duration-200 ease-out lg:block ${
-              collapsed ? "w-[240px]" : "w-[480px]"
+              collapsed ? "w-[390px]" : "w-[650px]"
             }`}
             style={{
               background:
@@ -54,72 +100,81 @@ function MapaSatelitalPageContent() {
             }}
           />
 
-          {/* Degradado inferior: oscurece el borde de abajo del mapa y se desvanece
-              hacia arriba. Mismas reglas que el izquierdo (debajo de los controles,
-              sin bloquear el mapa). */}
+          {/* Degradado inferior a todo el ancho de la ventana. */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-900 h-[200px]"
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-900 h-[240px]"
             style={{
               background:
-                "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.7) 20%, rgba(0,0,0,0.5) 42%, rgba(0,0,0,0.28) 65%, rgba(0,0,0,0.1) 85%, rgba(0,0,0,0) 100%)",
+                "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.7) 22%, rgba(0,0,0,0.45) 48%, rgba(0,0,0,0.18) 78%, rgba(0,0,0,0) 100%)",
             }}
           />
 
-          {/* Botón de menú: solo hace falta en móvil/tablet, donde el sidebar vive detrás
-              de un drawer (en escritorio ya está siempre visible: lg:hidden). Va en la
-              esquina superior izquierda, ENCIMA de la barra de opciones de vista, que en
-              móvil se baja con controlsTopClassName="top-[62px]" (en escritorio queda en top-3).
-              Mide 42px: el mismo ancho que la barra vertical (32px de botón + 4px de padding
-              + 1px de borde por lado). */}
+          {/* Menú: solo móvil/tablet (en escritorio el sidebar siempre está visible). */}
           <div className="pointer-events-none absolute left-3 top-3 z-1000 lg:hidden">
             <button
               type="button"
               onClick={toggle}
               aria-label="Abrir menú"
-              className="pointer-events-auto flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg border border-white/15 bg-black/90 text-gray-200 hover:bg-white/10"
+              className="pointer-events-auto flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg bg-black/65 text-gray-200 hover:bg-white/10"
             >
               <Menu size={20} strokeWidth={1.75} />
             </button>
           </div>
+
+          {/* Título sobre el mapa */}
+          <div className={`pointer-events-none absolute left-[66px] top-2 z-1000 lg:top-4 ${contentLeft}`}>
+            <h1 className="text-xl font-thin leading-none tracking-tight text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.7)] lg:text-[28px]">
+              Mapa satelital
+            </h1>
+            <p className="mt-1.5 text-[11px] text-white/60 [text-shadow:0_1px_8px_rgba(0,0,0,0.8)] lg:text-xs">
+              Sentinel-2 · {visible.length} parcela{visible.length === 1 ? "" : "s"}
+              {region !== "all" ? ` en ${region}` : ""}
+            </p>
+          </div>
         </div>
 
-        <section
-          aria-labelledby="regiones-title"
-          className={`w-full border-t border-gray-800 bg-black px-4 py-4 text-gray-100 sm:px-6 lg:absolute lg:bottom-3 ${controlsLeft} lg:z-1000 lg:w-72 lg:rounded-lg lg:border lg:border-white/15 lg:bg-black/90 lg:p-5`}
-        >
-          <h2 id="regiones-title" className="font-display text-sm font-semibold">
-            Regiones cubiertas
-          </h2>
-          <p className="mt-1 text-xs leading-relaxed text-gray-400">
-            {parcels.length} parcelas activas con imagen satelital Sentinel-2.
-          </p>
+        {/* En celular estos bloques van uno tras otro bajo el mapa, sobre fondo negro. En
+            escritorio (lg:contents) cada uno flota sobre el mapa con su propia posición. */}
+        <div className="flex flex-col gap-3 bg-black px-4 py-4 lg:contents">
+          <div className={`pointer-events-none lg:absolute lg:top-4 lg:z-1000 lg:flex lg:justify-center lg:right-[364px] ${pillsLeft}`}>
+            <div className="pointer-events-auto max-w-full">
+              <RegionPills options={regionOptions.pills} value={region} onChange={setRegion} />
+            </div>
+          </div>
 
-          <dl className="mt-4 space-y-3 pt-4 text-xs">
-            {regionSummary.map((r) => {
-              const share = total ? (r.parcelCount / total) * 100 : 0;
-              return (
-                <div key={r.region}>
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="flex items-center gap-2 text-gray-200">
-                      <span className="h-2.5 w-2.5 shrink-0" style={{ backgroundColor: r.color }} />
-                      {r.region}
-                    </dt>
-                    <dd className="font-display text-sm font-semibold tabular-nums">
-                      {r.parcelCount}
-                      <span className="ml-1 text-[11px] font-medium text-gray-500">
-                        parcela{r.parcelCount === 1 ? "" : "s"}
-                      </span>
-                    </dd>
-                  </div>
-                  <div className="mt-1.5 h-1 w-full overflow-hidden bg-white/10" aria-hidden="true">
-                    <div className="h-full" style={{ width: `${share}%`, backgroundColor: r.color }} />
-                  </div>
-                </div>
-              );
-            })}
-          </dl>
-        </section>
+          {/* Columna derecha: leyenda, detalle y panel de resumen. Si no caben, se desplaza y las flechas van mostrando el resto. */}
+          <ScrollColumn className="lg:absolute lg:bottom-[176px] lg:right-0 lg:top-0 lg:z-1000 lg:w-[352px]">
+            <RiskLegend className="shrink-0" />
+
+            {selected && (
+              <SelectedParcelCard parcel={selected} scale={scale} onClose={clearSelection} className="shrink-0" />
+            )}
+
+            <>
+              <RiskTiles counts={riskCounts} />
+              <YieldCard parcels={visible} selected={selected} />
+              <RegionBars
+                regions={regionOptions.regions}
+                total={mappable.length}
+                value={region}
+                onChange={setRegion}
+              />
+              {hidden > 0 && (
+                <p className="px-2 pb-1 text-[11px] leading-relaxed text-white/40">
+                  {hidden} parcela{hidden === 1 ? "" : "s"} sin coordenadas no se dibuja{hidden === 1 ? "" : "n"} en el mapa.
+                </p>
+              )}
+            </>
+          </ScrollColumn>
+
+          <ParcelStrip
+            parcels={ranked}
+            selectedId={selected?.id ?? null}
+            onSelect={handleSelect}
+            className={`min-w-0 lg:absolute lg:bottom-4 lg:right-[96px] lg:z-1000 ${contentLeft}`}
+          />
+        </div>
       </div>
     </div>
   );
@@ -127,7 +182,7 @@ function MapaSatelitalPageContent() {
 
 export default function MapaSatelitalPage() {
   return (
-    <RequireAnalysis >
+    <RequireAnalysis>
       <MapaSatelitalPageContent />
     </RequireAnalysis>
   );

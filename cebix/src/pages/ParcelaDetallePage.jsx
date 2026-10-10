@@ -13,13 +13,14 @@ import RequireAnalysis from "../components/ui/RequireAnalysis";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import ParcelFormModal from "../components/dashboard/ParcelFormModal";
 import useParcelActions from "../hooks/useParcelActions";
+import { formatDate, formatNumber as intlNumber } from "../utils/intl";
 
 // Los valores del modelo/CSV pueden traer muchos decimales (p. ej. 512.34567891):
 // se redondean para que quepan en el recuadro y se separan los miles.
 function formatNumber(value, maxDecimals = 1) {
   const n = Number(value);
   if (!Number.isFinite(n)) return "—";
-  return n.toLocaleString("es-MX", { maximumFractionDigits: maxDecimals });
+  return intlNumber(n, { maximumFractionDigits: maxDecimals });
 }
 
 function ParcelaDetallePageContent() {
@@ -173,7 +174,7 @@ function ParcelaDetallePageContent() {
                 {submittedAt && (
                   <Row label="Enviado a comité">
                     <span className="text-ndvi-600 dark:text-ndvi-400">
-                      {new Date(submittedAt).toLocaleDateString("es-MX")}
+                      {formatDate(submittedAt)}
                     </span>
                   </Row>
                 )}

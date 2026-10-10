@@ -1,5 +1,16 @@
 {
   "installCommand": "npm install",
   "buildCommand": "npm run build",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/weekly-summary",
+      "schedule": "0 14 * * 1"
+    }
+  ]
 }

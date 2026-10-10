@@ -13,7 +13,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Map, { Layer, Marker, Popup, Source } from "react-map-gl/maplibre";
 import LocationPin, { PIN_TIP_OFFSET } from "./LocationPin";
 import CustomMapControls from "./CustomMapControls";
-import { ExternalLink, Gauge, Leaf, Map as MapIcon, Milestone, Mountain, Satellite as SatelliteIcon } from "lucide-react";
+import { ExternalLink, Gauge, Leaf, Map as MapIcon, Milestone, Moon, Mountain, Satellite as SatelliteIcon } from "lucide-react";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
 import { detectLowEndDevice } from "../../utils/mapDevice";
 import { useTheme } from "../../context/ThemeContext";
@@ -167,6 +167,7 @@ const BASEMAP_BUTTONS = [
   { key: "satellite", label: "Satelital", icon: SatelliteIcon },
   { key: "terreno", label: "Terreno", icon: Mountain },
   { key: "theme", label: "Mapa (según tema)", icon: MapIcon },
+  { key: "oscuro", label: "Oscuro", icon: Moon },
 ];
 
 export { BASEMAPS };
@@ -184,6 +185,17 @@ const NDVI_LEGEND = [
 ];
 
 const GROUND_LEVEL_ZOOM = 18;
+
+/** Vuelo suave: más largo cuanto más zoom hay que recorrer, con arranque y llegada suaves y sin alejarse primero. */
+const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+function smoothFlight(map, targetZoom) {
+  const dz = Math.abs(targetZoom - map.getZoom());
+  return {
+    duration: Math.min(1800, 700 + dz * 130),
+    curve: 1.1,
+    easing: easeInOutCubic,
+  };
+}
 
 /**
  * Calcula el color de NDVI según el rango.
@@ -272,6 +284,7 @@ function MapControls({
   onLayerChange,
   basemap,
   onBasemapChange,
+  basemapKeys,
   showBoundaries,
   onToggleBoundaries,
 }) {
@@ -293,7 +306,7 @@ function MapControls({
         </>
       )}
 
-      {BASEMAP_BUTTONS.map((b) => (
+      {BASEMAP_BUTTONS.filter((b) => (basemapKeys ? basemapKeys.includes(b.key) : b.key !== "oscuro")).map((b) => (
         <ToolbarIconButton
           key={b.key}
           icon={b.icon}
@@ -357,11 +370,14 @@ const MapLegend = memo(function MapLegend({ layer }) {
  *   showLayerControl?: boolean,
  *   showLegend?: boolean,   // leyenda arriba a la derecha (por defecto igual que showLayerControl)
  *   showBoundariesByDefault?: boolean,
+ *   showPopup?: boolean,   // false = no abre el popup al tocar una parcela (la página muestra su propio detalle)
  *   viewOnly?: boolean,   // solo visualizar el lugar: sin capas de riesgo/NDVI y con pin en vez de círculo
  *   rounded?: boolean,    // true = esquinas redondeadas (los mapas nunca llevan borde)
  *   edgeFade?: boolean,   // desvanece el mapa hacia el fondo de la app solo en el borde izquierdo (lg+), con el color del tema; para el mapa satelital junto al sidebar
  *   controlsLeftClassName?: string,   // offset izquierdo de la barra de capas (por defecto "left-3")
  *   controlsTopClassName?: string,   // clase de Tailwind para el offset superior de la barra de capas (por defecto "top-3"); útil cuando algo del layout de la página, como un título, ya ocupa esa esquina.
+ *   basemapKeys?: string[],   // botones de mapa base a mostrar (por defecto: satelital, terreno y mapa según tema)
+ *   zoomClassName?: string,   // clases extra para reubicar la barra de zoom
  *   controlsOrientation?: "vertical" | "horizontal",   // dirección de la barra de zoom (por defecto "vertical")
  *   basemap?: "satellite" | "terreno",   // mapa base inicial; si se omite, sigue el tema de la app
  * }} props
@@ -370,6 +386,7 @@ function ParcelMapGL({
   parcels,
   selectedId,
   onSelect,
+  showPopup = true,
   height = 420,
   center = [19.9, -98.1],
   zoom = 8,
@@ -383,7 +400,10 @@ function ParcelMapGL({
   controlsLeftClassName = "left-3",
   edgeFade = false,
   controlsOrientation = "vertical",
+  zoomClassName = "",
+  basemapKeys,
   basemap: initialBasemap,
+  onWebGLError,
 }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
@@ -445,7 +465,7 @@ function ParcelMapGL({
       } else {
         map.flyTo({
           ...transitionConfig,
-          duration: 800,
+          ...smoothFlight(map, transitionConfig.zoom),
         });
       }
 
@@ -455,6 +475,19 @@ function ParcelMapGL({
   );
 
   useEffect(() => {
+    if (selectedId === undefined || selectedId === null) {
+      // Se cerró el detalle: quita el resaltado de la parcela que estaba seleccionada.
+      const map = mapRef.current?.getMap();
+      if (map && previouslyClickedRef.current !== null) {
+        try {
+          map.setFeatureState({ source: "parcels", id: previouslyClickedRef.current }, { clicked: false });
+        } catch {
+          /* la fuente aún no existe: no hay nada que limpiar */
+        }
+        previouslyClickedRef.current = null;
+      }
+      return;
+    }
     if (selectedId !== undefined && selectedId !== null) {
       const parcel = parcels.find((p) => p.id === selectedId);
       if (parcel) {
@@ -484,7 +517,7 @@ function ParcelMapGL({
           } else {
             map.flyTo({
               ...transitionConfig,
-              duration: 600,
+              ...smoothFlight(map, transitionConfig.zoom),
             });
           }
         }
@@ -561,21 +594,29 @@ function ParcelMapGL({
     paint: {
       "circle-color": ["get", "color"],
 
+      // El radio crece con el zoom: de lejos los puntos son pequeños (no se amontonan en manchas
+      // enormes) y al acercarse llegan a su tamaño normal de forma gradual.
       "circle-radius": [
-        "case",
-        ["boolean", ["feature-state", "clicked"], false],
-        14,
-        ["boolean", ["feature-state", "hover"], false],
-        11,
-        9,
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        4,
+        ["case", ["boolean", ["feature-state", "clicked"], false], 6, ["boolean", ["feature-state", "hover"], false], 5, 3.5],
+        8,
+        ["case", ["boolean", ["feature-state", "clicked"], false], 9, ["boolean", ["feature-state", "hover"], false], 8, 6],
+        12,
+        ["case", ["boolean", ["feature-state", "clicked"], false], 14, ["boolean", ["feature-state", "hover"], false], 11, 9],
       ],
 
       "circle-stroke-color": "#ffffff",
       "circle-stroke-width": [
-        "case",
-        ["boolean", ["feature-state", "clicked"], false],
-        3,
-        2,
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        4,
+        1,
+        12,
+        ["case", ["boolean", ["feature-state", "clicked"], false], 3, 2],
       ],
 
       "circle-opacity": 0.9,
@@ -621,6 +662,11 @@ function ParcelMapGL({
         attributionControl={false}
         fadeDuration={0}
         interactiveLayerIds={viewOnly ? [] : ["parcels-layer"]}
+        onError={(e) => {
+          // Sin WebGL (o contexto no disponible): avisa para que ParcelMap cambie a Leaflet.
+          const message = String(e?.error?.message ?? e?.originalEvent?.message ?? e?.message ?? "");
+          if (/webgl/i.test(message)) onWebGLError?.();
+        }}
         onClick={handleMapClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -632,6 +678,7 @@ function ParcelMapGL({
           initialZoom={zoom}
           position="bottom-right"
           orientation={controlsOrientation}
+          className={zoomClassName}
           containerRef={containerRef}
         />
 
@@ -660,7 +707,7 @@ function ParcelMapGL({
           </Source>
         )}
 
-        {!viewOnly && popupInfo && (
+        {!viewOnly && showPopup && popupInfo && (
           <Popup
             latitude={popupInfo.lat}
             longitude={popupInfo.lng}
@@ -734,6 +781,7 @@ function ParcelMapGL({
             onLayerChange={setLayer}
             basemap={basemap}
             onBasemapChange={handleBasemapChange}
+            basemapKeys={basemapKeys}
             showBoundaries={showBoundaries}
             onToggleBoundaries={setShowBoundaries}
           />

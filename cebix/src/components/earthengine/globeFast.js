@@ -179,11 +179,18 @@ export class SphereRaster {
     this.vb = new Float32Array(cap);
     this.lvA = new Uint8Array(cap);
     this.ord = new Int32Array(cap);
+    // Copias en el orden de los grupos de mip: así el muestreo recorre la memoria de forma secuencial.
+    this.tbP = new Float32Array(cap);
+    this.vbP = new Float32Array(cap);
+    this.dstP = new Int32Array(cap);
+    this.shP = new Float32Array(cap * 6);
   }
 
   setTexture(tex) {
     this.tex = tex;
     this.tiltOk = false; // el nivel de mip y los casquetes polares dependen del tamaño de la textura
+    this.lodOk = false;
+    this.permOk = false;
   }
 
   /**
@@ -238,13 +245,15 @@ export class SphereRaster {
     this.n = n;
     this.R = R;
     this.tiltOk = false;
+    this.lodOk = false;
+    this.permOk = false;
   }
 
   /**
    * Paso 3. Para cada píxel: columna base (en vueltas, 0..1), fila normalizada (0..1) y nivel de mip.
    * Se agrupan los píxeles por nivel para que el bucle de cada cuadro tenga constantes por nivel.
    */
-  _tilt(lat0) {
+  _tilt(lat0, reuseLod = false) {
     const { levels } = this.tex;
     const maxL = levels.length - 1;
     const W0 = levels[0].w;
@@ -258,7 +267,12 @@ export class SphereRaster {
     const capBot = maxL + 2;
     const { nxA, nyA, nzA, tb, vb, lvA, ord, bStart, n } = this;
     const counts = bStart;
-    counts.fill(0);
+    // Con la inclinación casi igual a la del cuadro anterior (vuelos y arrastres), el nivel de mip de
+    // cada píxel no cambia: se conserva y solo se recalculan fila y columna. Los píxeles que cruzan al
+    // casquete polar (o salen de él) sí se recalculan; si alguno cambia de grupo se reordena todo.
+    const keep = reuseLod && this.lodOk;
+    let changed = !keep;
+    if (!keep) counts.fill(0);
 
     for (let i = 0; i < n; i++) {
       const nx = nxA[i];
@@ -279,51 +293,98 @@ export class SphereRaster {
       if (nx < 0) a = -a;
       tb[i] = a * INV_2PI + 0.5;
 
+      if (keep) {
+        const old = lvA[i];
+        if (vN >= 0 && vN <= 1 && old <= maxL) continue; // mismo nivel de mip
+        const L = vN < 0 ? capTop : vN > 1 ? capBot : this._lod(nx, ny, nz, z1, sinP, cosP, kU, kV, maxL);
+        if (L !== old) {
+          lvA[i] = L;
+          changed = true;
+        }
+        continue;
+      }
+
       // El casquete empieza donde termina Mercator (sen lat = ±SMAX, vN = 0 / 1), como en la
       // referencia; entre el centro de la primera fila y ese borde se repite la fila extrema.
-      let L;
-      if (vN < 0) L = capTop;
-      else if (vN > 1) L = capBot;
-      else {
-        // Nivel de mip: tamaño en texels de la huella de un píxel de pantalla (derivadas analíticas).
-        const inz = 1 / (nz > 1e-3 ? nz : 1e-3);
-        const gx = nx * inz;
-        const gy = ny * inz;
-        const dywx = -sinP * gx;
-        const dywy = cosP - sinP * gy;
-        const dz1x = -cosP * gx;
-        const dz1y = -cosP * gy - sinP;
-        const ir2 = 1 / (nx * nx + z1 * z1 + 1e-9);
-        const dax = (z1 - nx * dz1x) * ir2 * kU;
-        const day = -nx * dz1y * ir2 * kU;
-        const vx = dywx * kV;
-        const vy = dywy * kV;
-        const fx2 = dax * dax + vx * vx;
-        const fy2 = day * day + vy * vy;
-        const f2 = fx2 > fy2 ? fx2 : fy2;
-        L = 0;
-        while (L < maxL && f2 >= LOD_T[L + 1]) L++;
-      }
+      const L = vN < 0 ? capTop : vN > 1 ? capBot : this._lod(nx, ny, nz, z1, sinP, cosP, kU, kV, maxL);
       lvA[i] = L;
       counts[L]++;
     }
 
-    // Conteo → posiciones de inicio (bStart[L] = inicio del grupo L; bStart[capBot + 1] = n).
-    let acc = 0;
-    for (let L = 0; L <= capBot; L++) {
-      const c = counts[L];
-      counts[L] = acc;
-      acc += c;
+    if (!keep) this.lodLat = lat0;
+    if (changed) {
+      if (keep) {
+        counts.fill(0);
+        for (let i = 0; i < n; i++) counts[lvA[i]]++;
+      }
+      // Conteo → posiciones de inicio (bStart[L] = inicio del grupo L; bStart[capBot + 1] = n).
+      let acc = 0;
+      for (let L = 0; L <= capBot; L++) {
+        const c = counts[L];
+        counts[L] = acc;
+        acc += c;
+      }
+      counts[capBot + 1] = acc;
+      // Colocación estable (los índices de cada grupo quedan crecientes → buen acceso a memoria).
+      const pos = this._pos || (this._pos = new Int32Array(20));
+      pos.set(counts);
+      for (let i = 0; i < n; i++) ord[pos[lvA[i]]++] = i;
     }
-    counts[capBot + 1] = acc;
-    // Colocación estable (los índices de cada grupo quedan crecientes → buen acceso a memoria).
-    const pos = this._pos || (this._pos = new Int32Array(20));
-    pos.set(counts);
-    for (let i = 0; i < n; i++) ord[pos[lvA[i]]++] = i;
+
+    // Reordenación: si el orden no cambió solo se refrescan fila y columna; si cambió, también destino y luz.
+    {
+      const { tbP, vbP, dstP, shP, dst, sh } = this;
+      if (changed || !this.permOk) {
+        for (let j = 0; j < n; j++) {
+          const i = ord[j];
+          tbP[j] = tb[i];
+          vbP[j] = vb[i];
+          dstP[j] = dst[i];
+          const q = 6 * i;
+          const p = 6 * j;
+          shP[p] = sh[q];
+          shP[p + 1] = sh[q + 1];
+          shP[p + 2] = sh[q + 2];
+          shP[p + 3] = sh[q + 3];
+          shP[p + 4] = sh[q + 4];
+          shP[p + 5] = sh[q + 5];
+        }
+        this.permOk = true;
+      } else {
+        for (let j = 0; j < n; j++) {
+          const i = ord[j];
+          tbP[j] = tb[i];
+          vbP[j] = vb[i];
+        }
+      }
+    }
 
     this.tiltLat = lat0;
     this.tiltOk = true;
+    this.lodOk = true;
     this.maxL = maxL;
+  }
+
+  /** Nivel de mip de un píxel: tamaño en texels de su huella en pantalla (derivadas analíticas). */
+  _lod(nx, ny, nz, z1, sinP, cosP, kU, kV, maxL) {
+    const inz = 1 / (nz > 1e-3 ? nz : 1e-3);
+    const gx = nx * inz;
+    const gy = ny * inz;
+    const dywx = -sinP * gx;
+    const dywy = cosP - sinP * gy;
+    const dz1x = -cosP * gx;
+    const dz1y = -cosP * gy - sinP;
+    const ir2 = 1 / (nx * nx + z1 * z1 + 1e-9);
+    const dax = (z1 - nx * dz1x) * ir2 * kU;
+    const day = -nx * dz1y * ir2 * kU;
+    const vx = dywx * kV;
+    const vy = dywy * kV;
+    const fx2 = dax * dax + vx * vx;
+    const fy2 = day * day + vy * vy;
+    const f2 = fx2 > fy2 ? fx2 : fy2;
+    let L = 0;
+    while (L < maxL && f2 >= LOD_T[L + 1]) L++;
+    return L;
   }
 
   /**
@@ -331,14 +392,16 @@ export class SphereRaster {
    * Solo recalcula la tabla de inclinación si lat0 cambió; girar en longitud no hace trigonometría.
    * `out` debe tener ya en cero los píxeles fuera de la esfera.
    */
-  render(out, lon0, lat0) {
+  render(out, lon0, lat0, fast = false) {
     if (!this.tex) {
       this.lastTilt = false;
       this._flat(out);
       return;
     }
     if (!this.tiltOk || Math.abs(lat0 - this.tiltLat) > 1e-6) {
-      this._tilt(lat0);
+      // En movimiento, mientras la inclinación siga a menos de ~1° de la del último cálculo completo de
+      // niveles de mip, se reutilizan esos niveles (cambian muy poco); pasado ese margen se recalculan.
+      this._tilt(lat0, fast && this.lodOk && Math.abs(lat0 - this.lodLat) < 0.02);
       this.lastTilt = true;
     } else this.lastTilt = false;
     this._sample(out, lon0);
@@ -360,7 +423,7 @@ export class SphereRaster {
 
   _sample(out, lon0) {
     const { levels, top, bottom } = this.tex;
-    const { tb, vb, ord, dst, sh, bStart } = this;
+    const { tbP, vbP, dstP, shP, bStart } = this;
     const maxL = levels.length - 1;
     let o = lon0 * INV_2PI;
     o -= Math.floor(o);
@@ -377,11 +440,10 @@ export class SphereRaster {
       const hMax = H - 1;
       const uOff = o * W + W - 0.5; // +W mantiene u positivo; la máscara resuelve la costura de ±180°
       for (let j = j0; j < j1; j++) {
-        const i = ord[j];
-        const u = tb[i] * W + uOff;
+        const u = tbP[j] * W + uOff;
         const xi = u | 0;
         const fx = ((u - xi) * 256) | 0;
-        let v = vb[i] * H - 0.5;
+        let v = vbP[j] * H - 0.5;
         v = v < 0 ? 0 : v > hMax ? hMax : v;
         const yi = v | 0;
         const fy = ((v - yi) * 256) | 0;
@@ -402,14 +464,14 @@ export class SphereRaster {
         const ga = ((c00 & GM) * fx1 + (c10 & GM) * fx + 0x80) >>> 8;
         const gb = ((c01 & GM) * fx1 + (c11 & GM) * fx + 0x80) >>> 8;
         const gv = ga * fy1 + gb * fy + 0x8000;
-        const q = 6 * i;
-        let r = ((rb >>> 8) & 255) * sh[q] + sh[q + 3];
-        let g = (gv >>> 16) * sh[q + 1] + sh[q + 4];
-        let b = (rb >>> 24) * sh[q + 2] + sh[q + 5];
+        const q = 6 * j;
+        let r = ((rb >>> 8) & 255) * shP[q] + shP[q + 3];
+        let g = (gv >>> 16) * shP[q + 1] + shP[q + 4];
+        let b = (rb >>> 24) * shP[q + 2] + shP[q + 5];
         r = r > 255 ? 255 : r;
         g = g > 255 ? 255 : g;
         b = b > 255 ? 255 : b;
-        out[dst[i]] = 0xff000000 | (b << 16) | (g << 8) | r;
+        out[dstP[j]] = 0xff000000 | (b << 16) | (g << 8) | r;
       }
     }
 
@@ -418,15 +480,14 @@ export class SphereRaster {
       const L = maxL + 1 + c;
       const col = c === 0 ? top : bottom;
       for (let j = bStart[L]; j < bStart[L + 1]; j++) {
-        const i = ord[j];
-        const q = 6 * i;
-        let r = col[0] * sh[q] + sh[q + 3];
-        let g = col[1] * sh[q + 1] + sh[q + 4];
-        let b = col[2] * sh[q + 2] + sh[q + 5];
+        const q = 6 * j;
+        let r = col[0] * shP[q] + shP[q + 3];
+        let g = col[1] * shP[q + 1] + shP[q + 4];
+        let b = col[2] * shP[q + 2] + shP[q + 5];
         r = r > 255 ? 255 : r;
         g = g > 255 ? 255 : g;
         b = b > 255 ? 255 : b;
-        out[dst[i]] = 0xff000000 | (b << 16) | (g << 8) | r;
+        out[dstP[j]] = 0xff000000 | (b << 16) | (g << 8) | r;
       }
     }
   }

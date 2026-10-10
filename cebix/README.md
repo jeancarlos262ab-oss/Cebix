@@ -129,3 +129,22 @@ src/
   context/      ModelInfo (/model-info), Parcels (corrida actual), tema, auth
   utils/        parcelStats.js (estadísticas de la corrida), CSV, reporte PDF
 ```
+
+## Notificaciones por correo
+
+Ajustes → Notificaciones guarda tres preferencias en `profiles` (`notif_email`, `notif_risk`, `notif_weekly`).
+
+- **Alertas de riesgo**: la app manda una foto compacta del portafolio a `/api/portfolio-sync` (2.5 s después de cualquier cambio).
+  El servidor la compara con la anterior y, si una parcela que ya existía pasó a amarillo o rojo, manda **un solo correo agrupado**.
+  La primera sincronización solo guarda; las parcelas nuevas no generan aviso.
+- **Resumen semanal**: el cron de Vercel (`vercel.json`, lunes 14:00 UTC = 8:00 a. m. CDMX) llama a `/api/weekly-summary`.
+  Viene apagado por defecto.
+- **Alertas por correo** es el interruptor general. Cada correo trae enlace de baja (`/api/unsubscribe`, firmado con HMAC).
+
+Para activarlo:
+1. Ejecuta `supabase/notificaciones.sql` en Supabase (SQL Editor).
+2. En Vercel agrega `APP_URL`, `UNSUBSCRIBE_SECRET` y `CRON_SECRET` (ver `.env.example`). El resto de variables ya existen por el registro con OTP.
+3. Vuelve a desplegar.
+
+Límite: Gmail SMTP permite ~500 correos al día; si crece la base de usuarios, cambia solo `api/_lib/mailer.js` a Resend/Postmark.
+

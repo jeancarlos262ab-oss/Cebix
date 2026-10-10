@@ -1,3 +1,5 @@
+import { formatDateTime } from "./intl";
+
 /**
  * Genera y descarga un reporte de crédito en PDF para una parcela, con los
  * mismos datos que se muestran en el panel (rendimiento, score, SHAP local).
@@ -19,7 +21,7 @@ export async function generateCreditReportPDF(parcel, { submitted = false, model
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(110);
-  doc.text(`Generado el ${new Date().toLocaleString("es-MX")}`, marginX, y);
+  doc.text(`Generado el ${formatDateTime(new Date())}`, marginX, y);
   doc.setTextColor(0);
 
   y += 26;

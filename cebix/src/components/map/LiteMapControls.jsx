@@ -22,6 +22,7 @@ function LiteMapControls({
   initialZoom,
   position = "bottom-right",
   orientation = "vertical",
+  className = "",
   containerRef,
 }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -117,7 +118,7 @@ function LiteMapControls({
 
   return (
     <div
-      className={`absolute z-1000 flex ${horizontal ? "flex-row" : "flex-col"} items-center gap-0.5 rounded-lg border border-white/15 bg-black/90 p-1 text-gray-100 ${positionClasses}`}
+      className={`absolute z-1000 flex ${horizontal ? "flex-row" : "flex-col"} items-center gap-0.5 rounded-lg border border-white/15 bg-black/90 p-1 text-gray-100 ${positionClasses} ${className}`}
       role="group"
       aria-label="Controles del mapa"
     >

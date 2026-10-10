@@ -11,6 +11,7 @@ import estadosBoundaries from "../../data/estadosBoundaries.json";
 import { loadGlobeTexture } from "./globeTexture";
 import { projectPoint } from "./globeRender";
 import { SphereLayer } from "./globeLayer";
+import { SphereWorkerClient } from "./globeWorkerClient";
 import { createSky } from "./globeStars";
 
 /**
@@ -68,6 +69,13 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
   if (!layer.current) layer.current = new SphereLayer({ collectStats: !!import.meta.env.DEV });
   const sky = useRef(null);
   if (!sky.current) sky.current = createSky();
+  // Esfera en un hilo aparte (si el navegador lo permite): cliente, cuadro en vuelo y estado.
+  const workerRef = useRef(null);
+  const skyBuf = useRef(null); // lienzo auxiliar donde se pinta el cielo mientras llega la esfera
+  const frameRef = useRef(null); // parámetros del cuadro en vuelo
+  const doneSig = useRef(null); // firma del último cuadro compuesto
+  const texSent = useRef(null);
+  const dirty = useRef(false);
   const pageActive = usePageActive() && active;
   const activeRef = useRef(pageActive);
   activeRef.current = pageActive;
@@ -80,45 +88,8 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
   const [busy, setBusy] = useState(false);
 
   /* ───────────── dibujo ───────────── */
-  const render = useCallback(() => {
-    rafRender.current = 0;
-    const canvas = canvasRef.current;
-    const { w, h } = dims.current;
-    if (!canvas || !w || !h || !activeRef.current) return;
-    const q = Math.min(window.devicePixelRatio || 1, MAX_DPR); // fijo: el lienzo no se realoca al arrastrar
-    const cw = Math.max(2, Math.round(w * q));
-    const ch = Math.max(2, Math.round(h * q));
-    if (canvas.width !== cw || canvas.height !== ch) {
-      canvas.width = cw;
-      canvas.height = ch;
-    }
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, cw, ch);
-
-    const { lon, lat, zoom } = view.current;
-    const R = Math.min(w, h) * BASE_R * zoom * q;
-    const cx = cw / 2;
-    const cy = ch / 2;
-    const lon0 = lon * D2R;
-    const lat0 = lat * D2R;
-
-    // Cielo: estrellas y constelaciones detrás del globo, giran con él (ver globeStars.js).
-    sky.current.draw(ctx, { cw, ch, lon0, lat0, q, zoom, fast: fast.current });
-
-    // Esfera: tablas precalculadas + desplazamiento por giro (ver globeLayer.js).
-    layer.current.setTexture(tex.current.z3 || tex.current.z2 || null);
-    layer.current.draw(ctx, {
-      cw,
-      ch,
-      cx,
-      cy,
-      R,
-      lon0,
-      lat0,
-      fast: fast.current,
-      reference: import.meta.env.DEV && !!window.__globePerf?.reference,
-    });
-
+  // Contornos de los estados y pin de la zona de estudio (encima de cielo y esfera).
+  const drawOverlay = useCallback((ctx, { cx, cy, R, lon0, lat0, q }) => {
     const pt = { x: 0, y: 0 };
     const line = (coords, close = false) => {
       let pen = false;
@@ -173,6 +144,116 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
     }
   }, []);
 
+  // Cuadro compuesto (cielo + esfera + trazos) cuando la esfera llega del hilo aparte.
+  const composeFrame = useCallback(
+    (msg) => {
+      const f = frameRef.current;
+      frameRef.current = null;
+      const canvas = canvasRef.current;
+      const sb = skyBuf.current;
+      if (!f || !canvas || !sb) {
+        msg.bitmap.close();
+        return;
+      }
+      if (canvas.width !== f.cw || canvas.height !== f.ch) {
+        canvas.width = f.cw;
+        canvas.height = f.ch;
+      }
+      const ctx = canvas.getContext("2d", { alpha: false });
+      ctx.drawImage(sb.canvas, 0, 0);
+      ctx.drawImage(msg.bitmap, 0, 0);
+      msg.bitmap.close();
+      drawOverlay(ctx, f);
+      doneSig.current = f.sig;
+      // Mientras la esfera se calculaba, la vista pudo cambiar: se pinta el cuadro más reciente.
+      if (dirty.current && activeRef.current) {
+        dirty.current = false;
+        if (!rafRender.current) rafRender.current = requestAnimationFrame(render);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [drawOverlay],
+  );
+
+  const render = useCallback(() => {
+    rafRender.current = 0;
+    const canvas = canvasRef.current;
+    const { w, h } = dims.current;
+    if (!canvas || !w || !h || !activeRef.current) return;
+    const frameT0 = performance.now();
+    const q = Math.min(window.devicePixelRatio || 1, MAX_DPR); // fijo: el lienzo no se realoca al arrastrar
+    const cw = Math.max(2, Math.round(w * q));
+    const ch = Math.max(2, Math.round(h * q));
+
+    const { lon, lat, zoom } = view.current;
+    const R = Math.min(w, h) * BASE_R * zoom * q;
+    const cx = cw / 2;
+    const cy = ch / 2;
+    const lon0 = lon * D2R;
+    const lat0 = lat * D2R;
+    const tx = tex.current.z3 || tex.current.z2 || null;
+
+    /* Camino rápido: la esfera se calcula en un hilo aparte mientras aquí se pinta el cielo. */
+    const client = workerRef.current;
+    if (client) {
+      if (tx !== texSent.current) {
+        texSent.current = tx;
+        client.setTexture(tx);
+        doneSig.current = null; // textura nueva: hay que repintar aunque la vista sea la misma
+      }
+      const sig = `${cw}|${ch}|${lon0}|${lat0}|${R}|${fast.current}|${tx ? tx.levels.length : 0}`;
+      if (client.busy) {
+        if (sig !== frameRef.current?.sig) dirty.current = true;
+        return;
+      }
+      if (sig === doneSig.current) return; // nada cambió desde el último cuadro
+      let sb = skyBuf.current;
+      if (!sb) {
+        const c = document.createElement("canvas");
+        sb = skyBuf.current = { canvas: c, ctx: c.getContext("2d", { alpha: false }) };
+      }
+      if (sb.canvas.width !== cw || sb.canvas.height !== ch) {
+        sb.canvas.width = cw;
+        sb.canvas.height = ch;
+      }
+      frameRef.current = { sig, cw, ch, cx, cy, R, lon0, lat0, q };
+      client.draw({ cw, ch, cx, cy, R, lon0, lat0, fast: fast.current });
+      sb.ctx.fillStyle = "#000";
+      sb.ctx.fillRect(0, 0, cw, ch);
+      sky.current.draw(sb.ctx, { cw, ch, lon0, lat0, q, zoom, fast: fast.current });
+      return;
+    }
+
+    if (canvas.width !== cw || canvas.height !== ch) {
+      canvas.width = cw;
+      canvas.height = ch;
+    }
+    // alpha:false → el navegador compone el lienzo como opaco (más rápido). El fondo ya era negro.
+    const ctx = canvas.getContext("2d", { alpha: false });
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, cw, ch);
+
+    // Cielo: estrellas y constelaciones detrás del globo, giran con él (ver globeStars.js).
+    sky.current.draw(ctx, { cw, ch, lon0, lat0, q, zoom, fast: fast.current });
+
+    // Esfera: tablas precalculadas + desplazamiento por giro (ver globeLayer.js).
+    layer.current.setTexture(tx);
+    layer.current.draw(ctx, {
+      cw,
+      ch,
+      cx,
+      cy,
+      R,
+      lon0,
+      lat0,
+      fast: fast.current,
+      reference: import.meta.env.DEV && !!window.__globePerf?.reference,
+    });
+
+    drawOverlay(ctx, { cx, cy, R, lon0, lat0, q });
+    layer.current.reportFrame(performance.now() - frameT0, fast.current);
+  }, [drawOverlay]);
+
   const requestRender = useCallback(
     (isFast = false) => {
       fast.current = isFast;
@@ -184,6 +265,30 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
     },
     [render],
   );
+
+  // Hilo aparte para la esfera. Si no hay soporte o falla, todo sigue en el hilo principal.
+  useEffect(() => {
+    if (!SphereWorkerClient.supported()) return undefined;
+    const client = new SphereWorkerClient({
+      onFrame: composeFrame,
+      onFail: () => {
+        workerRef.current = null;
+        frameRef.current = null;
+        dirty.current = false;
+        doneSig.current = null;
+        requestRender(false);
+      },
+    });
+    workerRef.current = client;
+    texSent.current = null;
+    doneSig.current = null;
+    requestRender(false);
+    return () => {
+      client.terminate();
+      if (workerRef.current === client) workerRef.current = null;
+      frameRef.current = null;
+    };
+  }, [composeFrame, requestRender]);
 
   /* ───────────── vuelo animado ───────────── */
   const stopMotion = useCallback(() => {
@@ -251,7 +356,10 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
 
   // Re-dibuja al volver a la pantalla (keep-alive).
   useEffect(() => {
-    if (pageActive) requestRender(false);
+    if (pageActive) {
+      doneSig.current = null;
+      requestRender(false);
+    }
   }, [pageActive, requestRender]);
 
   // Texturas: primero 1024 px (rápida), luego 2048 px (nítida).
