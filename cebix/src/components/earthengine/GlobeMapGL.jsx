@@ -1,25 +1,23 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
-import { Crosshair, Pencil } from "lucide-react";
+import { Check, Crosshair, Eraser, MousePointer2, Pencil, Undo2 } from "lucide-react";
 import MapControls from "./MapControls";
 import { GHOST, PANEL, PRIMARY, STATUS } from "./mapUi";
 import { usePageActive } from "../../context/PageActiveContext";
 import { useTheme } from "../../context/ThemeContext";
 import { getAccentHex } from "../../utils/accentColors";
 import { estadoBounds } from "../../utils/polygon";
+import { parcelGridLines } from "../../utils/parcelGrid";
 import { ESTADOS } from "../../data/earthEngine";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 /**
- * Globo 3D con MapLibre GL (proyección "globe"). Se usa en equipos que aceptan WebGL con
- * aceleración; en los demás GeometryMap sigue usando el globo ligero de Canvas 2D (GlobeMap.jsx).
- * Mantiene exactamente las mismas props que GlobeMap para poder intercambiarlos.
+ * Mapa completo con MapLibre GL: globo 3D (proyección "globe") que al acercar pasa solo a mapa plano,
+ * y sobre el que también se dibuja la parcela. Es el único mapa cuando el equipo acepta WebGL; en los
+ * demás, GeometryMap usa el globo de Canvas 2D (GlobeMap.jsx) más el mapa plano de Leaflet.
  *
- * @param entry    {key, lat, lon, zoom?}  cada vez que `key` cambia (y el globo está activo) repite la
- *                 animación de entrada; si zoom > 1 hace un "alejar" suave desde ese punto
- * @param active   false mientras el mapa plano está al frente: el globo se queda montado pero en pausa
- * @param onEnter  (bounds, draw, isStudyZone) => void  al terminar el vuelo hacia la zona elegida
+ * Controlado por el padre, igual que el mapa plano: `points` ([lat,lng][]), `closed` y `drawing`.
  * @param onFail   () => void  si MapLibre GL no pudo arrancar o se perdió el contexto WebGL
  */
 
@@ -29,7 +27,6 @@ const STUDY_BOUNDS = [
 ];
 const STUDY = { lat: 19.6, lon: -98.1 };
 const REST_ZOOM = 1.6; // planeta completo, flotando en el espacio
-const BACK_ZOOM = 6; // punto de partida del "alejar" al volver del mapa plano
 const ESRI_IMAGERY = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -101,17 +98,39 @@ function paintPin(el, color) {
   if (core) core.style.background = color;
 }
 
-export default function GlobeMapGL({ entry, active = true, onEnter, onFail, isFullscreen, onToggleFullscreen }) {
-  const wrapRef = useRef(null);
+const EMPTY = { type: "FeatureCollection", features: [] };
+const toLngLat = (p) => [p[1], p[0]];
+
+function vertexElement(closeTarget) {
+  const el = document.createElement("div");
+  const size = closeTarget ? 14 : 10;
+  el.dataset.vertex = "1";
+  el.style.cssText = `width:${size}px;height:${size}px;background:#fff;border:1.5px solid #000;box-sizing:border-box`;
+  return el;
+}
+
+export default function GlobeMapGL({
+  points,
+  closed,
+  drawing,
+  locked,
+  fitKey,
+  onChange,
+  onStartDrawing,
+  onFinish,
+  onClear,
+  onUndo,
+  onFail,
+  isFullscreen,
+  onToggleFullscreen,
+}) {
   const mapEl = useRef(null);
   const mapRef = useRef(null);
   const pinRef = useRef(null);
-  const busyRef = useRef(false);
-  const onEnterRef = useRef(onEnter);
-  onEnterRef.current = onEnter;
-  const onFailRef = useRef(onFail);
-  onFailRef.current = onFail;
-  const pageActive = usePageActive() && active;
+  const vertexMarkers = useRef([]);
+  const live = useRef({});
+  live.current = { points, drawing, locked, onChange, onFinish, onFail };
+  const pageActive = usePageActive();
   const { accent, resolvedTheme } = useTheme();
   const color = getAccentHex(accent, resolvedTheme === "dark" ? "dark" : "light");
   const colorRef = useRef(color);
@@ -119,19 +138,13 @@ export default function GlobeMapGL({ entry, active = true, onEnter, onFail, isFu
 
   const [ready, setReady] = useState(false);
   const [tilesError, setTilesError] = useState(false);
-  const [busy, setBusy] = useState(false);
 
-  const setBusyBoth = useCallback((v) => {
-    busyRef.current = v;
-    setBusy(v);
-    const m = mapRef.current;
-    if (!m) return;
-    const fn = v ? "disable" : "enable";
-    m.dragPan[fn]();
-    m.scrollZoom[fn]();
-    m.doubleClickZoom[fn]();
-    m.touchZoomRotate[fn]();
-    if (!v) m.touchZoomRotate.disableRotation();
+  const ok = points.length >= 3;
+  const goStudy = useCallback(() => {
+    mapRef.current?.fitBounds(toLngLatBounds(STUDY_BOUNDS), { padding: 40, maxZoom: 12, duration: reducedMotion() ? 0 : 1100, essential: true });
+  }, []);
+  const goBounds = useCallback((b) => {
+    mapRef.current?.fitBounds(toLngLatBounds(b), { padding: 40, maxZoom: 12, duration: reducedMotion() ? 0 : 1100, essential: true });
   }, []);
 
   /* ───────────── creación del mapa (una sola vez) ───────────── */
@@ -144,7 +157,7 @@ export default function GlobeMapGL({ entry, active = true, onEnter, onFail, isFu
         center: [STUDY.lon, STUDY.lat],
         zoom: REST_ZOOM,
         minZoom: 0.8,
-        maxZoom: 12,
+        maxZoom: 19,
         maxPitch: 0,
         dragRotate: false,
         pitchWithRotate: false,
@@ -153,7 +166,7 @@ export default function GlobeMapGL({ entry, active = true, onEnter, onFail, isFu
       });
     } catch (err) {
       console.warn("MapLibre GL no pudo iniciar el globo:", err);
-      onFailRef.current?.();
+      live.current.onFail?.();
       return undefined;
     }
     mapRef.current = map;
@@ -161,45 +174,88 @@ export default function GlobeMapGL({ entry, active = true, onEnter, onFail, isFu
 
     map.on("load", () => {
       map.addSource("estados", { type: "geojson", data: estadosBoundaries });
-      map.addLayer({
-        id: "estados-line",
-        type: "line",
-        source: "estados",
-        paint: { "line-color": colorRef.current, "line-width": 1.2 },
-      });
+      map.addLayer({ id: "estados-line", type: "line", source: "estados", paint: { "line-color": colorRef.current, "line-width": 1.2 } });
+      map.addSource("parcel", { type: "geojson", data: EMPTY });
+      map.addSource("parcel-grid", { type: "geojson", data: EMPTY });
+      map.addLayer({ id: "parcel-fill", type: "fill", source: "parcel", filter: ["==", ["geometry-type"], "Polygon"], paint: { "fill-color": "#fff", "fill-opacity": 0.08 } });
+      map.addLayer({ id: "parcel-grid-casing", type: "line", source: "parcel-grid", paint: { "line-color": "#000", "line-width": 3.5, "line-opacity": 0.35 } });
+      map.addLayer({ id: "parcel-grid-line", type: "line", source: "parcel-grid", paint: { "line-color": "#fff", "line-width": 1.5 } });
+      map.addLayer({ id: "parcel-casing", type: "line", source: "parcel", paint: { "line-color": "#000", "line-width": 5, "line-opacity": 0.5 }, layout: { "line-join": "miter" } });
+      map.addLayer({ id: "parcel-line", type: "line", source: "parcel", paint: { "line-color": "#fff", "line-width": 2.5 }, layout: { "line-join": "miter" } });
       setReady(true);
     });
 
-    // Marcas de error de teselas (sin conexión o bloqueadas) y pérdida del contexto WebGL.
     map.on("error", (e) => {
       if (e?.sourceId === "imagery") setTilesError(true);
     });
     map.on("data", (e) => {
       if (e.sourceId === "imagery" && e.tile) setTilesError(false);
     });
+
+    // Clic en el mapa: agrega vértices mientras se dibuja.
+    map.on("click", (e) => {
+      const { drawing: d, locked: l, points: pts, onChange: change } = live.current;
+      if (!d || l || e.originalEvent?.target?.closest?.("[data-vertex]")) return;
+      change([...pts, [e.lngLat.lat, e.lngLat.lng]]);
+    });
+
     const canvas = map.getCanvas();
     const onLost = (ev) => {
       ev.preventDefault();
-      onFailRef.current?.();
+      live.current.onFail?.();
     };
     canvas.addEventListener("webglcontextlost", onLost);
 
-    // Pin de la zona de estudio
+    // Pin de la zona de estudio: acerca a la zona.
     const el = createPinElement(colorRef.current);
     el.addEventListener("click", (ev) => {
       ev.stopPropagation();
-      enterRef.current?.(STUDY_BOUNDS);
+      if (!live.current.drawing) goStudyRef.current?.();
     });
     pinRef.current = el;
     new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([STUDY.lon, STUDY.lat]).addTo(map);
 
+    // Si ya hay parcela, arranca encuadrada en ella; si no, entra girando hacia México.
+    const pts = live.current.points;
+    if (pts.length >= 3) {
+      const b = new maplibregl.LngLatBounds();
+      pts.forEach((p) => b.extend(toLngLat(p)));
+      map.fitBounds(b, { padding: 70, maxZoom: 17, duration: 0 });
+    } else if (reducedMotion()) {
+      map.jumpTo({ center: [STUDY.lon, STUDY.lat], zoom: REST_ZOOM });
+    } else {
+      map.jumpTo({ center: [STUDY.lon + 110, 8], zoom: REST_ZOOM });
+      map.easeTo({ center: [STUDY.lon, STUDY.lat], zoom: REST_ZOOM, duration: 1700, essential: true });
+    }
+
     return () => {
       canvas.removeEventListener("webglcontextlost", onLost);
+      vertexMarkers.current.forEach((m) => m.remove());
+      vertexMarkers.current = [];
       map.remove();
       mapRef.current = null;
       pinRef.current = null;
     };
   }, []);
+  const goStudyRef = useRef(goStudy);
+  goStudyRef.current = goStudy;
+
+  // Se re-mide al volver a la pantalla (keep-alive) o al cambiar de tamaño.
+  useEffect(() => {
+    if (pageActive) mapRef.current?.resize();
+  }, [pageActive]);
+  useEffect(() => {
+    const el = mapEl.current;
+    const ro = new ResizeObserver(() => mapRef.current?.resize());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // El pin de la zona de estudio se oculta mientras hay una parcela (o se dibuja una) para no taparla.
+  const hidePin = drawing || points.length > 0;
+  useEffect(() => {
+    if (pinRef.current) pinRef.current.style.display = hidePin ? "none" : "";
+  }, [hidePin, ready]);
 
   // El color de acento sigue al tema.
   useEffect(() => {
@@ -208,80 +264,148 @@ export default function GlobeMapGL({ entry, active = true, onEnter, onFail, isFu
     if (pinRef.current) paintPin(pinRef.current, color);
   }, [color, ready]);
 
-  /* ───────────── vuelos ───────────── */
-  const enter = useCallback(
-    (bounds, draw = false) => {
-      const m = mapRef.current;
-      if (!m || busyRef.current) return;
-      setBusyBoth(true);
-      const finish = () => onEnterRef.current?.(bounds, draw, bounds === STUDY_BOUNDS);
-      m.fitBounds(toLngLatBounds(bounds), {
-        padding: 40,
-        maxZoom: 9,
-        duration: reducedMotion() ? 0 : 1100,
-        essential: true,
-      });
-      m.once("moveend", finish);
-    },
-    [setBusyBoth],
-  );
-  const enterRef = useRef(enter);
-  enterRef.current = enter;
+  /* ───────────── dibujo de la parcela ───────────── */
+  const paintParcel = useCallback((pts, isClosed) => {
+    const m = mapRef.current;
+    const src = m?.getSource("parcel");
+    if (!src) return;
+    const coords = pts.map(toLngLat);
+    let data = EMPTY;
+    if (isClosed && pts.length >= 3) {
+      data = { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [[...coords, coords[0]]] } };
+    } else if (pts.length >= 2) {
+      data = { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: coords } };
+    }
+    src.setData(data);
+  }, []);
 
-  // Animación de entrada: viene girando hacia México, o se aleja si regresa del mapa plano.
+  const grid = useMemo(() => (closed && ok ? parcelGridLines(points) : []), [closed, ok, points]);
+
+  useEffect(() => {
+    if (!ready) return;
+    paintParcel(points, closed);
+    mapRef.current.getSource("parcel-grid").setData(
+      grid.length
+        ? { type: "Feature", properties: {}, geometry: { type: "MultiLineString", coordinates: grid.map((l) => l.map(toLngLat)) } }
+        : EMPTY,
+    );
+  }, [ready, points, closed, grid, paintParcel]);
+
+  // Vértices: cuadrados blancos; se arrastran cuando la parcela está cerrada; el primero cierra el trazo.
   useEffect(() => {
     const m = mapRef.current;
-    if (!m || !pageActive) return undefined;
-    setBusyBoth(false);
-    m.resize();
-    m.stop();
-    const dur = reducedMotion() ? 0 : undefined;
-    if ((entry.zoom ?? 1) > 1) {
-      m.jumpTo({ center: [entry.lon, entry.lat], zoom: BACK_ZOOM });
-      m.flyTo({ center: [STUDY.lon, STUDY.lat], zoom: REST_ZOOM, duration: dur ?? 1400, essential: true });
-    } else {
-      m.jumpTo({ center: [STUDY.lon + 110, 8], zoom: REST_ZOOM });
-      m.easeTo({ center: [STUDY.lon, STUDY.lat], zoom: REST_ZOOM, duration: dur ?? 1700, essential: true });
-    }
-    return () => m.stop();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entry.key, pageActive, ready]);
+    if (!ready || !m) return undefined;
+    vertexMarkers.current.forEach((mk) => mk.remove());
+    vertexMarkers.current = points.map((p, i) => {
+      const closeTarget = drawing && ok && i === 0;
+      const el = vertexElement(closeTarget);
+      el.style.cursor = closeTarget ? "pointer" : !locked && !drawing ? "move" : "default";
+      const mk = new maplibregl.Marker({ element: el, draggable: !locked && !drawing, anchor: "center" })
+        .setLngLat(toLngLat(p))
+        .addTo(m);
+      el.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        if (closeTarget) live.current.onFinish();
+      });
+      mk.on("drag", () => {
+        const ll = mk.getLngLat();
+        const cur = live.current.points.map((q, k) => (k === i ? [ll.lat, ll.lng] : q));
+        paintParcel(cur, true);
+      });
+      mk.on("dragend", () => {
+        const ll = mk.getLngLat();
+        live.current.onChange(live.current.points.map((q, k) => (k === i ? [ll.lat, ll.lng] : q)));
+      });
+      return mk;
+    });
+    return () => {
+      vertexMarkers.current.forEach((mk) => mk.remove());
+      vertexMarkers.current = [];
+    };
+  }, [ready, points, drawing, locked, ok, paintParcel]);
 
-  const status = busy
-    ? "Acercando a la zona…"
-    : !ready
-      ? "Cargando imágenes satelitales del planeta…"
-      : tilesError
-        ? "No se pudieron cargar las imágenes del globo (sin conexión o bloqueadas). El mapa plano sigue funcionando."
-        : "Arrastra para girar · rueda o +/− para acercar · toca el pin para entrar";
+  // Cursor de dibujo y sin zoom por doble clic mientras se marcan vértices.
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m) return;
+    const on = drawing && !locked;
+    m.getCanvas().style.cursor = on ? "crosshair" : "";
+    if (on) m.doubleClickZoom.disable();
+    else m.doubleClickZoom.enable();
+  }, [drawing, locked, ready]);
+
+  // Importar un GeoJSON (o cualquier nuevo `fitKey`): encuadra la parcela.
+  const firstFit = useRef(true);
+  useEffect(() => {
+    if (firstFit.current) {
+      firstFit.current = false;
+      return;
+    }
+    const m = mapRef.current;
+    if (!m || !fitKey || points.length < 3) return;
+    const b = new maplibregl.LngLatBounds();
+    points.forEach((p) => b.extend(toLngLat(p)));
+    m.fitBounds(b, { padding: 70, maxZoom: 17, duration: reducedMotion() ? 0 : 1100, essential: true });
+  }, [fitKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const startDrawing = () => {
+    onStartDrawing();
+    // Si se está viendo el planeta entero, baja a la zona de estudio para poder marcar vértices.
+    if ((mapRef.current?.getZoom() ?? 0) < 7) goStudy();
+  };
+
+  const status = locked
+    ? "Calculando índices… la parcela queda bloqueada"
+    : drawing
+      ? ok
+        ? "Sigue marcando vértices · toca el punto blanco o «Terminar» para cerrar"
+        : `Haz clic en el mapa para marcar los vértices (${points.length}/3 mínimo)`
+      : closed
+        ? "Arrastra los vértices para ajustar el contorno"
+        : !ready
+          ? "Cargando imágenes satelitales del planeta…"
+          : tilesError
+            ? "No se pudieron cargar las imágenes del globo (sin conexión o bloqueadas)."
+            : "Arrastra para girar · rueda o +/− para acercar · «Dibujar parcela» para marcar el contorno";
 
   return (
-    <div
-      ref={wrapRef}
-      className="relative h-full min-h-[440px] w-full overflow-hidden rounded-2xl border border-gray-200 bg-black dark:border-gray-800"
-    >
+    <div className="relative h-full min-h-[440px] w-full overflow-hidden rounded-2xl border border-gray-200 bg-black dark:border-gray-800">
       <div ref={mapEl} aria-label="Globo terráqueo interactivo" className="absolute inset-0 h-full w-full" />
 
       <div className="pointer-events-none absolute left-3 top-3 z-10">
         <div className={`pointer-events-auto flex items-center gap-0.5 p-1 ${PANEL}`}>
-          <button type="button" onClick={() => enter(STUDY_BOUNDS)} disabled={busy} className={PRIMARY}>
-            <Crosshair size={14} strokeWidth={1.75} /> Ir a la zona de estudio
+          <button type="button" onClick={goStudy} disabled={locked} className={GHOST}>
+            <Crosshair size={14} strokeWidth={1.75} /> <span className="hidden sm:inline">Zona de estudio</span>
           </button>
-          <button type="button" onClick={() => enter(STUDY_BOUNDS, true)} disabled={busy} className={GHOST}>
-            <Pencil size={14} strokeWidth={1.75} /> Dibujar parcela
+          <span className="mx-1 h-5 w-px bg-white/15" aria-hidden="true" />
+          {drawing ? (
+            <button type="button" onClick={onFinish} disabled={!ok || locked} className={PRIMARY}>
+              <Check size={14} /> Terminar
+            </button>
+          ) : (
+            <button type="button" onClick={startDrawing} disabled={locked} className={PRIMARY}>
+              {closed ? <MousePointer2 size={14} /> : <Pencil size={14} />}
+              {closed ? "Redibujar" : "Dibujar parcela"}
+            </button>
+          )}
+          <button type="button" aria-label="Deshacer último vértice" title="Deshacer último vértice" onClick={onUndo} disabled={!drawing || !points.length || locked} className={GHOST}>
+            <Undo2 size={14} /> <span className="hidden sm:inline">Deshacer</span>
+          </button>
+          <button type="button" aria-label="Borrar parcela" title="Borrar parcela" onClick={onClear} disabled={!points.length || locked} className={GHOST}>
+            <Eraser size={14} /> <span className="hidden sm:inline">Borrar</span>
           </button>
         </div>
       </div>
 
       <div className="pointer-events-none absolute right-3 top-3 z-10 flex flex-col items-end gap-2">
         <div className={`pointer-events-auto flex flex-col overflow-hidden ${PANEL}`}>
-          {ESTADOS.map((name, i) => (
+          <span className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wider text-gray-500">Ir a</span>
+          {ESTADOS.map((name) => (
             <button
               key={name}
               type="button"
-              disabled={busy}
-              onClick={() => enter(estadoBounds(name))}
-              className={`px-3 py-1.5 text-left text-[11px] font-medium text-gray-300 hover:bg-white/10 disabled:opacity-50 ${i ? "border-t border-white/10" : ""}`}
+              onClick={() => goBounds(estadoBounds(name))}
+              className="px-3 py-1.5 text-left text-[11px] font-medium text-gray-300 hover:bg-white/10"
             >
               {name}
             </button>
@@ -290,7 +414,6 @@ export default function GlobeMapGL({ entry, active = true, onEnter, onFail, isFu
       </div>
 
       <MapControls
-        disabled={busy}
         onZoomIn={() => mapRef.current?.zoomIn({ duration: 260 })}
         onZoomOut={() => mapRef.current?.zoomOut({ duration: 260 })}
         onReset={() =>
@@ -302,6 +425,10 @@ export default function GlobeMapGL({ entry, active = true, onEnter, onFail, isFu
 
       <div className="pointer-events-none absolute bottom-3 left-3 right-16 z-10 flex flex-col items-start gap-1.5">
         <p className={STATUS} role="status">
+          <span
+            aria-hidden="true"
+            className={`mr-2 inline-block size-1.5 align-middle ${locked ? "animate-pulse bg-amber-400" : drawing ? "bg-white" : "bg-white/40"}`}
+          />
           {status}
         </p>
         <p className="bg-black/60 px-1.5 py-0.5 text-[10px] text-gray-300">Imagen: Esri, Maxar, Earthstar Geographics</p>

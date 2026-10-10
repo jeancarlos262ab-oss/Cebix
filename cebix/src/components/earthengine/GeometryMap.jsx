@@ -340,7 +340,7 @@ export default function GeometryMap(props) {
   // MapLibre GL si el equipo acepta WebGL; si falla al arrancar, se cae al globo de Canvas 2D.
   const [glFailed, setGlFailed] = useState(false);
   const useGL = !glFailed && resolveMapEngine() === "gl";
-  const GlobeMap = useGL ? GlobeMapGL : GlobeMapCanvas;
+  const GlobeMap = GlobeMapCanvas;
   useEffect(() => {
     preloadWorldTiles();
   }, []);
@@ -377,10 +377,29 @@ export default function GeometryMap(props) {
   }
 
   // Si se empieza a dibujar desde el panel (no desde el globo), se pasa al mapa plano sobre la zona de estudio.
-  if (props.drawing && view === "globe") goFlat(START_BOUNDS);
+  if (!useGL && props.drawing && view === "globe") goFlat(START_BOUNDS);
 
   const pane = (on) =>
     `absolute inset-0 transition-[opacity,visibility] duration-300 ${on ? "visible opacity-100" : "invisible opacity-0"}`;
+
+  // Con MapLibre GL todo vive en un solo mapa: globo, zoom y dibujo de la parcela.
+  if (useGL) {
+    return (
+      <div ref={boxRef} className="relative h-full min-h-[440px] w-full [&:fullscreen]:bg-black">
+        <Suspense fallback={<div className="h-full w-full rounded-lg bg-black" />}>
+          <GlobeMapGL
+            {...props}
+            onFail={() => {
+              reportGLFailure();
+              setGlFailed(true);
+            }}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={toggleFullscreen}
+          />
+        </Suspense>
+      </div>
+    );
+  }
 
   // El contenedor es el que entra en pantalla completa, así sigue activa al cambiar de globo a mapa plano.
   return (
@@ -405,10 +424,6 @@ export default function GeometryMap(props) {
                 }
                 goFlat(target);
                 if (draw && !hasDrawing) onStartDrawing();
-              }}
-              onFail={() => {
-                reportGLFailure();
-                setGlFailed(true);
               }}
               isFullscreen={isFullscreen}
               onToggleFullscreen={toggleFullscreen}
