@@ -67,7 +67,28 @@ const STYLE = {
       source: "imagery",
       paint: { "raster-fade-duration": 0 },
     },
-    { id: "estados-line", type: "line", source: "estados", paint: { "line-color": "#ffffff", "line-width": 1.2 } },
+    // Los tres estados: relleno tenue (se nota aun cuando el planeta se ve pequeño), borde oscuro de
+    // contraste y línea en el color de acento. El relleno se aclara al acercar para no tapar la imagen.
+    {
+      id: "estados-fill",
+      type: "fill",
+      source: "estados",
+      paint: { "fill-color": "#ffffff", "fill-opacity": ["interpolate", ["linear"], ["zoom"], 2, 0.3, 6, 0.18, 9, 0.05] },
+    },
+    {
+      id: "estados-casing",
+      type: "line",
+      source: "estados",
+      layout: { "line-join": "round" },
+      paint: { "line-color": "#000", "line-opacity": 0.55, "line-width": ["interpolate", ["linear"], ["zoom"], 2, 3, 8, 4.5] },
+    },
+    {
+      id: "estados-line",
+      type: "line",
+      source: "estados",
+      layout: { "line-join": "round" },
+      paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 2, 1.6, 8, 2.4] },
+    },
     { id: "parcel-fill", type: "fill", source: "parcel", filter: ["==", ["geometry-type"], "Polygon"], paint: { "fill-color": "#fff", "fill-opacity": 0.08 } },
     { id: "parcel-grid-casing", type: "line", source: "parcel-grid", paint: { "line-color": "#000", "line-width": 3.5, "line-opacity": 0.35 } },
     { id: "parcel-grid-line", type: "line", source: "parcel-grid", paint: { "line-color": "#fff", "line-width": 1.5 } },
@@ -185,6 +206,7 @@ export default function GlobeMapGL({
     // las imágenes tarden o fallen).
     const markReady = () => {
       map.setPaintProperty("estados-line", "line-color", colorRef.current);
+      map.setPaintProperty("estados-fill", "fill-color", colorRef.current);
       setReady(true);
       map.resize();
     };
@@ -288,7 +310,10 @@ export default function GlobeMapGL({
   // El color de acento sigue al tema.
   useEffect(() => {
     const m = mapRef.current;
-    if (m?.getLayer("estados-line")) m.setPaintProperty("estados-line", "line-color", color);
+    if (m?.getLayer("estados-line")) {
+      m.setPaintProperty("estados-line", "line-color", color);
+      m.setPaintProperty("estados-fill", "fill-color", color);
+    }
     if (pinRef.current) paintPin(pinRef.current, color);
   }, [color, ready]);
 
