@@ -22,7 +22,7 @@ def predict_from_geometry(payload: GeometryRequest):
     """
     Calcula en vivo las 10 features de una parcela nueva desde satélite y corre el modelo.
     Usa fuentes abiertas (Sentinel-2, Landsat y CHIRPS), sin cuenta; tarda ~30–90 s. Un solo cálculo a la vez.
-    No hay tope de superficie: si la zona es muy grande se devuelve una advertencia (mezcla coberturas).
+    Superficie máxima: SAT_MAX_AREA_HA (5000 ha); entre 1000 ha y el máximo se calcula pero con advertencia.
 
     Errores: 422 geometría/año inválidos o sin datos satelitales, 429 otro cálculo en curso,
     502 falla de la fuente de imágenes, 503 librerías o credenciales faltantes en el servidor.

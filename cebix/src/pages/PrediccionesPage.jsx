@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "../services/toast";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Send, CheckCircle2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import TopBar from "../components/layout/TopBar";

@@ -115,6 +115,12 @@ export const SAT_FEATURES = [
 
 /** Año con el que se entrenó el modelo (ciclo abril–octubre). */
 export const TRAINED_YEAR = 2025;
+
+// Superficie máxima que acepta el cálculo satelital (el servicio no alcanza a procesar más): al pasarla la malla
+// se pinta en rojo y «Calcular» queda bloqueado hasta que el contorno se ajuste. Debe coincidir con SAT_MAX_AREA_HA
+// del backend. A partir de WARN_AREA_HA solo se advierte que la zona mezcla coberturas distintas.
+export const MAX_AREA_HA = 5000;
+export const WARN_AREA_HA = 1000;
 export const YEARS = [2025, 2024, 2023];
 
 /** Estados con los que se entrenó y valida el modelo. */

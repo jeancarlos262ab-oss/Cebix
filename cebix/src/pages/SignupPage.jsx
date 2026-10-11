@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "../services/toast";
 import { Link, useNavigate } from "react-router-dom";
 import { User, Mail, Lock, MailCheck } from "lucide-react";
 import AuthLayout from "../components/auth/AuthLayout";

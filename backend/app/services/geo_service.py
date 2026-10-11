@@ -632,11 +632,11 @@ def parse_uploads(uploads: list[tuple[str, bytes]]) -> dict:
             }
         )
 
-    big = [o for o in out if o["area_ha"] is not None and area_warning(o["area_ha"])]
+    big = [o for o in out if not o["error"] and area_warning(o["area_ha"])]
     if big:
         advertencias.append(
             f"{len(big)} polígono(s) miden más de {int(WARN_AREA_HA):,} ha (el mayor: {max(o['area_ha'] for o in big):,.0f} ha). "
-            "No es recomendable: una zona tan grande mezcla cultivos y coberturas distintas. Se calculan igual."
+            "No es recomendable: una zona tan grande mezcla cultivos y coberturas distintas."
         )
     if holes:
         advertencias.append(f"{holes} polígono(s) tienen huecos: el cálculo usa solo el contorno exterior.")

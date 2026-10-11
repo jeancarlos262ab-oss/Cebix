@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, Loader2, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "../../services/toast";
 import Avatar from "../ui/Avatar";
 import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_PRIMARY, MODAL_BTN_SMALL, ModalField, modalInput } from "../ui/Modal";
 import { useAuth } from "../../context/AuthContext";

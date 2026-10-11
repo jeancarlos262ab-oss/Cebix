@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "../services/toast";
 import { User, Pencil, KeyRound, ShieldCheck, CalendarDays, Mail } from "lucide-react";
 import Avatar from "../components/ui/Avatar";
 import { PhotoProvider, PhotoView } from "react-photo-view";

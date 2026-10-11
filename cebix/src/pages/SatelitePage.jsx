@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "../services/toast";
 import {
   AlertTriangle,
   Calculator,
@@ -23,7 +23,7 @@ import ValidationRunner from "../components/satelite/ValidationRunner";
 import { classifyRisk, scoreFromInputs } from "../context/ParcelsContext";
 import { STEP_MS, predictFromGeometry } from "../services/sateliteApi";
 import { parseGeometryFiles } from "../services/geoApi";
-import { ESTADOS, SAT_FEATURES, SAT_QUESTIONS, TRAINED_YEAR, YEARS } from "../data/satelite";
+import { ESTADOS, MAX_AREA_HA, SAT_FEATURES, SAT_QUESTIONS, TRAINED_YEAR, WARN_AREA_HA, YEARS } from "../data/satelite";
 import {
   areaHa,
   centroid,
@@ -35,9 +35,6 @@ import {
   toGeoJSONPolygon,
 } from "../utils/polygon";
 import { formatDistance } from "../utils/geo";
-
-// A partir de esta superficie (ha) se advierte que la zona mezclaría coberturas. No bloquea el cálculo.
-const AREA_WARN_HA = 1000;
 
 // Validación REAL: salida de backend/scripts/validate_satelite.py guardada como src/data/sateliteValidation.json.
 // Si el archivo no existe, la pestaña lo dice; nunca muestra cifras de ejemplo.
@@ -223,22 +220,24 @@ function NuevaParcelaTab() {
     []
   );
 
+  const overLimit = Boolean(info && info.ha > MAX_AREA_HA);
   const warnings = [];
   if (info?.crosses) warnings.push({ tone: "error", text: "El contorno se cruza consigo mismo. Arrastra los vértices o redibuja la parcela." });
   if (info && !info.crosses && info.ha < 1) warnings.push({ tone: "warn", text: "Menos de 1 ha (≈ 100 píxeles de 10 m): el promedio por escena puede ser poco representativo." });
-  // Sin tope de superficie: se puede calcular cualquier tamaño, pero se advierte que no es buena idea.
-  if (info && !info.crosses && info.ha > AREA_WARN_HA)
+  if (overLimit)
     warnings.push({
-      tone: "warn",
-      text: `Mide ${formatHa(info.ha)} ha: no es recomendable. Una zona tan grande mezcla cultivos y coberturas distintas (otros cultivos, monte, caminos, zonas urbanas) y el promedio deja de representar a una parcela. Puedes calcularla igual, pero es mejor dibujar cada parcela por separado.`,
+      tone: "error",
+      text: `La parcela mide ${formatHa(info.ha)} ha y el máximo es ${formatHa(MAX_AREA_HA)} ha: el servicio no alcanza a procesar una zona tan grande. Arrastra los vértices para reducirla o dibuja parcelas más chicas; el cálculo se habilita en cuanto quede dentro del límite.`,
     });
+  else if (info && !info.crosses && info.ha > WARN_AREA_HA)
+    warnings.push({ tone: "warn", text: "Es muy grande para una parcela: el promedio mezclaría cultivos y coberturas distintas." });
   if (info && !info.detected) warnings.push({ tone: "warn", text: "El polígono cae fuera de Hidalgo, Puebla y Tlaxcala. El modelo solo se entrenó y validó en esos estados." });
   if (info?.detected && info.detected !== estado) warnings.push({ tone: "warn", text: `El polígono está en ${info.detected} pero elegiste ${estado}; el margen de confianza depende del estado.` });
   if (anio !== TRAINED_YEAR) warnings.push({ tone: "warn", text: `El modelo se entrenó con el ciclo ${TRAINED_YEAR}. Para ${anio} extrapola (clima distinto): léelo con cautela.` });
 
   const signature = `${points.map((p) => p.map((n) => n.toFixed(6)).join(",")).join(";")}|${estado}|${anio}`;
   const stale = Boolean(result && ran && ran.signature !== signature);
-  const canRun = Boolean(info && !info.crosses && name.trim() && estado && !running);
+  const canRun = Boolean(info && !info.crosses && !overLimit && name.trim() && estado && !running);
 
   // ── Acciones de dibujo ───────────────────────────────────────────────────
   const resetResults = () => {
@@ -427,6 +426,7 @@ function NuevaParcelaTab() {
               closed={closed}
               drawing={drawing}
               locked={running}
+              overLimit={overLimit}
               fitKey={fitKey}
               onChange={setPoints}
               onStartDrawing={startDrawing}
@@ -535,7 +535,9 @@ function NuevaParcelaTab() {
             <p className="mt-3 text-xs leading-relaxed text-gray-400 dark:text-gray-500">
               {canRun || running
                 ? "Se leen imágenes reales de 10 variables. Tarda entre 30 y 90 s."
-                : info?.crosses
+                : overLimit
+                  ? `Reduce la parcela a ${formatHa(MAX_AREA_HA)} ha o menos para poder calcular.`
+                  : info?.crosses
                   ? "Corrige el contorno para poder calcular."
                   : "Cierra el contorno de la parcela para habilitar el cálculo."}
             </p>

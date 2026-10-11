@@ -176,15 +176,15 @@ Respuesta: `features_calculadas` (las 10), `yieldEstimate`, `ic90_inferior/super
 
 | Código | Cuándo |
 |---|---|
-| 422 | Geometría inválida (no Polygon, UTM, se cruza, <0.05 ha), año fuera de 2018–hoy, o se obtuvieron datos de menos de 7 de las 10 variables |
+| 422 | Geometría inválida (no Polygon, UTM, se cruza, <0.05 ha o >5000 ha), año fuera de 2018–hoy, o se obtuvieron datos de menos de 7 de las 10 variables |
 | 429 | Ya hay otro cálculo en curso (se procesa uno a la vez para cuidar la memoria) |
 | 502 | La fuente de imágenes o el catálogo no respondieron (reintenta en unos minutos) |
 | 503 | Faltan librerías en el servidor |
 
 **Variables de entorno opcionales** (por si cambian las rutas públicas, sin tocar código): `STAC_API_URL`, `STAC_S2_COLLECTION`,
-`STAC_LS_COLLECTION`, `CHIRPS_URL_TEMPLATE`, `STAC_WORKERS`, `AREA_WARN_HA`, `SAT_QUEUE_TIMEOUT_S`.
+`STAC_LS_COLLECTION`, `CHIRPS_URL_TEMPLATE`, `STAC_WORKERS`, `SAT_MAX_AREA_HA`, `AREA_WARN_HA`, `SAT_QUEUE_TIMEOUT_S`.
 
-**Superficie:** no hay tope. Si la zona mide más de `AREA_WARN_HA` (1000 ha por defecto) se calcula igual, pero la respuesta trae una advertencia: el promedio de una zona tan grande mezcla cultivos y coberturas distintas y no representa a una parcela.
+**Superficie:** el máximo es `SAT_MAX_AREA_HA` (5000 ha por defecto; el servicio no alcanza a procesar más) y el frontend usa el mismo valor (`MAX_AREA_HA` en `src/data/satelite.js`). Entre `AREA_WARN_HA` (1000 ha) y el máximo se calcula, pero con una advertencia: el promedio de una zona tan grande mezcla cultivos y coberturas distintas.
 
 ### Qué está verificado y qué NO (decirlo así en el reporte)
 

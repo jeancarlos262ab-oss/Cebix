@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "../services/toast";
 import { useParcels } from "../context/ParcelsContext";
 
 import { API_URL, EXAMPLE_CSV_URL, fetchExampleFile, friendlyError, predictCsv } from "../services/modelApi";

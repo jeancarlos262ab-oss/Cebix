@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "../../services/toast";
 import { supabase } from "../../services/supabaseClient";
 import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_PRIMARY, ModalField, modalInput } from "../ui/Modal";
 

@@ -117,6 +117,19 @@ function widen([[s, w], [n, e]], f) {
   ];
 }
 
+/** Color de contorno y malla cuando la parcela pasa la superficie máxima. */
+const OVER_LIMIT_COLOR = "#ef4444";
+
+/** Cambia el modo de mezcla de un panel de Leaflet ya creado (react-leaflet solo lo aplica al crearlo). */
+function PaneBlend({ name, blend }) {
+  const map = useMap();
+  useEffect(() => {
+    const el = map.getPane(name);
+    if (el) el.style.mixBlendMode = blend;
+  }, [map, name, blend]);
+  return null;
+}
+
 /**
  * Mapa satelital plano con dibujo de polígono (Leaflet, sin plugins).
  * Controlado por el padre: `points` ([lat,lng][]), `closed` y `drawing`.
@@ -127,6 +140,7 @@ function FlatGeometryMap({
   closed,
   drawing,
   locked,
+  overLimit = false,
   fitKey,
   entry,
   active,
@@ -166,6 +180,10 @@ function FlatGeometryMap({
   // Malla en perspectiva que se adapta a la forma de la parcela ya cerrada.
   const gridLines = useMemo(() => (closed && ready ? parcelGridLines(points) : []), [closed, ready, points]);
   const stateStyle = useMemo(() => ({ color: "#ffffff", weight: 1.2, opacity: 0.55, dashArray: "4 5", fillOpacity: 0 }), []);
+
+  // Pasada la superficie máxima, el contorno y la malla se pintan en rojo (sin el modo "difference", que
+  // alteraría el color). El modo de mezcla del panel se cambia aquí, en el propio elemento del panel.
+  const traceColor = overLimit ? OVER_LIMIT_COLOR : "#fff";
 
   const status = locked
     ? "Calculando índices… la parcela queda bloqueada"
@@ -208,18 +226,26 @@ function FlatGeometryMap({
             de la imagen que tienen debajo, así se leen sobre cualquier tono. El modo de mezcla va en el panel
             (no en cada trazo) porque los paneles de Leaflet son contextos de apilamiento aislados. */}
         <Pane name="parcel" style={{ zIndex: 450, mixBlendMode: "difference" }}>
+          <PaneBlend name="parcel" blend={overLimit ? "normal" : "difference"} />
           {points.length >= 2 && !closed && (
-            <Polyline positions={points} pathOptions={{ color: "#fff", weight: 2.5 }} interactive={false} />
+            <Polyline positions={points} pathOptions={{ color: traceColor, weight: 2.5 }} interactive={false} />
           )}
           {closed && ready && (
             <>
               <Polygon
                 positions={points}
-                pathOptions={{ color: "#fff", weight: 2.5, lineJoin: "miter", fill: false }}
+                pathOptions={{
+                  color: traceColor,
+                  weight: 2.5,
+                  lineJoin: "miter",
+                  fill: overLimit,
+                  fillColor: OVER_LIMIT_COLOR,
+                  fillOpacity: overLimit ? 0.18 : 0,
+                }}
                 interactive={false}
               />
               {gridLines.length > 0 && (
-                <Polyline positions={gridLines} pathOptions={{ color: "#fff", weight: 2 }} interactive={false} />
+                <Polyline positions={gridLines} pathOptions={{ color: traceColor, weight: 2 }} interactive={false} />
               )}
             </>
           )}

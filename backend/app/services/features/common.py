@@ -7,11 +7,13 @@ Contiene lo que no depende de la fuente de imágenes:
   * errores con su código HTTP,
   * validación y normalización del polígono (GeoJSON lng/lat) y del año.
 
-La superficie NO tiene tope: una parcela grande se calcula igual, pero `area_warning()` devuelve un
-aviso, porque el promedio de una zona extensa mezcla cultivos y coberturas distintas y la predicción
-deja de representar a una parcela. El umbral del aviso se ajusta con AREA_WARN_HA (1000 ha por defecto).
+Superficie: más de MAX_AREA_HA se rechaza (el servicio no alcanza a procesar zonas tan grandes) y más
+de WARN_AREA_HA solo se advierte, porque el promedio de una zona extensa mezcla cultivos y coberturas
+distintas y la predicción deja de representar a una parcela.
 
 Variables de entorno:
+  SAT_MAX_AREA_HA     superficie máxima aceptada (ha), 5000 por defecto. El frontend usa el mismo valor
+                      (MAX_AREA_HA en src/data/satelite.js): si lo cambias aquí, cámbialo allá.
   AREA_WARN_HA        superficie (ha) a partir de la cual se advierte, 1000 por defecto
   SAT_QUEUE_TIMEOUT_S cuánto espera una petición su turno, 5 por defecto
 """
@@ -53,7 +55,8 @@ CLOUD_MAX = 40          # % de nubes, mismo umbral que build_features.py
 FIRST_YEAR = 2018       # Sentinel-2 SR global arranca a finales de 2018
 MAX_VERTICES = 500
 MIN_AREA_HA = 0.05      # por debajo no hay ni 5 píxeles de 10 m
-WARN_AREA_HA = float(os.environ.get("AREA_WARN_HA", "1000"))  # solo advierte; no hay tope
+MAX_AREA_HA = float(os.environ.get("SAT_MAX_AREA_HA", "5000"))
+WARN_AREA_HA = float(os.environ.get("AREA_WARN_HA", "1000"))  # solo advierte
 QUEUE_TIMEOUT_S = float(os.environ.get("SAT_QUEUE_TIMEOUT_S", "5"))
 # Si faltan más de estas features el resultado no es confiable y se rechaza.
 MAX_MISSING = 3
@@ -160,11 +163,16 @@ def validate_geometry(geometry: dict) -> tuple[dict, float]:
     ha = _ring_area_ha(ring)
     if ha < MIN_AREA_HA:
         raise GeometryError(f"La parcela es demasiado pequeña ({ha:.3f} ha) para promediar píxeles de 10 m.")
+    if ha > MAX_AREA_HA:
+        raise GeometryError(
+            f"La parcela mide {ha:,.0f} ha y el máximo permitido es {MAX_AREA_HA:,.0f} ha. "
+            "Con superficies así el promedio mezcla coberturas distintas y el servicio no alcanza a procesarlas."
+        )
     return {"type": "Polygon", "coordinates": [ring]}, ha
 
 
 def area_warning(ha: float | None) -> str | None:
-    """Aviso (no error) cuando la superficie es tan grande que mezcla coberturas distintas."""
+    """Aviso (no error) cuando la superficie, aún dentro del máximo, mezcla coberturas distintas."""
     if ha is None or ha <= WARN_AREA_HA:
         return None
     return (

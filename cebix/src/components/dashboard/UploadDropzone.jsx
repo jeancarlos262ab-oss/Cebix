@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, UploadCloud } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "../../services/toast";
 import { parseCSV } from "../../utils/csv";
 import { detectEstado } from "../../utils/polygon";
 import { predictFromGeometry } from "../../services/sateliteApi";

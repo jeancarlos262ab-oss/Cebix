@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { Toaster } from "sonner";
+import { preloadToastSounds } from "../../services/toast";
 import { useTheme } from "../../context/ThemeContext";
 
 /**
@@ -6,10 +8,12 @@ import { useTheme } from "../../context/ThemeContext";
  * derecha, en un color sólido según el contexto (éxito, error, aviso, info),
  * con los mismos tonos que usa el resto de la app y esquinas cuadradas.
  * Los colores viven en index.css (.app-toaster).
- * Uso en cualquier parte: `import { toast } from "sonner"; toast.success("...")`.
+ * Cada aviso suena (react-sounds). Uso en cualquier parte:
+ * `import { toast } from "../services/toast"; toast.success("...")` (no importar `toast` de "sonner" directo).
  */
 export default function AppToaster() {
   const { resolvedTheme } = useTheme();
+  useEffect(() => preloadToastSounds(), []);
   return (
     <Toaster
       theme={resolvedTheme}

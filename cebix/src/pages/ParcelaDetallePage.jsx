@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "../services/toast";
 import { ArrowLeft, FileDown, Pencil, Trash2 } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import ParcelMap from "../components/map/ParcelMap";

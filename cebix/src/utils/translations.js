@@ -61,6 +61,10 @@ export const EN = {
   Negro: "Black",
   Blanco: "White",
   Notificaciones: "Notifications",
+  "Sonido de notificaciones": "Notification sound",
+  "Reproduce un sonido cuando aparece un aviso en la esquina inferior derecha (solo en este dispositivo)":
+    "Plays a sound when a notice appears in the bottom-right corner (this device only)",
+  "Sonido de notificaciones activado.": "Notification sound turned on.",
   "Elige qué avisos quieres recibir": "Choose which alerts you want to receive",
   "Alertas por correo": "Email alerts",
   "Interruptor general: si lo apagas no recibirás ningún correo de CEBIX":

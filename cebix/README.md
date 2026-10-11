@@ -26,6 +26,19 @@ o volar; en reposo no consume CPU. Desde el globo se entra con animación al map
 (Leaflet) para dibujar, y el botón **Globo** de la barra regresa. Con una parcela ya dibujada o un
 GeoJSON importado se abre directo el mapa plano.
 
+## Notificaciones con sonido
+
+Todas las notificaciones (esquina inferior derecha) suenan con los sonidos incluidos en `react-sounds`
+(éxito, error, aviso, info, cargando). Se usan importando `toast` de `src/services/toast.js`, **no** de
+`sonner`. Los audios se bajan del CDN de la librería; si no hay red o el navegador bloquea el audio, el aviso
+se muestra igual, sin sonido.
+
+## Parcela satelital: superficie máxima
+
+El cálculo acepta hasta 5000 ha (`MAX_AREA_HA` en `src/data/satelite.js`, igual a `SAT_MAX_AREA_HA` del
+backend). Si el contorno se pasa, la malla se pinta en rojo y «Calcular» queda bloqueado hasta ajustarlo;
+desde 1000 ha solo se advierte que la zona mezcla coberturas.
+
 ## Requisitos
 
 - Node.js 18 o superior

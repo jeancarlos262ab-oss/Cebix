@@ -9,10 +9,10 @@ import { GHOST, PANEL, PRIMARY, STATUS } from "./mapUi";
 import { usePageActive } from "../../context/PageActiveContext";
 import { useTheme } from "../../context/ThemeContext";
 import { getAccentHex } from "../../utils/accentColors";
-import { estadoBounds } from "../../utils/polygon";
+import { areaHa, estadoBounds } from "../../utils/polygon";
 import { parcelGridLines } from "../../utils/parcelGrid";
 import { createStarsLayer } from "./globeStarsGL";
-import { ESTADOS } from "../../data/satelite";
+import { ESTADOS, MAX_AREA_HA } from "../../data/satelite";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -139,6 +139,7 @@ export default function GlobeMapGL({
   closed,
   drawing,
   locked,
+  overLimit = false,
   fitKey,
   onChange,
   onStartDrawing,
@@ -322,7 +323,22 @@ export default function GlobeMapGL({
     src.setData(data);
   }, []);
 
+  // Pasada la superficie máxima, contorno, relleno y malla se pintan en rojo.
+  const paintLimit = useCallback((over) => {
+    const m = mapRef.current;
+    if (!m?.getLayer("parcel-line")) return;
+    const c = over ? "#ef4444" : "#fff";
+    m.setPaintProperty("parcel-line", "line-color", c);
+    m.setPaintProperty("parcel-grid-line", "line-color", c);
+    m.setPaintProperty("parcel-fill", "fill-color", c);
+    m.setPaintProperty("parcel-fill", "fill-opacity", over ? 0.18 : 0.08);
+  }, []);
+
   const grid = useMemo(() => (closed && ok ? parcelGridLines(points) : []), [closed, ok, points]);
+
+  useEffect(() => {
+    if (ready) paintLimit(overLimit);
+  }, [ready, overLimit, points, closed, paintLimit]);
 
   useEffect(() => {
     if (!ready) return;
@@ -354,6 +370,7 @@ export default function GlobeMapGL({
         const ll = mk.getLngLat();
         const cur = live.current.points.map((q, k) => (k === i ? [ll.lat, ll.lng] : q));
         paintParcel(cur, true);
+        paintLimit(cur.length >= 3 && areaHa(cur) > MAX_AREA_HA); // el color sigue al vértice mientras se arrastra
       });
       mk.on("dragend", () => {
         const ll = mk.getLngLat();
@@ -365,7 +382,7 @@ export default function GlobeMapGL({
       vertexMarkers.current.forEach((mk) => mk.remove());
       vertexMarkers.current = [];
     };
-  }, [ready, points, drawing, locked, ok, paintParcel]);
+  }, [ready, points, drawing, locked, ok, paintParcel, paintLimit]);
 
   // Cursor de dibujo y sin zoom por doble clic mientras se marcan vértices.
   useEffect(() => {

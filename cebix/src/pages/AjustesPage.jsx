@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Palette, Bell, Globe2, RotateCcw } from "lucide-react";
-import { toast } from "sonner";
+import { isToastSoundEnabled, setToastSoundEnabled, toast } from "../services/toast";
 import TopBar from "../components/layout/TopBar";
 import SettingsSection from "../components/settings/SettingsSection";
 import ThemePreviewCard from "../components/settings/ThemePreviewCard";
@@ -50,6 +50,7 @@ export default function AjustesPage() {
   // Preferencias de correo: se guardan en el perfil (Supabase). El estado local se actualiza al
   // instante y se revierte si el guardado falla.
   const { account, updateAccount } = useAccount();
+  const [soundOn, setSoundOn] = useState(isToastSoundEnabled);
   const [notifs, setNotifs] = useState({
     email: account.notifEmail,
     riesgo: account.notifRisk,
@@ -195,6 +196,16 @@ export default function AjustesPage() {
             checked={notifs.resumenSemanal}
             disabled={!notifs.email}
             onChange={(v) => saveNotif("resumenSemanal", v)}
+          />
+          <Toggle
+            label={t("Sonido de notificaciones")}
+            description={t("Reproduce un sonido cuando aparece un aviso en la esquina inferior derecha (solo en este dispositivo)")}
+            checked={soundOn}
+            onChange={(v) => {
+              setSoundOn(v);
+              setToastSoundEnabled(v);
+              if (v) toast.info(t("Sonido de notificaciones activado."));
+            }}
           />
         </SettingsSection>
 

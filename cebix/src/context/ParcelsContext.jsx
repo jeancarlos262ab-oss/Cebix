@@ -13,7 +13,7 @@ import {
   saveSubmission,
   saveSubmissions,
 } from "../services/userDataApi";
-import { toast } from "sonner";
+import { toast } from "../services/toast";
 
 const SUBMISSIONS_KEY = "cebix-committee-submissions";
 const ANALYSIS_KEY = "cebix-analysis-v1";
