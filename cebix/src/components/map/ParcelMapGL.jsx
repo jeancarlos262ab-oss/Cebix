@@ -19,6 +19,7 @@ import estadosBoundaries from "../../data/estadosBoundaries.json";
 import { detectLowEndDevice } from "../../utils/mapDevice";
 import { useTheme } from "../../context/ThemeContext";
 import { getAccentHex } from "../../utils/accentColors";
+import { usePageActive } from "../../context/PageActiveContext";
 import { openInGoogleMaps } from "../../utils/googleMaps";
 import RiskTrafficLight from "./RiskTrafficLight";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -408,6 +409,104 @@ function ParcelMapGL({
 }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
+
+  // Recuperación (mismo criterio que el globo de la parcela satelital): si el mapa no carga, falla o el
+  // navegador le quita el contexto WebGL, se vuelve a crear solo en vez de pedir recargar la página.
+  const pageActive = usePageActive();
+  const [mapKey, setMapKey] = useState(0);
+  const [sized, setSized] = useState(false);
+  const loadedRef = useRef(false);
+  const attemptsRef = useRef(0);
+  const retryTimer = useRef(null);
+  const pendingRecover = useRef(false);
+  const activeRef = useRef(pageActive);
+  activeRef.current = pageActive;
+  const viewRef = useRef(null); // última vista, para conservarla al recrear
+
+  const recover = useCallback(
+    (reason) => {
+      attemptsRef.current += 1;
+      console.warn(`Mapa MapLibre: se reinicia (${reason}), intento ${attemptsRef.current}/3`);
+      if (attemptsRef.current > 3) {
+        onWebGLError?.();
+        return;
+      }
+      clearTimeout(retryTimer.current);
+      retryTimer.current = setTimeout(() => {
+        // En una pantalla oculta no se recrea (le quitaría el contexto a la que sí se ve).
+        if (!activeRef.current) pendingRecover.current = true;
+        else {
+          loadedRef.current = false;
+          setMapKey((k) => k + 1);
+        }
+      }, 400 * attemptsRef.current);
+    },
+    [onWebGLError]
+  );
+  useEffect(() => () => clearTimeout(retryTimer.current), []);
+
+  // El mapa se crea solo cuando el contenedor ya tiene tamaño: nacido oculto (0×0 px) no pinta las capas.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return undefined;
+    const check = () => el.clientWidth > 0 && el.clientHeight > 0;
+    if (check()) {
+      setSized(true);
+      return undefined;
+    }
+    const ro = new ResizeObserver(() => {
+      if (check()) {
+        setSized(true);
+        ro.disconnect();
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Si el estilo no termina de cargar a tiempo, se recrea.
+  useEffect(() => {
+    if (!sized) return undefined;
+    const id = setTimeout(() => {
+      if (!loadedRef.current) recover("el estilo no cargó a tiempo");
+    }, 10000);
+    return () => clearTimeout(id);
+  }, [sized, mapKey, recover]);
+
+  // Al volver a mostrarse la pantalla: se re-mide, y si quedó pendiente una recuperación, se hace ahora.
+  useEffect(() => {
+    if (!pageActive) return;
+    if (pendingRecover.current) {
+      pendingRecover.current = false;
+      loadedRef.current = false;
+      setMapKey((k) => k + 1);
+      return;
+    }
+    mapRef.current?.getMap()?.resize();
+  }, [pageActive]);
+
+  // "Listo" en cuanto el estilo carga (no se espera al evento `load`, que además aguarda todas las teselas y
+  // no llega si la red está lenta o sin conexión). Se ejecuta una sola vez por mapa.
+  const handleLoad = useCallback(
+    (e) => {
+      const map = e.target;
+      if (loadedRef.current) return;
+      loadedRef.current = true;
+      const stable = setTimeout(() => (attemptsRef.current = 0), 5000);
+      const canvas = map.getCanvas();
+      const onLost = (ev) => {
+        ev.preventDefault();
+        clearTimeout(stable);
+        recover("se perdió el contexto WebGL");
+      };
+      canvas.addEventListener("webglcontextlost", onLost);
+      map.once("remove", () => {
+        clearTimeout(stable);
+        canvas.removeEventListener("webglcontextlost", onLost);
+      });
+    },
+    [recover]
+  );
   const [popupInfo, setPopupInfo] = useState(null);
   const [hoveredParcelId, setHoveredParcelId] = useState(null);
   const previouslyClickedRef = useRef(null);
@@ -431,6 +530,7 @@ function ParcelMapGL({
   }, []);
 
   const initialViewState = useMemo(() => {
+    if (viewRef.current) return viewRef.current; // al recrear, vuelve a donde estaba
     let lat, lng;
     if (Array.isArray(center)) {
       [lat, lng] = center;
@@ -443,7 +543,7 @@ function ParcelMapGL({
       longitude: lng,
       zoom,
     };
-  }, [center, zoom]);
+  }, [center, zoom, mapKey]);
 
   const mapStyle = useMemo(() => BASEMAPS[basemap]?.style || BASEMAPS.satellite.style, [basemap]);
 
@@ -649,9 +749,17 @@ function ParcelMapGL({
       style={{ height: typeof height === "number" ? `${height}px` : height }}
       className={`relative isolate w-full overflow-hidden bg-black ${rounded ? "rounded-2xl" : ""}`}
     >
+      {sized && (
       <Map
+        key={mapKey}
         ref={mapRef}
         initialViewState={initialViewState}
+        onLoad={handleLoad}
+        onStyleData={handleLoad}
+        onMoveEnd={(e) => {
+          const { latitude, longitude } = e.viewState;
+          viewRef.current = { latitude, longitude, zoom: e.viewState.zoom };
+        }}
         mapStyle={mapStyle}
         style={{ width: "100%", height: "100%" }}
         minZoom={5}
@@ -672,7 +780,7 @@ function ParcelMapGL({
         onError={(e) => {
           // Sin WebGL (o contexto no disponible): avisa para que ParcelMap cambie a Leaflet.
           const message = String(e?.error?.message ?? e?.originalEvent?.message ?? e?.message ?? "");
-          if (/webgl/i.test(message)) onWebGLError?.();
+          if (/webgl/i.test(message)) recover("error de WebGL");
         }}
         onClick={handleMapClick}
         onMouseEnter={handleMouseEnter}
@@ -783,6 +891,7 @@ function ParcelMapGL({
           </Popup>
         )}
       </Map>
+      )}
 
       {edgeFade && (
         <>

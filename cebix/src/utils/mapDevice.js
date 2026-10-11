@@ -64,18 +64,24 @@ export function detectLowEndDevice() {
  * @returns {boolean}
  */
 export function supportsWebGL() {
-  try {
-    if (typeof window === "undefined") return false;
-    const canvas = document.createElement("canvas");
-    const gl =
-      canvas.getContext("webgl2", { failIfMajorPerformanceCaveat: true }) ||
-      canvas.getContext("webgl", { failIfMajorPerformanceCaveat: true });
-    if (!gl) return false;
-    gl.getExtension("WEBGL_lose_context")?.loseContext();
-    return true;
-  } catch {
-    return false;
+  if (typeof window === "undefined") return false;
+  // El navegador a veces rechaza el primer contexto (GPU arrancando, contextos recién liberados por otras
+  // pantallas). Un solo fallo no debe mandar a toda la sesión al mapa ligero, así que se intenta dos veces.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const canvas = document.createElement("canvas");
+      const gl =
+        canvas.getContext("webgl2", { failIfMajorPerformanceCaveat: true }) ||
+        canvas.getContext("webgl", { failIfMajorPerformanceCaveat: true });
+      if (gl) {
+        gl.getExtension("WEBGL_lose_context")?.loseContext();
+        return true;
+      }
+    } catch {
+      // se reintenta
+    }
   }
+  return false;
 }
 
 /**

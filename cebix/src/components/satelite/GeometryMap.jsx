@@ -43,14 +43,21 @@ const START_BOUNDS = [
   [21.4, -96.6],
 ];
 
-// Vértices sobrios: cuadrados blancos (se invierten con la imagen, igual que la malla). El de cierre es algo mayor.
-const vertexIcon = (closeTarget) =>
-  L.divIcon({
+// Vértices: círculos blancos (se invierten con la imagen, igual que la malla).
+// Vértices: círculos rellenos. Solo el primero, cuando ya se puede cerrar el polígono (`closeTarget`), es un
+// anillo hueco y más grande, para que se note que ahí hay que hacer clic.
+const vertexIcon = (closeTarget, color = "#fff") => {
+  const size = closeTarget ? 20 : 10;
+  const look = closeTarget
+    ? `border:2.5px solid ${color};background:transparent`
+    : `border:1.5px solid rgba(0,0,0,.45);background:${color}`;
+  return L.divIcon({
     className: "",
-    iconSize: closeTarget ? [12, 12] : [8, 8],
-    iconAnchor: closeTarget ? [6, 6] : [4, 4],
-    html: `<span style="display:block;width:100%;height:100%;background:#fff"></span>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    html: `<span style="display:block;width:100%;height:100%;box-sizing:border-box;border-radius:50%;${look}"></span>`,
   });
+};
 
 /** Clics del mapa: solo agregan vértices mientras se dibuja (y se evita el zoom por doble clic). */
 function DrawEvents({ drawing, onAdd }) {
@@ -189,7 +196,7 @@ function FlatGeometryMap({
     ? "Calculando índices… la parcela queda bloqueada"
     : drawing
       ? ready
-        ? "Sigue marcando vértices · toca el punto blanco o «Terminar» para cerrar"
+        ? "Sigue marcando vértices · toca el círculo hueco del primer punto o «Terminar» para cerrar"
         : `Haz clic en el mapa para marcar los vértices (${points.length}/3 mínimo)`
       : closed
         ? "Arrastra los vértices para ajustar el contorno"
@@ -245,7 +252,7 @@ function FlatGeometryMap({
                 interactive={false}
               />
               {gridLines.length > 0 && (
-                <Polyline positions={gridLines} pathOptions={{ color: traceColor, weight: 2 }} interactive={false} />
+                <Polyline positions={gridLines} pathOptions={{ color: traceColor, weight: 1 }} interactive={false} />
               )}
             </>
           )}
@@ -257,7 +264,7 @@ function FlatGeometryMap({
                 key={`${i}-${closeTarget}`}
                 position={p}
                 draggable={!locked && !drawing}
-                icon={vertexIcon(closeTarget)}
+                icon={vertexIcon(closeTarget, traceColor)}
                 eventHandlers={{
                   click: () => closeTarget && onFinish(),
                   dragend: (e) => {
