@@ -18,7 +18,8 @@ backend/
 │   │   ├── health.py           #   GET /health, /
 │   │   ├── model.py            #   GET /features, /model-info, /example-csv
 │   │   ├── predict.py          #   POST /predict, /predict-csv
-│   │   └── satellite.py        #   GET /satellite-status, POST /predict-from-geometry
+│   │   ├── satellite.py        #   GET /satellite-status, POST /predict-from-geometry
+│   │   └── geo.py              #   POST /parse-geometry (SHP / GeoJSON / KML / KMZ -> polígonos)
 │   └── services/               # lógica de negocio
 │       ├── model_service.py    #   carga del modelo + inferencia (IC90, SHAP local)
 │       ├── satellite_service.py#   elige proveedor (stac / gee)
@@ -129,8 +130,24 @@ El dashboard (`src/services/modelApi.js`) ya consume esta API: ejecuta el modelo
 | GET | `/example-csv` | CSV de ejemplo: 59 parcelas de evaluación con `lat`/`lng` |
 | POST | `/predict` | JSON con una o varias parcelas → predicción real |
 | POST | `/predict-csv` | Sube un CSV (mismo formato que `features_predict.csv`) → predicción real de cada fila |
+| POST | `/parse-geometry` | Lee shapefile (`.zip` o `.shp`+`.dbf`+`.prj`), GeoJSON, KML o KMZ y devuelve los polígonos en lng/lat con área, centroide y validación (ver abajo) |
 | POST | `/predict-from-geometry` | Polígono GeoJSON + año → calcula las 10 features en vivo desde satélite (fuentes abiertas, sin cuenta) y predice (30–90 s) |
 | GET | `/satellite-status` | Proveedor activo y si está listo (no llama a la red) |
+
+## Archivos de parcelas (`POST /parse-geometry`)
+
+Multipart con uno o varios archivos en el campo `files` (máx. 20 MB en total). Formatos: shapefile (un `.zip`, o `.shp` + `.dbf` + `.prj`
+sueltos; `.shx` y `.cpg` opcionales), GeoJSON, KML y KMZ. Reproyecta a EPSG:4326 con el `.prj` (si no hay `.prj`, solo acepta coordenadas que ya sean
+lat/lng), separa los MultiPolygon, ignora altitud y huecos, simplifica contornos de más de 500 vértices y valida cada polígono con las mismas reglas
+que `/predict-from-geometry` (área 0.05–5000 ha, sin cruces). Cada polígono trae `error` si no se podría calcular.
+
+```bash
+curl -X POST http://localhost:8000/parse-geometry -F "files=@parcelas.zip"
+```
+
+Respuesta: `{ n_poligonos, n_validos, advertencias, poligonos: [{ ID_POLIGONO, nombre, Estado, Municipio, geometry, area_ha, lat, lng, vertices, error, origen, propiedades }] }`.
+Reconoce atributos `ID_POLIGONO`/`id`/`nombre`, `Estado` y `Municipio` (aunque el DBF los trunque a 10 caracteres). Errores: 400 archivo ilegible, 413 muy grande,
+415 formato no compatible, 422 sin polígonos o sin `.prj` con coordenadas proyectadas.
 
 ## Parcelas nuevas desde satélite (`POST /predict-from-geometry`)
 

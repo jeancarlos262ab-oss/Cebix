@@ -8,5 +8,7 @@ shap>=0.45
 python-multipart>=0.0.9
 pystac-client>=0.8
 rasterio>=1.3
+pyshp>=2.3          # lectura de shapefiles (POST /parse-geometry)
+pyproj>=3.6         # reproyección a EPSG:4326 y área geodésica
 certifi
 # Opcional (solo con FEATURES_PROVIDER=gee): earthengine-api

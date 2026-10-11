@@ -21,6 +21,7 @@ import ParcelResult from "../components/earthengine/ParcelResult";
 import ValidationTable from "../components/earthengine/ValidationTable";
 import { classifyRisk, scoreFromInputs } from "../context/ParcelsContext";
 import { STEP_MS, predictFromGeometry } from "../services/earthEngineApi";
+import { parseGeometryFiles } from "../services/geoApi";
 import { ESTADOS, GEE_FEATURES, GEE_QUESTIONS, TRAINED_YEAR, YEARS } from "../data/earthEngine";
 import {
   areaHa,
@@ -253,25 +254,57 @@ function NuevaParcelaTab() {
   };
   const undo = () => setPoints((p) => p.slice(0, -1));
 
-  function handleFile(e) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const { points: pts, extra } = parseGeoJSON(String(reader.result));
-        setPoints(pts);
-        setClosed(true);
-        setDrawing(false);
-        setFitKey((k) => k + 1);
-        resetResults();
-        if (extra) toast.info(`El archivo traía ${extra} polígono${extra === 1 ? "" : "s"} más; usé el primero.`);
-      } catch (err) {
-        toast.error(err.message);
+  function applyImported(pts, extra = 0) {
+    setPoints(pts);
+    setClosed(true);
+    setDrawing(false);
+    setFitKey((k) => k + 1);
+    resetResults();
+    if (extra) toast.info(`El archivo traía ${extra} polígono${extra === 1 ? "" : "s"} más; usé el primero.`);
+  }
+
+  // Shapefile (.zip o .shp+.dbf+.prj), KML/KMZ y GeoJSON en otra proyección los lee el backend (/parse-geometry),
+  // que los reproyecta a lat/lng y valida el contorno con las mismas reglas que el cálculo satelital.
+  async function importViaBackend(files, localError) {
+    const id = toast.loading("Leyendo el archivo…");
+    try {
+      const res = await parseGeometryFiles(files);
+      const poly = res.poligonos.find((p) => !p.error);
+      if (!poly) {
+        toast.error(res.poligonos[0]?.error || "No encontré ningún polígono que se pueda calcular.", { id, duration: 10000 });
+        return;
       }
-    };
-    reader.readAsText(file);
+      const ring = poly.geometry.coordinates[0].slice(0, -1).map(([lng, lat]) => [lat, lng]);
+      applyImported(ring);
+      if (poly.Estado) setEstadoManual(poly.Estado);
+      const extra = res.poligonos.length - 1;
+      toast.success(
+        `«${poly.nombre}» importada (${formatHa(poly.area_ha)} ha).${
+          extra > 0 ? ` El archivo traía ${extra} polígono${extra === 1 ? "" : "s"} más; usé el primero.` : ""
+        }`,
+        { id },
+      );
+    } catch (err) {
+      toast.error(localError || err.message, { id, duration: 10000 });
+    }
+  }
+
+  async function handleFile(e) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (!files.length) return;
+
+    // Un GeoJSON suelto en lat/lng se lee aquí mismo, sin backend; si no se puede, lo intenta el backend.
+    if (files.length === 1 && /\.(geo)?json$/i.test(files[0].name)) {
+      try {
+        const { points: pts, extra } = parseGeoJSON(await files[0].text());
+        applyImported(pts, extra);
+      } catch (err) {
+        await importViaBackend(files, err.message);
+      }
+      return;
+    }
+    await importViaBackend(files);
   }
 
   const geoFeature = () => ({
@@ -366,7 +399,7 @@ function NuevaParcelaTab() {
     points.length === 0
       ? drawing
         ? "Haz clic sobre el mapa para marcar el primer vértice."
-        : "Dibuja el contorno sobre la imagen satelital o importa un GeoJSON (lat/lng, EPSG:4326)."
+        : "Dibuja el contorno sobre la imagen satelital o importa un shapefile (.zip), GeoJSON o KML/KMZ."
       : points.length < 3
         ? `${points.length} de 3 vértices mínimos. Sigue marcando sobre el mapa.`
         : `${points.length} vértices. Cierra con «Terminar» o tocando el primer punto.`;
@@ -419,14 +452,14 @@ function NuevaParcelaTab() {
             )}
 
             <div className="mt-4 flex flex-wrap gap-2">
-              <input ref={fileRef} type="file" accept=".geojson,.json,application/geo+json,application/json" onChange={handleFile} className="hidden" />
+              <input ref={fileRef} type="file" multiple accept=".geojson,.json,.zip,.shp,.dbf,.prj,.shx,.cpg,.kml,.kmz" onChange={handleFile} className="hidden" />
               {!closed && !drawing && (
                 <button type="button" onClick={startDrawing} disabled={running} className={BTN_DARK}>
                   <Pencil size={13} strokeWidth={1.75} /> Dibujar parcela
                 </button>
               )}
               <button type="button" onClick={() => fileRef.current?.click()} disabled={running} className={BTN}>
-                <FileUp size={13} strokeWidth={1.75} className="text-gray-400" /> Importar GeoJSON
+                <FileUp size={13} strokeWidth={1.75} className="text-gray-400" /> Importar archivo
               </button>
               {closed && (
                 <button type="button" onClick={copyGeoJSON} className={BTN}>
