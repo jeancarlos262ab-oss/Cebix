@@ -146,7 +146,7 @@ const HistoryRow = memo(function HistoryRow({ parcel, selected, onToggle, onEdit
 });
 
 function ParcelasHistorialContent() {
-  const { parcels } = useParcels();
+  const { parcels, customParcelsLoading } = useParcels();
   const { saveParcel, deleteParcel, deleteParcels } = useParcelActions();
   const [searchParams, setSearchParams] = useSearchParams();
   const regionParam = searchParams.get("region");
@@ -225,6 +225,14 @@ function ParcelasHistorialContent() {
   const askDeleteOne = useCallback((parcel) => setConfirm({ parcels: [parcel] }), []);
 
   if (parcels.length === 0) {
+    if (customParcelsLoading) {
+      return (
+        <>
+          <TopBar title="Todas las parcelas" hideSearch />
+          <p className="px-4 py-20 text-center text-sm text-gray-500 dark:text-gray-400">Cargando tus datos…</p>
+        </>
+      );
+    }
     return (
       <>
         <TopBar title="Todas las parcelas" hideSearch />
@@ -277,10 +285,10 @@ function ParcelasHistorialContent() {
       <div className="space-y-4 px-4 py-6 sm:px-6 lg:px-8">
         {/* Búsqueda y filtro por región */}
         <div className="flex flex-wrap items-center gap-3">
-          <label className="relative min-w-[220px] flex-1">
+          <label className="relative my-3 w-full sm:my-0 sm:min-w-[220px] sm:flex-1 sm:w-auto">
             <Search
               size={15}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-800 dark:text-gray-200"
             />
             <input
               type="search"

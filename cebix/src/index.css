@@ -472,6 +472,27 @@ html.dark .app-corner-glow {
   );
 }
 
+/* Documento que asoma por el borde de un contenedor (estado vacío): entra deslizándose una sola vez
+   desde detrás del borde (el contenedor padre lo recorta) y se queda quieto. */
+@keyframes doc-peek-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(var(--doc-rest, 0px));
+  }
+}
+
+.doc-peek {
+  animation: doc-peek-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .doc-peek {
+    animation: none;
+  }
+}
+
 /* Mapa satelital: los controles internos del mapa (zoom, capas, leyenda) van sin contorno. */
 .map-flat [class*="border-white/15"] {
   border-color: transparent;

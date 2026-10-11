@@ -65,10 +65,10 @@ export default function PerfilPage() {
     <div className="pb-10">
       <TopBar title="Mi perfil" subtitle="Tu información de cuenta en CEBIX" hideSearch />
 
-      <div className="mt-2 max-w-4xl px-4 sm:px-6 lg:px-8">
+      <div className="mt-8 max-w-4xl px-4 sm:mt-10 sm:px-6 lg:px-8">
         {/* Identidad */}
         <SettingsSection icon={User} title="Identidad" description="Cómo te ven los demás dentro de CEBIX">
-          <div className="flex flex-col items-start gap-5 py-3 sm:flex-row sm:items-center">
+          <div className="flex flex-col items-center gap-6 py-6 text-center">
             {account.avatar ? (
               <PhotoProvider
                 maskOpacity={0.9}
@@ -87,26 +87,36 @@ export default function PerfilPage() {
                   <button
                     type="button"
                     aria-label="Ver foto de perfil en grande"
-                    className="shrink-0 cursor-zoom-in rounded-full transition-opacity hover:opacity-90 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500"
+                    className="shrink-0 cursor-zoom-in rounded-full transition-transform hover:scale-[1.02] focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
                   >
-                    <Avatar src={account.avatar} name={account.name || account.email} className="h-16 w-16" textClass="text-lg" />
+                    <Avatar
+                      src={fullPhoto}
+                      name={account.name || account.email}
+                      className="h-44 w-44 sm:h-56 sm:w-56"
+                      textClass="text-5xl sm:text-6xl"
+                    />
                   </button>
                 </PhotoView>
               </PhotoProvider>
             ) : (
-              <Avatar src="" name={account.name || account.email} className="h-16 w-16" textClass="text-lg" />
+              <Avatar
+                src=""
+                name={account.name || account.email}
+                className="h-44 w-44 sm:h-56 sm:w-56"
+                textClass="text-5xl sm:text-6xl"
+              />
             )}
 
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+            <div className="min-w-0 max-w-full">
+              <p className="truncate font-display text-2xl font-bold text-gray-900 dark:text-white">
                 {account.name || "Sin nombre"}
               </p>
-              <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-                <Mail size={12} className="shrink-0 text-accent-600 dark:text-accent-400" />
+              <p className="mt-2 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
+                <Mail size={14} className="shrink-0 text-accent-600 dark:text-accent-400" />
                 <span className="truncate">{account.email}</span>
               </p>
-              <p className="mt-1 flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
-                <CalendarDays size={12} className="shrink-0 text-accent-600 dark:text-accent-400" />
+              <p className="mt-1.5 flex items-center justify-center gap-1.5 text-sm text-gray-400 dark:text-gray-500">
+                <CalendarDays size={14} className="shrink-0 text-accent-600 dark:text-accent-400" />
                 {t("Miembro desde")} {memberSince(user?.created_at)}
               </p>
             </div>
@@ -114,19 +124,19 @@ export default function PerfilPage() {
             <button
               type="button"
               onClick={() => setShowEditProfile(true)}
-              className="flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 px-3.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="flex shrink-0 items-center gap-2 rounded-full border border-gray-200 px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
-              <Pencil size={13} className="text-accent-600 dark:text-accent-400" />
+              <Pencil size={14} className="text-accent-600 dark:text-accent-400" />
               Editar perfil
             </button>
           </div>
 
           {/* Stats: mismas líneas divisorias que el resto de la pantalla, sin
               tarjetas — solo se separan con una raya vertical entre columnas. */}
-          <div className="grid grid-cols-3 py-3 text-center sm:text-left">
+          <div className="grid grid-cols-3 divide-x divide-gray-200 py-5 text-center dark:divide-gray-800">
             {stats.map(({ label, value }) => (
-              <div key={label} className="px-2 first:pl-0 sm:px-4">
-                <p className="font-display text-xl font-bold text-gray-900 dark:text-white">{value}</p>
+              <div key={label} className="px-2 sm:px-4">
+                <p className="font-display text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
                 <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">{label}</p>
               </div>
             ))}
@@ -135,7 +145,7 @@ export default function PerfilPage() {
 
         {/* Seguridad de la cuenta */}
         <SettingsSection icon={ShieldCheck} title="Seguridad" description="Protege el acceso a tu cuenta">
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-4">
             <span>
               <span className="block text-sm font-medium text-gray-900 dark:text-white">Contraseña</span>
               <span className="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">

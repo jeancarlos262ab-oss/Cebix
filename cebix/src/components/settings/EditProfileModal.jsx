@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Loader2, Trash2, X } from "lucide-react";
+import { Camera, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import Avatar from "../ui/Avatar";
+import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_PRIMARY, MODAL_BTN_SMALL, ModalField, modalInput } from "../ui/Modal";
 import { useAuth } from "../../context/AuthContext";
 import {
   ACCEPTED_TYPES,
@@ -99,27 +100,25 @@ export default function EditProfileModal({ account, onClose, onSave }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
-      <form
-        onSubmit={handleSubmit}
-        role="dialog"
-        aria-modal="true"
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900"
-      >
-        <div className="flex items-start justify-between gap-4">
-          <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-white">Editar perfil</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            <X size={16} className="text-accent-600 dark:text-accent-400" />
+    <Modal
+      as="form"
+      onSubmit={handleSubmit}
+      title="Editar perfil"
+      busy={saving}
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" onClick={onClose} disabled={saving} className={MODAL_BTN_CANCEL}>
+            Cancelar
           </button>
-        </div>
-
-        <div className="mt-4 flex items-center gap-4">
+          <button type="submit" disabled={saving} className={MODAL_BTN_PRIMARY}>
+            {saving && <Loader2 size={14} className="animate-spin" />}
+            {saving ? "Guardando…" : "Guardar"}
+          </button>
+        </>
+      }
+    >
+        <div className="flex items-center gap-4">
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
@@ -136,18 +135,14 @@ export default function EditProfileModal({ account, onClose, onSave }) {
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                className={MODAL_BTN_SMALL}
               >
-                <Camera size={13} className="text-accent-600 dark:text-accent-400" />
+                <Camera size={13} className="text-gray-400 dark:text-gray-500" />
                 {hasPhoto ? "Cambiar foto" : "Subir foto"}
               </button>
               {hasPhoto && (
-                <button
-                  type="button"
-                  onClick={handleRemove}
-                  className="flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                >
-                  <Trash2 size={13} className="text-accent-600 dark:text-accent-400" />
+                <button type="button" onClick={handleRemove} className={MODAL_BTN_SMALL}>
+                  <Trash2 size={13} className="text-gray-400 dark:text-gray-500" />
                   Quitar
                 </button>
               )}
@@ -157,49 +152,14 @@ export default function EditProfileModal({ account, onClose, onSave }) {
           <input ref={fileRef} type="file" accept={ACCEPTED_TYPES.join(",")} onChange={handleFile} className="hidden" />
         </div>
 
-        <div className="mt-4 space-y-3">
-          <label className="block">
-            <span className="mb-1 flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
-              Nombre
-              {errors.name && <span className="text-red-500">{errors.name}</span>}
-            </span>
-            <input value={form.name} onChange={(e) => set("name", e.target.value)} className={inputClass(errors.name)} />
-          </label>
-          <label className="block">
-            <span className="mb-1 flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
-              Correo
-              {errors.email && <span className="text-red-500">{errors.email}</span>}
-            </span>
-            <input value={form.email} onChange={(e) => set("email", e.target.value)} className={inputClass(errors.email)} />
-          </label>
+        <div className="mt-5 space-y-4">
+          <ModalField label="Nombre" error={errors.name}>
+            <input value={form.name} onChange={(e) => set("name", e.target.value)} className={modalInput(errors.name)} />
+          </ModalField>
+          <ModalField label="Correo" error={errors.email}>
+            <input value={form.email} onChange={(e) => set("email", e.target.value)} className={modalInput(errors.email)} />
+          </ModalField>
         </div>
-
-        <div className="mt-6 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="rounded-full border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-600 disabled:opacity-50 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex items-center gap-2 rounded-full bg-accent-500 px-4 py-2 text-sm font-semibold text-accent-contrast shadow-xs hover:bg-accent-600 disabled:opacity-60"
-          >
-            {saving && <Loader2 size={14} className="animate-spin" />}
-            {saving ? "Guardando…" : "Guardar"}
-          </button>
-        </div>
-      </form>
-    </div>
+    </Modal>
   );
-}
-
-function inputClass(error) {
-  return [
-    "w-full rounded-full border bg-white px-3 py-1.5 text-sm text-gray-700 focus:outline-hidden dark:bg-gray-800 dark:text-gray-200",
-    error ? "border-red-400" : "border-gray-200 focus:border-accent-500 dark:focus:border-accent-500 dark:border-gray-700",
-  ].join(" ");
 }

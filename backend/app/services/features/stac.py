@@ -2,21 +2,20 @@
 Extracción de las 10 features del modelo SIN cuentas, tarjetas ni cuotas
 =========================================================================
 
-Alternativa 100 % gratuita a Google Earth Engine. Todas las fuentes son abiertas y se leen
-de forma anónima:
+Todas las fuentes son abiertas y se leen de forma anónima:
 
   * Sentinel-2 L2A y Landsat 8/9 -> catálogo STAC «Earth Search» (Element 84) sobre el
     Registro de Datos Abiertos de AWS. Las imágenes son Cloud-Optimized GeoTIFF: solo se
     descarga el recorte de la parcela (unos KB por banda), no la escena entera.
   * Lluvia -> CHIRPS v2.0 diario (Climate Hazards Center, UCSB), también COG anónimo.
 
-Método (igual que el dataset oficial y que gee.py): por cada escena se promedia el
+Método (igual que el dataset oficial): por cada escena se promedia el
 índice dentro del polígono y, entre las escenas de cada ventana fenológica, se toma la mediana.
 
-Diferencias a conocer frente a Earth Engine (por eso hay que correr scripts/validate_gee.py):
-  * Un píxel con valor no finito (p. ej. LAI con SAVI >= 0.69) se descarta píxel a píxel; en
-    Earth Engine la guía dice que esa escena «no aporta». Puede mover un poco el LAI.
-  * Píxel dentro del polígono = su centro cae dentro (Earth Engine pondera por fracción cubierta).
+Diferencias a conocer frente al dataset oficial (por eso hay que correr scripts/validate_satelite.py):
+  * Un píxel con valor no finito (p. ej. LAI con SAVI >= 0.69) se descarta píxel a píxel; la guía
+    dice que esa escena «no aporta». Puede mover un poco el LAI.
+  * Píxel dentro del polígono = su centro cae dentro (la guía pondera por fracción cubierta).
     En 10 m la diferencia es mínima; en CHIRPS (5.5 km) sí se pondera por fracción cubierta.
   * Es más lento: ~30–90 s por parcela (muchas lecturas HTTP pequeñas), según la red.
 
@@ -42,16 +41,17 @@ from datetime import date, datetime, timedelta, timezone
 
 import numpy as np
 
-from app.services.features.gee import (
+from app.services.features.common import (
     CLOUD_MAX,
     FEATURE_KEYS,
     MAX_MISSING,
     PHENO_WINDOWS,
     QUEUE_TIMEOUT_S,
     S2_FEATURES,
-    GeeBusy,
-    GeeError,
-    GeeNoData,
+    SatelliteBusy,
+    SatelliteError,
+    SatelliteNoData,
+    area_warning,
     validate_geometry,
     validate_year,
 )
@@ -119,7 +119,7 @@ def status() -> dict:
 def _require_libs():
     st = status()
     if not st["ready"]:
-        from app.services.features.gee import GeeNotConfigured
+        from app.services.features.common import SatelliteNotConfigured
 
         detail = "; ".join(f"{p}: {'instalado pero falla al cargar (' + i['detalle'] + ')' if i['instalado'] else 'no instalado'}" for p, i in st["problems"].items())
         if any(i["instalado"] and "shared object" in i["detalle"] for i in st["problems"].values()):
@@ -127,7 +127,7 @@ def _require_libs():
             fix = "Falta una librería del sistema operativo, no de Python: en Docker/Debian instala libexpat1 (apt-get install -y libexpat1) y vuelve a construir la imagen."
         else:
             fix = f"Con el entorno que ejecuta uvicorn (Python {st['python']}) corre: python -m pip install -r requirements.txt y reinicia el servidor."
-        raise GeeNotConfigured(f"Faltan librerías en el servidor ({detail}). {fix} Detalle en /satellite-status.")
+        raise SatelliteNotConfigured(f"Faltan librerías en el servidor ({detail}). {fix} Detalle en /satellite-status.")
 
 
 def _retry(fn, *args, tries: int = READ_TRIES):
@@ -158,7 +158,7 @@ def _utc_day(dt: datetime) -> date:
 
 def _asset_ref(item, key: str) -> tuple[str, float, float]:
     """(href, escala, offset) de una banda. Con baseline >= 04.00 la reflectancia lleva offset -0.1:
-    es lo mismo que hace «HARMONIZED» en Earth Engine para que todo el archivo sea comparable."""
+    así toda la serie queda comparable entre versiones de procesamiento."""
     asset = item.assets.get(key)
     if asset is None:
         raise KeyError(f"La escena {item.id} no trae la banda «{key}».")
@@ -224,7 +224,7 @@ def _scene_means(refs: dict[str, tuple[str, float, float]], geom: dict) -> dict[
         for key in ("blue", "nir", "swir16", "swir22"):
             with rasterio.open(refs[key][0]) as src:
                 # SWIR viene a 20 m: se lleva a la malla de 10 m del recorte (vecino más cercano,
-                # igual que Earth Engine con scale=10).
+                # a la resolución de 10 m).
                 dn[key] = src.read(
                     1,
                     window=from_bounds(*bounds, transform=src.transform),
@@ -346,15 +346,17 @@ def _search(client, collection: str, geometry: dict, year: int) -> list:
 def extract_features_stac(geometry_geojson: dict, year: int = 2025) -> dict:
     """
     Calcula las 10 features del modelo para un polígono, solo con fuentes abiertas.
-    Misma forma de salida que gee.extract_features_gee:
+    Devuelve:
         {"features": {...10...}, "advertencias": [...], "area_ha": float}
     """
     geometry, area_ha = validate_geometry(geometry_geojson)
     year = validate_year(year)
     warnings: list[str] = []
+    if (big := area_warning(area_ha)) is not None:
+        warnings.append(big)
 
     if not _run_lock.acquire(timeout=QUEUE_TIMEOUT_S):
-        raise GeeBusy("Hay otro cálculo en curso. Espera unos segundos y reintenta.")
+        raise SatelliteBusy("Hay otro cálculo en curso. Espera unos segundos y reintenta.")
     try:
         _require_libs()
         try:
@@ -362,7 +364,7 @@ def extract_features_stac(geometry_geojson: dict, year: int = 2025) -> dict:
             s2_items = _retry(_search, client, S2_COLLECTION, geometry, year)
             ls_items = _retry(_search, client, LS_COLLECTION, geometry, year)
         except Exception as e:  # noqa: BLE001
-            raise GeeError(f"No se pudo consultar el catálogo de imágenes ({STAC_API_URL}): {_short(e)}") from None
+            raise SatelliteError(f"No se pudo consultar el catálogo de imágenes ({STAC_API_URL}): {_short(e)}") from None
 
         # ── Conteo de fechas con escena (Sentinel-2 + Landsat 8/9, nubes <= 40 %) ──
         s2_dates = {_utc_day(it.datetime) for it in s2_items if it.datetime}
@@ -414,10 +416,10 @@ def extract_features_stac(geometry_geojson: dict, year: int = 2025) -> dict:
             scene_counts[window] = used
             medians[window] = {b: (statistics.median(v) if v else None) for b, v in per_band.items()}
             if items and used == 0 and last_error:
-                raise GeeError(f"No se pudieron leer las imágenes satelitales de {window}: {last_error}")
+                raise SatelliteError(f"No se pudieron leer las imágenes satelitales de {window}: {last_error}")
 
         if total_scenes and failed / total_scenes > 0.5:
-            raise GeeError("Más de la mitad de las escenas no se pudieron leer; reintenta en unos minutos (la fuente de imágenes no responde).")
+            raise SatelliteError("Más de la mitad de las escenas no se pudieron leer; reintenta en unos minutos (la fuente de imágenes no responde).")
         if failed:
             warnings.append(f"{failed} escena(s) no se pudieron leer y no entraron en la mediana.")
 
@@ -431,7 +433,7 @@ def extract_features_stac(geometry_geojson: dict, year: int = 2025) -> dict:
     ordered = {k: features.get(k) for k in FEATURE_KEYS}
     missing = [k for k, v in ordered.items() if v is None]
     if len(missing) > MAX_MISSING:
-        raise GeeNoData(
+        raise SatelliteNoData(
             f"Solo se obtuvieron {len(FEATURE_KEYS) - len(missing)} de {len(FEATURE_KEYS)} variables en {year}. "
             "Suele pasar si las escenas están muy nubladas o el año aún no tiene datos en esa ventana."
         )

@@ -1,6 +1,6 @@
 /**
  * Utilidades para la parcela que se dibuja en la pantalla de parcela satelital.
- * Los puntos viajan como [lat, lng] (orden de Leaflet); GeoJSON/GEE usan [lng, lat],
+ * Los puntos viajan como [lat, lng] (orden de Leaflet); GeoJSON usa [lng, lat],
  * la conversión se hace solo en toGeoJSONPolygon / parseGeoJSON.
  */
 import { haversine } from "./geo";
@@ -136,7 +136,7 @@ function segmentsCross(a, b, c, d) {
   return o1 * o2 < 0 && o3 * o4 < 0;
 }
 
-/** true si dos lados no contiguos se cruzan (polígono "en moño"): GEE lo rechaza o da área absurda. */
+/** true si dos lados no contiguos se cruzan (polígono "en moño"): el backend lo rechaza o da área absurda. */
 export function selfIntersects(points) {
   const n = points.length;
   if (n < 4) return false;

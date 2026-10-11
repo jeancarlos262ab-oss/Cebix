@@ -86,10 +86,10 @@ export default function GlobalSearch() {
   }
 
   return (
-    <div ref={containerRef} className="relative w-40 sm:w-56 lg:w-64">
+    <div ref={containerRef} className="relative my-3 w-full sm:my-0 sm:w-56 lg:w-64">
       <Search
         size={16}
-        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-accent-600 dark:text-accent-400"
+        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-700 dark:text-gray-200"
       />
       <input
         ref={inputRef}

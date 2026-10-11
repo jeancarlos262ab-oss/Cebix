@@ -7,12 +7,6 @@ import RunModelPanel from "../components/model/RunModelPanel";
 import RequireModelInfo from "../components/ui/RequireModelInfo";
 import { useModelInfo } from "../context/ModelInfoContext";
 
-const GROUP_DOT = {
-  ndvi: "bg-ndvi-500",
-  brand: "bg-brand-500",
-  navy: "bg-gray-600",
-};
-
 const TABS = [
   { key: "ejecutar", label: "Ejecutar modelo" },
   { key: "resumen", label: "Resumen y validación" },
@@ -27,31 +21,32 @@ const SOURCE_ICON = {
   "Reto AgroCebada 2026 (FIRA)": Sprout,
 };
 
-function Section({ title, description, children }) {
+/** Tarjeta estándar de la app: encabezado con título/descripción, línea divisoria y cuerpo. */
+function Card({ title, description, children, className = "", bodyClassName = "p-5" }) {
   return (
-    <section>
-      <h2 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
-      {description && (
-        <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">{description}</p>
-      )}
-      <div className="mt-5">{children}</div>
+    <section className={`flex flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 ${className}`}>
+      <header className="border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+        <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+        {description && (
+          <p className="mt-0.5 max-w-2xl text-xs leading-relaxed text-gray-500 dark:text-gray-400">{description}</p>
+        )}
+      </header>
+      <div className={`flex-1 ${bodyClassName}`}>{children}</div>
     </section>
   );
 }
 
-function Kpi({ label, value, unit, large = true }) {
+function Kpi({ label, value, unit, accent = false, small = false }) {
   return (
-    <div className="relative p-5">
-      <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
+    <div className="px-5 py-5">
+      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</p>
       <p
-        className={`mt-2 font-semibold leading-tight text-gray-900 dark:text-gray-100 ${
-          large ? "font-display text-2xl" : "text-base"
+        className={`mt-2 font-display font-bold leading-tight ${small ? "text-base" : "text-2xl"} ${
+          accent ? "text-accent-600 dark:text-accent-400" : "text-gray-900 dark:text-white"
         }`}
       >
         {value}
-        {unit && (
-          <span className="ml-1.5 text-sm font-medium text-gray-400 dark:text-gray-500">{unit}</span>
-        )}
+        {unit && <span className="ml-1.5 text-sm font-medium text-gray-400 dark:text-gray-500">{unit}</span>}
       </p>
     </div>
   );
@@ -60,27 +55,26 @@ function Kpi({ label, value, unit, large = true }) {
 function ResumenTab() {
   const { modelSummary, algorithmComparison, validationSteps } = useModelInfo().info;
   return (
-    <div className="space-y-10">
-      <div className="grid grid-cols-2 lg:grid-cols-[1.7fr_1fr_1fr_1fr]">
-        <div className="col-span-2 lg:col-span-1">
-          <Kpi label="Modelo seleccionado" value={modelSummary.selected} large={false} />
+    <div className="space-y-6">
+      {/* Indicadores: una sola tarjeta, separados por líneas finas */}
+      <div className="grid grid-cols-2 divide-x divide-y divide-gray-200 overflow-hidden rounded-2xl border border-gray-200 dark:divide-gray-800 dark:border-gray-800 lg:grid-cols-[1.7fr_1fr_1fr_1fr] lg:divide-y-0">
+        <div className="col-span-2 border-b border-gray-200 dark:border-gray-800 lg:col-span-1 lg:border-b-0">
+          <Kpi label="Modelo seleccionado" value={modelSummary.selected} small />
         </div>
         <Kpi label="Parcelas de entrenamiento" value={modelSummary.trainingParcels} />
-        <Kpi label="RMSE" value={modelSummary.rmse} unit="ton/ha" />
-        <Kpi label="R²" value={modelSummary.r2} />
+        <Kpi label="RMSE" value={modelSummary.rmse} unit="ton/ha" accent />
+        <Kpi label="R²" value={modelSummary.r2} accent />
       </div>
 
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <Section
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <Card
           title="Baseline vs. gradient boosting"
           description={`Ridge y Lasso como referencia; XGBoost y LightGBM sobre ${modelSummary.trainingParcels} parcelas, sin redes profundas por el tamaño de la muestra.`}
         >
-          <div className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
-            <AlgorithmComparisonChart data={algorithmComparison} highlight={modelSummary.modelName} />
-          </div>
-        </Section>
+          <AlgorithmComparisonChart data={algorithmComparison} highlight={modelSummary.modelName} />
+        </Card>
 
-        <Section
+        <Card
           title="Validación espacial"
           description="Evita el sesgo por parcelas cercanas que produciría un k-fold aleatorio simple."
         >
@@ -95,22 +89,18 @@ function ResumenTab() {
                       className="absolute left-3 top-8 bottom-0 w-px -translate-x-1/2 bg-gray-200 dark:bg-gray-800"
                     />
                   )}
-                  <span className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-xs font-medium tabular-nums text-gray-600 dark:border-gray-700 dark:bg-black dark:text-gray-300">
+                  <span className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-50 text-[11px] font-semibold tabular-nums text-accent-700 dark:bg-accent-500/15 dark:text-accent-400">
                     {i + 1}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                      {step.title}
-                    </p>
-                    <p className="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-                      {step.detail}
-                    </p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{step.title}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{step.detail}</p>
                   </div>
                 </li>
               );
             })}
           </ol>
-        </Section>
+        </Card>
       </div>
     </div>
   );
@@ -119,72 +109,58 @@ function ResumenTab() {
 function DatosTab() {
   const { featureGroups, dataSources } = useModelInfo().info;
   return (
-    <div className="space-y-10">
-      <Section
+    <div className="space-y-6">
+      <Card
         title="Feature engineering"
         description="Variables derivadas de datos satelitales, climáticas y de suelo por etapa del ciclo."
+        bodyClassName="divide-y divide-gray-200 dark:divide-gray-800"
       >
-        <div className="space-y-4">
-          {featureGroups.map((group) => (
-            <div key={group.group} className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
-              <div className="flex items-center gap-2.5 bg-gray-50 px-5 py-3 dark:bg-gray-900">
-                <span className={`h-2 w-2 shrink-0 rounded-xs ${GROUP_DOT[group.color]}`} />
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  {group.group}
-                </p>
-              </div>
-              <ul className="grid grid-cols-1 md:grid-cols-2">
-                {group.features.map((f) => (
-                  <li
-                    key={f}
-                    className="flex items-start gap-3 px-5 py-3 text-sm text-gray-700 dark:text-gray-300"
-                  >
-                    <span
-                      className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-xs ${GROUP_DOT[group.color]}`}
-                      aria-hidden="true"
-                    />
-                    {f}
-                  </li>
-                ))}
-              </ul>
+        {featureGroups.map((group) => (
+          <div key={group.group} className="px-5 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{group.group}</p>
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium tabular-nums text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                {group.features.length} variables
+              </span>
             </div>
-          ))}
-        </div>
-      </Section>
+            <ul className="mt-3 grid grid-cols-1 gap-x-8 gap-y-2 md:grid-cols-2">
+              {group.features.map((f) => (
+                <li key={f} className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                  <span className="mt-2 size-1.5 shrink-0 rounded-full bg-accent-500" aria-hidden="true" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </Card>
 
-      <Section title="Fuentes de datos">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {dataSources.map((source) => {
-            const Icon = SOURCE_ICON[source.name] ?? Satellite;
-            const training = source.use === "Entrenamiento";
-            return (
-              <div
-                key={source.name}
-                className="flex h-full flex-col rounded-2xl border border-gray-200 p-5 dark:border-gray-800"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <Icon size={20} strokeWidth={1.5} className="shrink-0 text-gray-400 dark:text-gray-500" />
-                  <span
-                    className={`rounded px-2 py-0.5 text-xs font-medium ${
-                      training
-                        ? "border border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300"
-                        : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                    }`}
-                  >
-                    {source.use}
-                  </span>
-                </div>
-                <p className="mt-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  {source.name}
-                </p>
-                <p className="mt-1.5 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-                  {source.detail}
-                </p>
+      <Card title="Fuentes de datos" bodyClassName="divide-y divide-gray-200 dark:divide-gray-800">
+        {dataSources.map((source) => {
+          const Icon = SOURCE_ICON[source.name] ?? Satellite;
+          const training = source.use === "Entrenamiento";
+          return (
+            <div key={source.name} className="flex items-start gap-4 px-5 py-4">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-accent-600 dark:bg-gray-800 dark:text-accent-400">
+                <Icon size={17} strokeWidth={1.75} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{source.name}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{source.detail}</p>
               </div>
-            );
-          })}
-        </div>
-      </Section>
+              <span
+                className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  training
+                    ? "bg-accent-50 text-accent-700 dark:bg-accent-500/15 dark:text-accent-400"
+                    : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                }`}
+              >
+                {source.use}
+              </span>
+            </div>
+          );
+        })}
+      </Card>
     </div>
   );
 }

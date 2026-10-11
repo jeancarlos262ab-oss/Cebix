@@ -22,15 +22,15 @@ backend/
 │   │   └── geo.py              #   POST /parse-geometry (SHP / GeoJSON / KML / KMZ -> polígonos)
 │   └── services/               # lógica de negocio
 │       ├── model_service.py    #   carga del modelo + inferencia (IC90, SHAP local)
-│       ├── satellite_service.py#   elige proveedor (stac / gee)
+│       ├── satellite_service.py#   proveedor de features satelitales (fuentes abiertas)
 │       └── features/
 │           ├── stac.py         #   features desde fuentes abiertas (por defecto)
-│           └── gee.py          #   features desde Google Earth Engine (opcional)
+│           └── common.py       #   ventanas, validación de polígonos y errores compartidos
 ├── models/                     # model_artifact.joblib + model_meta.json
 ├── data/                       # ejemplo_features_predict.csv (lo sirve /example-csv)
 ├── scripts/                    # herramientas que NO van al contenedor
 │   ├── export_model.py         #   reentrena y regenera models/model_artifact.joblib
-│   ├── validate_gee.py         #   valida el cálculo satelital contra el dataset oficial
+│   ├── validate_satelite.py    #   valida el cálculo satelital contra el dataset oficial
 │   └── run.sh, run.bat, setup_venv.sh, setup_venv.bat
 ├── Dockerfile, render.yaml, requirements.txt
 └── README_BACKEND.md
@@ -176,13 +176,15 @@ Respuesta: `features_calculadas` (las 10), `yieldEstimate`, `ic90_inferior/super
 
 | Código | Cuándo |
 |---|---|
-| 422 | Geometría inválida (no Polygon, UTM, se cruza, <0.05 ha o >5000 ha), año fuera de 2018–hoy, o se obtuvieron datos de menos de 7 de las 10 variables |
+| 422 | Geometría inválida (no Polygon, UTM, se cruza, <0.05 ha), año fuera de 2018–hoy, o se obtuvieron datos de menos de 7 de las 10 variables |
 | 429 | Ya hay otro cálculo en curso (se procesa uno a la vez para cuidar la memoria) |
 | 502 | La fuente de imágenes o el catálogo no respondieron (reintenta en unos minutos) |
 | 503 | Faltan librerías en el servidor |
 
 **Variables de entorno opcionales** (por si cambian las rutas públicas, sin tocar código): `STAC_API_URL`, `STAC_S2_COLLECTION`,
-`STAC_LS_COLLECTION`, `CHIRPS_URL_TEMPLATE`, `STAC_WORKERS`, `GEE_MAX_AREA_HA`.
+`STAC_LS_COLLECTION`, `CHIRPS_URL_TEMPLATE`, `STAC_WORKERS`, `AREA_WARN_HA`, `SAT_QUEUE_TIMEOUT_S`.
+
+**Superficie:** no hay tope. Si la zona mide más de `AREA_WARN_HA` (1000 ha por defecto) se calcula igual, pero la respuesta trae una advertencia: el promedio de una zona tan grande mezcla cultivos y coberturas distintas y no representa a una parcela.
 
 ### Qué está verificado y qué NO (decirlo así en el reporte)
 
@@ -191,15 +193,15 @@ Respuesta: `features_calculadas` (las 10), `yieldEstimate`, `ic90_inferior/super
   ponderación entre píxeles y rechazo si falta un día, errores HTTP, y el flujo completo frontend → backend → modelo.
 - **NO verificado contra los servicios reales** (el entorno de desarrollo no tenía internet): la ruta pública de CHIRPS, los nombres de colección y
   de banda de Earth Search (`blue, red, nir, swir16, swir22`), la escala/offset de reflectancia que publica, el uso de memoria en el plan gratuito de
-  Render y la velocidad real. Primera ejecución recomendada: `curl /satellite-status`, luego `python scripts/validate_gee.py ... --n 1`.
+  Render y la velocidad real. Primera ejecución recomendada: `curl /satellite-status`, luego `python scripts/validate_satelite.py ... --n 1`.
 - **Los números pueden diferir del dataset oficial** (otra versión de procesamiento, píxeles de borde, LAI con valores no finitos descartados píxel a
   píxel). Por eso la validación del Paso 8 es obligatoria antes de citar resultados:
 
 ```bash
 pip install geopandas
-python scripts/validate_gee.py --csv ../ml/02_datos_procesados/features_completo.csv --shp ruta/a/Parcelas_Reto_AGC_CONJUNTO.shp --n 5
+python scripts/validate_satelite.py --csv ../ml/02_datos_procesados/features_completo.csv --shp ruta/a/Parcelas_Reto_AGC_CONJUNTO.shp --n 5
 ```
-Imprime la diferencia porcentual por variable y guarda `validacion_gee.json`; cópialo a `cebix/src/data/earthEngineValidation.json`.
+Imprime la diferencia porcentual por variable y guarda `validacion_satelite.json`; cópialo a `cebix/src/data/sateliteValidation.json`.
 
 ### Si `/satellite-status` o la pantalla dicen «Faltan librerías en el servidor»
 
@@ -213,12 +215,6 @@ Imprime la diferencia porcentual por variable y guarda `validacion_gee.json`; c�
 Los datos sí: Sentinel-2 y Landsat son abiertos, y tanto Earth Search como CHIRPS se leen sin llave ni registro. Earth Search aclara que es de uso libre
 **sin garantía de servicio**, así que puede ser lento o fallar a ratos. El hospedaje es aparte: el plan gratuito de Render duerme el servicio y tiene
 límites de memoria (no los medí con esta carga).
-
-### Opcional: Google Earth Engine
-
-`app/services/features/gee.py` sigue disponible con `FEATURES_PROVIDER=gee`, pero Earth Engine exige una cuenta de facturación activa (no se cobra el uso no
-comercial) y tiene cuota mensual de cómputo. Requiere `pip install earthengine-api` y `GEE_SERVICE_ACCOUNT_JSON`. No se usa por defecto y no se probó
-contra Earth Engine real.
 
 ## Limitación honesta (decirla en el reporte/demo si preguntan)
 

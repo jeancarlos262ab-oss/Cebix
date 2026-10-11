@@ -2,7 +2,6 @@
 venv/
 __pycache__/
 *.pyc
-# Clave de la cuenta de servicio de Earth Engine: es una contraseña, NUNCA al repo
-gee-service-account*.json
+# Cualquier clave de cuenta de servicio es una contraseña: NUNCA al repo
 *-service-account*.json
 .env

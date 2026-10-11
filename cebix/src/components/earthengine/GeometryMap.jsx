@@ -178,7 +178,7 @@ function FlatGeometryMap({
         : "Pulsa «Dibujar parcela» y marca el contorno sobre la imagen";
 
   return (
-    <div className="relative h-full min-h-[440px] w-full overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
+    <div className="relative h-full min-h-[440px] w-full overflow-hidden rounded-lg">
       <MapContainer
         ref={setMap}
         bounds={startBounds}

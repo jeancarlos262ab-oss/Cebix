@@ -104,8 +104,16 @@ function ParcelasPageContent() {
     [syncParams, resetPage, risk, region]
   );
 
+  const empty = parcels.length === 0;
+
   return (
     <>
+      {empty ? (
+        // Sin parcelas no hay nada que exportar y "Agregar parcela" ya está en "Otras opciones":
+        // se ocultan ambos botones y el estado vacío pone su propia barra superior.
+        <EmptyAnalysis title="Parcelas" subtitle="0 parcelas en tu cuenta." onAdd={() => setModal("add")} />
+      ) : (
+        <>
       <TopBar
         title="Parcelas"
         subtitle={`${filtered.length} parcela${filtered.length === 1 ? "" : "s"} en tu cuenta.`}
@@ -133,19 +141,16 @@ function ParcelasPageContent() {
 
       <div className="mt-6" aria-hidden="true" />
 
-      {parcels.length === 0 ? (
-        <EmptyAnalysis onAdd={() => setModal("add")} />
-      ) : (
       <div className="grid grid-cols-1 items-start gap-10 px-4 py-6 sm:px-6 lg:grid-cols-[280px_1fr] lg:px-8">
         {/* En escritorio aside y contenido se "aplanan" (lg:contents) para que el mapa
             comparta fila con el recuadro de filtro y tenga exactamente su altura. */}
         <aside className="min-w-0 space-y-10 lg:contents lg:space-y-0">
-          <section className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800 lg:col-start-1 lg:row-start-1">
+          <section className="overflow-hidden rounded-2xl border border-gray-200 p-5 dark:border-gray-800 lg:col-start-1 lg:row-start-1">
             <h2 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">Filtrar por región</h2>
             <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
               Muestra solo las parcelas de una región.
             </p>
-            <div className="mt-4 flex flex-col gap-1.5" role="group" aria-label="Región">
+            <div className="-mx-5 mt-4 flex flex-col gap-0.5" role="group" aria-label="Región">
               {REGION_FILTERS.map((r) => {
                 const active = region === r;
                 return (
@@ -155,7 +160,7 @@ function ParcelasPageContent() {
                     aria-pressed={active}
                     onClick={() => handleRegionChange(r)}
                     className={[
-                      "flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500",
+                      "flex w-full items-center justify-between gap-3 rounded-none px-5 py-2.5 text-left text-sm transition-colors focus:outline-hidden focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-accent-500",
                       active
                         ? "bg-gray-100 font-semibold text-gray-900 dark:bg-gray-800 dark:text-gray-100"
                         : "font-medium text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-900",
@@ -176,7 +181,7 @@ function ParcelasPageContent() {
           </section>
 
           <div className="min-w-0 space-y-10 lg:col-start-1 lg:row-start-2">
-          <section className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
+          <section className="overflow-hidden rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
             <div className="flex items-center justify-between gap-3">
               <h3 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">
                 Elegibilidad
@@ -207,7 +212,7 @@ function ParcelasPageContent() {
               ))}
             </div>
 
-            <div className="-mx-2 mt-3 flex flex-col" role="group" aria-label="Filtrar por elegibilidad">
+            <div className="-mx-5 mt-3 flex flex-col gap-0.5" role="group" aria-label="Filtrar por elegibilidad">
               {riskCounts.map((r) => {
                 const active = risk === r.key;
                 const share = regionFiltered.length ? Math.round((r.count / regionFiltered.length) * 100) : 0;
@@ -220,7 +225,7 @@ function ParcelasPageContent() {
                     disabled={empty}
                     onClick={() => handleRiskChange(r.key)}
                     className={[
-                      "flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500",
+                      "flex w-full items-center gap-3 rounded-none px-5 py-2.5 text-left text-sm transition-colors focus:outline-hidden focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-accent-500",
                       active
                         ? "bg-gray-100 dark:bg-gray-800"
                         : "hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:hover:bg-gray-900",
@@ -320,6 +325,7 @@ function ParcelasPageContent() {
           </div>
         </div>
       </div>
+        </>
       )}
 
       {modal && (

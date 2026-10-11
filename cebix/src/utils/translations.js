@@ -5,9 +5,10 @@
  */
 export const EN = {
   // Navegación
-  General: "General",
-  "Reto AgroCebada": "AgroBarley Challenge",
-  Sistema: "System",
+  Gestión: "Management",
+  Análisis: "Analysis",
+  Configuración: "Configuration",
+  Sistema: "System", // opción de tema en Ajustes
   Resumen: "Overview",
   Parcelas: "Plots",
   Modelo: "Model",

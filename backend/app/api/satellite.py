@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.schemas import GeometryRequest
 from app.services import satellite_service
-from app.services.features.gee import GeeError
+from app.services.features.common import SatelliteError
 from app.services.model_service import get_artifact, run_inference
 
 router = APIRouter(tags=["satélite"])
@@ -21,14 +21,15 @@ def satellite_status():
 def predict_from_geometry(payload: GeometryRequest):
     """
     Calcula en vivo las 10 features de una parcela nueva desde satélite y corre el modelo.
-    Con el proveedor por defecto (fuentes abiertas, sin cuenta) tarda ~30–90 s. Un solo cálculo a la vez.
+    Usa fuentes abiertas (Sentinel-2, Landsat y CHIRPS), sin cuenta; tarda ~30–90 s. Un solo cálculo a la vez.
+    No hay tope de superficie: si la zona es muy grande se devuelve una advertencia (mezcla coberturas).
 
     Errores: 422 geometría/año inválidos o sin datos satelitales, 429 otro cálculo en curso,
     502 falla de la fuente de imágenes, 503 librerías o credenciales faltantes en el servidor.
     """
     try:
         extracted = satellite_service.extract(payload.geometry, payload.anio)
-    except GeeError as e:
+    except SatelliteError as e:
         raise HTTPException(status_code=e.status, detail=e.message) from None
 
     features = extracted["features"]

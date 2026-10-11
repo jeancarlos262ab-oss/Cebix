@@ -15,6 +15,5 @@ services:
       # Dominio del frontend en Vercel, sin "/" al final. Varios, separados por coma.
       - key: ALLOWED_ORIGINS
         sync: false
-      # Parcelas nuevas desde satélite: por defecto usa fuentes abiertas SIN cuenta (stac_features.py),
-      # no hace falta configurar nada. Solo si prefieres Google Earth Engine:
-      #   FEATURES_PROVIDER=gee  +  GEE_SERVICE_ACCOUNT_JSON (secreto)  +  GEE_PROJECT
+      # Parcelas nuevas desde satélite: usa fuentes abiertas SIN cuenta (app/services/features/stac.py),
+      # no hace falta configurar nada.

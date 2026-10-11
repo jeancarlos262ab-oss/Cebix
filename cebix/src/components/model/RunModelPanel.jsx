@@ -17,6 +17,8 @@ import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { Link } from "react-router-dom";
 import LiquidOrbLoader from "./LiquidOrbLoader";
+import Dropzone from "../ui/Dropzone";
+import DocumentPeek from "../ui/DocumentPeek";
 import { useModelInfo } from "../../context/ModelInfoContext";
 import { useParcels } from "../../context/ParcelsContext";
 import { EXAMPLE_CSV_URL, fetchExampleFile, friendlyError, predictCsv } from "../../hooks/useModelRunner";
@@ -45,7 +47,6 @@ const formatSize = (bytes) =>
  */
 export default function RunModelPanel() {
   const [file, setFile] = useState(null);
-  const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const { loadAnalysis, clearAnalysis, hasAnalysis, analysisMeta } = useParcels();
@@ -57,15 +58,10 @@ export default function RunModelPanel() {
     "lat / lng (para el mapa)",
   ];
 
-  function pickFile(f) {
-    if (f) setFile(f);
-  }
-
-  function handleDrop(e) {
-    e.preventDefault();
-    setDragging(false);
-    const dropped = e.dataTransfer.files?.[0];
-    if (dropped && dropped.name.toLowerCase().endsWith(".csv")) pickFile(dropped);
+  // Al elegir con el selector el navegador ya filtra por .csv; al arrastrar se valida aquí.
+  function handleFiles(files) {
+    const picked = files.find((f) => f.name.toLowerCase().endsWith(".csv"));
+    if (picked) setFile(picked);
   }
 
   async function runWith(f) {
@@ -141,8 +137,16 @@ export default function RunModelPanel() {
           title="Prepara tu archivo"
           description="El CSV necesita estas columnas; el de ejemplo trae el formato exacto."
         >
-          <div className="relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-gray-200 p-4 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative z-10 min-w-0">
+          {/* sm:mt-12 deja sitio arriba para el documento, que sobresale 40 px del contenedor. */}
+          <div className="relative flex flex-col gap-4 rounded-2xl border border-gray-200 p-4 dark:border-gray-800 sm:mt-12 sm:flex-row sm:items-center sm:justify-between">
+            {/* Documento a la izquierda del texto. Sobresale por arriba del contenedor y su parte de
+                abajo queda recortada a ras del borde inferior; entra deslizándose desde ahí. Solo en
+                pantallas donde las columnas van en fila. */}
+            <div aria-hidden="true" className="pointer-events-none absolute -top-10 bottom-0 left-4 hidden w-32 overflow-hidden sm:block">
+              <DocumentPeek className="absolute left-0 top-0 h-[149px] w-32" />
+            </div>
+            <div aria-hidden="true" className="hidden w-28 shrink-0 sm:block" />
+            <div className="relative z-10 min-w-0 sm:flex-1">
               <div className="flex flex-wrap gap-1.5">
                 {requiredColumns.map((c) => (
                   <span
@@ -174,21 +178,7 @@ export default function RunModelPanel() {
           description="El backend corre el Random Forest entrenado en ese momento; no son resultados guardados."
         >
           <form onSubmit={handleSubmit} className="space-y-4">
-            <label
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragging(true);
-              }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={handleDrop}
-              className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-4 py-8 text-center transition-colors focus-within:ring-2 focus-within:ring-accent-500 ${
-                dragging
-                  ? "border-accent-500 bg-gray-50 dark:bg-gray-900"
-                  : file
-                  ? "border-gray-400 bg-gray-50 dark:border-gray-600 dark:bg-gray-900/60"
-                  : "border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
-              }`}
-            >
+            <Dropzone accept=".csv" active={Boolean(file)} onFiles={handleFiles}>
               {file ? (
                 <FileSpreadsheet size={24} strokeWidth={1.5} className="text-gray-500 dark:text-gray-400" />
               ) : (
@@ -200,13 +190,7 @@ export default function RunModelPanel() {
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 {file ? `${formatSize(file.size)} · haz clic para cambiarlo` : "o arrástralo aquí"}
               </span>
-              <input
-                type="file"
-                accept=".csv"
-                className="sr-only"
-                onChange={(e) => pickFile(e.target.files?.[0])}
-              />
-            </label>
+            </Dropzone>
 
             <button
               type="submit"

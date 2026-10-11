@@ -1,5 +1,5 @@
 import io, json, zipfile, sys
-sys.path.insert(0, "/home/claude/backend")
+import os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import shapefile
 from pyproj import Transformer, CRS
 from fastapi import FastAPI

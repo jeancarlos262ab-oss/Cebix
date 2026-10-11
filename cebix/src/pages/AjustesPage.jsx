@@ -103,14 +103,15 @@ export default function AjustesPage() {
         }
       />
 
-      <div className="mt-2 max-w-4xl px-4 sm:px-6 lg:px-8">
+      <div className="mt-8 max-w-4xl px-4 sm:mt-10 sm:px-6 lg:px-8">
         {/* Apariencia */}
         <SettingsSection
           icon={Palette}
           title={t("Apariencia")}
           description={t("Elige cómo se ve CEBIX en este dispositivo")}
         >
-          <div className="grid grid-cols-1 gap-3 pt-1 sm:grid-cols-3">
+          <div className="-mx-5">
+          <div className="grid grid-cols-1 divide-y divide-gray-200 dark:divide-gray-800 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             <ThemePreviewCard
               label={t("Claro")}
               description={t("Ideal para exteriores")}
@@ -136,8 +137,9 @@ export default function AjustesPage() {
               accentColor={accentColor}
             />
           </div>
+          </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-4">
             <span>
               <span className="block text-sm font-medium text-gray-900 dark:text-white">
                 {t("Color de acento")}
@@ -202,7 +204,7 @@ export default function AjustesPage() {
           title={t("Idioma y región")}
           description={t("Formato de fecha, hora y zona horaria")}
         >
-          <div className="grid grid-cols-1 gap-4 py-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 py-5 sm:grid-cols-3">
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
                 {t("Idioma")}
@@ -210,7 +212,7 @@ export default function AjustesPage() {
               <select
                 value={idioma}
                 onChange={(e) => setIdioma(e.target.value)}
-                className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-accent-500 dark:focus:border-accent-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-accent-500 dark:focus:border-accent-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
               >
                 <option value="es-MX">Español (México)</option>
                 <option value="en-US">English (US)</option>
@@ -223,7 +225,7 @@ export default function AjustesPage() {
               <select
                 value={formatoFecha}
                 onChange={(e) => setFormatoFecha(e.target.value)}
-                className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-accent-500 dark:focus:border-accent-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-accent-500 dark:focus:border-accent-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
               >
                 <option value="dd/mm/aaaa">DD/MM/AAAA</option>
                 <option value="mm/dd/aaaa">MM/DD/AAAA</option>
@@ -236,7 +238,7 @@ export default function AjustesPage() {
               <select
                 value={zonaHoraria}
                 onChange={(e) => setZonaHoraria(e.target.value)}
-                className="w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-accent-500 dark:focus:border-accent-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-accent-500 dark:focus:border-accent-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
               >
                 {TIME_ZONES.map((z) => (
                   <option key={z.id} value={z.id}>
@@ -246,7 +248,7 @@ export default function AjustesPage() {
               </select>
             </label>
           </div>
-          <p className="pb-1 text-xs text-gray-500 dark:text-gray-400">
+          <p className="py-4 text-xs text-gray-500 dark:text-gray-400">
             {t("Vista previa")}: {formatDate(new Date())} · {formatTime(new Date())} · {formatNumber(1234567.89)}
           </p>
         </SettingsSection>

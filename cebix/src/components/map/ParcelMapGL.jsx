@@ -12,6 +12,7 @@ import { LEFT_FADE_LENGTH, softFadeGradient } from "./edgeFade";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Map, { Layer, Marker, Popup, Source } from "react-map-gl/maplibre";
 import LocationPin, { PIN_TIP_OFFSET } from "./LocationPin";
+import { selectedShapeSvg } from "./selectedShape";
 import CustomMapControls from "./CustomMapControls";
 import { ExternalLink, Gauge, Leaf, Map as MapIcon, Milestone, Moon, Mountain, Satellite as SatelliteIcon } from "lucide-react";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
@@ -410,6 +411,8 @@ function ParcelMapGL({
   const [popupInfo, setPopupInfo] = useState(null);
   const [hoveredParcelId, setHoveredParcelId] = useState(null);
   const previouslyClickedRef = useRef(null);
+  // Parcela seleccionada: se dibuja con otra figura (rombo) en vez del círculo.
+  const [markedId, setMarkedId] = useState(null);
 
   const isLowEnd = useMemo(() => detectLowEndDevice(), []);
   const { resolvedTheme, accent } = useTheme();
@@ -486,6 +489,7 @@ function ParcelMapGL({
         }
         previouslyClickedRef.current = null;
       }
+      setMarkedId(null);
       return;
     }
     if (selectedId !== undefined && selectedId !== null) {
@@ -504,6 +508,7 @@ function ParcelMapGL({
           // Establecer nuevo estado
           map.setFeatureState({ source: "parcels", id: selectedId }, { clicked: true });
           previouslyClickedRef.current = selectedId;
+          setMarkedId(selectedId);
 
           const targetZoom = Math.max(map.getZoom(), 12);
           const transitionConfig = {
@@ -549,6 +554,7 @@ function ParcelMapGL({
 
             map.setFeatureState({ source: "parcels", id: parcelId }, { clicked: true });
             previouslyClickedRef.current = parcelId;
+            setMarkedId(parcelId);
           }
         }
       }
@@ -619,8 +625,9 @@ function ParcelMapGL({
         ["case", ["boolean", ["feature-state", "clicked"], false], 3, 2],
       ],
 
-      "circle-opacity": 0.9,
-      "circle-stroke-opacity": 1,
+      // El círculo del punto seleccionado se oculta: lo reemplaza el rombo (<Marker> de abajo).
+      "circle-opacity": ["case", ["boolean", ["feature-state", "clicked"], false], 0, 0.9],
+      "circle-stroke-opacity": ["case", ["boolean", ["feature-state", "clicked"], false], 0, 1],
     },
   };
 
@@ -706,6 +713,23 @@ function ParcelMapGL({
             <Layer {...parcelLayerStyle} />
           </Source>
         )}
+
+        {!viewOnly && markedId !== null && (() => {
+          const parcel = parcels?.find((p) => p.id === markedId);
+          const color = parcelGeoJSON.features.find((f) => f.id === markedId)?.properties?.color ?? RISK_HEX.red;
+          if (!parcel) return null;
+          return (
+            <Marker
+              key={`selected-${markedId}`}
+              latitude={parcel.lat}
+              longitude={parcel.lng}
+              anchor="center"
+              style={{ pointerEvents: "none", zIndex: 5 }}
+            >
+              <div dangerouslySetInnerHTML={{ __html: selectedShapeSvg(color) }} />
+            </Marker>
+          );
+        })()}
 
         {!viewOnly && showPopup && popupInfo && (
           <Popup

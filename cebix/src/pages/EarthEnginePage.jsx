@@ -19,6 +19,7 @@ import GeometryMap from "../components/earthengine/GeometryMap";
 import RunProgress from "../components/earthengine/RunProgress";
 import ParcelResult from "../components/earthengine/ParcelResult";
 import ValidationTable from "../components/earthengine/ValidationTable";
+import ValidationRunner from "../components/earthengine/ValidationRunner";
 import { classifyRisk, scoreFromInputs } from "../context/ParcelsContext";
 import { STEP_MS, predictFromGeometry } from "../services/earthEngineApi";
 import { parseGeometryFiles } from "../services/geoApi";
@@ -49,9 +50,6 @@ const FIELD =
 
 const BTN =
   "inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800";
-
-const BTN_DARK =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200";
 
 function SectionHeader({ title, description }) {
   return (
@@ -98,16 +96,16 @@ function Notice({ tone = "warn", children }) {
   );
 }
 
-/** Círculo numerado de un paso, solo relleno y en escala de grises: "done" (check) | "active" (oscuro) | "pending" (claro). */
+/** Círculo numerado de un paso: "done" (check, acento suave) | "active" (acento sólido) | "pending" (gris). */
 function StepDot({ n, state, running = false }) {
   return (
     <span
       aria-hidden="true"
-      className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-medium tabular-nums transition-colors duration-200 ${
+      className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums transition-colors duration-200 ${
         state === "done"
-          ? "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+          ? "bg-accent-50 text-accent-700 dark:bg-accent-500/15 dark:text-accent-400"
           : state === "active"
-            ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900"
+            ? "bg-accent-500 text-accent-contrast"
             : "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500"
       }`}
     >
@@ -119,7 +117,7 @@ function StepDot({ n, state, running = false }) {
 /** Sección numerada del panel de trabajo: el número pasa a ✓ cuando el paso queda resuelto. */
 function PanelSection({ n, state, title, running = false, children }) {
   return (
-    <section className="p-5">
+    <section className="px-5 py-5">
       <header className="mb-4 flex items-center gap-3">
         <StepDot n={n} state={state} running={running} />
         <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
@@ -129,11 +127,17 @@ function PanelSection({ n, state, title, running = false, children }) {
   );
 }
 
-function Metric({ label, wide = false, children }) {
+function Metric({ label, wide = false, accent = false, children }) {
   return (
     <div className={`bg-white px-3 py-2.5 dark:bg-black ${wide ? "col-span-3" : ""}`}>
       <dt className="text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{label}</dt>
-      <dd className="mt-0.5 truncate text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">{children}</dd>
+      <dd
+        className={`mt-0.5 truncate text-sm font-semibold tabular-nums ${
+          accent ? "text-accent-600 dark:text-accent-400" : "text-gray-900 dark:text-gray-100"
+        }`}
+      >
+        {children}
+      </dd>
     </div>
   );
 }
@@ -399,7 +403,7 @@ function NuevaParcelaTab() {
     points.length === 0
       ? drawing
         ? "Haz clic sobre el mapa para marcar el primer vértice."
-        : "Dibuja el contorno sobre la imagen satelital o importa un shapefile (.zip), GeoJSON o KML/KMZ."
+        : "Dibuja el contorno sobre la imagen satelital o importa un shapefile (.zip o .shp/.dbf/.prj/.shx/.cpg), GeoJSON o KML/KMZ."
       : points.length < 3
         ? `${points.length} de 3 vértices mínimos. Sigue marcando sobre el mapa.`
         : `${points.length} vértices. Cierra con «Terminar» o tocando el primer punto.`;
@@ -426,11 +430,11 @@ function NuevaParcelaTab() {
         </div>
 
         {/* ── Panel de trabajo: tres pasos, de arriba abajo ── */}
-        <aside className="min-w-0 self-start divide-y divide-gray-200 rounded-lg border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+        <aside className="min-w-0 self-start divide-y divide-gray-200 overflow-hidden rounded-2xl border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
           <PanelSection n={1} state={s1} title="Contorno de la parcela">
             {info ? (
-              <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-gray-200 bg-gray-200 dark:border-gray-800 dark:bg-gray-800">
-                <Metric label="Superficie">{formatHa(info.ha)} ha</Metric>
+              <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 dark:border-gray-800 dark:bg-gray-800">
+                <Metric label="Superficie" accent>{formatHa(info.ha)} ha</Metric>
                 <Metric label="Perímetro">{formatDistance(info.perimeter)}</Metric>
                 <Metric label="Vértices">{points.length}</Metric>
                 <Metric label="Centroide" wide>
@@ -454,7 +458,12 @@ function NuevaParcelaTab() {
             <div className="mt-4 flex flex-wrap gap-2">
               <input ref={fileRef} type="file" multiple accept=".geojson,.json,.zip,.shp,.dbf,.prj,.shx,.cpg,.kml,.kmz" onChange={handleFile} className="hidden" />
               {!closed && !drawing && (
-                <button type="button" onClick={startDrawing} disabled={running} className={BTN_DARK}>
+                <button
+                  type="button"
+                  onClick={startDrawing}
+                  disabled={running}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:opacity-40 dark:focus-visible:ring-offset-black"
+                >
                   <Pencil size={13} strokeWidth={1.75} /> Dibujar parcela
                 </button>
               )}
@@ -614,7 +623,7 @@ function NuevaParcelaTab() {
   );
 }
 
-function ValidacionTab() {
+function ValidacionTab({ rows, setRows }) {
   return (
     <div className="space-y-8">
       <SectionHeader
@@ -622,22 +631,26 @@ function ValidacionTab() {
         description="Se corre la misma extracción sobre parcelas del dataset oficial y se compara contra features_completo.csv. Índices y lluvia deben quedar dentro de ±15 %; el conteo de escenas puede diferir más."
       />
 
-      {REAL_VALIDATION ? (
-        <ValidationTable rows={REAL_VALIDATION} />
+      <ValidationRunner onRows={setRows} />
+
+      {rows.length > 0 ? (
+        <ValidationTable
+          rows={rows}
+          onClear={() => setRows([])}
+          onDownload={() => downloadBlob("validacion_gee.json", JSON.stringify(rows.map(({ id, official, gee }) => ({ id, official, gee })), null, 2))}
+        />
       ) : (
-        <div className="rounded-lg border border-gray-200 p-6 dark:border-gray-800">
-          <h3 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Aún no se ha corrido la validación</h3>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-            Esta pestaña solo muestra resultados reales. Para generarlos, desde la carpeta <code>backend/</code> ejecuta{" "}
-            <code>python validate_gee.py --csv … --shp … --n 5</code> y copia el archivo que genera a{" "}
-            <code>cebix/src/data/earthEngineValidation.json</code>. Verás aquí la diferencia porcentual de cada variable contra el
-            dataset oficial.
+        <div className="rounded-2xl border border-dashed border-gray-300 px-6 py-10 text-center dark:border-gray-700">
+          <h3 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Aún no hay parcelas comparadas</h3>
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+            Sube arriba el CSV con los valores oficiales y los contornos de esas parcelas, y pulsa «Calcular y comparar». Los resultados
+            aparecen aquí, parcela por parcela, a medida que se calculan.
           </p>
         </div>
       )}
 
       <div className="grid gap-6 md:grid-cols-2">
-        <div className="rounded-lg border border-gray-200 p-5 dark:border-gray-800">
+        <div className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
           <h3 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Criterio de aceptación</h3>
           <ul className="mt-3 list-disc space-y-2 pl-4 text-sm text-gray-600 marker:text-gray-300 dark:text-gray-400 dark:marker:text-gray-600">
             <li>Índices espectrales y precipitación: diferencia dentro de ±15 %.</li>
@@ -645,7 +658,7 @@ function ValidacionTab() {
             <li>Diferencias pequeñas son normales: distinta versión del procesamiento atmosférico o geometría exacta.</li>
           </ul>
         </div>
-        <div className="rounded-lg border border-gray-200 p-5 dark:border-gray-800">
+        <div className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
           <h3 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Si algo sale fuera de rango, revisa</h3>
           <ul className="mt-3 list-disc space-y-2 pl-4 text-sm text-gray-600 marker:text-gray-300 dark:text-gray-400 dark:marker:text-gray-600">
             <li>Que el polígono esté en lat/lng y no en UTM.</li>
@@ -662,6 +675,8 @@ export default function EarthEnginePage() {
   const [params, setParams] = useSearchParams();
   const requested = params.get("tab");
   const tab = TABS.some((t) => t.key === requested) ? requested : "nueva";
+  // Los resultados de la validación viven aquí para no perderse (ni cortar un cálculo en curso) al cambiar de pestaña.
+  const [validationRows, setValidationRows] = useState(() => (Array.isArray(REAL_VALIDATION) ? REAL_VALIDATION : []));
 
   return (
     <>
@@ -705,7 +720,9 @@ export default function EarthEnginePage() {
         <div hidden={tab !== "nueva"}>
           <NuevaParcelaTab />
         </div>
-        {tab === "validacion" && <ValidacionTab />}
+        <div hidden={tab !== "validacion"}>
+          <ValidacionTab rows={validationRows} setRows={setValidationRows} />
+        </div>
       </div>
     </>
   );

@@ -131,7 +131,7 @@ export default function ThemePreviewCard({ label, description, variant, active, 
       type="button"
       onClick={onSelect}
       aria-pressed={active}
-      className="group relative w-full overflow-hidden rounded-2xl border border-gray-200 bg-white text-left transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:border-gray-700 dark:bg-gray-800 dark:focus-visible:ring-offset-black"
+      className="group relative block w-full overflow-hidden rounded-none border-0 bg-white text-left transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-500 dark:bg-gray-800"
     >
       <div className="aspect-[12/5] w-full overflow-hidden">
         <MiniMockup variant={variant} accentColor={accentColor} />

@@ -11,6 +11,7 @@ import AuthShell from "./components/auth/AuthShell";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Sidebar from "./components/layout/Sidebar";
 import { SidebarProvider } from "./context/SidebarContext";
+import { useParcels } from "./context/ParcelsContext";
 import { getPageRegistry } from "./utils/pageRegistry";
 import { PageActiveContext } from "./context/PageActiveContext";
 
@@ -24,7 +25,7 @@ const pageLoaders = {
   parcelasHistorial: () => import("./pages/ParcelasHistorialPage"),
   modelo: () => import("./pages/ModeloPage"),
   mapa: () => import("./pages/MapaSatelitalPage"),
-  earthEngine: () => import("./pages/EarthEnginePage"),
+  satelite: () => import("./pages/SatelitePage"),
   predicciones: () => import("./pages/PrediccionesPage"),
   shap: () => import("./pages/ValidacionSHAPPage"),
   ajustes: () => import("./pages/AjustesPage"),
@@ -37,7 +38,7 @@ const ParcelaDetallePage = lazy(pageLoaders.parcelaDetalle);
 const ParcelasHistorialPage = lazy(pageLoaders.parcelasHistorial);
 const ModeloPage = lazy(pageLoaders.modelo);
 const MapaSatelitalPage = lazy(pageLoaders.mapa);
-const EarthEnginePage = lazy(pageLoaders.earthEngine);
+const SatelitePage = lazy(pageLoaders.satelite);
 const PrediccionesPage = lazy(pageLoaders.predicciones);
 const ValidacionSHAPPage = lazy(pageLoaders.shap);
 const AjustesPage = lazy(pageLoaders.ajustes);
@@ -70,7 +71,7 @@ function usePrefetchPages() {
       pageLoaders.parcelasHistorial,
       pageLoaders.ajustes,
       pageLoaders.perfil,
-      pageLoaders.earthEngine,
+      pageLoaders.satelite,
       pageLoaders.mapa,
     ];
     const idle = window.requestIdleCallback ?? ((cb) => window.setTimeout(cb, 600));
@@ -210,8 +211,11 @@ function PageSlot({ active, entry }) {
 function AuthenticatedLayout() {
   usePrefetchPages();
   // En el mapa satelital el mapa ocupa TODA la pantalla (también detrás del
-  // sidebar, que flota encima) y no hay degradado de la esquina.
-  const onMap = useLocation().pathname.replace(/\/+$/, "") === "/mapa";
+  // sidebar, que flota encima) y no hay degradado de la esquina. Solo cuando hay
+  // parcelas: sin ellas se muestra "Aún no hay resultados del modelo", que se centra
+  // en el área de contenido como el resto de pantallas (sidebar normal, no flotante).
+  const { parcels } = useParcels();
+  const onMap = useLocation().pathname.replace(/\/+$/, "") === "/mapa" && parcels.length > 0;
 
   // El <main> cambia de tamaño al entrar/salir del mapa: se avisa a los mapas
   // (MapLibre y Leaflet escuchan el resize de la ventana) para que se ajusten.
@@ -265,7 +269,7 @@ export default function App() {
           <Route path="/modelo" element={<ModeloPage />} />
           <Route path="/mapa" element={<MapaSatelitalPage />} />
           <Route path="/predicciones" element={<PrediccionesPage />} />
-          <Route path="/satelite" element={<EarthEnginePage />} />
+          <Route path="/satelite" element={<SatelitePage />} />
           <Route path="/shap" element={<ValidacionSHAPPage />} />
           <Route path="/ejecutar-modelo" element={<Navigate to="/modelo?tab=ejecutar" replace />} />
           <Route path="/ajustes" element={<AjustesPage />} />

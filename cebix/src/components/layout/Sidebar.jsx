@@ -8,6 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useSidebar } from "../../context/SidebarContext";
 import { usePreferences } from "../../context/PreferencesContext";
 import Logo from "../ui/Logo";
+import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_PRIMARY } from "../ui/Modal";
 
 function NavSection({ title, items, collapsed }) {
   const { t } = usePreferences();
@@ -73,62 +74,30 @@ function NavSection({ title, items, collapsed }) {
 
 function SignOutConfirm({ onCancel, onConfirm, loading }) {
   const { t } = usePreferences();
-  useEffect(() => {
-    function onKey(e) {
-      if (e.key === "Escape" && !loading) onCancel();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [loading, onCancel]);
 
   return (
-    <div
-      className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 px-4"
-      onClick={loading ? undefined : onCancel}
-    >
-      <div
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="signout-title"
-        aria-describedby="signout-desc"
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900"
-      >
-        <div className="flex items-start gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-            <LogOut size={17} className="text-accent-600 dark:text-accent-400" />
-          </span>
-          <div className="min-w-0">
-            <h2 id="signout-title" className="font-display text-sm font-semibold text-gray-900 dark:text-white">
-              {t("¿Cerrar sesión?")}
-            </h2>
-            <p id="signout-desc" className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {t("Tendrás que iniciar sesión de nuevo para volver a entrar.")}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            type="button"
-            autoFocus
-            onClick={onCancel}
-            disabled={loading}
-            className="rounded-full border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-          >
+    <Modal
+      title={t("¿Cerrar sesión?")}
+      size="sm"
+      role="alertdialog"
+      zClass="z-60"
+      busy={loading}
+      onClose={onCancel}
+      footer={
+        <>
+          <button type="button" autoFocus onClick={onCancel} disabled={loading} className={MODAL_BTN_CANCEL}>
             {t("Cancelar")}
           </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={loading}
-            className="rounded-full bg-accent-500 px-4 py-2 text-sm font-semibold text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:opacity-60 dark:focus-visible:ring-offset-gray-900"
-          >
+          <button type="button" onClick={onConfirm} disabled={loading} className={MODAL_BTN_PRIMARY}>
             {loading ? t("Cerrando sesión...") : t("Cerrar sesión")}
           </button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+        {t("Tendrás que iniciar sesión de nuevo para volver a entrar.")}
+      </p>
+    </Modal>
   );
 }
 
@@ -238,10 +207,11 @@ export default function Sidebar({ floating = false }) {
         </div>
 
         <nav className="flex-1 overflow-y-auto scrollbar-none py-4">
-          <NavSection title="General" items={generalNav} collapsed={collapsed} />
-          <NavSection title="Reto AgroCebada" items={workspaceNav} collapsed={collapsed} />
+          {/* Cada subtítulo dice qué se hace en ese grupo. */}
+          <NavSection title="Gestión" items={generalNav} collapsed={collapsed} />
+          <NavSection title="Análisis" items={workspaceNav} collapsed={collapsed} />
           <NavSection
-            title="Sistema"
+            title="Configuración"
             items={[{ label: "Ajustes", icon: Settings, to: "/ajustes" }]}
             collapsed={collapsed}
           />

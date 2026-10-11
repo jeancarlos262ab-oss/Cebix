@@ -15,7 +15,7 @@ Si el backend no responde o no puede calcular, se muestra el error. Detalles, l�
 verificación pendiente en `backend/README_BACKEND.md`.
 
 La pestaña *Validación del cálculo* muestra únicamente resultados reales: ejecuta
-`backend/scripts/validate_gee.py` y guarda su salida como `src/data/earthEngineValidation.json`.
+`backend/scripts/validate_satelite.py` y guarda su salida como `src/data/sateliteValidation.json`.
 
 ### Globo 3D de la pantalla satelital
 
@@ -65,8 +65,11 @@ npm run preview    # sirve el build de dist/ para probarlo localmente
 
 Cada cuenta ve solo lo que ella misma hizo:
 
-- **Corrida del modelo y envíos a comité:** se guardan en el navegador con la clave del usuario
-  (`cebix-analysis-v1:<id>`), no en una clave global. Al cambiar de cuenta empieza vacío.
+- **Corrida del modelo y envíos a comité:** se guardan en Supabase (tablas `user_analysis` y
+  `committee_submissions`, con RLS por usuario), así que se ven igual desde cualquier computadora.
+  El navegador solo conserva una copia para pintar al instante. **Corre `supabase/datos_por_usuario.sql`
+  una vez** (o `schema.sql` completo en una base nueva). Lo que ya estuviera guardado solo en un
+  navegador se sube automáticamente la primera vez que esa cuenta entra desde él.
 - **Parcelas capturadas a mano (`parcels_custom`):** cada fila lleva `user_id` y Supabase solo
   devuelve las del usuario (RLS). En una base nueva corre `supabase/schema.sql`; si ya tenías la
   tabla, corre `supabase/parcels_custom_por_usuario.sql` (trae al final las opciones para las

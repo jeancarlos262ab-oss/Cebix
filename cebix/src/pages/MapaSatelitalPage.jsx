@@ -182,7 +182,7 @@ function MapaSatelitalPageContent() {
 
 export default function MapaSatelitalPage() {
   return (
-    <RequireAnalysis>
+    <RequireAnalysis title="Mapa satelital" subtitle="Sentinel-2 sobre tus parcelas.">
       <MapaSatelitalPageContent />
     </RequireAnalysis>
   );

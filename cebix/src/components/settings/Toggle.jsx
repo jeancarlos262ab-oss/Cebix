@@ -8,7 +8,7 @@ import { memo } from "react";
  */
 function Toggle({ checked, onChange, label, description, disabled = false }) {
   return (
-    <label className={`flex items-start justify-between gap-4 py-3 ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}>
+    <label className={`flex items-center justify-between gap-4 py-4 ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}>
       <span className="min-w-0">
         {label && (
           <span className="block text-sm font-medium text-gray-900 dark:text-white">

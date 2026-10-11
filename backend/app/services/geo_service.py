@@ -21,11 +21,12 @@ import io
 import json
 import math
 import re
+import codecs
 import unicodedata
 import xml.etree.ElementTree as ET
 import zipfile
 
-from app.services.features.gee import MAX_VERTICES, GeeError, validate_geometry
+from app.services.features.common import MAX_VERTICES, SatelliteError, WARN_AREA_HA, area_warning, validate_geometry
 
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # lo mismo que anuncia el frontend (máx. 20 MB)
 MAX_UNZIPPED_BYTES = 120 * 1024 * 1024  # protección contra zip bombs
@@ -106,6 +107,49 @@ def _ring(coords) -> list[tuple[float, float]]:
             raise ValueError("coordenada no finita")
         out.append((x, y))
     return out
+
+
+# Componentes de un shapefile. Solo `.shp` trae la geometría; el resto la complementa.
+SHAPEFILE_EXTS = ("shp", "dbf", "prj", "shx", "cpg")
+
+
+def _ext(name: str) -> str:
+    base = name.rsplit("/", 1)[-1]
+    return base.rsplit(".", 1)[-1].lower() if "." in base else ""
+
+
+def _decode_text(data: bytes) -> str:
+    """Texto de un .prj/.cpg: UTF-8 (con o sin BOM) y, si no, Latin-1."""
+    for enc in ("utf-8-sig", "latin-1"):
+        try:
+            return data.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return data.decode("utf-8", "ignore")
+
+
+def _encoding_from_cpg(cpg: bytes | None) -> str:
+    """Codificación declarada en el .cpg ("UTF-8", "ISO-8859-1", "1252", "ANSI 1252"...).
+
+    Si falta o no se reconoce, UTF-8 (el valor por defecto de QGIS/GDAL moderno); los caracteres que no
+    se puedan decodificar se reemplazan en vez de romper la lectura.
+    """
+    if not cpg:
+        return "utf-8"
+    raw = _decode_text(cpg).strip().strip("\x00").strip()
+    if not raw:
+        return "utf-8"
+    candidates = [raw, raw.replace(" ", "_")]
+    digits = re.search(r"\d{3,5}", raw)
+    if digits:  # "1252", "ANSI 1252", "windows-1252" -> cp1252; "65001" -> utf-8
+        n = digits.group(0)
+        candidates += ["utf-8" if n == "65001" else f"cp{n}"]
+    for c in candidates:
+        try:
+            return codecs.lookup(c).name
+        except LookupError:
+            continue
+    return "utf-8"
 
 
 # ───────────────────────────── archivos y zips ─────────────────────────────
@@ -269,9 +313,21 @@ def _read_shapefile(files: dict[str, bytes], shp_key: str, skipped: list) -> lis
     stem = shp_key[:-4]
     lower = {k.lower(): k for k in files}
 
+    folder = stem.rsplit("/", 1)[0] if "/" in stem else ""
+    same_folder = [k for k in files if (k.rsplit("/", 1)[0] if "/" in k else "") == folder]
+    shp_in_folder = [k for k in same_folder if _ext(k) == "shp"]
+
     def sibling(ext: str):
         k = lower.get(f"{stem}.{ext}".lower())
-        return files[k] if k else None
+        if k:
+            return files[k]
+        # Si en la carpeta hay un solo .shp y un solo archivo de este tipo con otro nombre
+        # (p. ej. "parcelas.shp" + "parcelas_v2.dbf"), se asume que son del mismo shapefile.
+        if len(shp_in_folder) == 1:
+            others = [k for k in same_folder if _ext(k) == ext]
+            if len(others) == 1:
+                return files[others[0]]
+        return None
 
     dbf, shx, prj, cpg = sibling("dbf"), sibling("shx"), sibling("prj"), sibling("cpg")
 
@@ -280,11 +336,12 @@ def _read_shapefile(files: dict[str, bytes], shp_key: str, skipped: list) -> lis
         kwargs["dbf"] = io.BytesIO(dbf)
     if shx:
         kwargs["shx"] = io.BytesIO(shx)
-    encoding = (cpg or b"").decode("ascii", "ignore").strip() or "utf-8"
+    encoding = _encoding_from_cpg(cpg)
+    if not cpg and dbf and len(dbf) > 29:
+        # Sin .cpg, el byte 29 del .dbf (LDID) indica la página de códigos (Excel/ArcGIS antiguos).
+        encoding = {0x01: "cp437", 0x02: "cp850", 0x03: "cp1252", 0x57: "cp1252", 0x65: "cp850"}.get(dbf[29], encoding)
     try:
         reader = shapefile.Reader(encoding=encoding, encodingErrors="replace", **kwargs)
-    except LookupError:
-        reader = shapefile.Reader(encoding="latin-1", encodingErrors="replace", **kwargs)
     except Exception as e:
         raise GeoParseError(400, f"«{src}» no se pudo leer como shapefile ({e}).") from None
 
@@ -297,7 +354,7 @@ def _read_shapefile(files: dict[str, bytes], shp_key: str, skipped: list) -> lis
         from pyproj import CRS
 
         try:
-            c = CRS.from_wkt(prj.decode("utf-8", "ignore"))
+            c = CRS.from_wkt(_decode_text(prj))
             crs = None if _is_wgs84(c) else c
             has_prj = True
         except Exception:
@@ -450,7 +507,7 @@ def _normalize(raw: dict, cache: dict) -> dict:
         closed = [[x, y] for x, y in pts] + [[pts[0][0], pts[0][1]]]
         try:
             geometry, _ = validate_geometry({"type": "Polygon", "coordinates": [closed]})
-        except GeeError as e:
+        except SatelliteError as e:
             error = e.message
             geometry = {"type": "Polygon", "coordinates": [closed]}
         area_ha = round(_geodesic_ha(pts), 4)
@@ -484,8 +541,31 @@ def parse_uploads(uploads: list[tuple[str, bytes]]) -> dict:
     raw: list[dict] = []
     used: set[str] = set()
 
+    # Shapefiles incompletos: avisa qué falta en lugar de un "formato no compatible" genérico.
+    def stem_of(k: str) -> str:
+        return k[: k.rfind(".")].lower()
+
+    shp_stems = {stem_of(k) for k in files if _ext(k) == "shp"}
+    orphans = sorted({k.rsplit("/", 1)[-1] for k in files if _ext(k) in SHAPEFILE_EXTS and _ext(k) != "shp" and stem_of(k) not in shp_stems})
+    if orphans and not shp_stems:
+        raise GeoParseError(
+            422,
+            f"Falta el archivo .shp: es el que contiene la geometría (recibí {', '.join(orphans)}). "
+            "Sube el .shp junto con su .dbf y .prj, o todo en un .zip.",
+        )
+    if len(shp_stems) == 1:
+        (only,) = shp_stems
+        present = {_ext(k) for k in files if _ext(k) in SHAPEFILE_EXTS}
+        notes = []
+        if "dbf" not in present:
+            notes.append("sin .dbf no hay atributos (nombre, municipio, estado)")
+        if "prj" not in present:
+            notes.append("sin .prj se asume que las coordenadas ya están en lat/lng")
+        if notes:
+            advertencias.append(f"«{only.rsplit('/', 1)[-1]}.shp»: " + "; ".join(notes) + ".")
+
     for key in sorted(files):
-        ext = key.rsplit(".", 1)[-1].lower() if "." in key.rsplit("/", 1)[-1] else ""
+        ext = _ext(key)
         base = key.rsplit("/", 1)[-1]
         if ext == "shp":
             raw += _read_shapefile(files, key, skipped)
@@ -552,6 +632,12 @@ def parse_uploads(uploads: list[tuple[str, bytes]]) -> dict:
             }
         )
 
+    big = [o for o in out if o["area_ha"] is not None and area_warning(o["area_ha"])]
+    if big:
+        advertencias.append(
+            f"{len(big)} polígono(s) miden más de {int(WARN_AREA_HA):,} ha (el mayor: {max(o['area_ha'] for o in big):,.0f} ha). "
+            "No es recomendable: una zona tan grande mezcla cultivos y coberturas distintas. Se calculan igual."
+        )
     if holes:
         advertencias.append(f"{holes} polígono(s) tienen huecos: el cálculo usa solo el contorno exterior.")
     if simplified:

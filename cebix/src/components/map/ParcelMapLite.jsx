@@ -17,6 +17,7 @@ import L from "leaflet";
 import { MapContainer, TileLayer, CircleMarker, Marker, Popup, GeoJSON } from "react-leaflet";
 import { locationPinHtml, PIN_SIZE, PIN_TIP_OFFSET } from "./LocationPin";
 import cebadaMapIcon from "../../assets/cebada_map.webp";
+import { selectedShapeSvg, SELECTED_SHAPE_SIZE } from "./selectedShape";
 import LiteMapControls from "./LiteMapControls";
 import { ExternalLink, Gauge, Leaf, Map as MapIcon, Milestone, Moon, Mountain, Satellite as SatelliteIcon } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
@@ -114,7 +115,6 @@ const GROUND_LEVEL_ZOOM = 18;
 const BASE_RADIUS = 9;
 
 const HOVER_RADIUS = 11;
-const SELECTED_RADIUS = 14;
 
 function ndviToColor(ndvi) {
   if (ndvi >= 0.68) return "#3B7A4E";
@@ -278,6 +278,8 @@ function ParcelMapLite({
   const containerRef = useRef(null);
   const markersRef = useRef(new Map());
   const selectedIdRef = useRef(null);
+  // Parcela seleccionada: se dibuja con otra figura (rombo) en vez del círculo.
+  const [markedId, setMarkedId] = useState(null);
 
   const { resolvedTheme, accent } = useTheme();
   const accentHex = getAccentHex(accent, resolvedTheme);
@@ -306,16 +308,33 @@ function ParcelMapLite({
 
   const pinIcon = getPinIcon();
 
+  const selectedParcel = markedId === null ? null : parcels?.find((p) => p.id === markedId) ?? null;
+  const selectedColor = selectedParcel ? colorForParcel(selectedParcel, layer) : null;
+  const selectedIcon = useMemo(
+    () =>
+      selectedColor
+        ? L.divIcon({
+            html: selectedShapeSvg(selectedColor),
+            className: "",
+            iconSize: [SELECTED_SHAPE_SIZE, SELECTED_SHAPE_SIZE],
+            iconAnchor: [SELECTED_SHAPE_SIZE / 2, SELECTED_SHAPE_SIZE / 2],
+          })
+        : null,
+    [selectedColor]
+  );
+
   const initialCenter = useMemo(() => normalizeCenter(center), [center]);
   const basemapConfig = BASEMAPS_LITE[basemap] || BASEMAPS_LITE.satellite;
 
   const styleFor = useCallback(
+    // El círculo seleccionado se oculta (sigue ahí para el popup y el clic); lo reemplaza el rombo.
     (parcel, { selected }) => ({
       color: "#ffffff",
-      weight: selected ? 3 : 2,
+      weight: 2,
+      opacity: selected ? 0 : 1,
       fillColor: colorForParcel(parcel, layer),
-      fillOpacity: 0.9,
-      radius: selected ? SELECTED_RADIUS : BASE_RADIUS,
+      fillOpacity: selected ? 0 : 0.9,
+      radius: BASE_RADIUS,
     }),
     [layer]
   );
@@ -337,6 +356,7 @@ function ParcelMapLite({
         marker.openPopup();
       }
       selectedIdRef.current = parcel.id;
+      setMarkedId(parcel.id);
 
       const map = mapRef.current;
       if (map && flyTo) {
@@ -407,13 +427,23 @@ function ParcelMapLite({
             <Marker key={parcel.id} position={[parcel.lat, parcel.lng]} icon={pinIcon} interactive={false} />
           ))}
 
+        {!viewOnly && selectedParcel && (
+          <Marker
+            key={`selected-${selectedParcel.id}-${selectedColor}`}
+            position={[selectedParcel.lat, selectedParcel.lng]}
+            icon={selectedIcon}
+            interactive={false}
+            zIndexOffset={1000}
+          />
+        )}
+
         {!viewOnly &&
           parcels &&
           parcels.map((parcel) => (
             <CircleMarker
               key={`${parcel.id}-${layer}`}
               center={[parcel.lat, parcel.lng]}
-              radius={parcel.id === selectedIdRef.current ? SELECTED_RADIUS : BASE_RADIUS}
+              radius={BASE_RADIUS}
               pathOptions={styleFor(parcel, { selected: parcel.id === selectedIdRef.current })}
               ref={(instance) => {
                 if (instance) markersRef.current.set(parcel.id, instance);

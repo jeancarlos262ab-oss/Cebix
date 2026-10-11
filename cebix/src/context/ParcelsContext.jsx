@@ -5,6 +5,15 @@ import { appStorage } from "../services/AppStorage";
 import { useAuth } from "./AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { syncPortfolio } from "../services/notificationsApi";
+import {
+  deleteSubmissions,
+  fetchAnalysis,
+  fetchSubmissions,
+  saveAnalysis,
+  saveSubmission,
+  saveSubmissions,
+} from "../services/userDataApi";
+import { toast } from "sonner";
 
 const SUBMISSIONS_KEY = "cebix-committee-submissions";
 const ANALYSIS_KEY = "cebix-analysis-v1";
@@ -12,9 +21,15 @@ const REGION_COLOR = { Puebla: "#4C9A63", Hidalgo: "#374151", Tlaxcala: "#C08A2E
 
 const REGION_CODE = { Hidalgo: "HGO", Tlaxcala: "TLX", Puebla: "PUE" };
 
-// Todo lo que se guarda en el navegador va separado por usuario: así una cuenta nueva (o distinta)
-// en el mismo equipo empieza vacía y solo ve lo que ella misma haya ejecutado.
+// La fuente de verdad es Supabase (tablas user_analysis y committee_submissions, por usuario con RLS):
+// así la corrida del modelo y los envíos a comité aparecen en cualquier computadora. El navegador solo
+// guarda una copia (caché) para pintar al instante y para no perder nada si Supabase falla un momento.
+// Esa copia va separada por usuario: una cuenta distinta en el mismo equipo no ve lo de otra.
 const scopedKey = (key, uid) => `${key}:${uid}`;
+// Marca "este navegador ya se sincronizó con Supabase". Antes de ella, lo que haya en el navegador se sube una
+// vez (datos de antes de usar Supabase); después, Supabase manda: si otra computadora borró algo, aquí también
+// desaparece y no se vuelve a subir una copia vieja.
+const SYNCED_KEY = "cebix-cloud-synced-v1";
 const EMPTY_STORE = { uid: null, analysis: null, submissions: {} };
 
 // Claves antiguas (globales, compartidas entre cuentas). Se borran para que no "se cuelen" datos viejos.
@@ -86,12 +101,28 @@ function nextCustomCode(all) {
   return `AGC_C${String((used.length ? Math.max(...used) : 0) + 1).padStart(3, "0")}`;
 }
 
+// En la app la superficie es texto con unidad ("8.59 ha"); en Supabase (parcels_custom.area) es numérica.
+// Se convierte en la frontera con la base para que cualquier alta (formulario, CSV, archivos) funcione.
+function areaToNumber(value) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const n = parseFloat(String(value ?? "").replace(/[^\d.,-]/g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
+function areaToLabel(value) {
+  if (value === null || value === undefined || value === "") return "— ha";
+  const text = String(value).trim();
+  if (/ha\s*$/i.test(text)) return text;
+  const n = Number(text);
+  return Number.isFinite(n) ? `${n} ha` : text;
+}
+
 function fromDatabaseParcel(row) {
   return {
     id: row.id,
     polygonId: row.polygon_id,
     name: row.name,
-    area: row.area,
+    area: areaToLabel(row.area),
     yieldEstimate: Number(row.yield_estimate),
     confidence: Number(row.confidence),
     score: Number(row.score),
@@ -116,7 +147,7 @@ function toDatabaseParcel(record) {
   return {
     polygon_id: record.polygonId,
     name: record.name,
-    area: record.area,
+    area: areaToNumber(record.area),
     yield_estimate: record.yieldEstimate,
     confidence: record.confidence,
     score: record.score,
@@ -257,19 +288,90 @@ export function ParcelsProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Cambia cada vez que el usuario modifica la corrida o los envíos en esta sesión; sirve para que la
+  // lectura inicial de Supabase (que puede tardar) no pise algo que el usuario ya hizo mientras tanto.
+  const editsRef = useRef({ analysis: 0, submissions: 0 });
+  const [hydratedUid, setHydratedUid] = useState(null);
+  const analysisLoading = Boolean(uid) && hydratedUid !== uid;
+
+  const notifySaveError = useCallback((what, err) => {
+    console.error(`No se pudo guardar ${what} en Supabase`, err);
+    toast.error(`No se pudo guardar ${what} en la nube; solo quedó en este navegador. ${err?.message ?? ""}`.trim(), {
+      id: `save-${what}`,
+    });
+  }, []);
+
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading) return undefined;
     clearLegacyKeys();
     if (!uid) {
       setStored(EMPTY_STORE);
-      return;
+      setHydratedUid(null);
+      return undefined;
     }
-    setStored({
-      uid,
-      analysis: appStorage.getJSON(scopedKey(ANALYSIS_KEY, uid), null),
-      submissions: appStorage.getJSON(scopedKey(SUBMISSIONS_KEY, uid), {}),
-    });
-  }, [authLoading, uid]);
+
+    // 1) Pinta al instante con la copia local de este navegador (si la hay).
+    const localAnalysis = appStorage.getJSON(scopedKey(ANALYSIS_KEY, uid), null);
+    const localSubmissions = appStorage.getJSON(scopedKey(SUBMISSIONS_KEY, uid), {});
+    editsRef.current = { analysis: 0, submissions: 0 };
+    setStored({ uid, analysis: localAnalysis, submissions: localSubmissions });
+
+    // 2) Trae lo guardado en Supabase (lo que se ve igual en cualquier PC).
+    let cancelled = false;
+    (async () => {
+      const [remoteA, remoteS] = await Promise.all([fetchAnalysis(uid), fetchSubmissions(uid)]);
+      if (cancelled) return;
+      const edits = { ...editsRef.current };
+
+      const alreadySynced = appStorage.getJSON(scopedKey(SYNCED_KEY, uid), false) === true;
+      let nextAnalysis = localAnalysis;
+      if (!remoteA.error && edits.analysis === 0) {
+        if (remoteA.data) {
+          nextAnalysis = remoteA.data;
+          appStorage.setJSON(scopedKey(ANALYSIS_KEY, uid), nextAnalysis);
+        } else if (!alreadySynced && localAnalysis?.parcels?.length) {
+          // Datos que solo estaban en este navegador (de antes de usar Supabase): se suben una vez.
+          saveAnalysis(uid, localAnalysis).then(({ error: e }) => e && notifySaveError("la corrida del modelo", e));
+        } else {
+          nextAnalysis = null;
+          appStorage.remove(scopedKey(ANALYSIS_KEY, uid));
+        }
+      } else if (remoteA.error) {
+        console.error("No se pudo leer la corrida del modelo de Supabase", remoteA.error);
+        toast.error("No se pudo leer tu corrida guardada en la nube. ¿Ya corriste supabase/datos_por_usuario.sql?", {
+          id: "load-analysis",
+          duration: 10000,
+        });
+      }
+
+      let nextSubmissions = localSubmissions;
+      if (!remoteS.error && edits.submissions === 0) {
+        if (alreadySynced) {
+          nextSubmissions = remoteS.data;
+        } else {
+          nextSubmissions = { ...localSubmissions, ...remoteS.data };
+          const onlyLocal = Object.fromEntries(Object.entries(localSubmissions).filter(([k]) => !(k in remoteS.data)));
+          if (Object.keys(onlyLocal).length) saveSubmissions(uid, onlyLocal);
+        }
+        appStorage.setJSON(scopedKey(SUBMISSIONS_KEY, uid), nextSubmissions);
+      }
+      if (!remoteA.error && !remoteS.error) appStorage.setJSON(scopedKey(SYNCED_KEY, uid), true);
+
+      setStored((prev) => {
+        if (prev.uid !== uid) return prev;
+        return {
+          uid,
+          analysis: editsRef.current.analysis === edits.analysis ? nextAnalysis : prev.analysis,
+          submissions: editsRef.current.submissions === edits.submissions ? nextSubmissions : prev.submissions,
+        };
+      });
+      setHydratedUid(uid);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, uid, notifySaveError]);
 
   const loadCustomParcels = useCallback(async () => {
     if (!user) {
@@ -304,17 +406,21 @@ export function ParcelsProvider({ children }) {
     const built = predicciones.map((pred, i) => buildAnalysisParcel(pred, byId.get(String(pred.ID_POLIGONO)), i));
     const next = { parcels: built, fileName, runAt: new Date().toISOString() };
     if (uid) {
+      editsRef.current.analysis += 1;
       setStored((prev) => ({ ...(prev.uid === uid ? prev : { ...EMPTY_STORE, uid }), analysis: next }));
       appStorage.setJSON(scopedKey(ANALYSIS_KEY, uid), next);
+      saveAnalysis(uid, next).then(({ error: e }) => e && notifySaveError("la corrida del modelo", e));
     }
     return built;
-  }, [uid]);
+  }, [uid, notifySaveError]);
 
   const clearAnalysis = useCallback(() => {
     if (!uid) return;
+    editsRef.current.analysis += 1;
     setStored((prev) => (prev.uid === uid ? { ...prev, analysis: null } : prev));
     appStorage.remove(scopedKey(ANALYSIS_KEY, uid));
-  }, [uid]);
+    saveAnalysis(uid, null).then(({ error: e }) => e && notifySaveError("el borrado de la corrida", e));
+  }, [uid, notifySaveError]);
 
   const regionSummary = useMemo(() => {
     const counts = new Map();
@@ -336,7 +442,7 @@ export function ParcelsProvider({ children }) {
   // envía cuando cambia algo realmente.
   const syncedRef = useRef({ uid: null, sig: "" });
   useEffect(() => {
-    if (authLoading || loading || !uid || stored.uid !== uid) return undefined;
+    if (authLoading || loading || analysisLoading || !uid || stored.uid !== uid) return undefined;
     const compact = parcels.map((p) => ({
       id: String(p.polygonId ?? p.id),
       name: p.name,
@@ -353,7 +459,7 @@ export function ParcelsProvider({ children }) {
       if (!syncError) syncedRef.current = { uid, sig };
     }, 2500);
     return () => clearTimeout(timer);
-  }, [authLoading, loading, uid, stored.uid, parcels]);
+  }, [authLoading, loading, analysisLoading, uid, stored.uid, parcels]);
 
   // Lista más reciente de parcelas, para que varias altas seguidas (importar un CSV) no repitan código.
   const latestRef = useRef([]);
@@ -380,11 +486,13 @@ export function ParcelsProvider({ children }) {
   const persistAnalysis = useCallback(
     (nextAnalysis) => {
       if (!uid) return;
+      editsRef.current.analysis += 1;
       setStored((prev) => ({ ...(prev.uid === uid ? prev : { ...EMPTY_STORE, uid }), analysis: nextAnalysis }));
       if (nextAnalysis) appStorage.setJSON(scopedKey(ANALYSIS_KEY, uid), nextAnalysis);
       else appStorage.remove(scopedKey(ANALYSIS_KEY, uid));
+      saveAnalysis(uid, nextAnalysis).then(({ error: e }) => e && notifySaveError("los cambios de la corrida", e));
     },
-    [uid]
+    [uid, notifySaveError]
   );
 
   /**
@@ -448,8 +556,10 @@ export function ParcelsProvider({ children }) {
 
     if (uid && submissions[id]) {
       const { [id]: _removed, ...restSubmissions } = submissions;
+      editsRef.current.submissions += 1;
       setStored((prev) => (prev.uid === uid ? { ...prev, submissions: restSubmissions } : prev));
       appStorage.setJSON(scopedKey(SUBMISSIONS_KEY, uid), restSubmissions);
+      deleteSubmissions(uid, [id]);
     }
     return { error: null };
   }, [analysis, analysisParcels, customParcels, persistAnalysis, submissions, uid]);
@@ -481,18 +591,24 @@ export function ParcelsProvider({ children }) {
       const restSubmissions = Object.fromEntries(
         Object.entries(submissions).filter(([key]) => !idSet.has(key) && !idSet.has(Number(key)))
       );
+      const removedKeys = Object.keys(submissions).filter((key) => !(key in restSubmissions));
+      editsRef.current.submissions += 1;
       setStored((prev) => (prev.uid === uid ? { ...prev, submissions: restSubmissions } : prev));
       appStorage.setJSON(scopedKey(SUBMISSIONS_KEY, uid), restSubmissions);
+      deleteSubmissions(uid, removedKeys);
     }
     return { error: null };
   }, [analysis, analysisParcels, customParcels, persistAnalysis, submissions, uid]);
 
   const submitToCommittee = useCallback((id) => {
     if (!uid) return;
-    const next = { ...submissions, [id]: new Date().toISOString() };
+    const at = new Date().toISOString();
+    const next = { ...submissions, [id]: at };
+    editsRef.current.submissions += 1;
     setStored((prev) => ({ ...(prev.uid === uid ? prev : { ...EMPTY_STORE, uid }), submissions: next }));
     appStorage.setJSON(scopedKey(SUBMISSIONS_KEY, uid), next);
-  }, [uid, submissions]);
+    saveSubmission(uid, id, at).then(({ error: e }) => e && notifySaveError("el envío a comité", e));
+  }, [uid, submissions, notifySaveError]);
 
   const isCustomParcel = useCallback((id) => customParcels.some((p) => p.id === id), [customParcels]);
 
@@ -509,7 +625,7 @@ export function ParcelsProvider({ children }) {
       removeParcel,
       removeParcels,
       isCustomParcel,
-      customParcelsLoading: loading,
+      customParcelsLoading: loading || analysisLoading,
       customParcelsError: error,
       reloadCustomParcels: loadCustomParcels,
       submissions,
@@ -528,6 +644,7 @@ export function ParcelsProvider({ children }) {
       removeParcels,
       isCustomParcel,
       loading,
+      analysisLoading,
       error,
       loadCustomParcels,
       submissions,

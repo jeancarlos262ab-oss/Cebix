@@ -525,7 +525,7 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
   return (
     <div
       ref={wrapRef}
-      className="relative h-full min-h-[440px] w-full overflow-hidden rounded-2xl border border-gray-200 bg-black dark:border-gray-800"
+      className="relative h-full min-h-[440px] w-full overflow-hidden rounded-2xl bg-black"
     >
       <canvas
         ref={canvasRef}

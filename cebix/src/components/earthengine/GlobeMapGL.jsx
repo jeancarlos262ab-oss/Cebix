@@ -32,7 +32,8 @@ const STUDY_BOUNDS = [
   [21.4, -96.6],
 ];
 const STUDY = { lat: 19.6, lon: -98.1 };
-const REST_ZOOM = 1.6; // planeta completo, flotando en el espacio
+const MIN_ZOOM = 0.8; // zoom mínimo permitido: planeta completo, flotando en el espacio
+const REST_ZOOM = MIN_ZOOM; // el mapa siempre arranca (y se restablece) con el zoom al mínimo
 const ESRI_IMAGERY = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -73,27 +74,15 @@ const STYLE = {
       source: "imagery",
       paint: { "raster-fade-duration": 0 },
     },
-    // Los tres estados: relleno tenue (se nota aun cuando el planeta se ve pequeño), borde oscuro de
-    // contraste y línea en el color de acento. El relleno se aclara al acercar para no tapar la imagen.
-    {
-      id: "estados-fill",
-      type: "fill",
-      source: "estados",
-      paint: { "fill-color": "#ffffff", "fill-opacity": ["interpolate", ["linear"], ["zoom"], 2, 0.3, 6, 0.18, 9, 0.05] },
-    },
-    {
-      id: "estados-casing",
-      type: "line",
-      source: "estados",
-      layout: { "line-join": "round" },
-      paint: { "line-color": "#000", "line-opacity": 0.55, "line-width": ["interpolate", ["linear"], ["zoom"], 2, 3, 8, 4.5] },
-    },
+    // Los tres estados, con el mismo trazo que el mapa satelital (GeometryMap): línea blanca de 1.2 px,
+    // 55 % de opacidad, punteada 4 px / 5 px y sin relleno. En MapLibre el guion se mide en múltiplos del
+    // ancho de línea, de ahí la división entre 1.2.
     {
       id: "estados-line",
       type: "line",
       source: "estados",
       layout: { "line-join": "round" },
-      paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 2, 1.6, 8, 2.4] },
+      paint: { "line-color": "#ffffff", "line-opacity": 0.55, "line-width": 1.2, "line-dasharray": [4 / 1.2, 5 / 1.2] },
     },
     { id: "parcel-fill", type: "fill", source: "parcel", filter: ["==", ["geometry-type"], "Polygon"], paint: { "fill-color": "#fff", "fill-opacity": 0.08 } },
     { id: "parcel-grid-casing", type: "line", source: "parcel-grid", paint: { "line-color": "#000", "line-width": 3.5, "line-opacity": 0.35 } },
@@ -192,7 +181,7 @@ export default function GlobeMapGL({
         style: STYLE,
         center: [STUDY.lon, STUDY.lat],
         zoom: REST_ZOOM,
-        minZoom: 0.8,
+        minZoom: MIN_ZOOM,
         maxZoom: 19,
         maxPitch: 0,
         dragRotate: false,
@@ -217,8 +206,6 @@ export default function GlobeMapGL({
       } catch (err) {
         console.warn("No se pudo crear el cielo estrellado:", err);
       }
-      map.setPaintProperty("estados-line", "line-color", colorRef.current);
-      map.setPaintProperty("estados-fill", "fill-color", colorRef.current);
       setReady(true);
       map.resize();
     };
@@ -255,13 +242,8 @@ export default function GlobeMapGL({
     pinRef.current = el;
     new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([STUDY.lon, STUDY.lat]).addTo(map);
 
-    // Si ya hay parcela, arranca encuadrada en ella; si no, entra girando hacia México.
-    const pts = live.current.points;
-    if (pts.length >= 3) {
-      const b = new maplibregl.LngLatBounds();
-      pts.forEach((p) => b.extend(toLngLat(p)));
-      map.fitBounds(b, { padding: 70, maxZoom: 17, duration: 0 });
-    } else if (reducedMotion()) {
+    // Siempre arranca con el zoom al mínimo (planeta completo); entra girando hacia México.
+    if (reducedMotion()) {
       map.jumpTo({ center: [STUDY.lon, STUDY.lat], zoom: REST_ZOOM });
     } else {
       map.jumpTo({ center: [STUDY.lon + 110, 8], zoom: REST_ZOOM });
@@ -322,10 +304,6 @@ export default function GlobeMapGL({
   // El color de acento sigue al tema.
   useEffect(() => {
     const m = mapRef.current;
-    if (m?.getLayer("estados-line")) {
-      m.setPaintProperty("estados-line", "line-color", color);
-      m.setPaintProperty("estados-fill", "fill-color", color);
-    }
     if (pinRef.current) paintPin(pinRef.current, color);
   }, [color, ready]);
 
@@ -434,7 +412,7 @@ export default function GlobeMapGL({
             : "Arrastra para girar · rueda o +/− para acercar · «Dibujar parcela» para marcar el contorno";
 
   return (
-    <div className="relative h-full min-h-[440px] w-full overflow-hidden rounded-2xl border border-gray-200 bg-black dark:border-gray-800">
+    <div className="relative h-full min-h-[440px] w-full overflow-hidden rounded-2xl bg-black">
       <div ref={mapEl} aria-label="Globo terráqueo interactivo" className="absolute inset-0 h-full w-full" />
 
       <div className="pointer-events-none absolute left-3 top-3 z-10">

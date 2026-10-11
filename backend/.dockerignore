@@ -4,6 +4,5 @@ __pycache__
 *.pyc
 scripts
 README_BACKEND.md
-gee-service-account*.json
 *-service-account*.json
 .env

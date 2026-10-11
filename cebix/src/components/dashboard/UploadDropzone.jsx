@@ -3,15 +3,15 @@ import { Loader2, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import { parseCSV } from "../../utils/csv";
 import { detectEstado } from "../../utils/polygon";
-import { predictFromGeometry } from "../../services/earthEngineApi";
+import { predictFromGeometry } from "../../services/sateliteApi";
 import { isGeoFile, parseGeometryFiles } from "../../services/geoApi";
+import BatchSizeDialog from "./BatchSizeDialog";
+import Dropzone from "../ui/Dropzone";
 
 const REQUIRED_FIELDS = ["name", "municipio", "region", "area", "lat", "lng", "ndvi", "precip", "gdd", "yieldEstimate"];
 
 const MAX_UPLOAD_MB = 20;
 const GEO_YEAR = 2025; // ciclo con el que se entrenó el modelo
-// Cada parcela se calcula desde satélite (~30–90 s) y el backend procesa una a la vez: se limita el lote.
-const MAX_GEO_PARCELS = 10;
 
 const finite = (v) => (v !== null && v !== undefined && Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -77,11 +77,28 @@ function validateFields(fields) {
  * @param {{onParsed?: (fields: object[]) => Promise<{failed?: number, message?: string}|void>|void}} props
  */
 export default function UploadDropzone({ onParsed }) {
-  const [isDragging, setIsDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const abortRef = useRef(null);
+  const [pendingBatch, setPendingBatch] = useState(null); // { total, omitted, fileName, resolve }
 
   useEffect(() => () => abortRef.current?.abort(), []);
+
+  // Mientras se calculan parcelas, el navegador avisa antes de cerrar o recargar la pestaña.
+  useEffect(() => {
+    if (!busy) return undefined;
+    const warn = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [busy]);
+
+  /** Abre el diálogo y espera cuántas parcelas quiere calcular el usuario (null = canceló). */
+  const askBatchSize = useCallback(
+    (total, omitted, fileName) => new Promise((resolve) => setPendingBatch({ total, omitted, fileName, resolve })),
+    []
+  );
 
   /**
    * Shapefile / GeoJSON / KML / KMZ: el backend lee el archivo (/parse-geometry), y cada polígono se
@@ -97,6 +114,7 @@ export default function UploadDropzone({ onParsed }) {
 
       try {
         const parsed = await parseGeometryFiles(files, { signal: controller.signal });
+        if (parsed.advertencias?.length) toast.info(parsed.advertencias.join(" "), { duration: 9000 });
         const valid = parsed.poligonos.filter((p) => !p.error);
         const rejected = parsed.poligonos.filter((p) => p.error);
         if (valid.length === 0) {
@@ -108,8 +126,17 @@ export default function UploadDropzone({ onParsed }) {
           return;
         }
 
-        const batch = valid.slice(0, MAX_GEO_PARCELS);
-        const records = [];
+        // Cuántas calcular: si hay más de una, se le avisa cuánto tardará y elige la cantidad.
+        toast.dismiss(id);
+        const wanted = await askBatchSize(valid.length, rejected.length, files[0].name);
+        if (wanted === null) {
+          toast("Importación cancelada.");
+          return;
+        }
+        const batch = valid.slice(0, wanted);
+        let added = 0;
+        let saveFailed = 0;
+        let saveMessage = null;
         const failures = [];
         let cancelled = false;
 
@@ -124,7 +151,14 @@ export default function UploadDropzone({ onParsed }) {
               { ID_POLIGONO: poly.ID_POLIGONO, Estado: estado, geometry: poly.geometry, anio: GEO_YEAR },
               { signal: controller.signal }
             );
-            records.push(geometryResultToFields(poly, estado, data));
+            // Se guarda al terminar cada parcela: si algo falla o se cancela, no se pierde lo ya calculado.
+            const saved = await onParsed?.([geometryResultToFields(poly, estado, data)]);
+            if (saved?.failed) {
+              saveFailed += saved.failed;
+              saveMessage ??= saved.message;
+            } else {
+              added += 1;
+            }
           } catch (err) {
             if (err.name === "AbortError") {
               cancelled = true;
@@ -134,16 +168,12 @@ export default function UploadDropzone({ onParsed }) {
           }
         }
 
-        const saved = records.length > 0 ? await onParsed?.(records) : null;
-        const saveFailed = Math.min(saved?.failed ?? 0, records.length);
-        const added = records.length - saveFailed;
-
         const notes = [];
         if (cancelled) notes.push("Cancelaste el cálculo.");
         if (rejected.length) notes.push(`${plural(rejected.length, "polígono omitido", "polígonos omitidos")} (${rejected[0].nombre}: ${rejected[0].error})`);
-        if (valid.length > batch.length) notes.push(`Solo se calculan ${MAX_GEO_PARCELS} por archivo; quedaron ${valid.length - batch.length} sin procesar.`);
+        if (valid.length > batch.length && !cancelled) notes.push(`Elegiste calcular ${batch.length}; quedaron ${valid.length - batch.length} sin calcular.`);
         if (failures.length) notes.push(`No se pudo calcular ${failures[0]}${failures.length > 1 ? ` (y ${failures.length - 1} más)` : ""}`);
-        if (saveFailed) notes.push(`${plural(saveFailed, "parcela no se pudo guardar", "parcelas no se pudieron guardar")}${saved?.message ? `: ${saved.message}` : ""}`);
+        if (saveFailed) notes.push(`${plural(saveFailed, "parcela no se pudo guardar", "parcelas no se pudieron guardar")}${saveMessage ? `: ${saveMessage}` : ""}`);
         const summary = added > 0 ? `${plural(added, "parcela agregada", "parcelas agregadas")} desde ${files[0].name}.` : "No se agregó ninguna parcela.";
         const message = [summary, ...notes].join(" ");
 
@@ -158,7 +188,7 @@ export default function UploadDropzone({ onParsed }) {
         setBusy(false);
       }
     },
-    [onParsed]
+    [onParsed, askBatchSize]
   );
 
   const processFiles = useCallback(
@@ -180,7 +210,7 @@ export default function UploadDropzone({ onParsed }) {
 
       const file = files.find((f) => /\.csv$/i.test(f.name) || f.type === "text/csv");
       if (!file) {
-        toast.error("Formato no compatible. Sube un CSV, un shapefile (.zip o .shp con .dbf y .prj), un GeoJSON o un KML/KMZ.");
+        toast.error("Formato no compatible. Sube un CSV, un shapefile (.zip, o .shp con .dbf, .prj, .shx y .cpg), un GeoJSON o un KML/KMZ.");
         return;
       }
 
@@ -224,66 +254,53 @@ export default function UploadDropzone({ onParsed }) {
     [onParsed, busy, processGeometry]
   );
 
-  const handleDrop = useCallback(
-    (event) => {
-      event.preventDefault();
-      setIsDragging(false);
-      processFiles(Array.from(event.dataTransfer.files ?? []));
-    },
-    [processFiles]
-  );
-
   return (
     <div>
-      <label
-        onDragOver={(e) => {
-          e.preventDefault();
-          if (!busy) setIsDragging(true);
-        }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={handleDrop}
-        className={[
-          "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-6 py-6 text-center transition-colors focus-within:ring-2 focus-within:ring-accent-500 *:pointer-events-none",
-          busy
-            ? "cursor-progress opacity-70"
-            : isDragging
-            ? "border-accent-500 bg-gray-50 dark:bg-gray-900"
-            : "border-gray-300 hover:bg-gray-50/60 dark:border-gray-700 dark:hover:bg-gray-900/60",
-        ].join(" ")}
+      <Dropzone
+        multiple
+        busy={busy}
+        accept=".csv,text/csv,.zip,.shp,.dbf,.prj,.shx,.cpg,.geojson,.json,.kml,.kmz"
+        onFiles={processFiles}
       >
-        {busy ? (
-          <Loader2 size={20} strokeWidth={1.5} className="animate-spin text-gray-400 dark:text-gray-500" />
-        ) : (
-          <UploadCloud size={20} strokeWidth={1.5} className="text-gray-400 dark:text-gray-500" />
+        {({ dragging }) => (
+          <>
+            {busy ? (
+              <Loader2 size={20} strokeWidth={1.5} className="animate-spin text-gray-400 dark:text-gray-500" />
+            ) : (
+              <UploadCloud size={22} strokeWidth={1.5} className="text-gray-400 dark:text-gray-500" />
+            )}
+            {busy ? (
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Procesando archivo… sigue el avance en el aviso</p>
+            ) : dragging ? (
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Suelta el archivo para subirlo</p>
+            ) : (
+              <p className="text-sm leading-snug text-gray-600 dark:text-gray-400">
+                <span className="font-medium text-gray-900 underline decoration-gray-300 underline-offset-2 dark:text-gray-100 dark:decoration-gray-600">
+                  Selecciona un archivo
+                </span>{" "}
+                o arrástralo aquí
+              </p>
+            )}
+            <p className="text-xs text-gray-400 dark:text-gray-500">Shapefile (.zip o .shp .dbf .prj .shx .cpg) · GeoJSON · KML/KMZ · CSV — máx. 20 MB</p>
+          </>
         )}
-        {busy ? (
-          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Procesando archivo… sigue el avance en el aviso</p>
-        ) : isDragging ? (
-          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-            Suelta el archivo para subirlo
-          </p>
-        ) : (
-          <p className="text-sm leading-snug text-gray-600 dark:text-gray-400">
-            <span className="font-medium text-gray-900 underline decoration-gray-300 underline-offset-2 dark:text-gray-100 dark:decoration-gray-600">
-              Sube el shapefile o CSV
-            </span>{" "}
-            de la parcela, o arrástralo aquí
-          </p>
-        )}
-        <p className="text-xs text-gray-400 dark:text-gray-500">SHP (.zip o .shp + .dbf + .prj), GeoJSON, KML/KMZ o CSV (máx. 20MB)</p>
-        <input
-          type="file"
-          multiple
-          accept=".csv,text/csv,.zip,.shp,.dbf,.prj,.shx,.cpg,.geojson,.json,.kml,.kmz"
-          disabled={busy}
-          className="sr-only"
-          onChange={(e) => {
-            processFiles(Array.from(e.target.files ?? []));
-            e.target.value = "";
+      </Dropzone>
+
+      {pendingBatch && (
+        <BatchSizeDialog
+          total={pendingBatch.total}
+          omitted={pendingBatch.omitted}
+          fileName={pendingBatch.fileName}
+          onConfirm={(count) => {
+            pendingBatch.resolve(count);
+            setPendingBatch(null);
+          }}
+          onClose={() => {
+            pendingBatch.resolve(null);
+            setPendingBatch(null);
           }}
         />
-      </label>
-
+      )}
     </div>
   );
 }

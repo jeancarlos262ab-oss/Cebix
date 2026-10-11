@@ -25,8 +25,5 @@ ALLOWED_ORIGINS = [
 ]
 ALLOWED_ORIGIN_REGEX = os.environ.get("ALLOWED_ORIGIN_REGEX") or None
 
-# Proveedor de features satelitales: "stac" (fuentes abiertas, sin cuenta) o "gee" (Earth Engine).
-FEATURES_PROVIDER = os.environ.get("FEATURES_PROVIDER", "stac")
-
 # Campos que vienen en el CSV/JSON y se devuelven tal cual junto a la predicción.
 PASSTHROUGH_FIELDS = ["Municipio", "lat", "lng", "area_ha"]

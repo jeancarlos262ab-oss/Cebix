@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Info, X } from "lucide-react";
+import { Info } from "lucide-react";
+import Modal from "./Modal";
 
 /**
  * Botón de información que abre un panel explicando, en formato pregunta y
@@ -28,44 +29,18 @@ export default function InfoButton({ title = "Acerca de este panel", questions, 
       </button>
 
       {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-gray-200 bg-white p-6 shadow-card dark:border-gray-800 dark:bg-gray-900"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-white">{title}</h2>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="Cerrar"
-                className="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                <X size={16} className="text-accent-600 dark:text-accent-400" />
-              </button>
-            </div>
+        <Modal title={title} size="lg" onClose={() => setOpen(false)}>
+          {children && <div className="mb-5">{children}</div>}
 
-            {children && (
-              <>
-                <div className="mt-4">{children}</div>
-              </>
-            )}
-
-            <div className="mt-4 space-y-4">
-              {questions.map((q) => (
-                <div key={q.question}>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{q.question}</p>
-                  <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">{q.answer}</p>
-                </div>
-              ))}
-            </div>
+          <div className="space-y-4">
+            {questions.map((q) => (
+              <div key={q.question}>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{q.question}</p>
+                <p className="mt-0.5 text-sm leading-relaxed text-gray-600 dark:text-gray-400">{q.answer}</p>
+              </div>
+            ))}
           </div>
-        </div>
+        </Modal>
       )}
     </>
   );

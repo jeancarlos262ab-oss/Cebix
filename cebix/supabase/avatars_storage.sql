@@ -37,3 +37,6 @@ create policy "avatars: reemplazar propia"
 create policy "avatars: borrar propia"
   on storage.objects for delete to authenticated
   using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Refresca la caché de esquema de la API para que reconozca la columna nueva.
+notify pgrst, 'reload schema';
