@@ -26,6 +26,15 @@ o volar; en reposo no consume CPU. Desde el globo se entra con animación al map
 (Leaflet) para dibujar, y el botón **Globo** de la barra regresa. Con una parcela ya dibujada o un
 GeoJSON importado se abre directo el mapa plano.
 
+### Mapas compartidos (`src/components/geomap/`)
+
+Las pantallas `/satelite` y `/earthengine` usan los mismos archivos de mapa. El diseño de referencia es el de
+**Leaflet** (mapa plano) y MapLibre lo reproduce: contorno 2.5 px, malla 1 px, vértices circulares, trazo en modo
+«difference» (invierte la imagen) y rojo al pasar la superficie máxima. Todo eso vive en `parcelStyle.js`; para
+cambiar cómo se ve la malla o los vértices se edita ahí y cambia en ambos motores. MapLibre pinta contorno y malla en
+un SVG sobre el mapa (`glTraceOverlay.js`) porque WebGL no admite el modo «difference». `GeometryMap` recibe
+`maxAreaHa` (opcional) para el límite de superficie.
+
 ## Notificaciones con sonido
 
 Todas las notificaciones (esquina inferior derecha) suenan con los sonidos incluidos en `react-sounds`

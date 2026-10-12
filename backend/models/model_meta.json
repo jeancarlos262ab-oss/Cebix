@@ -206,5 +206,164 @@
       "question": "¿Qué tan confiable es el modelo hoy?",
       "answer": "Bajo validación espacial estricta (dejar un estado completo fuera), el modelo elegido alcanza R²=0.43 y RMSE=0.64 t/ha tras seleccionar las 10 features más relevantes (sin usar Planet); antes de seleccionar features, R² era 0.24. Sigue siendo una referencia de riesgo relativo, no una cifra exacta de cosecha."
     }
-  ]
+  ],
+  "buildProcess": {
+    "pipeline": [
+      {
+        "title": "Datos del reto",
+        "detail": "197 parcelas, imágenes Sentinel-2 y Landsat 2022-2025, lluvia CHIRPS, temperatura y terreno."
+      },
+      {
+        "title": "Ventanas del ciclo",
+        "detail": "Cada índice se resume por etapa del cultivo: emergencia-macollamiento, encañado y espigado-llenado."
+      },
+      {
+        "title": "Selección de variables",
+        "detail": "Se conservan solo las que más aportan, medido con SHAP y validado por estado."
+      },
+      {
+        "title": "Validación espacial",
+        "detail": "Cada estado se deja fuera una vez para medir qué tan bien predice una región que no vio."
+      },
+      {
+        "title": "Predicción en vivo",
+        "detail": "Para una parcela dibujada se calculan las 10 variables desde imágenes satelitales y se ejecuta el modelo."
+      }
+    ],
+    "stages": [
+      {
+        "title": "Todas las variables",
+        "nFeatures": 97,
+        "rmse": 0.74,
+        "r2": 0.24,
+        "detail": "Punto de partida: los índices satelitales por ventana del ciclo, el clima y el terreno. Con 138 parcelas y 97 variables el modelo sobreajustaba."
+      },
+      {
+        "title": "Selección por importancia SHAP",
+        "nFeatures": 15,
+        "rmse": 0.645,
+        "r2": 0.422,
+        "detail": "Se ordenaron las variables por su aporte (SHAP) y se conservaron las 15 principales. El R² casi se duplicó, pero entraron variables de Planet, que es de pago."
+      },
+      {
+        "title": "Solo fuentes abiertas",
+        "nFeatures": 10,
+        "rmse": 0.642,
+        "r2": 0.426,
+        "detail": "Se quitó todo lo que no se puede recalcular con datos gratuitos y se volvió a seleccionar. Quedó igual de preciso, y ahora las 10 variables se calculan en vivo para cualquier parcela."
+      }
+    ],
+    "featureCountSearch": [
+      {
+        "nFeatures": 10,
+        "r2": 0.426,
+        "rmse": 0.642
+      },
+      {
+        "nFeatures": 15,
+        "r2": 0.419,
+        "rmse": 0.646
+      },
+      {
+        "nFeatures": 20,
+        "r2": 0.412,
+        "rmse": 0.65
+      },
+      {
+        "nFeatures": 25,
+        "r2": 0.419,
+        "rmse": 0.646
+      },
+      {
+        "nFeatures": 30,
+        "r2": 0.417,
+        "rmse": 0.648
+      },
+      {
+        "nFeatures": 40,
+        "r2": 0.411,
+        "rmse": 0.651
+      },
+      {
+        "nFeatures": 50,
+        "r2": 0.346,
+        "rmse": 0.686
+      }
+    ],
+    "extraVariables": [
+      {
+        "variant": "Variables actuales",
+        "group": "",
+        "nFeatures": 10,
+        "r2": 0.431,
+        "rmse": 0.639,
+        "deltaR2": 0.0,
+        "verdict": "Referencia"
+      },
+      {
+        "variant": "+ Pendiente",
+        "group": "Topografía",
+        "nFeatures": 11,
+        "r2": 0.421,
+        "rmse": 0.645,
+        "deltaR2": -0.01,
+        "verdict": "Sin mejora"
+      },
+      {
+        "variant": "+ Elevación",
+        "group": "Topografía",
+        "nFeatures": 11,
+        "r2": 0.431,
+        "rmse": 0.639,
+        "deltaR2": 0.0,
+        "verdict": "Sin mejora"
+      },
+      {
+        "variant": "+ Pendiente y elevación",
+        "group": "Topografía",
+        "nFeatures": 12,
+        "r2": 0.422,
+        "rmse": 0.645,
+        "deltaR2": -0.009,
+        "verdict": "Sin mejora"
+      },
+      {
+        "variant": "+ Temperatura",
+        "group": "Temperatura (Tmax, Tmin, GDD)",
+        "nFeatures": 13,
+        "r2": 0.373,
+        "rmse": 0.672,
+        "deltaR2": -0.059,
+        "verdict": "Empeora"
+      },
+      {
+        "variant": "+ Topografía y temperatura",
+        "group": "Ambas",
+        "nFeatures": 15,
+        "r2": 0.367,
+        "rmse": 0.675,
+        "deltaR2": -0.065,
+        "verdict": "Empeora"
+      }
+    ],
+    "extraVariablesNote": "Probadas con la misma validación por estado y promediando 10 semillas del Random Forest. La variación entre semillas es de ±0.02 de R².",
+    "limitations": [
+      {
+        "title": "La lluvia temprana domina el modelo",
+        "detail": "La precipitación en emergencia-macollamiento explica la mayor parte de la predicción y va ligada al estado: en Tlaxcala llueve más y se rinde menos. CHIRPS tiene una resolución de unos 5 km y no distingue bien entre parcelas cercanas."
+      },
+      {
+        "title": "Una variable mide la calidad del dato",
+        "detail": "La densidad de observaciones válidas cuenta cuántas escenas limpias hay en el ciclo; no es una variable agronómica. Se revisó que no codifique el estado, pero hay que leerla como lo que es."
+      },
+      {
+        "title": "Es una referencia de riesgo, no una cosecha exacta",
+        "detail": "Con 138 parcelas de entrenamiento el R² es de alrededor de 0.43. Sirve para comparar parcelas entre sí y orientar decisiones de crédito, no para fijar una cifra de cosecha."
+      },
+      {
+        "title": "Ventanas del ciclo supuestas",
+        "detail": "El dataset no trae fechas de siembra ni de cosecha, así que las etapas del cultivo se fijaron en el ciclo abril-octubre. Conviene contrastarlas con boletines agronómicos."
+      }
+    ]
+  }
 }

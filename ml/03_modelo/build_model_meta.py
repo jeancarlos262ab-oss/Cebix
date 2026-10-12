@@ -219,6 +219,10 @@ def main(args):
         ],
     }
 
+    from process_meta import build_process  # sección "Proceso" de la pantalla Modelo
+
+    meta["buildProcess"] = build_process()
+
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)

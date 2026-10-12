@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import InfoButton from "../components/ui/InfoButton";
-import GeometryMap from "../components/satelite/GeometryMap";
+import GeometryMap from "../components/geomap/GeometryMap";
+import { Collapse, SlideList } from "../components/ui/Collapse";
 import RunProgress from "../components/satelite/RunProgress";
 import ParcelResult from "../components/satelite/ParcelResult";
 import ValidationTable from "../components/satelite/ValidationTable";
@@ -427,6 +428,7 @@ function NuevaParcelaTab() {
               drawing={drawing}
               locked={running}
               overLimit={overLimit}
+              maxAreaHa={MAX_AREA_HA}
               fitKey={fitKey}
               onChange={setPoints}
               onStartDrawing={startDrawing}
@@ -453,15 +455,14 @@ function NuevaParcelaTab() {
               <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{drawHint}</p>
             )}
 
-            {warnings.length > 0 && (
-              <div className="mt-4 space-y-2">
-                {warnings.map((w) => (
-                  <Notice key={w.text} tone={w.tone}>
-                    {w.text}
-                  </Notice>
-                ))}
+            <Collapse open={warnings.length > 0}>
+              <div className="pt-2">
+                <SlideList
+                  items={warnings.map((w) => ({ ...w, key: w.text }))}
+                  render={(w) => <Notice tone={w.tone}>{w.text}</Notice>}
+                />
               </div>
-            )}
+            </Collapse>
 
             <div className="mt-4 flex flex-wrap gap-2">
               <input ref={fileRef} type="file" multiple accept=".geojson,.json,.zip,.shp,.dbf,.prj,.shx,.cpg,.kml,.kmz" onChange={handleFile} className="hidden" />

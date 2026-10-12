@@ -3,6 +3,7 @@ import { CloudRain, Mountain, Satellite, Sprout } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import InfoButton from "../components/ui/InfoButton";
 import AlgorithmComparisonChart from "../components/charts/AlgorithmComparisonChart";
+import FeatureCountChart from "../components/charts/FeatureCountChart";
 import RunModelPanel from "../components/model/RunModelPanel";
 import RequireModelInfo from "../components/ui/RequireModelInfo";
 import { useModelInfo } from "../context/ModelInfoContext";
@@ -11,6 +12,7 @@ const TABS = [
   { key: "ejecutar", label: "Ejecutar modelo" },
   { key: "resumen", label: "Resumen y validación" },
   { key: "datos", label: "Variables y datos" },
+  { key: "proceso", label: "Proceso" },
 ];
 
 // Un ícono por fuente, para reconocerlas de un vistazo.
@@ -165,6 +167,104 @@ function DatosTab() {
   );
 }
 
+const VERDICT_STYLE = {
+  Referencia: "bg-accent-50 text-accent-700 dark:bg-accent-500/15 dark:text-accent-400",
+  "Sin mejora": "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+  Empeora: "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-400",
+};
+
+/** Cómo se construyó el modelo: etapas, cuántas variables conviene usar, qué más se probó y qué límites tiene. */
+function ProcesoTab() {
+  const { buildProcess: p, modelSummary } = useModelInfo().info;
+  if (!p) {
+    return <p className="py-16 text-center text-sm text-gray-500 dark:text-gray-400">Esta información aún no está disponible en el backend.</p>;
+  }
+  return (
+    <div className="space-y-6">
+      <Card title="De los datos a la predicción" description="Los cinco pasos que sigue el modelo, desde la imagen satelital hasta el rendimiento estimado.">
+        <ol className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 dark:border-gray-800 dark:bg-gray-800 md:grid-cols-5">
+          {p.pipeline.map((step, i) => (
+            <li key={step.title} className="bg-white p-4 dark:bg-black">
+              <span className="flex size-6 items-center justify-center rounded-full bg-accent-50 text-[11px] font-semibold tabular-nums text-accent-700 dark:bg-accent-500/15 dark:text-accent-400">
+                {i + 1}
+              </span>
+              <p className="mt-3 text-sm font-semibold text-gray-900 dark:text-gray-100">{step.title}</p>
+              <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">{step.detail}</p>
+            </li>
+          ))}
+        </ol>
+      </Card>
+
+      <Card title="Cómo mejoró el modelo" description="Tres etapas, todas con la misma validación por estado (Random Forest).">
+        <ol className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {p.stages.map((st, i) => {
+            const last = i === p.stages.length - 1;
+            return (
+              <li
+                key={st.title}
+                className={`rounded-xl border p-4 ${last ? "border-accent-500/40 bg-accent-50/40 dark:bg-accent-500/5" : "border-gray-200 dark:border-gray-800"}`}
+              >
+                <p className="text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">Etapa {i + 1}</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">{st.title}</p>
+                <p className="mt-3 font-display text-2xl font-bold tabular-nums text-gray-900 dark:text-white">
+                  R² {st.r2}
+                  <span className="ml-2 text-sm font-medium text-gray-400 dark:text-gray-500">{st.nFeatures} variables</span>
+                </p>
+                <p className="text-xs tabular-nums text-gray-500 dark:text-gray-400">RMSE {st.rmse} t/ha</p>
+                <p className="mt-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{st.detail}</p>
+              </li>
+            );
+          })}
+        </ol>
+      </Card>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card title="Cuántas variables conviene usar" description="Más variables no mejoran el modelo: con pocas parcelas, las de poco aporte solo agregan ruido.">
+          <FeatureCountChart data={p.featureCountSearch} selected={modelSummary.nFeatures} />
+          <p className="mt-2 text-center text-[11px] text-gray-400 dark:text-gray-500">Número de variables (eje horizontal) y R² de validación (eje vertical)</p>
+        </Card>
+
+        <Card title="Otras variables que se probaron" description={p.extraVariablesNote} bodyClassName="p-0">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 text-[10px] uppercase tracking-wider text-gray-400 dark:border-gray-800 dark:text-gray-500">
+                <th className="px-5 py-2.5 font-medium">Variante</th>
+                <th className="px-2 py-2.5 text-right font-medium">R²</th>
+                <th className="px-2 py-2.5 text-right font-medium">RMSE</th>
+                <th className="px-5 py-2.5 text-right font-medium">Resultado</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+              {p.extraVariables.map((r) => (
+                <tr key={r.variant}>
+                  <td className="px-5 py-2.5 text-gray-800 dark:text-gray-200">
+                    {r.variant}
+                    {r.group && <span className="ml-1.5 text-xs text-gray-400 dark:text-gray-500">{r.group}</span>}
+                  </td>
+                  <td className="px-2 py-2.5 text-right tabular-nums text-gray-700 dark:text-gray-300">{r.r2.toFixed(3)}</td>
+                  <td className="px-2 py-2.5 text-right tabular-nums text-gray-700 dark:text-gray-300">{r.rmse.toFixed(3)}</td>
+                  <td className="px-5 py-2.5 text-right">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${VERDICT_STYLE[r.verdict]}`}>{r.verdict}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      </div>
+
+      <Card title="Alcance y límites" description="Lo que conviene tener presente al interpretar una predicción." bodyClassName="divide-y divide-gray-200 dark:divide-gray-800">
+        {p.limitations.map((l) => (
+          <div key={l.title} className="px-5 py-4">
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{l.title}</p>
+            <p className="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{l.detail}</p>
+          </div>
+        ))}
+      </Card>
+    </div>
+  );
+}
+
 export default function ModeloPage() {
   const [params, setParams] = useSearchParams();
   const { info } = useModelInfo();
@@ -209,6 +309,11 @@ export default function ModeloPage() {
         {tab === "resumen" && (
           <RequireModelInfo>
             <ResumenTab />
+          </RequireModelInfo>
+        )}
+        {tab === "proceso" && (
+          <RequireModelInfo>
+            <ProcesoTab />
           </RequireModelInfo>
         )}
         {tab === "datos" && (

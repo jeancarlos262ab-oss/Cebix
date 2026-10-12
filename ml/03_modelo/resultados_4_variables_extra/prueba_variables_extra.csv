@@ -1,0 +1,7 @@
+variante,grupo,n_features,r2,r2_sd,rmse,mae
+Variables actuales,,10,0.4313,0.0222,0.6394,0.4874
++ Pendiente,Topografía,11,0.4212,0.0221,0.6451,0.491
++ Elevación,Topografía,11,0.4313,0.0224,0.6394,0.4872
++ Pendiente y elevación,Topografía,12,0.4221,0.0225,0.6446,0.4911
++ Temperatura,"Temperatura (Tmax, Tmin, GDD)",13,0.3726,0.0211,0.6716,0.5264
++ Topografía y temperatura,Ambas,15,0.3668,0.0181,0.6748,0.5298

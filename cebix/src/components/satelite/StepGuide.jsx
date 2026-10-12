@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import { PANEL } from "./mapUi";
+import { PANEL } from "../geomap/mapUi";
 
 /**
  * Guía de pasos de la pantalla de parcela satelital (píldora inferior del mapa).
