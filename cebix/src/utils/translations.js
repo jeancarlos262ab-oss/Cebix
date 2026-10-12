@@ -3,7 +3,7 @@
  * entrada, `t()` devuelve el mismo texto, así la app nunca muestra claves vacías y
  * se puede traducir pantalla por pantalla envolviendo textos con `t("...")`.
  */
-export const EN = {
+const EN = {
   // Navegación
   Gestión: "Management",
   Análisis: "Analysis",
@@ -16,6 +16,8 @@ export const EN = {
   Predicciones: "Predictions",
   "Parcela satelital": "Satellite plot",
   "Validación SHAP": "SHAP validation",
+  "Cebada y FIRA": "Barley and FIRA",
+  "El cultivo, la institución que lo financia y el problema que resuelve CEBIX.": "The crop, the institution that finances it and the problem CEBIX solves.",
   Ajustes: "Settings",
   Perfil: "Profile",
   "Cerrar sesión": "Sign out",

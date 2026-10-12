@@ -22,7 +22,7 @@ const INV_2PI = 1 / (2 * Math.PI);
 const HALF_PI = Math.PI / 2;
 
 /** sen(lat) máximo que cubre Web Mercator (lat ≈ 85.0511°): tanh(π). */
-export const SMAX = Math.tanh(Math.PI);
+const SMAX = Math.tanh(Math.PI);
 
 const RB = 0x00ff00ff;
 const GM = 0x0000ff00;
@@ -34,16 +34,6 @@ const FLAT = [58, 68, 82]; // esfera sin textura (igual que la referencia)
 function atanPoly(t) {
   const t2 = t * t;
   return t * (0.999866 + t2 * (-0.3302995 + t2 * (0.180141 + t2 * (-0.085133 + t2 * 0.0208351))));
-}
-
-/** Aproximación de Math.atan2 (error máximo ~1e-5 rad). Solo se exporta para pruebas. */
-export function fastAtan2(y, x) {
-  const ax = x < 0 ? -x : x;
-  const ay = y < 0 ? -y : y;
-  if (ax === 0 && ay === 0) return 0;
-  let a = ay <= ax ? atanPoly(ay / ax) : HALF_PI - atanPoly(ax / ay);
-  if (x < 0) a = Math.PI - a;
-  return y < 0 ? -a : a;
 }
 
 /* ───────────── paso 1: textura lineal en sen(lat) + mipmaps ───────────── */

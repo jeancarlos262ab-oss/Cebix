@@ -5,7 +5,7 @@ import DocumentPeek from "./DocumentPeek";
 import UploadDropzone from "../dashboard/UploadDropzone";
 import useParcelActions from "../../hooks/useParcelActions";
 import { useParcels } from "../../context/ParcelsContext";
-import { EXAMPLE_CSV_URL } from "../../hooks/useModelRunner";
+import { EXAMPLE_CSV_URL } from "../../services/modelApi";
 
 const ROW =
   "group flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60";

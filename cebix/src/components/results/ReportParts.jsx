@@ -7,9 +7,6 @@ const MAX_YIELD = 6; // escala fija 0 – 6 ton/ha
 const DIRECTION_COLOR = { positivo: "var(--chart-positive)", negativo: "var(--chart-negative)", mixto: "var(--chart-mixed)" };
 const SIGN = { positivo: "+", negativo: "−", mixto: "±" };
 
-export const GHOST_BTN =
-  "inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800";
-
 export function Label({ children }) {
   return <h3 className="text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{children}</h3>;
 }

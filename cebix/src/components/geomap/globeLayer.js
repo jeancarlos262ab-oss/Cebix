@@ -15,12 +15,12 @@ import { SphereRaster } from "./globeFast.js";
 import { renderSphere } from "./globeRender.js";
 
 // Píxeles que se calculan para la esfera (se escalan al tamaño de pantalla con drawImage).
-export const BUDGET_MOVING = 90000; // mientras se arrastra / vuela (antes: 60000)
-export const BUDGET_IDLE = 300000; // en reposo
-export const ZOOM_LO = 0.8;
-export const ZOOM_HI = 1.25;
-export const FRAME_MS = 13; // si el cuadro completo (cielo + esfera + trazos) pasa de esto, baja la resolución
-export const Q_MIN = 0.3;
+const BUDGET_MOVING = 90000; // mientras se arrastra / vuela (antes: 60000)
+const BUDGET_IDLE = 300000; // en reposo
+const ZOOM_LO = 0.8;
+const ZOOM_HI = 1.25;
+const FRAME_MS = 13; // si el cuadro completo (cielo + esfera + trazos) pasa de esto, baja la resolución
+const Q_MIN = 0.3;
 const SLACK = 1 / ZOOM_LO; // margen del raster para poder alejar sin dejar huecos
 const ADAPT_EVERY = 6;
 

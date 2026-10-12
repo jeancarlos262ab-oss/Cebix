@@ -11,7 +11,7 @@ const R = 6371008.8;
 const toRad = (d) => (d * Math.PI) / 180;
 
 /** Área geodésica aproximada (m²) de un anillo [lat,lng][]. Precisa de sobra para parcelas. */
-export function areaM2(points) {
+function areaM2(points) {
   if (points.length < 3) return 0;
   let sum = 0;
   for (let i = 0; i < points.length; i++) {

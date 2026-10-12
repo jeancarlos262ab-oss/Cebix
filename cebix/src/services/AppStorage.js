@@ -78,5 +78,4 @@ class AppStorage {
   }
 }
 
-export default AppStorage;
 export const appStorage = AppStorage.getInstance();

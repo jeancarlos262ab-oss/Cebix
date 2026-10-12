@@ -2,7 +2,7 @@ import Avatar from "../ui/Avatar";
 import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { getPageRegistry } from "../../utils/pageRegistry";
-import { ChevronRight, ChevronsUpDown, LogOut, Settings, X, Menu, PanelLeft } from "lucide-react";
+import { ChevronRight, LogOut, Settings, X, Menu, PanelLeft } from "lucide-react";
 import { generalNav, workspaceNav } from "../../data/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { useSidebar } from "../../context/SidebarContext";

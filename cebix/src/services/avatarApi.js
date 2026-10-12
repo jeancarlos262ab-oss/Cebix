@@ -1,8 +1,8 @@
 import { supabase } from "./supabaseClient";
 
 const BUCKET = "avatars";
-export const AVATAR_SIZE = 256; // miniatura cuadrada (barra lateral, perfil); la original se guarda aparte
-export const MAX_INPUT_BYTES = 10 * 1024 * 1024; // lo que se acepta elegir (se reduce antes de subir)
+const AVATAR_SIZE = 256; // miniatura cuadrada (barra lateral, perfil); la original se guarda aparte
+const MAX_INPUT_BYTES = 10 * 1024 * 1024; // lo que se acepta elegir (se reduce antes de subir)
 export const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 /** Mensaje de error si el archivo no sirve, o null si está bien. */

@@ -16,7 +16,6 @@ export function setIntlPrefs(prefs) {
   current = { ...DEFAULT_REGION, ...prefs };
 }
 
-export const getIntlPrefs = () => current;
 export const getLocale = () => current.idioma;
 
 function safeTimeZone(tz) {

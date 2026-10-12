@@ -6,6 +6,7 @@ import {
   BarChart3,
   ShieldCheck,
   Globe,
+  BookOpen,
 } from "lucide-react";
 
 export const generalNav = [
@@ -13,6 +14,7 @@ export const generalNav = [
   { label: "Parcelas", icon: MapPin, to: "/parcelas" },
   { label: "Modelo", icon: BrainCircuit, to: "/modelo" },
   { label: "Mapa satelital", icon: Satellite, to: "/mapa" },
+  { label: "Cebada y FIRA", icon: BookOpen, to: "/acerca" },
 ];
 
 export const workspaceNav = [
@@ -21,9 +23,3 @@ export const workspaceNav = [
   { label: "Validación SHAP", icon: ShieldCheck, to: "/shap" },
 ];
 
-export const regions = [
-  { label: "Hidalgo", shortcut: "⌘1", color: "#374151" },
-  { label: "Tlaxcala", shortcut: "⌘2", color: "#C08A2E" },
-  { label: "Puebla", shortcut: "⌘3", color: "#4C9A63" },
-  { label: "Nacional", shortcut: "⌘4", color: "#98A2B3" },
-];

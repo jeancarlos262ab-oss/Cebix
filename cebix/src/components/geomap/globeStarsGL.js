@@ -12,7 +12,7 @@
  */
 
 /** Ajustes rápidos (mismo significado que SKY en globeStars.js). */
-export const SKY_GL = {
+const SKY_GL = {
   stars: 3000, // estrellas de campo (pocas y tenues, como en Google Earth)
   grains: 1500, // estrellas diminutas, algo más densas a lo largo de la mancha (solo si haze)
   haze: true, // mancha tenue y difusa que cruza las estrellas, estilo Google Earth (false = solo estrellas)

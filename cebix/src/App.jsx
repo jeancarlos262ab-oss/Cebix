@@ -30,6 +30,7 @@ const pageLoaders = {
   shap: () => import("./pages/ValidacionSHAPPage"),
   ajustes: () => import("./pages/AjustesPage"),
   perfil: () => import("./pages/PerfilPage"),
+  acerca: () => import("./pages/AcercaPage"),
 };
 
 const DashboardPage = lazy(pageLoaders.dashboard);
@@ -43,6 +44,7 @@ const PrediccionesPage = lazy(pageLoaders.predicciones);
 const ValidacionSHAPPage = lazy(pageLoaders.shap);
 const AjustesPage = lazy(pageLoaders.ajustes);
 const PerfilPage = lazy(pageLoaders.perfil);
+const AcercaPage = lazy(pageLoaders.acerca);
 const loadLogin = () => import("./pages/LoginPage");
 const loadSignup = () => import("./pages/SignupPage");
 const LoginPage = lazy(loadLogin);
@@ -71,6 +73,7 @@ function usePrefetchPages() {
       pageLoaders.parcelasHistorial,
       pageLoaders.ajustes,
       pageLoaders.perfil,
+      pageLoaders.acerca,
       pageLoaders.satelite,
       pageLoaders.mapa,
     ];
@@ -109,7 +112,7 @@ function usePrefetchPages() {
 // "*") devuelven null y no se cachean.
 function pageKey(pathname) {
   const path = pathname.replace(/\/+$/, "") || "/";
-  if (["/", "/parcelas", "/parcelas/historial", "/modelo", "/mapa", "/predicciones", "/satelite", "/shap", "/ajustes", "/perfil"].includes(path)) {
+  if (["/", "/parcelas", "/parcelas/historial", "/modelo", "/mapa", "/predicciones", "/satelite", "/shap", "/acerca", "/ajustes", "/perfil"].includes(path)) {
     return path;
   }
   // (/parcelas/historial es una ruta fija: se evalúa antes que el detalle por id.)
@@ -271,6 +274,7 @@ export default function App() {
           <Route path="/predicciones" element={<PrediccionesPage />} />
           <Route path="/satelite" element={<SatelitePage />} />
           <Route path="/shap" element={<ValidacionSHAPPage />} />
+          <Route path="/acerca" element={<AcercaPage />} />
           <Route path="/ejecutar-modelo" element={<Navigate to="/modelo?tab=ejecutar" replace />} />
           <Route path="/ajustes" element={<AjustesPage />} />
           <Route path="/perfil" element={<PerfilPage />} />

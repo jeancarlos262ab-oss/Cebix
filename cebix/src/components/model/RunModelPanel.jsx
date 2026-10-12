@@ -21,7 +21,7 @@ import Dropzone from "../ui/Dropzone";
 import DocumentPeek from "../ui/DocumentPeek";
 import { useModelInfo } from "../../context/ModelInfoContext";
 import { useParcels } from "../../context/ParcelsContext";
-import { EXAMPLE_CSV_URL, fetchExampleFile, friendlyError, predictCsv } from "../../hooks/useModelRunner";
+import { EXAMPLE_CSV_URL, fetchExampleFile, friendlyError, predictCsv } from "../../services/modelApi";
 import { formatNumber } from "../../utils/intl";
 
 const STATES = ["Hidalgo", "Puebla", "Tlaxcala"];
@@ -364,7 +364,7 @@ function ResultsTable({ results }) {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-          {results.map((r, i) => {
+          {results.map((r) => {
             const top = r.shap[0];
             const positive = top?.direction === "positivo";
             const DirIcon = positive ? TrendingUp : TrendingDown;

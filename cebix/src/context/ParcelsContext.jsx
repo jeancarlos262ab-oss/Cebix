@@ -38,7 +38,7 @@ const clearLegacyKeys = () => LEGACY_KEYS.forEach((key) => appStorage.remove(key
 
 /** Deriva score / riesgo / semáforo a partir del rendimiento estimado y su margen de error,
  * usando el mismo criterio que ya usa el dataset (score >= 70 elegible, 45-69 revisión, <45 alto riesgo). */
-export function scoreFromInputs({ yieldEstimate, confidence, ndvi, precip }) {
+export function scoreFromInputs({ yieldEstimate, confidence, ndvi }) {
   // Heurística explícita y trazable (no es el Random Forest de producción, que
   // requiere features satelitales completas): combina rendimiento normalizado
   // sobre 6 ton/ha, vigor NDVI y estabilidad (menor margen de error = más
@@ -167,7 +167,7 @@ function toDatabaseParcel(record) {
 }
 
 /** Normaliza un registro (de formulario manual o de una fila de CSV) a un objeto parcela completo. */
-export function buildParcelRecord(fields, existingParcels, importance = []) {
+function buildParcelRecord(fields, existingParcels, importance = []) {
   const yieldEstimate = Number(fields.yieldEstimate);
   const confidence = Number(fields.confidence ?? 0.7);
   const ndvi = Number(fields.ndvi);
@@ -178,7 +178,7 @@ export function buildParcelRecord(fields, existingParcels, importance = []) {
   const score =
     fields.score !== undefined && fields.score !== "" && !Number.isNaN(Number(fields.score))
       ? Math.round(Number(fields.score))
-      : scoreFromInputs({ yieldEstimate, confidence, ndvi, precip });
+      : scoreFromInputs({ yieldEstimate, confidence, ndvi });
   const { risk, riskColor } = classifyRisk(score);
 
   return {
@@ -223,7 +223,7 @@ const firstNum = (...vals) => {
 /** Convierte una predicción REAL del backend (+ las columnas del CSV subido, si hay)
  * en el objeto parcela que usan todas las pantallas. No hay valores precargados:
  * todo viene de lo que el modelo calculó en esa corrida. */
-export function buildAnalysisParcel(pred, row = {}, index = 0) {
+function buildAnalysisParcel(pred, row = {}, index = 0) {
   const meta = { ...row, ...pred }; // el backend devuelve Municipio/lat/lng/area_ha si venían en el CSV
   const polygonId = String(pred.ID_POLIGONO);
   const region = pred.Estado || row.Estado || "Puebla";
@@ -238,7 +238,7 @@ export function buildAnalysisParcel(pred, row = {}, index = 0) {
   const gdd = firstNum(row.gdd_acumulado_ciclo, row.gdd) ?? 0;
   const area = firstNum(meta.area_ha, meta.AREA_HA);
 
-  const score = scoreFromInputs({ yieldEstimate, confidence, ndvi, precip });
+  const score = scoreFromInputs({ yieldEstimate, confidence, ndvi });
   const { risk, riskColor } = classifyRisk(score);
   const tail = /^AGC_(\d+)$/i.exec(polygonId);
 

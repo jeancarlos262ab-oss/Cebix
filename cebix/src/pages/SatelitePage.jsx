@@ -397,7 +397,6 @@ function NuevaParcelaTab() {
       yieldEstimate: result.yieldEstimate,
       confidence: half,
       ndvi: f.bas_ndvi_emergencia_macollamiento ?? 0,
-      precip: f.precip_acum_emergencia_macollamiento_mm ?? 0,
     });
     return { features: f, half, score, risk: classifyRisk(score) };
   }, [result]);

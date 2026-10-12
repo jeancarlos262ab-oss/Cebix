@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect, useState, memo } from "react";
+import { useCallback, useEffect, useState, memo } from "react";
 import { Plus, Minus, Compass, Maximize2, Minimize2 } from "lucide-react";
 
 /**

@@ -63,7 +63,7 @@ export function detectLowEndDevice() {
  *
  * @returns {boolean}
  */
-export function supportsWebGL() {
+function supportsWebGL() {
   if (typeof window === "undefined") return false;
   // El navegador a veces rechaza el primer contexto (GPU arrancando, contextos recién liberados por otras
   // pantallas). Un solo fallo no debe mandar a toda la sesión al mapa ligero, así que se intenta dos veces.
@@ -91,7 +91,7 @@ export function supportsWebGL() {
  *   "gl"   → siempre MapLibre GL (ParcelMapGL)
  *   null   → automático: MapLibre GL si el equipo acepta WebGL; si no, Leaflet.
  */
-export const FORCED_MAP_ENGINE = null;
+const FORCED_MAP_ENGINE = null;
 
 // Se vuelve true si MapLibre GL falla al arrancar aunque la detección dijera que sí.
 let glFailed = false;

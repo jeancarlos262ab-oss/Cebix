@@ -15,9 +15,9 @@
 import { API_URL, ApiError, errorFromResponse, friendlyError } from "./modelApi";
 
 /** Extensiones que se mandan al backend de geoprocesamiento. */
-export const GEO_EXTENSIONS = ["shp", "dbf", "prj", "shx", "cpg", "zip", "geojson", "json", "kml", "kmz"];
+const GEO_EXTENSIONS = ["shp", "dbf", "prj", "shx", "cpg", "zip", "geojson", "json", "kml", "kmz"];
 
-export const fileExtension = (name = "") => (name.includes(".") ? name.split(".").pop().toLowerCase() : "");
+const fileExtension = (name = "") => (name.includes(".") ? name.split(".").pop().toLowerCase() : "");
 export const isGeoFile = (file) => GEO_EXTENSIONS.includes(fileExtension(file?.name));
 
 const SHAPEFILE_PARTS = ["shp", "dbf", "prj", "shx", "cpg"];
@@ -27,7 +27,7 @@ const stemOf = (name = "") => name.replace(/\.[^./\\]+$/, "").toLowerCase();
  * Revisa que los archivos sueltos de un shapefile estén completos antes de subirlos.
  * Devuelve el mensaje de error si falta el .shp (la geometría) y no hay un .zip que lo traiga; null si todo bien.
  */
-export function shapefileProblem(files) {
+function shapefileProblem(files) {
   const parts = files.filter((f) => SHAPEFILE_PARTS.includes(fileExtension(f.name)));
   if (parts.length === 0) return null;
   const hasZip = files.some((f) => ["zip", "kmz"].includes(fileExtension(f.name)));

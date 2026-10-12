@@ -14,7 +14,7 @@
  * @param {{ zoom?: number }} [options]
  * @returns {string}
  */
-export function getGoogleMapsUrl(lat, lng, { zoom } = {}) {
+function getGoogleMapsUrl(lat, lng, { zoom } = {}) {
   const query = `${lat},${lng}`;
   const zoomParam = zoom ? `&zoom=${Math.round(zoom)}` : "";
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}${zoomParam}`;

@@ -181,36 +181,40 @@ function ProcesoTab() {
   }
   return (
     <div className="space-y-6">
-      <Card title="De los datos a la predicción" description="Los cinco pasos que sigue el modelo, desde la imagen satelital hasta el rendimiento estimado.">
-        <ol className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 dark:border-gray-800 dark:bg-gray-800 md:grid-cols-5">
+      <Card
+        title="De los datos a la predicción"
+        description="Los cinco pasos que sigue el modelo, desde la imagen satelital hasta el rendimiento estimado."
+        bodyClassName="p-0"
+      >
+        <ol className="grid grid-cols-1 divide-y divide-gray-200 dark:divide-gray-800 md:grid-cols-5 md:divide-x md:divide-y-0">
           {p.pipeline.map((step, i) => (
-            <li key={step.title} className="bg-white p-4 dark:bg-black">
-              <span className="flex size-6 items-center justify-center rounded-full bg-accent-50 text-[11px] font-semibold tabular-nums text-accent-700 dark:bg-accent-500/15 dark:text-accent-400">
-                {i + 1}
-              </span>
-              <p className="mt-3 text-sm font-semibold text-gray-900 dark:text-gray-100">{step.title}</p>
+            <li key={step.title} className="px-5 py-4">
+              <span className="text-[11px] font-semibold tabular-nums text-accent-600 dark:text-accent-400">{i + 1}</span>
+              <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">{step.title}</p>
               <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">{step.detail}</p>
             </li>
           ))}
         </ol>
       </Card>
 
-      <Card title="Cómo mejoró el modelo" description="Tres etapas, todas con la misma validación por estado (Random Forest).">
-        <ol className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <Card title="Cómo mejoró el modelo" description="Tres etapas, todas con la misma validación por estado (Random Forest)." bodyClassName="p-0">
+        <ol className="grid grid-cols-1 divide-y divide-gray-200 dark:divide-gray-800 lg:grid-cols-3 lg:divide-x lg:divide-y-0">
           {p.stages.map((st, i) => {
             const last = i === p.stages.length - 1;
             return (
-              <li
-                key={st.title}
-                className={`rounded-xl border p-4 ${last ? "border-accent-500/40 bg-accent-50/40 dark:bg-accent-500/5" : "border-gray-200 dark:border-gray-800"}`}
-              >
+              <li key={st.title} className="px-5 py-5">
                 <p className="text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">Etapa {i + 1}</p>
                 <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">{st.title}</p>
-                <p className="mt-3 font-display text-2xl font-bold tabular-nums text-gray-900 dark:text-white">
+                <p
+                  className={`mt-3 font-display text-2xl font-bold tabular-nums ${
+                    last ? "text-accent-600 dark:text-accent-400" : "text-gray-900 dark:text-white"
+                  }`}
+                >
                   R² {st.r2}
-                  <span className="ml-2 text-sm font-medium text-gray-400 dark:text-gray-500">{st.nFeatures} variables</span>
                 </p>
-                <p className="text-xs tabular-nums text-gray-500 dark:text-gray-400">RMSE {st.rmse} t/ha</p>
+                <p className="text-xs tabular-nums text-gray-500 dark:text-gray-400">
+                  {st.nFeatures} variables · RMSE {st.rmse} t/ha
+                </p>
                 <p className="mt-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{st.detail}</p>
               </li>
             );
@@ -221,7 +225,6 @@ function ProcesoTab() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card title="Cuántas variables conviene usar" description="Más variables no mejoran el modelo: con pocas parcelas, las de poco aporte solo agregan ruido.">
           <FeatureCountChart data={p.featureCountSearch} selected={modelSummary.nFeatures} />
-          <p className="mt-2 text-center text-[11px] text-gray-400 dark:text-gray-500">Número de variables (eje horizontal) y R² de validación (eje vertical)</p>
         </Card>
 
         <Card title="Otras variables que se probaron" description={p.extraVariablesNote} bodyClassName="p-0">

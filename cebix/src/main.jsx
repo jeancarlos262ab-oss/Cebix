@@ -8,7 +8,6 @@ import { ThemeProvider } from "./context/ThemeContext.jsx";
 import { PreferencesProvider } from "./context/PreferencesContext.jsx";
 import { ModelInfoProvider } from "./context/ModelInfoContext.jsx";
 import { ParcelsProvider } from "./context/ParcelsContext.jsx";
-import { UsersProvider } from "./context/UsersContext.jsx";
 import AppToaster from "./components/ui/AppToaster.jsx";
 
 createRoot(document.getElementById("root")).render(
@@ -17,14 +16,12 @@ createRoot(document.getElementById("root")).render(
       <AuthProvider>
         <ModelInfoProvider>
           <ParcelsProvider>
-            <UsersProvider>
-              <PreferencesProvider>
-                <BrowserRouter>
-                  <App />
-                </BrowserRouter>
-              </PreferencesProvider>
-              <AppToaster />
-            </UsersProvider>
+            <PreferencesProvider>
+              <BrowserRouter>
+                <App />
+              </BrowserRouter>
+            </PreferencesProvider>
+            <AppToaster />
           </ParcelsProvider>
         </ModelInfoProvider>
       </AuthProvider>

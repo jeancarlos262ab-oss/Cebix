@@ -382,7 +382,6 @@ export default function GlobeMapGL({
 
   // El color de acento sigue al tema.
   useEffect(() => {
-    const m = mapRef.current;
     if (pinRef.current) paintPin(pinRef.current, color);
   }, [color, ready, mapVer]);
 

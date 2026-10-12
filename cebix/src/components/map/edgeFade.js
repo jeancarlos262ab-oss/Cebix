@@ -37,6 +37,3 @@ export function softFadeGradient(direction, start, length, strength = 1) {
 }
 
 export const LEFT_FADE_LENGTH = "12rem";
-export const BOTTOM_FADE_LENGTH = "9rem";
-// El borde inferior no llega a negro sólido: se nota mucho menos.
-export const BOTTOM_FADE_STRENGTH = 0.55;

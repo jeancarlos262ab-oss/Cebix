@@ -289,7 +289,6 @@ function ValidacionSHAPPageContent() {
     () => (selected ? [...selected.shap].sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact)) : []),
     [selected],
   );
-  const localMax = Math.max(...localDrivers.map((d) => Math.abs(d.impact)), 0.0001);
   const localNet = selected ? netShap(selected) : 0;
 
   // Variables de esta parcela cuya dirección difiere del efecto promedio global.

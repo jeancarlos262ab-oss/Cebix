@@ -19,7 +19,7 @@ function escapeCell(value) {
  * @param {{key: string, label: string, format?: (row: any) => any}[]} columns
  * @param {any[]} rows
  */
-export function toCSV(columns, rows) {
+function toCSV(columns, rows) {
   const header = columns.map((c) => escapeCell(c.label)).join(",");
   const lines = rows.map((row) =>
     columns
@@ -30,7 +30,7 @@ export function toCSV(columns, rows) {
 }
 
 /** Dispara la descarga de un archivo de texto en el navegador. */
-export function downloadTextFile(filename, content, mime = "text/csv;charset=utf-8;") {
+function downloadTextFile(filename, content, mime = "text/csv;charset=utf-8;") {
   const blob = new Blob(["\uFEFF" + content], { type: mime });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -46,7 +46,7 @@ export function downloadCSV(filename, columns, rows) {
   downloadTextFile(filename, toCSV(columns, rows));
 }
 
-export const PARCEL_CSV_COLUMNS = [
+const PARCEL_CSV_COLUMNS = [
   { key: "polygonId", label: "ID" },
   { key: "name", label: "Parcela" },
   { key: "municipio", label: "Municipio" },

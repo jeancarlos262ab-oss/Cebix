@@ -508,7 +508,6 @@ function ParcelMapGL({
     [recover]
   );
   const [popupInfo, setPopupInfo] = useState(null);
-  const [hoveredParcelId, setHoveredParcelId] = useState(null);
   const previouslyClickedRef = useRef(null);
   // Parcela seleccionada: se dibuja con otra figura (rombo) en vez del círculo.
   const [markedId, setMarkedId] = useState(null);
@@ -667,8 +666,6 @@ function ParcelMapGL({
 
     const feature = event.features[0];
     if (feature && feature.geometry.type === "Point") {
-      setHoveredParcelId(feature.id);
-
       const map = mapRef.current?.getMap();
       if (map) {
         map.getCanvas().style.cursor = "pointer";
@@ -688,7 +685,6 @@ function ParcelMapGL({
       }
     }
 
-    setHoveredParcelId(null);
     const map = mapRef.current?.getMap();
     if (map) map.getCanvas().style.cursor = "";
   }, []);

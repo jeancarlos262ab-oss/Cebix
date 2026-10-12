@@ -5,7 +5,7 @@
  */
 
 /** Color del contorno, la malla y los vértices (se dibujan en modo "difference": invierten la imagen de abajo). */
-export const TRACE_COLOR = "#fff";
+const TRACE_COLOR = "#fff";
 /** Color de contorno, malla y vértices cuando la parcela pasa la superficie máxima (modo de mezcla normal). */
 export const OVER_LIMIT_COLOR = "#ef4444";
 export const OVER_LIMIT_FILL_OPACITY = 0.18;

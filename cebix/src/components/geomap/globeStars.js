@@ -22,7 +22,7 @@
 import { projectDir } from "./globeRender.js";
 
 /** Ajustes rápidos. */
-export const SKY = {
+const SKY = {
   stars: 4200, // estrellas de campo: muchas y tenues, como en Google Earth
   milkyWay: true, // Vía Láctea: brillo difuso + vetas oscuras de polvo + estrellas diminutas
   glow: 170, // manchas de brillo difuso a lo largo de la banda

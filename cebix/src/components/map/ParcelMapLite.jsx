@@ -16,7 +16,6 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, CircleMarker, Marker, Popup, GeoJSON } from "react-leaflet";
 import { locationPinHtml, PIN_SIZE, PIN_TIP_OFFSET } from "./LocationPin";
-import cebadaMapIcon from "../../assets/cebada_map.webp";
 import { selectedShapeSvg, SELECTED_SHAPE_SIZE } from "./selectedShape";
 import LiteMapControls from "./LiteMapControls";
 import { ExternalLink, Gauge, Leaf, Map as MapIcon, Milestone, Moon, Mountain, Satellite as SatelliteIcon } from "lucide-react";
@@ -466,20 +465,10 @@ function ParcelMapLite({
                   {/* Ojo: sin <p>. leaflet.css le pone margen a `.leaflet-popup-content p`
                       y pisa las utilidades de Tailwind. */}
                   <div className="w-56 font-sans">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={cebadaMapIcon}
-                        alt=""
-                        width={26}
-                        height={44}
-                        draggable={false}
-                        className="h-11 w-auto shrink-0 select-none"
-                      />
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold leading-snug text-white">{parcel.name}</div>
-                        <div className="mt-0.5 text-xs text-gray-400">
-                          {parcel.municipio}, {parcel.region}
-                        </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold leading-snug text-white">{parcel.name}</div>
+                      <div className="mt-0.5 text-xs text-gray-400">
+                        {parcel.municipio}, {parcel.region}
                       </div>
                     </div>
 
