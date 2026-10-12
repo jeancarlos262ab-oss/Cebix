@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 import ParcelEmblem from "./ParcelEmblem";
 import MiniBarChart from "./MiniBarChart";
@@ -188,15 +188,8 @@ export default function ParcelSummary() {
 
       <ScrollableTabs tabs={TABS} active={activeTab} onChange={setActiveTab} />
 
-      <motion.div layout transition={{ duration: 0.3, ease: "easeInOut" }}>
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.28, ease: "easeInOut" }}
-          >
+      <div>
+        <div key={activeTab} className="fade-in-up">
             {activeTab === "Variables" ? (
               <div className="mt-4">
                 {importance.length ? (
@@ -215,17 +208,13 @@ export default function ParcelSummary() {
                 ))}
               </dl>
             )}
-          </motion.div>
-        </AnimatePresence>
-      </motion.div>
+        </div>
+      </div>
 
     </section>
 
     <section>
-      <motion.div
-        layout
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-      >
+      <div>
         <div className="flex items-start justify-between gap-3">
           <h3 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">
             Rendimiento estimado por estado
@@ -253,7 +242,7 @@ export default function ParcelSummary() {
             Promedio estimado
           </li>
         </ul>
-      </motion.div>
+      </div>
     </section>
     </div>
   );

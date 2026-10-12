@@ -92,7 +92,7 @@ function Semaphore({ score, sober = false, horizontal = false }) {
                 onDragStart={(e) => e.preventDefault()}
                 onContextMenu={(e) => e.preventDefault()}
                 style={{ WebkitUserDrag: "none", userSelect: "none" }}
-                className="h-[115%] w-auto max-w-none -translate-y-8 drop-shadow-[-6px_8px_3px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out hover:scale-[0.97]"
+                className="h-[115%] w-auto max-w-none transform-gpu will-change-transform -translate-y-8 drop-shadow-[-6px_8px_3px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out hover:scale-[0.97]"
               />
             </div>
             <div className="min-w-0">
@@ -163,7 +163,7 @@ function Semaphore({ score, sober = false, horizontal = false }) {
               onDragStart={(e) => e.preventDefault()}
               onContextMenu={(e) => e.preventDefault()}
               style={{ WebkitUserDrag: "none", userSelect: "none" }}
-              className="h-[115%] w-auto max-w-none -translate-y-8 drop-shadow-[-6px_8px_3px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out hover:scale-[0.97]"
+              className="h-[115%] w-auto max-w-none transform-gpu will-change-transform -translate-y-8 drop-shadow-[-6px_8px_3px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out hover:scale-[0.97]"
             />
           </div>
           <div className="min-w-0">
@@ -232,7 +232,7 @@ function Semaphore({ score, sober = false, horizontal = false }) {
             onDragStart={(e) => e.preventDefault()}
             onContextMenu={(e) => e.preventDefault()}
             style={{ WebkitUserDrag: "none", userSelect: "none" }}
-            className="h-[115%] w-auto max-w-none -translate-y-8 drop-shadow-[-6px_8px_3px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out hover:scale-[0.97]"
+            className="h-[115%] w-auto max-w-none transform-gpu will-change-transform -translate-y-8 drop-shadow-[-6px_8px_3px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out hover:scale-[0.97]"
           />
         </div>
         <div>

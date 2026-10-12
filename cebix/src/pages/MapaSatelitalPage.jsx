@@ -91,8 +91,8 @@ function MapaSatelitalPageContent() {
               desvanece hacia la derecha. Solo escritorio; su ancho sigue al del sidebar. */}
           <div
             aria-hidden="true"
-            className={`pointer-events-none absolute inset-y-0 left-0 z-900 hidden transition-[width] duration-200 ease-out lg:block ${
-              collapsed ? "w-[390px]" : "w-[650px]"
+            className={`pointer-events-none absolute inset-y-0 left-0 z-900 hidden w-[650px] origin-left transform-gpu transition-transform duration-200 ease-out lg:block ${
+              collapsed ? "scale-x-[0.6]" : "scale-x-100"
             }`}
             style={{
               background:

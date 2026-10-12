@@ -12,7 +12,10 @@ export default function ParcelStrip({ parcels, selectedId, onSelect, className =
   const updateEdges = useCallback(() => {
     const el = scroller.current;
     if (!el) return;
-    setEdges({ start: el.scrollLeft > 4, end: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 });
+    const start = el.scrollLeft > 4;
+    const end = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+    // Mismo valor → mismo objeto → React no repinta las tarjetas en cada evento de scroll.
+    setEdges((prev) => (prev.start === start && prev.end === end ? prev : { start, end }));
   }, []);
 
   useEffect(() => {

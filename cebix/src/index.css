@@ -1,6 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@800&family=Sora:wght@500;600;700;800&display=swap");
-@import "maplibre-gl/dist/maplibre-gl.css";
-
+/* Las fuentes de Google se cargan sin bloquear el render desde utils/loadFonts.js.
+   El CSS de MapLibre lo importa cada mapa GL (así solo se descarga al abrir un mapa). */
 @import 'tailwindcss';
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -515,4 +514,28 @@ html.dark .app-corner-glow {
 .strip-fade {
   -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-start, 0px), #000 calc(100% - var(--fade-end, 0px)), transparent 100%);
   mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-start, 0px), #000 calc(100% - var(--fade-end, 0px)), transparent 100%);
+}
+
+/* Cambio de contenido dentro de una pantalla (pestañas, selector de parcela): entra con un fundido corto de
+   opacity/transform, que corre en el compositor. Sustituye a AnimatePresence mode="wait" + layout de framer-motion,
+   que primero esperaba a que saliera lo anterior y medía el DOM en cada render. */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fade-in-up 0.18s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-up {
+    animation: none;
+  }
 }

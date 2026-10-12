@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useDeferredValue, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Check, ChevronRight, Minus, Pencil, Search, Trash2, X } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
@@ -159,8 +159,11 @@ function ParcelasHistorialContent() {
 
   const listRef = useRef(null);
 
+  // El campo responde al instante; la lista se filtra con prioridad baja.
+  const deferredQuery = useDeferredValue(query);
+
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     return parcels.filter((p) => {
       if (region !== "Todas" && p.region !== region) return false;
       if (!q) return true;
@@ -168,7 +171,7 @@ function ParcelasHistorialContent() {
         String(v ?? "").toLowerCase().includes(q)
       );
     });
-  }, [parcels, region, query]);
+  }, [parcels, region, deferredQuery]);
 
   const { pageItems, reset: resetPage, paginationProps } = usePagination(filtered, {
     pageSize: 25,

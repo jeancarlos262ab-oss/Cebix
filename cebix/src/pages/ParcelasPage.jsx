@@ -47,6 +47,9 @@ function ParcelasPageContent() {
     () => (risk === "all" ? regionFiltered : regionFiltered.filter((p) => p.riskColor === risk)),
     [risk, regionFiltered]
   );
+  // Misma referencia mientras no cambie el filtro: ParcelMap (memo) no vuelve a sincronizar sus capas
+  // al abrir un modal o seleccionar una fila.
+  const mappable = useMemo(() => filtered.filter(hasCoords), [filtered]);
 
   // Solo se pintan las filas de la página actual (el mapa y el resumen sí
   // siguen usando la lista completa filtrada).
@@ -273,7 +276,7 @@ function ParcelasPageContent() {
                 así que mide exactamente lo mismo que "Filtrar por región". */}
             <div className="absolute inset-0">
               <ParcelMap
-                parcels={filtered.filter(hasCoords)}
+                parcels={mappable}
                 selectedId={selectedId}
                 onSelect={setSelectedId}
                 height="100%"
@@ -314,7 +317,7 @@ function ParcelasPageContent() {
                       <ParcelRow
                         key={parcel.id}
                         parcel={parcel}
-                        onEdit={() => setModal(parcel)}
+                        onEdit={setModal}
                       />
                     ))}
                   </tbody>

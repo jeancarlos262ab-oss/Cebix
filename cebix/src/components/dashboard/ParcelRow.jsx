@@ -65,7 +65,7 @@ function ParcelRow({ parcel, onEdit }) {
         </div>
         <div className="mt-1.5 h-1 w-24 overflow-hidden bg-gray-100 dark:bg-gray-800">
           <div
-            className="h-full transition-all"
+            className="h-full transition-[width]"
             style={{ width: `${scorePct}%`, backgroundColor: RISK_HEX[parcel.riskColor] }}
           />
         </div>

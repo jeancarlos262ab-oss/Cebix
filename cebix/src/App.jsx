@@ -1,4 +1,4 @@
-import { lazy, Suspense, useContext, useEffect, useLayoutEffect, useRef } from "react";
+import { lazy, memo, Suspense, useContext, useEffect, useLayoutEffect, useRef } from "react";
 import {
   Navigate,
   Route,
@@ -124,7 +124,7 @@ function pageKey(pathname) {
   return null;
 }
 
-function KeepAliveOutlet() {
+const KeepAliveOutlet = memo(function KeepAliveOutlet() {
   const location = useLocation();
   const outlet = useOutlet();
   const navigationType = useContext(LocationContext).navigationType;
@@ -175,7 +175,7 @@ function KeepAliveOutlet() {
       {!key && outlet}
     </>
   );
-}
+});
 
 // La pantalla activa usa `display: contents` (el wrapper no existe visualmente,
 // el layout es idéntico al de antes). Las ocultas NO usan display:none: eso les
@@ -195,7 +195,8 @@ const HIDDEN_STYLE = {
   contentVisibility: "hidden",
 };
 
-function PageSlot({ active, entry }) {
+// memo: las pantallas ocultas conservan el mismo `entry`, así que no se tocan cuando cambia otra cosa del layout.
+const PageSlot = memo(function PageSlot({ active, entry }) {
   const frozen = useRef(null);
   if (active || !frozen.current) {
     frozen.current = { location: entry.location, navigationType: entry.navigationType };
@@ -211,7 +212,7 @@ function PageSlot({ active, entry }) {
       </Suspense>
     </div>
   );
-}
+});
 
 function AuthenticatedLayout() {
   usePrefetchPages();

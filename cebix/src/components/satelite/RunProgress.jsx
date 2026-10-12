@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
 import { SAT_FEATURES, WINDOWS } from "../../data/satelite";
+import { STEP_MS } from "../../services/sateliteApi";
 import { SourceChip } from "./SourceChip";
 
 /**
@@ -25,8 +27,21 @@ function Status({ state }) {
   return <span className="text-right text-xs text-gray-400 dark:text-gray-600">Pendiente</span>;
 }
 
-export default function RunProgress({ current, elapsedSec, year }) {
+export default function RunProgress({ predicting: responded = false, year }) {
   const total = SAT_FEATURES.length;
+  // Los temporizadores viven aquí: solo este panel se repinta mientras corre el cálculo.
+  const [step, setStep] = useState(0);
+  const [elapsedSec, setElapsedSec] = useState(0);
+  useEffect(() => {
+    const startedAt = Date.now();
+    const tick = setInterval(() => setElapsedSec(Math.floor((Date.now() - startedAt) / 1000)), 500);
+    const steps = setInterval(() => setStep((i) => Math.min(i + 1, total - 1)), STEP_MS);
+    return () => {
+      clearInterval(tick);
+      clearInterval(steps);
+    };
+  }, [total]);
+  const current = responded ? total : step; // al llegar la respuesta pasa a «Predicción del modelo»
   const predicting = current >= total;
   const pct = Math.min(100, Math.round((Math.min(current, total) / total) * 100));
   const stateOf = (i) => (i < current ? "done" : i === current ? "running" : "pending");
@@ -54,7 +69,7 @@ export default function RunProgress({ current, elapsedSec, year }) {
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <div className="h-full bg-accent-500 transition-all duration-500" style={{ width: `${pct}%` }} />
+        <div className="h-full bg-accent-500 transition-[width] duration-500" style={{ width: `${pct}%` }} />
       </div>
 
       <div className={`${ROW} hidden border-b border-gray-100 py-2 text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:border-gray-800/70 dark:text-gray-500 sm:grid`}>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "../services/toast";
 import {
@@ -22,9 +22,9 @@ import ParcelResult from "../components/satelite/ParcelResult";
 import ValidationTable from "../components/satelite/ValidationTable";
 import ValidationRunner from "../components/satelite/ValidationRunner";
 import { classifyRisk, scoreFromInputs } from "../context/ParcelsContext";
-import { STEP_MS, predictFromGeometry } from "../services/sateliteApi";
+import { predictFromGeometry } from "../services/sateliteApi";
 import { parseGeometryFiles } from "../services/geoApi";
-import { ESTADOS, MAX_AREA_HA, SAT_FEATURES, SAT_QUESTIONS, TRAINED_YEAR, WARN_AREA_HA, YEARS } from "../data/satelite";
+import { ESTADOS, MAX_AREA_HA, SAT_QUESTIONS, TRAINED_YEAR, WARN_AREA_HA, YEARS } from "../data/satelite";
 import {
   areaHa,
   centroid,
@@ -184,13 +184,13 @@ function NuevaParcelaTab() {
 
   // ── Ejecución ────────────────────────────────────────────────────────────
   const [phase, setPhase] = useState("idle"); // idle | running | done | error
-  const [stepIdx, setStepIdx] = useState(0);
-  const [elapsed, setElapsed] = useState(0);
+  // El avance por variable y el cronómetro viven dentro de <RunProgress>: así los temporizadores solo
+  // vuelven a pintar ese panel y no toda la pantalla (mapa y formulario incluidos).
+  const [predicting, setPredicting] = useState(false); // ya llegó la respuesta: "Predicción del modelo"
   const [result, setResult] = useState(null);
   const [ran, setRan] = useState(null);
   const [error, setError] = useState(null);
   const abortRef = useRef(null);
-  const timersRef = useRef([]);
   const resultsRef = useRef(null);
   const running = phase === "running";
 
@@ -209,17 +209,7 @@ function NuevaParcelaTab() {
   // El estado se propone solo según dónde cae el polígono, hasta que el usuario lo cambie a mano.
   const estado = estadoManual ?? info?.detected ?? "Puebla";
 
-  const clearTimers = () => {
-    timersRef.current.forEach((t) => clearInterval(t) || clearTimeout(t));
-    timersRef.current = [];
-  };
-  useEffect(
-    () => () => {
-      abortRef.current?.abort();
-      clearTimers();
-    },
-    []
-  );
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   const overLimit = Boolean(info && info.ha > MAX_AREA_HA);
   const warnings = [];
@@ -241,30 +231,32 @@ function NuevaParcelaTab() {
   const canRun = Boolean(info && !info.crosses && !overLimit && name.trim() && estado && !running);
 
   // ── Acciones de dibujo ───────────────────────────────────────────────────
-  const resetResults = () => {
+  // Handlers estables: GeometryMap está memoizado y no debe repintarse al escribir el nombre de la parcela.
+  const resetResults = useCallback(() => {
     setPhase("idle");
     setResult(null);
     setRan(null);
     setError(null);
-  };
-  const startDrawing = () => {
+  }, []);
+  const startDrawing = useCallback(() => {
     setPoints([]);
     setClosed(false);
     setDrawing(true);
     resetResults();
-  };
-  const finishDrawing = () => {
-    if (points.length < 3) return;
+  }, [resetResults]);
+  const pointCount = points.length;
+  const finishDrawing = useCallback(() => {
+    if (pointCount < 3) return;
     setDrawing(false);
     setClosed(true);
-  };
-  const clearAll = () => {
+  }, [pointCount]);
+  const clearAll = useCallback(() => {
     setPoints([]);
     setClosed(false);
     setDrawing(false);
     resetResults();
-  };
-  const undo = () => setPoints((p) => p.slice(0, -1));
+  }, [resetResults]);
+  const undo = useCallback(() => setPoints((p) => p.slice(0, -1)), []);
 
   function applyImported(pts, extra = 0) {
     setPoints(pts);
@@ -340,28 +332,20 @@ function NuevaParcelaTab() {
     const controller = new AbortController();
     abortRef.current = controller;
     const snapshot = { name: name.trim(), estado, anio, ha: info.ha, center: info.center, signature };
-    const total = SAT_FEATURES.length;
 
-    clearTimers();
     setPhase("running");
+    setPredicting(false);
     setResult(null);
     setError(null);
-    setStepIdx(0);
-    setElapsed(0);
     requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
 
-    // La petición es una sola; el avance por variable es una estimación de tiempo.
-    const startedAt = Date.now();
-    timersRef.current.push(setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 500));
-    timersRef.current.push(setInterval(() => setStepIdx((i) => Math.min(i + 1, total - 1)), STEP_MS));
-
+    // La petición es una sola; el avance por variable es una estimación de tiempo (la lleva <RunProgress>).
     try {
       const data = await predictFromGeometry(
         { ID_POLIGONO: snapshot.name, Estado: estado, geometry: toGeoJSONPolygon(points), anio },
         { signal: controller.signal }
       );
-      clearTimers();
-      setStepIdx(total); // "Predicción del modelo"
+      setPredicting(true); // "Predicción del modelo"
       await new Promise((r) => setTimeout(r, 450));
       if (controller.signal.aborted) return;
       setResult(data);
@@ -369,7 +353,6 @@ function NuevaParcelaTab() {
       setPhase("done");
       requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     } catch (err) {
-      clearTimers();
       if (err.name === "AbortError") return;
       const message = err.message || "Error desconocido (la petición falló sin mensaje).";
       setError({ message, status: err.status, url: err.url, raw: err.raw });
@@ -383,7 +366,6 @@ function NuevaParcelaTab() {
 
   function cancel() {
     abortRef.current?.abort();
-    clearTimers();
     setPhase("idle");
     toast("Cálculo cancelado.");
   }
@@ -549,7 +531,7 @@ function NuevaParcelaTab() {
       <div ref={resultsRef} className="scroll-mt-6 space-y-12">
         {phase === "idle" && !result && <Facts />}
 
-        {running && <RunProgress current={stepIdx} elapsedSec={elapsed} year={anio} />}
+        {running && <RunProgress predicting={predicting} year={anio} />}
 
         {phase === "error" && (
           <div className="space-y-4 border-l-2 border-red-500 bg-gray-50 py-4 pl-5 pr-5 dark:bg-gray-900/60">

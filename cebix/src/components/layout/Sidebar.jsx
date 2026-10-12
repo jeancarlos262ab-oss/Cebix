@@ -1,5 +1,5 @@
 import Avatar from "../ui/Avatar";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { getPageRegistry } from "../../utils/pageRegistry";
 import { ChevronRight, LogOut, Settings, X, Menu, PanelLeft } from "lucide-react";
@@ -101,7 +101,7 @@ function SignOutConfirm({ onCancel, onConfirm, loading }) {
   );
 }
 
-export default function Sidebar({ floating = false }) {
+function Sidebar({ floating = false }) {
   const { t } = usePreferences();
   // floating: en escritorio el sidebar sale del flujo y flota sobre el contenido
   // (lo usa el mapa satelital, que ocupa toda la pantalla por detrás).
@@ -269,3 +269,5 @@ export default function Sidebar({ floating = false }) {
     </>
   );
 }
+
+export default memo(Sidebar);

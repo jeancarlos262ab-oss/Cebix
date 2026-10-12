@@ -13,6 +13,7 @@ import { areaHa, estadoBounds } from "../../utils/polygon";
 import { parcelGridLines } from "../../utils/parcelGrid";
 import { createStarsLayer } from "./globeStarsGL";
 import { createTraceOverlay } from "./glTraceOverlay";
+import { createLinesOverlay } from "./glVectorOverlay";
 import {
   IMAGERY_CREDIT,
   IMAGERY_URL,
@@ -56,7 +57,6 @@ const STYLE = {
   version: 8,
   projection: { type: "globe" },
   sources: {
-    estados: { type: "geojson", data: estadosBoundaries },
     imagery: {
       type: "raster",
       tiles: [IMAGERY_URL],
@@ -80,20 +80,6 @@ const STYLE = {
       type: "raster",
       source: "imagery",
       paint: { "raster-fade-duration": 0 },
-    },
-    // Los tres estados, con el mismo trazo que el mapa plano (STATE_STYLE, compartido con Leaflet). En MapLibre
-    // el guion se mide en múltiplos del ancho de línea, de ahí la división entre el ancho.
-    {
-      id: "estados-line",
-      type: "line",
-      source: "estados",
-      layout: { "line-join": "round" },
-      paint: {
-        "line-color": STATE_STYLE.color,
-        "line-opacity": STATE_STYLE.opacity,
-        "line-width": STATE_STYLE.weight,
-        "line-dasharray": STATE_STYLE.dashArray.map((d) => d / STATE_STYLE.weight),
-      },
     },
   ],
 };
@@ -169,6 +155,7 @@ export default function GlobeMapGL({
   const mapRef = useRef(null);
   const pinRef = useRef(null);
   const vertexMarkers = useRef([]);
+  const statesRef = useRef(null); // contornos de los estados (SVG, igual que la malla)
   const traceRef = useRef(null); // contorno y malla (SVG sobre el mapa, mismo diseño que Leaflet)
   const live = useRef({});
   const pageActive = usePageActive();
@@ -247,6 +234,15 @@ export default function GlobeMapGL({
       return undefined;
     }
     mapRef.current = map;
+    // Contorno y malla de la parcela, y contornos de los estados: todos como SVG reproyectado en cada cuadro
+    // (misma lógica), para que ninguno dependa del worker de MapLibre y siempre se dibujen igual que la malla.
+    // Los estados llevan el mismo trazo que el mapa plano (STATE_STYLE, compartido con Leaflet).
+    statesRef.current = createLinesOverlay(map, estadosBoundaries, {
+      color: STATE_STYLE.color,
+      width: STATE_STYLE.weight,
+      opacity: STATE_STYLE.opacity,
+      dashArray: STATE_STYLE.dashArray,
+    });
     traceRef.current = createTraceOverlay(map);
     let isReady = false;
     let stableTimer;
@@ -329,6 +325,8 @@ export default function GlobeMapGL({
       vertexMarkers.current = [];
       traceRef.current?.destroy();
       traceRef.current = null;
+      statesRef.current?.destroy();
+      statesRef.current = null;
       try {
         map.remove();
       } catch {

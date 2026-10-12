@@ -137,7 +137,11 @@ export default function ValidationRunner({ onRows }) {
       clearInterval(timerRef.current);
       const startedAt = Date.now();
       timerRef.current = setInterval(
-        () => setProgress((p) => ({ ...p, elapsed: Math.floor((Date.now() - startedAt) / 1000) })),
+        () =>
+          setProgress((p) => {
+            const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+            return p.elapsed === elapsed ? p : { ...p, elapsed }; // mismo valor → React no repinta
+          }),
         500
       );
       try {

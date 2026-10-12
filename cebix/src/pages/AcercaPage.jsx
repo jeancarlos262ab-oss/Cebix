@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, CalendarRange, ChevronRight, CloudRain, GraduationCap, ImageIcon, Landmark, MapPin, Network, Satellite, Sprout } from "lucide-react";
@@ -9,9 +9,9 @@ import { RISK_COLORS } from "../utils/riskColors";
 import { WINDOWS } from "../data/satelite";
 
 /* ───────────── Imágenes ─────────────
- * Cada recuadro busca src/assets/acerca/imagen-N.(jpg|jpeg|png|webp|avif). Si el archivo existe se muestra
+ * Cada recuadro busca src/assets/acerca/imagen-N.webp. Si el archivo existe se muestra
  * solo; si no, se ve un recuadro que dice qué foto poner. */
-const FILES = import.meta.glob("../assets/acerca/*.{jpg,jpeg,png,webp,avif}", { eager: true, import: "default" });
+const FILES = import.meta.glob("../assets/acerca/imagen-*.webp", { eager: true, import: "default" });
 /* Logo de FIRA sin fondo. Es azul marino, así que en tema oscuro se pasa a blanco para que se lea. */
 function FiraLogo({ className = "h-12" }) {
   return <img src={logoFira} alt="FIRA" decoding="async" className={`w-auto dark:brightness-0 dark:invert ${className}`} />;
@@ -31,7 +31,7 @@ const SLOTS = {
 
 /* Foto con carga suave: mientras llega se ve un fondo que pulsa, y al cargar aparece con un fundido corto.
  * `badge` es una etiqueta de vidrio sobre la foto; `zoom` la acerca un poco al pasar el cursor por su grupo. */
-function Photo({ src, alt, className, position, eager, badge, zoom }) {
+const Photo = memo(function Photo({ src, alt, className, position, eager, badge, zoom }) {
   const ref = useRef(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -51,24 +51,25 @@ function Photo({ src, alt, className, position, eager, badge, zoom }) {
         src={src}
         alt={alt}
         loading={eager ? "eager" : "lazy"}
+        fetchPriority={eager ? "high" : "auto"}
         decoding="async"
         onLoad={() => setLoaded(true)}
         onError={() => setLoaded(true)}
-        className={`absolute inset-0 size-full object-cover transition-[opacity,transform] duration-700 ease-out motion-reduce:transition-none ${
+        className={`absolute inset-0 size-full transform-gpu object-cover transition-[opacity,transform] duration-700 ease-out motion-reduce:transition-none ${
           loaded ? `scale-100 opacity-100 ${zoom ? "group-hover:scale-[1.04]" : ""}` : "scale-[1.02] opacity-0"
         }`}
         style={{ objectPosition: position }}
       />
       {badge && (
         <span
-          className={`absolute bottom-3 left-3 rounded-full bg-black/45 px-3 py-1 text-xs font-medium text-white backdrop-blur-md transition-opacity duration-700 ${loaded ? "opacity-100" : "opacity-0"}`}
+          className={`absolute bottom-3 left-3 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white transition-opacity duration-700 ${loaded ? "opacity-100" : "opacity-0"}`}
         >
           {badge}
         </span>
       )}
     </div>
   );
-}
+});
 
 function ImageSlot({ n, className = "", position = "center", eager = false, badge, zoom }) {
   const src = imageFor(n);
@@ -192,7 +193,7 @@ const QUICK = [
 
 /* ───────────── Columna derecha (tarjetas con contorno) ───────────── */
 
-function QuickInfo() {
+const QuickInfo = memo(function QuickInfo() {
   return (
     <Card title="Información rápida">
       <ul className={`divide-y ${DIVIDE}`}>
@@ -208,16 +209,20 @@ function QuickInfo() {
       </ul>
     </Card>
   );
-}
+});
 
 /* Conteos reales de las parcelas del usuario, con el mismo semáforo que el resto de la app. */
 function ParcelsGlance() {
   const { parcels } = useParcels();
-  const rows = [
-    { key: "green", label: "Elegibles", color: RISK_COLORS.green },
-    { key: "yellow", label: "Revisión manual", color: RISK_COLORS.yellow },
-    { key: "red", label: "Alto riesgo", color: RISK_COLORS.red },
-  ].map((r) => ({ ...r, n: parcels.filter((p) => p.riskColor === r.key).length }));
+  const rows = useMemo(() => {
+    const counts = { green: 0, yellow: 0, red: 0 };
+    for (const p of parcels) if (p.riskColor in counts) counts[p.riskColor] += 1;
+    return [
+      { key: "green", label: "Elegibles", color: RISK_COLORS.green },
+      { key: "yellow", label: "Revisión manual", color: RISK_COLORS.yellow },
+      { key: "red", label: "Alto riesgo", color: RISK_COLORS.red },
+    ].map((r) => ({ ...r, n: counts[r.key] }));
+  }, [parcels]);
 
   return (
     <Card
@@ -271,41 +276,58 @@ export default function AcercaPage() {
   const rootRef = useRef(null);
   const asideRef = useRef(null);
   const factsRef = useRef(null);
-  const [heroH, setHeroH] = useState(null);
-  const [heroW, setHeroW] = useState(null);
+  const heroRef = useRef(null);
 
+  /* La medición escribe alto/ancho directo en el DOM (sin useState): así la página no se vuelve a renderizar
+   * entera cada vez que cambia el tamaño, y las lecturas del layout se agrupan en un solo cuadro (rAF). */
   useLayoutEffect(() => {
     const root = rootRef.current;
     const aside = asideRef.current;
     const facts = factsRef.current;
-    if (!root || !aside) return undefined;
+    const hero = heroRef.current;
+    if (!root || !aside || !hero) return undefined;
+
+    const xl = window.matchMedia("(min-width: 1280px)");
+    const lg = window.matchMedia("(min-width: 1024px)");
+    let raf = 0;
+    let lastH = "";
+    let lastW = "";
 
     const measure = () => {
+      raf = 0;
       const rootRect = root.getBoundingClientRect();
+      let h = "";
+      let w = "";
 
       // Alto: termina antes de «Información rápida» (solo cuando está al costado, desde xl).
-      if (!window.matchMedia("(min-width: 1280px)").matches) setHeroH(null);
-      else {
+      if (xl.matches) {
         const top = aside.getBoundingClientRect().top - rootRect.top;
-        setHeroH(Math.round(Math.min(HERO_MAX, Math.max(HERO_MIN, top - HERO_GAP))));
+        h = `${Math.round(Math.min(HERO_MAX, Math.max(HERO_MIN, top - HERO_GAP)))}px`;
       }
 
-      // Ancho: la foto empieza justo a la mitad del contenedor Ciclo / Zona de estudio / Manejo (que queda por delante) y llega al borde de la página.
-      if (!facts || !window.matchMedia("(min-width: 1024px)").matches) setHeroW(null);
-      else {
+      // Ancho: la foto empieza justo a la mitad del contenedor Ciclo / Zona de estudio / Manejo y llega al borde de la página.
+      if (facts && lg.matches) {
         const f = facts.getBoundingClientRect();
         const left = f.left + f.width / 2 - rootRect.left;
-        setHeroW(Math.round(Math.max(HERO_MIN_W, rootRect.width - left)));
+        w = `${Math.round(Math.max(HERO_MIN_W, rootRect.width - left))}px`;
       }
+
+      if (h !== lastH) { hero.style.height = h; lastH = h; }
+      if (w !== lastW) { hero.style.width = w; lastW = w; }
     };
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(measure); };
 
     measure();
-    const ro = new ResizeObserver(measure);
+    const ro = new ResizeObserver(schedule);
     ro.observe(root);
-    window.addEventListener("resize", measure);
+    ro.observe(aside);
+    xl.addEventListener("change", schedule);
+    lg.addEventListener("change", schedule);
     return () => {
+      if (raf) cancelAnimationFrame(raf);
       ro.disconnect();
-      window.removeEventListener("resize", measure);
+      xl.removeEventListener("change", schedule);
+      lg.removeEventListener("change", schedule);
     };
   }, []);
 
@@ -313,9 +335,9 @@ export default function AcercaPage() {
     <div ref={rootRef} className="relative isolate overflow-x-clip">
       {/* Foto pegada a la esquina superior derecha, detrás del encabezado */}
       <div
-        aria-hidden="false"
-        className={`pointer-events-none absolute right-0 top-0 -z-10 w-full opacity-30 lg:opacity-100 ${heroW ? "" : "lg:w-[45%]"} ${heroH ? "" : "h-80"}`}
-        style={{ ...HERO_MASK, ...(heroH ? { height: heroH } : null), ...(heroW ? { width: heroW } : null) }}
+        ref={heroRef}
+        className="pointer-events-none absolute right-0 top-0 -z-10 h-80 w-full transform-gpu opacity-30 [contain:paint] lg:w-[45%] lg:opacity-100"
+        style={HERO_MASK}
       >
         <ImageSlot n={1} eager position="40% 35%" className="size-full" />
       </div>

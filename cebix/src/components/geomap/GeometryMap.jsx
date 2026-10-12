@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, memo, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Pane, Polygon, Polyline, Marker, GeoJSON, useMap, useMapEvents } from "react-leaflet";
 import { Check, Eraser, Globe, MousePointer2, Pencil, Undo2 } from "lucide-react";
@@ -358,7 +358,7 @@ function FlatGeometryMap({
  * y entra al mapa plano para dibujar. Si ya hay una parcela o se importa un GeoJSON,
  * va directo al mapa plano.
  */
-export default function GeometryMap(props) {
+function GeometryMap(props) {
   const { points, fitKey, onStartDrawing } = props;
   const [view, setView] = useState(points.length ? "flat" : "globe");
   // Cada vista se crea UNA sola vez (la primera que se necesita) y se reutiliza: no se desmonta al cambiar.
@@ -478,3 +478,5 @@ export default function GeometryMap(props) {
     </div>
   );
 }
+
+export default memo(GeometryMap);

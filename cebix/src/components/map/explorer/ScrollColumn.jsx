@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 const ARROW =
-  "pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white/80 backdrop-blur-xl transition-colors hover:bg-black/90 hover:text-white";
+  "pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-black/75 text-white/80 transition-colors hover:bg-black/90 hover:text-white";
 
 /**
  * Columna con scroll vertical y flechas arriba/abajo para ir mostrando el contenido.
@@ -16,7 +16,10 @@ export default function ScrollColumn({ className = "", children }) {
   const update = useCallback(() => {
     const el = ref.current;
     if (!el) return;
-    setEdges({ up: el.scrollTop > 4, down: el.scrollTop + el.clientHeight < el.scrollHeight - 4 });
+    const up = el.scrollTop > 4;
+    const down = el.scrollTop + el.clientHeight < el.scrollHeight - 4;
+    // Mismo valor → mismo objeto → React no repinta (esto se ejecuta en CADA evento de scroll).
+    setEdges((prev) => (prev.up === up && prev.down === down ? prev : { up, down }));
   }, []);
 
   useEffect(() => {

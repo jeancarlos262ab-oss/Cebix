@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, CornerDownLeft } from "lucide-react";
 import { useParcels } from "../../context/ParcelsContext";
@@ -23,15 +23,18 @@ export default function GlobalSearch() {
   const inputRef = useRef(null);
   const containerRef = useRef(null);
 
+  // El campo responde al instante; el filtrado corre con prioridad baja y no traba el tecleo.
+  const deferredQuery = useDeferredValue(query);
+
   const results = useMemo(() => {
-    const q = normalize(query.trim());
+    const q = normalize(deferredQuery.trim());
     if (!q) return [];
     return parcels
       .filter((p) =>
         [p.name, p.municipio, p.region, p.polygonId].some((field) => normalize(String(field)).includes(q))
       )
       .slice(0, 8);
-  }, [query, parcels]);
+  }, [deferredQuery, parcels]);
 
   useEffect(() => {
     setActiveIndex(0);

@@ -18,13 +18,34 @@ export function setIntlPrefs(prefs) {
 
 export const getLocale = () => current.idioma;
 
+/* Construir un Intl.DateTimeFormat / Intl.NumberFormat es MUY caro (sobre todo con timeZone u opciones), y estas
+ * funciones se llaman por cada fila de cada tabla en cada render. Se crean una sola vez por combinación
+ * idioma + opciones y se reutilizan. */
+const formatters = new Map();
+function cached(Ctor, locale, options) {
+  const key = `${Ctor.name}|${locale}|${options ? JSON.stringify(options) : ""}`;
+  let f = formatters.get(key);
+  if (!f) {
+    f = new Ctor(locale, options);
+    formatters.set(key, f);
+  }
+  return f;
+}
+const dateFormat = (locale, options) => cached(Intl.DateTimeFormat, locale, options);
+const numberFormat = (locale, options) => cached(Intl.NumberFormat, locale, options);
+
+const validZones = new Map();
 function safeTimeZone(tz) {
+  if (validZones.has(tz)) return validZones.get(tz);
+  let ok;
   try {
     new Intl.DateTimeFormat("en", { timeZone: tz });
-    return tz;
+    ok = tz;
   } catch {
-    return undefined; // zona inválida: usa la del dispositivo
+    ok = undefined; // zona inválida: usa la del dispositivo
   }
+  validZones.set(tz, ok);
+  return ok;
 }
 
 function toDate(value) {
@@ -37,7 +58,7 @@ function toDate(value) {
 export function formatDate(value) {
   const d = toDate(value);
   if (!d) return "—";
-  const parts = new Intl.DateTimeFormat("en-US", {
+  const parts = dateFormat("en-US", {
     timeZone: safeTimeZone(current.zonaHoraria),
     day: "2-digit",
     month: "2-digit",
@@ -55,7 +76,7 @@ export function formatTime(value) {
   const d = toDate(value);
   if (!d) return "—";
   const english = current.idioma.startsWith("en");
-  return new Intl.DateTimeFormat(current.idioma, {
+  return dateFormat(current.idioma, {
     timeZone: safeTimeZone(current.zonaHoraria),
     hour: "2-digit",
     minute: "2-digit",
@@ -73,7 +94,7 @@ export function formatDateTime(value) {
 export function formatMonthYear(value) {
   const d = toDate(value);
   if (!d) return "—";
-  return new Intl.DateTimeFormat(current.idioma, {
+  return dateFormat(current.idioma, {
     timeZone: safeTimeZone(current.zonaHoraria),
     year: "numeric",
     month: "long",
@@ -84,13 +105,13 @@ export function formatMonthYear(value) {
 export function formatNumber(value, options) {
   const n = Number(value);
   if (!Number.isFinite(n)) return "—";
-  return n.toLocaleString(current.idioma, options);
+  return numberFormat(current.idioma, options).format(n);
 }
 
 /** "Ciudad de México (GMT-6)" con el desfase real de la zona en este momento. */
 export function timeZoneOffsetLabel(tz, locale = current.idioma) {
   try {
-    const part = new Intl.DateTimeFormat(locale, { timeZone: tz, timeZoneName: "shortOffset" })
+    const part = dateFormat(locale, { timeZone: tz, timeZoneName: "shortOffset" })
       .formatToParts(new Date())
       .find((p) => p.type === "timeZoneName");
     return part?.value ?? "";

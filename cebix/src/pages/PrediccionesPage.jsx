@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { toast } from "../services/toast";
-import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Send, CheckCircle2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import InfoButton from "../components/ui/InfoButton";
@@ -190,15 +189,7 @@ function PrediccionesPageContent() {
         </aside>
 
         {/* Contenido principal: métricas, gráficas y mapa */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={parcel.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.28, ease: "easeInOut" }}
-            className="min-w-0 space-y-10"
-          >
+        <div key={parcel.id} className="fade-in-up min-w-0 space-y-10">
             {/* Encabezado */}
             <header className="border-b border-gray-200 pb-4 dark:border-gray-800">
               <Label>Predicción</Label>
@@ -297,8 +288,7 @@ function PrediccionesPageContent() {
                 </table>
               </div>
             </section>
-          </motion.div>
-        </AnimatePresence>
+        </div>
       </div>
     </>
   );
