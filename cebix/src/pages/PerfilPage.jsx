@@ -1,3 +1,4 @@
+import { userMessage } from "../utils/userMessages";
 import { useEffect, useState } from "react";
 import { toast } from "../services/toast";
 import { User, Pencil, KeyRound, ShieldCheck, CalendarDays, Mail } from "lucide-react";
@@ -177,7 +178,7 @@ export default function PerfilPage() {
           onSave={async (fields) => {
             const { error } = await updateAccount(fields);
             if (error) {
-              toast.error(error.message || "No se pudo actualizar el perfil.");
+              toast.error(userMessage(error, "No se pudo actualizar el perfil. Inténtalo de nuevo."));
               return false;
             }
             toast.success("Perfil actualizado.");

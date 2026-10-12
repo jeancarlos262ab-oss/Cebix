@@ -469,6 +469,16 @@ function ParcelMapGL({
     return () => ro.disconnect();
   }, []);
 
+  // El lienzo sigue al contenedor (pantalla completa, panel que cambia de tamaño...): sin esto se queda con
+  // el tamaño que tenía antes.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !sized) return undefined;
+    const ro = new ResizeObserver(() => mapRef.current?.getMap()?.resize());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [sized]);
+
   // Si el estilo no termina de cargar a tiempo, se recrea.
   useEffect(() => {
     if (!sized) return undefined;
@@ -770,7 +780,7 @@ function ParcelMapGL({
     <div
       ref={containerRef}
       style={{ height: typeof height === "number" ? `${height}px` : height }}
-      className={`relative isolate w-full overflow-hidden bg-black ${rounded ? "rounded-2xl" : ""}`}
+      className={`map-fs relative isolate w-full overflow-hidden bg-black ${rounded ? "rounded-2xl" : ""}`}
     >
       {sized && (
       <Map

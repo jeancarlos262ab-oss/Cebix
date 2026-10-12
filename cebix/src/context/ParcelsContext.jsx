@@ -296,7 +296,7 @@ export function ParcelsProvider({ children }) {
 
   const notifySaveError = useCallback((what, err) => {
     console.error(`No se pudo guardar ${what} en Supabase`, err);
-    toast.error(`No se pudo guardar ${what} en la nube; solo quedó en este navegador. ${err?.message ?? ""}`.trim(), {
+    toast.error(`No pudimos guardar ${what}. Por ahora solo se conserva en este navegador; inténtalo de nuevo más tarde.`, {
       id: `save-${what}`,
     });
   }, []);
@@ -338,7 +338,7 @@ export function ParcelsProvider({ children }) {
         }
       } else if (remoteA.error) {
         console.error("No se pudo leer la corrida del modelo de Supabase", remoteA.error);
-        toast.error("No se pudo leer tu corrida guardada en la nube. ¿Ya corriste supabase/datos_por_usuario.sql?", {
+        toast.error("No pudimos cargar tu última corrida guardada. Inténtalo de nuevo más tarde.", {
           id: "load-analysis",
           duration: 10000,
         });

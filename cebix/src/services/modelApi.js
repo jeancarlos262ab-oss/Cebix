@@ -3,6 +3,8 @@
  * modelo en el dashboard: predicciones, métricas, importancia SHAP y archivo de ejemplo.
  * No hay datos del modelo escritos en el código del frontend.
  */
+import { MSG_CONNECTION, MSG_GENERIC, MSG_SERVICE, isTechnical } from "../utils/userMessages";
+
 export const API_URL = (import.meta.env.VITE_MODEL_API_URL || "http://localhost:8000").replace(/\/$/, "");
 export const EXAMPLE_CSV_URL = `${API_URL}/example-csv`;
 
@@ -45,7 +47,13 @@ export async function errorFromResponse(res) {
     // Cuerpo que no es JSON (p. ej. la página de error de un proxy): no se usa como mensaje.
     detail = raw && !raw.startsWith("<") ? raw.slice(0, 500) : "";
   }
-  const message = detail || `El backend respondió ${res.status}${res.statusText ? ` ${res.statusText}` : ""}`;
+  // El detalle crudo (código HTTP, URL, cuerpo) queda en el error para la consola; el mensaje es para la persona.
+  let message;
+  if (res.status >= 500) message = MSG_SERVICE;
+  else if (res.status === 413) message = "El archivo es demasiado grande.";
+  else if (detail && !isTechnical(detail)) message = detail;
+  else message = MSG_GENERIC;
+  console.error(`[api] ${res.status} ${res.url}`, raw.slice(0, 500));
   return new ApiError(message, { status: res.status, url: res.url, raw: raw.slice(0, 4000) });
 }
 
@@ -68,7 +76,7 @@ export async function fetchModelInfo() {
 /** GET /example-csv — el archivo de ejemplo del backend, como File listo para enviar. */
 export async function fetchExampleFile() {
   const res = await fetch(EXAMPLE_CSV_URL);
-  if (!res.ok) throw new Error("No se pudo cargar el archivo de ejemplo desde el backend.");
+  if (!res.ok) throw new Error("No se pudo cargar el archivo de ejemplo. Inténtalo de nuevo.");
   const blob = await res.blob();
   return new File([blob], "ejemplo_features_predict.csv", { type: "text/csv" });
 }
@@ -76,7 +84,8 @@ export async function fetchExampleFile() {
 export function friendlyError(err) {
   // Los navegadores usan un TypeError genérico cuando la petición ni siquiera llega a respuesta.
   if (err instanceof TypeError) {
-    return `No se pudo conectar con el backend (${API_URL}). El navegador no recibió respuesta: el servidor está apagado o inalcanzable, la URL es incorrecta o bloquea el origen (CORS). Error del navegador: ${err.message}`;
+    console.error("[api] sin respuesta del servidor", API_URL, err);
+    return MSG_CONNECTION;
   }
-  return err.message;
+  return err.message || MSG_GENERIC;
 }

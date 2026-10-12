@@ -358,6 +358,15 @@ function ParcelMapLite({
     [parcels, styleFor]
   );
 
+  // El mapa sigue al contenedor (pantalla completa, cambios de tamaño).
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return undefined;
+    const ro = new ResizeObserver(() => mapRef.current?.invalidateSize());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   useEffect(() => {
     if (selectedId === undefined || selectedId === null) return;
     const parcel = parcels.find((p) => p.id === selectedId);
@@ -384,7 +393,7 @@ function ParcelMapLite({
     <div
       ref={containerRef}
       style={{ height: typeof height === "number" ? `${height}px` : height }}
-      className={`relative isolate w-full overflow-hidden bg-black ${rounded ? "rounded-2xl" : ""}`}
+      className={`map-fs relative isolate w-full overflow-hidden bg-black ${rounded ? "rounded-2xl" : ""}`}
     >
       <MapContainer
         ref={mapRef}

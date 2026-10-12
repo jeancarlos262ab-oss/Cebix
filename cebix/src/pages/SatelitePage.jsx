@@ -1,3 +1,4 @@
+import { userMessage } from "../utils/userMessages";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "../services/toast";
@@ -275,7 +276,7 @@ function NuevaParcelaTab() {
       const res = await parseGeometryFiles(files);
       const poly = res.poligonos.find((p) => !p.error);
       if (!poly) {
-        toast.error(res.poligonos[0]?.error || "No encontré ningún polígono que se pueda calcular.", { id, duration: 10000 });
+        toast.error(userMessage(res.poligonos[0]?.error, "No encontré ningún polígono que se pueda calcular."), { id, duration: 10000 });
         return;
       }
       const ring = poly.geometry.coordinates[0].slice(0, -1).map(([lng, lat]) => [lat, lng]);
@@ -289,7 +290,7 @@ function NuevaParcelaTab() {
         { id },
       );
     } catch (err) {
-      toast.error(localError || err.message, { id, duration: 10000 });
+      toast.error(userMessage(localError || err, "No se pudo leer el archivo."), { id, duration: 10000 });
     }
   }
 
@@ -354,11 +355,11 @@ function NuevaParcelaTab() {
       requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     } catch (err) {
       if (err.name === "AbortError") return;
-      const message = err.message || "Error desconocido (la petición falló sin mensaje).";
-      setError({ message, status: err.status, url: err.url, raw: err.raw });
+      const message = userMessage(err, "No pudimos completar el cálculo.");
+      setError({ message }); // el detalle técnico (código, URL, cuerpo) queda solo en la consola
       setPhase("error");
       toast.error("No se pudieron calcular los índices", {
-        description: err.status ? `${message} (HTTP ${err.status})` : message,
+        description: message,
         duration: 10000,
       });
     }

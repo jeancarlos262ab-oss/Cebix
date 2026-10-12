@@ -1,3 +1,4 @@
+import { userMessage } from "../../utils/userMessages";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, UploadCloud } from "lucide-react";
 import { toast } from "../../services/toast";
@@ -109,7 +110,7 @@ export default function UploadDropzone({ onParsed }) {
       const controller = new AbortController();
       abortRef.current = controller;
       setBusy(true);
-      const id = toast.loading("Leyendo el archivo en el backend…");
+      const id = toast.loading("Leyendo el archivo…");
       const cancel = { label: "Cancelar", onClick: () => controller.abort() };
 
       try {
@@ -120,7 +121,7 @@ export default function UploadDropzone({ onParsed }) {
         if (valid.length === 0) {
           const first = rejected[0];
           toast.error(
-            `Ninguno de los ${plural(parsed.n_poligonos, "polígono", "polígonos")} se puede calcular. ${first.nombre}: ${first.error}`,
+            `Ninguno de los ${plural(parsed.n_poligonos, "polígono", "polígonos")} se puede calcular. ${first.nombre}: ${userMessage(first.error, "el contorno no es válido.")}`,
             { id, duration: 12000 }
           );
           return;
@@ -164,16 +165,16 @@ export default function UploadDropzone({ onParsed }) {
               cancelled = true;
               break;
             }
-            failures.push(`«${poly.nombre}»: ${err.message}`);
+            failures.push(`«${poly.nombre}»: ${userMessage(err)}`);
           }
         }
 
         const notes = [];
         if (cancelled) notes.push("Cancelaste el cálculo.");
-        if (rejected.length) notes.push(`${plural(rejected.length, "polígono omitido", "polígonos omitidos")} (${rejected[0].nombre}: ${rejected[0].error})`);
+        if (rejected.length) notes.push(`${plural(rejected.length, "polígono omitido", "polígonos omitidos")} (${rejected[0].nombre}: ${userMessage(rejected[0].error, "contorno no válido")})`);
         if (valid.length > batch.length && !cancelled) notes.push(`Elegiste calcular ${batch.length}; quedaron ${valid.length - batch.length} sin calcular.`);
         if (failures.length) notes.push(`No se pudo calcular ${failures[0]}${failures.length > 1 ? ` (y ${failures.length - 1} más)` : ""}`);
-        if (saveFailed) notes.push(`${plural(saveFailed, "parcela no se pudo guardar", "parcelas no se pudieron guardar")}${saveMessage ? `: ${saveMessage}` : ""}`);
+        if (saveFailed) notes.push(`${plural(saveFailed, "parcela no se pudo guardar", "parcelas no se pudieron guardar")}`);
         const summary = added > 0 ? `${plural(added, "parcela agregada", "parcelas agregadas")} desde ${files[0].name}.` : "No se agregó ninguna parcela.";
         const message = [summary, ...notes].join(" ");
 
@@ -182,7 +183,7 @@ export default function UploadDropzone({ onParsed }) {
         else toast.error(message, { id, duration: 14000 });
       } catch (err) {
         if (err.name === "AbortError") toast("Importación cancelada.", { id });
-        else toast.error(err.message || "No se pudo leer el archivo.", { id, duration: 12000 });
+        else toast.error(userMessage(err, "No se pudo leer el archivo."), { id, duration: 12000 });
       } finally {
         abortRef.current = null;
         setBusy(false);
@@ -235,7 +236,7 @@ export default function UploadDropzone({ onParsed }) {
         if (failed > 0) {
           toast.error(
             `${failed} parcela${failed === 1 ? "" : "s"} no se pudo guardar${failed === 1 ? "" : "n"}${
-              saved?.message ? `: ${saved.message}` : "."
+              "."
             }${added > 0 ? ` Se agregaron ${added}.` : ""}`
           );
         } else if (invalidCount === 0) {
@@ -248,7 +249,7 @@ export default function UploadDropzone({ onParsed }) {
           toast.error(`Ninguna fila es válida. Columnas requeridas: ${REQUIRED_FIELDS.join(", ")}.`);
         }
       } catch (err) {
-        toast.error(`No se pudo leer el archivo: ${err.message}`);
+        toast.error(userMessage(err, "No se pudo leer el archivo. Revisa que sea un CSV válido."));
       }
     },
     [onParsed, busy, processGeometry]

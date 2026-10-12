@@ -98,8 +98,9 @@ export async function deleteAvatar(userId) {
 /** Traduce los errores típicos de Supabase Storage a algo que se entienda. */
 export function avatarErrorMessage(err) {
   const msg = String(err?.message ?? err ?? "");
-  if (/bucket not found/i.test(msg)) return "Falta crear el bucket «avatars» en Supabase (corre supabase/avatars_storage.sql).";
+  if (/bucket not found/i.test(msg)) return "No pudimos guardar tu foto por el momento. Inténtalo más tarde.";
   if (/row-level security|not authorized|unauthorized|403/i.test(msg)) return "No tienes permiso para guardar la foto. Vuelve a iniciar sesión.";
   if (/too large|payload|413|size/i.test(msg)) return "La imagen es demasiado grande.";
-  return msg || "No se pudo guardar la foto.";
+  console.error("[avatar]", err);
+  return "No se pudo guardar la foto. Inténtalo de nuevo.";
 }

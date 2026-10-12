@@ -3,14 +3,13 @@
  * mapa (contorno, malla y relleno de "superficie excedida"). Se proyectan y recortan con el mapa, giran con
  * el globo y no necesitan un SVG aparte reproyectado en cada cuadro.
  *
- * Las capas de MapLibre no admiten el modo de mezcla "difference" de Leaflet; para que el trazo blanco se
- * lea sobre cualquier imagen, cada línea lleva debajo un trazo oscuro más ancho (como un borde).
+ * Mismo estilo que Leaflet (parcelStyle.js): trazo blanco (rojo si pasa la superficie máxima) con el grosor
+ * de contorno y de malla compartidos. Las capas de MapLibre no tienen el modo "difference" de Leaflet.
  */
 import { GRID_WEIGHT, OUTLINE_WEIGHT, OVER_LIMIT_COLOR, OVER_LIMIT_FILL_OPACITY, traceColor } from "./parcelStyle";
 
 const SRC = "parcel-trace";
-const LAYERS = ["parcel-fill", "parcel-grid-casing", "parcel-grid", "parcel-outline-casing", "parcel-outline"];
-const CASING = { "line-color": "#000", "line-opacity": 0.35, "line-blur": 0.5 };
+const LAYERS = ["parcel-fill", "parcel-grid", "parcel-outline"];
 const ROUND = { "line-join": "round", "line-cap": "round" };
 const EMPTY = { type: "FeatureCollection", features: [] };
 
@@ -54,9 +53,7 @@ export function createTraceLayers(map) {
       filter: kind("fill"),
       paint: { "fill-color": OVER_LIMIT_COLOR, "fill-opacity": OVER_LIMIT_FILL_OPACITY },
     });
-    map.addLayer({ id: "parcel-grid-casing", type: "line", source: SRC, filter: kind("grid"), layout: ROUND, paint: { ...CASING, "line-width": GRID_WEIGHT + 2 } });
     map.addLayer({ id: "parcel-grid", type: "line", source: SRC, filter: kind("grid"), layout: ROUND, paint: { "line-color": "#fff", "line-width": GRID_WEIGHT } });
-    map.addLayer({ id: "parcel-outline-casing", type: "line", source: SRC, filter: kind("outline"), layout: ROUND, paint: { ...CASING, "line-width": OUTLINE_WEIGHT + 2 } });
     map.addLayer({ id: "parcel-outline", type: "line", source: SRC, filter: kind("outline"), layout: ROUND, paint: { "line-color": "#fff", "line-width": OUTLINE_WEIGHT } });
     paint();
   }

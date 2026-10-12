@@ -1,3 +1,4 @@
+import { userMessage } from "../../utils/userMessages";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "../../services/toast";
 import { FileSpreadsheet, Loader2, MapPinned, Play, Square } from "lucide-react";
@@ -94,7 +95,7 @@ export default function ValidationRunner({ onRows }) {
       setCsvName(file.name);
       toast.success(`${map.size} parcelas con valores oficiales.`);
     } catch (err) {
-      toast.error(err.message, { duration: 8000 });
+      toast.error(userMessage(err, "No se pudo leer el archivo."), { duration: 8000 });
     } finally {
       setReading(false);
     }
@@ -108,14 +109,14 @@ export default function ValidationRunner({ onRows }) {
       const res = await parseGeometryFiles(files);
       const map = new Map(res.poligonos.filter((p) => !p.error).map((p) => [p.ID_POLIGONO, p]));
       if (!map.size) {
-        toast.error(res.poligonos[0]?.error || "No encontré polígonos que se puedan calcular.", { id, duration: 8000 });
+        toast.error(userMessage(res.poligonos[0]?.error, "No encontré polígonos que se puedan calcular."), { id, duration: 8000 });
         return;
       }
       setPolys(map);
       setGeoName(files.length === 1 ? files[0].name : `${files.length} archivos`);
       toast.success(`${map.size} contornos leídos.`, { id });
     } catch (err) {
-      toast.error(err.message, { id, duration: 8000 });
+      toast.error(userMessage(err, "No se pudo leer el archivo."), { id, duration: 8000 });
     } finally {
       setReading(false);
     }
@@ -152,7 +153,7 @@ export default function ValidationRunner({ onRows }) {
         onRows((prev) => [...prev.filter((r) => r.id !== id), { id, estado, official: values, live: data.features_calculadas }]);
       } catch (err) {
         if (err.name === "AbortError") break;
-        errors.push({ id, message: err.message || "Error desconocido." });
+        errors.push({ id, message: userMessage(err, "No se pudo calcular esta parcela.") });
       }
     }
 

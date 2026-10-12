@@ -1,3 +1,4 @@
+import { userMessage } from "../../utils/userMessages";
 import { useEffect, useRef, useState } from "react";
 import { Camera, Loader2, Trash2 } from "lucide-react";
 import { toast } from "../../services/toast";
@@ -59,7 +60,7 @@ export default function EditProfileModal({ account, onClose, onSave }) {
       setPhotoPreview(URL.createObjectURL(blob));
       setRemovePhoto(false);
     } catch (err) {
-      toast.error(err.message || "No se pudo procesar la imagen.");
+      toast.error(userMessage(err, "No se pudo procesar la imagen."));
     }
   }
 

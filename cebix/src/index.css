@@ -539,3 +539,10 @@ html.dark .app-corner-glow {
     animation: none;
   }
 }
+
+/* Mapas de parcelas en pantalla completa: ocupan todo el alto/ancho aunque tengan alto fijo en línea. */
+.map-fs:fullscreen {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+}

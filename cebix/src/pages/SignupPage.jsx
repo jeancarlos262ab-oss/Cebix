@@ -24,7 +24,7 @@ function getSignUpErrorMessage(error) {
     return "Escribe un correo electrónico válido.";
   }
   if (code === "network_error") {
-    return "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.";
+    return "No pudimos conectarnos. Revisa tu conexión e inténtalo de nuevo.";
   }
 
   return "No pudimos crear la cuenta. Revisa tus datos e inténtalo de nuevo.";
@@ -41,7 +41,7 @@ function getVerifyErrorMessage(error) {
     return "El código no es correcto. Revisa tu correo e inténtalo de nuevo.";
   }
   if (code === "network_error") {
-    return "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.";
+    return "No pudimos conectarnos. Revisa tu conexión e inténtalo de nuevo.";
   }
   // Si el código era correcto pero falló el inicio de sesión posterior
   // (signIn), el mensaje ya viene traducido por getAuthErrorMessage de

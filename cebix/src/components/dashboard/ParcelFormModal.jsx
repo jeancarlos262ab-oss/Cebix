@@ -1,3 +1,4 @@
+import { userMessage } from "../../utils/userMessages";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_PRIMARY, ModalField, modalInput } from "../ui/Modal";
@@ -98,13 +99,13 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
         area: `${form.area} ha`,
       });
       if (result?.error) {
-        setSubmitError(result.error.message || "No se pudo guardar la parcela.");
+        setSubmitError(userMessage(result.error, "No se pudo guardar la parcela. Inténtalo de nuevo."));
         setSaving(false);
         return;
       }
       onClose();
     } catch (err) {
-      setSubmitError(err?.message || "No se pudo guardar la parcela.");
+      setSubmitError(userMessage(err, "No se pudo guardar la parcela. Inténtalo de nuevo."));
       setSaving(false);
     }
   }

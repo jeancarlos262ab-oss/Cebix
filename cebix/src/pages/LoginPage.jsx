@@ -39,7 +39,7 @@ function getResetErrorMessage(error) {
     return "La contraseña debe tener al menos 6 caracteres.";
   }
   if (code === "network_error") {
-    return "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.";
+    return "No pudimos conectarnos. Revisa tu conexión e inténtalo de nuevo.";
   }
 
   return "No pudimos actualizar la contraseña. Intenta de nuevo.";
