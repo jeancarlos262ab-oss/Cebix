@@ -143,8 +143,8 @@ function Heading({ icon: Icon, eyebrow, title, large = false, children }) {
 /* Dato sobre fondo de acento: icono y texto en blanco. */
 function Fact({ icon: Icon, label, children }) {
   return (
-    <div className="flex items-center gap-3 px-5 py-4">
-      <span className="flex shrink-0 text-white"><Icon size={22} strokeWidth={1.6} /></span>
+    <div className="flex items-center gap-3 [text-shadow:0_1px_10px_rgba(0,0,0,0.6)]">
+      <span className="flex shrink-0 text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.6)]"><Icon size={22} strokeWidth={1.6} /></span>
       <div className="min-w-0">
         <p className="text-xs font-medium text-white/80">{label}</p>
         <p className="mt-0.5 font-display text-sm font-bold leading-tight text-white sm:whitespace-nowrap">{children}</p>
@@ -358,7 +358,7 @@ export default function AcercaPage() {
                 se siembra de temporal, sin riego: lo que llueve al inicio del ciclo marca gran parte de la cosecha.
               </Heading>
             </div>
-            <div ref={factsRef} className="mt-8 grid max-w-4xl overflow-hidden rounded-2xl bg-accent-600 sm:grid-cols-[1fr_1.5fr_1fr] sm:divide-x max-sm:divide-y divide-white/20">
+            <div ref={factsRef} className="mt-8 grid max-w-4xl gap-x-10 gap-y-4 sm:grid-cols-[auto_auto_auto] sm:justify-start">
               <Fact icon={CalendarRange} label="Ciclo">Abril a octubre</Fact>
               <Fact icon={MapPin} label="Zona de estudio">Hidalgo, Puebla y Tlaxcala</Fact>
               <Fact icon={CloudRain} label="Manejo">Temporal, sin riego</Fact>

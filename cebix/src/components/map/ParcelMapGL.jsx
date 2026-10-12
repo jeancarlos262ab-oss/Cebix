@@ -17,6 +17,7 @@ import { selectedShapeSvg } from "./selectedShape";
 import CustomMapControls from "./CustomMapControls";
 import { ExternalLink, Gauge, Leaf, Map as MapIcon, Milestone, Moon, Mountain, Satellite as SatelliteIcon } from "lucide-react";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
+import { boundaryGLPaint } from "./boundaryStyle";
 import { detectLowEndDevice } from "../../utils/mapDevice";
 import { useTheme } from "../../context/ThemeContext";
 import { getAccentHex } from "../../utils/accentColors";
@@ -762,12 +763,7 @@ function ParcelMapGL({
   const boundaryLineLayer = {
     id: "state-boundaries-line",
     type: "line",
-    paint: {
-      "line-color": accentHex,
-      "line-width": 2,
-      "line-opacity": 0.85,
-      "line-dasharray": [5, 4],
-    },
+    paint: boundaryGLPaint(accentHex),
   };
 
   return (

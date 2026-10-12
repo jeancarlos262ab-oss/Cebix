@@ -24,6 +24,7 @@ import { openInGoogleMaps } from "../../utils/googleMaps";
 import { getAccentHex } from "../../utils/accentColors";
 import { lazySingleton } from "../../utils/singleton";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
+import { boundaryLeafletStyle } from "./boundaryStyle";
 import RiskTrafficLight from "./RiskTrafficLight";
 import "leaflet/dist/leaflet.css";
 import { RISK_COLORS } from "../../utils/riskColors";
@@ -282,16 +283,7 @@ function ParcelMapLite({
 
   const { resolvedTheme, accent } = useTheme();
   const accentHex = getAccentHex(accent, resolvedTheme);
-  const boundaryStyle = useCallback(
-    () => ({
-      color: accentHex,
-      weight: 2,
-      opacity: 0.85,
-      dashArray: "10,8",
-      fillOpacity: 0,
-    }),
-    [accentHex]
-  );
+  const boundaryStyle = useCallback(() => boundaryLeafletStyle(accentHex), [accentHex]);
   // null = el basemap sigue el tema general de la app (claro/oscuro);
   // "satellite" | "terreno" = el usuario fijó uno manualmente en la barra.
   const [userBasemap, setUserBasemap] = useState(

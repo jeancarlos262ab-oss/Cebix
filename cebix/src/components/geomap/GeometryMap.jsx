@@ -18,7 +18,6 @@ import {
   OUTLINE_WEIGHT,
   OVER_LIMIT_COLOR,
   OVER_LIMIT_FILL_OPACITY,
-  STATE_STYLE,
   STUDY,
   STUDY_BOUNDS as START_BOUNDS,
   drawStatus,
@@ -28,6 +27,9 @@ import {
   vertexLook,
 } from "./parcelStyle";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
+import { boundaryLeafletStyle } from "../map/boundaryStyle";
+import { useTheme } from "../../context/ThemeContext";
+import { getAccentHex } from "../../utils/accentColors";
 import "leaflet/dist/leaflet.css";
 
 // Globo 3D, cargado solo cuando se necesita. Si el equipo acepta WebGL se usa MapLibre GL con
@@ -189,7 +191,9 @@ function FlatGeometryMap({
   const ready = points.length >= 3;
   // Malla en perspectiva que se adapta a la forma de la parcela ya cerrada.
   const gridLines = useMemo(() => (closed && ready ? parcelGridLines(points) : []), [closed, ready, points]);
-  const stateStyle = useMemo(() => ({ ...STATE_STYLE, dashArray: STATE_STYLE.dashArray.join(" "), fillOpacity: 0 }), []);
+  const { accent, resolvedTheme } = useTheme();
+  const accentHex = getAccentHex(accent, resolvedTheme);
+  const stateStyle = useMemo(() => boundaryLeafletStyle(accentHex), [accentHex]);
 
   // Pasada la superficie máxima, el contorno y la malla se pintan en rojo (sin el modo "difference", que
   // alteraría el color). El modo de mezcla del panel se cambia aquí, en el propio elemento del panel.
@@ -224,7 +228,7 @@ function FlatGeometryMap({
           updateWhenIdle={false}
           updateWhenZooming={false}
         />
-        <GeoJSON data={estadosBoundaries} style={() => stateStyle} interactive={false} />
+        <GeoJSON key={accentHex} data={estadosBoundaries} style={() => stateStyle} interactive={false} />
 
         {/* Dibujo de la parcela con contraste invertido: trazos blancos en modo "difference" invierten el color
             de la imagen que tienen debajo, así se leen sobre cualquier tono. El modo de mezcla va en el panel

@@ -17,8 +17,7 @@ export const GRID_WEIGHT = 1;
 export const traceBlend = (overLimit) => (overLimit ? "normal" : "difference");
 export const traceColor = (overLimit) => (overLimit ? OVER_LIMIT_COLOR : TRACE_COLOR);
 
-/** Contorno de los estados de estudio: blanco, 55 %, punteado 4 px / 5 px, sin relleno. */
-export const STATE_STYLE = { color: "#ffffff", weight: 1.2, opacity: 0.55, dashArray: [4, 5] };
+// El contorno de los estados vive en components/map/boundaryStyle.js (compartido con Mapa satelital).
 
 /** Imagen satelital base de ambos mapas. */
 export const IMAGERY_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";

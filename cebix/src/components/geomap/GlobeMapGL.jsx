@@ -11,11 +11,11 @@ import { getAccentHex } from "../../utils/accentColors";
 import { areaHa, estadoBounds } from "../../utils/polygon";
 import { parcelGridLines } from "../../utils/parcelGrid";
 import { createStarsLayer } from "./globeStarsGL";
-import { createTraceOverlay } from "./glTraceOverlay";
+import { createTraceLayers } from "./glTraceLayers";
+import { boundaryGLPaint } from "../map/boundaryStyle";
 import {
   IMAGERY_CREDIT,
   IMAGERY_URL,
-  STATE_STYLE,
   STUDY,
   STUDY_BOUNDS,
   drawStatus,
@@ -49,7 +49,8 @@ const toLngLatBounds = (b) => [
   [b[1][1], b[1][0]],
 ];
 
-const STYLE = {
+/** Estilo del mapa; el contorno de los estados usa el color de acento (components/map/boundaryStyle.js). */
+const buildStyle = (accentHex) => ({
   version: 8,
   projection: { type: "globe" },
   sources: {
@@ -78,22 +79,16 @@ const STYLE = {
       source: "imagery",
       paint: { "raster-fade-duration": 0 },
     },
-    // Los tres estados, con el mismo trazo que el mapa plano (STATE_STYLE, compartido con Leaflet). En MapLibre
-    // el guion se mide en múltiplos del ancho de línea, de ahí la división entre el ancho.
+    // Los tres estados, con el mismo trazo (y color de acento) que Mapa satelital y que el mapa plano de Leaflet.
     {
       id: "estados-line",
       type: "line",
       source: "estados",
       layout: { "line-join": "round" },
-      paint: {
-        "line-color": STATE_STYLE.color,
-        "line-opacity": STATE_STYLE.opacity,
-        "line-width": STATE_STYLE.weight,
-        "line-dasharray": STATE_STYLE.dashArray.map((d) => d / STATE_STYLE.weight),
-      },
+      paint: boundaryGLPaint(accentHex),
     },
   ],
-};
+});
 
 /** Pin de la zona de estudio (elemento DOM para el Marker). */
 function createPinElement(color) {
@@ -166,7 +161,7 @@ export default function GlobeMapGL({
   const mapRef = useRef(null);
   const pinRef = useRef(null);
   const vertexMarkers = useRef([]);
-  const traceRef = useRef(null); // contorno y malla (SVG sobre el mapa, mismo diseño que Leaflet)
+  const traceRef = useRef(null); // contorno y malla (capas nativas del mapa)
   const live = useRef({});
   const pageActive = usePageActive();
   live.current = { points, drawing, locked, overLimit, maxAreaHa, onChange, onFinish, onFail, pageActive };
@@ -227,7 +222,7 @@ export default function GlobeMapGL({
     try {
       map = new maplibregl.Map({
         container: mapEl.current,
-        style: STYLE,
+        style: buildStyle(colorRef.current),
         center: [STUDY.lon, STUDY.lat],
         zoom: REST_ZOOM,
         minZoom: MIN_ZOOM,
@@ -244,7 +239,7 @@ export default function GlobeMapGL({
       return undefined;
     }
     mapRef.current = map;
-    traceRef.current = createTraceOverlay(map);
+    traceRef.current = createTraceLayers(map);
     let isReady = false;
     let stableTimer;
     // Si el estilo nunca termina de cargar (carrera con el contexto WebGL, red lenta al arrancar...), se recrea.
@@ -380,10 +375,14 @@ export default function GlobeMapGL({
   // El color de acento sigue al tema.
   useEffect(() => {
     if (pinRef.current) paintPin(pinRef.current, color);
+    const m = mapRef.current;
+    if (ready && m?.getLayer("estados-line")) {
+      for (const [k, v] of Object.entries(boundaryGLPaint(color))) m.setPaintProperty("estados-line", k, v);
+    }
   }, [color, ready, mapVer]);
 
   /* ───────────── dibujo de la parcela ───────────── */
-  // Contorno y malla: SVG con el diseño de Leaflet (glTraceOverlay.js + parcelStyle.js).
+  // Contorno y malla: capas nativas de MapLibre (glTraceLayers.js + parcelStyle.js).
   const grid = useMemo(() => (closed && ok ? parcelGridLines(points) : []), [closed, ok, points]);
 
   useEffect(() => {

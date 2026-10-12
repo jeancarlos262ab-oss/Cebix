@@ -1,6 +1,6 @@
 /**
  * Capas vectoriales de MapLibre dibujadas como SVG encima del mapa, con el MISMO método que la malla de la
- * parcela (glTraceOverlay.js): cada coordenada se reproyecta con map.project() al cuadro "render".
+ * parcela (antes SVG; hoy nativa en glTraceLayers.js): cada coordenada se reproyecta con map.project() al cuadro "render".
  *
  * Las capas GeoJSON nativas (type "line" / "circle") pasan por el worker de MapLibre; si el worker tarda,
  * llega tarde tras recrear el mapa, o el contenedor nació con 0×0 px, a veces nunca se pintan (mientras la
