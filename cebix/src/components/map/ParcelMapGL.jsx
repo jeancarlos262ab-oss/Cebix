@@ -11,6 +11,7 @@
 import { LEFT_FADE_LENGTH, softFadeGradient } from "./edgeFade";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Map, { Layer, Marker, Popup, Source } from "react-map-gl/maplibre";
+import maplibregl from "../../utils/maplibreSetup";
 import LocationPin, { PIN_TIP_OFFSET } from "./LocationPin";
 import { selectedShapeSvg } from "./selectedShape";
 import CustomMapControls from "./CustomMapControls";
@@ -422,6 +423,9 @@ function ParcelMapGL({
   const activeRef = useRef(pageActive);
   activeRef.current = pageActive;
   const viewRef = useRef(null); // última vista, para conservarla al recrear
+  const [, setOverlayNudge] = useState(0); // fuerza re-render de <Source>/<Layer> si faltan en el mapa
+  const nudgesRef = useRef(0);
+  const expectRef = useRef({ boundaries: false, parcels: false });
 
   const recover = useCallback(
     (reason) => {
@@ -500,9 +504,32 @@ function ParcelMapGL({
         recover("se perdió el contexto WebGL");
       };
       canvas.addEventListener("webglcontextlost", onLost);
+
+      // Vigilante: <Source>/<Layer> de react-map-gl solo se añaden durante un render disparado por `styledata`.
+      // Si ese render se pierde (o el worker de GeoJSON no arrancó), contornos y puntos quedan sin pintar.
+      // En cada `idle` se comprueba que existan y estén cargados; si no, se reintenta y, como último recurso,
+      // se recrea el mapa.
+      const verify = () => {
+        const { boundaries, parcels: wantParcels } = expectRef.current;
+        const missing =
+          (boundaries && (!map.getLayer("state-boundaries-line") || !map.isSourceLoaded("state-boundaries"))) ||
+          (wantParcels && (!map.getLayer("parcels-layer") || !map.isSourceLoaded("parcels")));
+        if (!missing) {
+          nudgesRef.current = 0;
+          return;
+        }
+        nudgesRef.current += 1;
+        if (nudgesRef.current <= 3) setOverlayNudge((n) => n + 1);
+        else {
+          nudgesRef.current = 0;
+          recover("contornos/puntos sin pintar");
+        }
+      };
+      map.on("idle", verify);
       map.once("remove", () => {
         clearTimeout(stable);
         canvas.removeEventListener("webglcontextlost", onLost);
+        map.off("idle", verify);
       });
     },
     [recover]
@@ -547,6 +574,10 @@ function ParcelMapGL({
   const mapStyle = useMemo(() => BASEMAPS[basemap]?.style || BASEMAPS.satellite.style, [basemap]);
 
   const parcelGeoJSON = useMemo(() => parcelsToGeoJSON(parcels, layer), [parcels, layer]);
+  expectRef.current = {
+    boundaries: showBoundaries,
+    parcels: !viewOnly && !!parcels && parcels.length > 0,
+  };
 
   const flyToParcel = useCallback(
     (parcel) => {
@@ -749,6 +780,7 @@ function ParcelMapGL({
       <Map
         key={mapKey}
         ref={mapRef}
+        mapLib={maplibregl}
         initialViewState={initialViewState}
         onLoad={handleLoad}
         onStyleData={handleLoad}
