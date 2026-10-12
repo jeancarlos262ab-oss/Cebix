@@ -10,13 +10,12 @@
  */
 import { LEFT_FADE_LENGTH, softFadeGradient } from "./edgeFade";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Map, { Marker, Popup } from "react-map-gl/maplibre";
+import Map, { Layer, Marker, Popup, Source } from "react-map-gl/maplibre";
 import LocationPin, { PIN_TIP_OFFSET } from "./LocationPin";
 import { selectedShapeSvg } from "./selectedShape";
 import CustomMapControls from "./CustomMapControls";
 import { ExternalLink, Gauge, Leaf, Map as MapIcon, Milestone, Moon, Mountain, Satellite as SatelliteIcon } from "lucide-react";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
-import { createLinesOverlay, createPointsOverlay } from "../geomap/glVectorOverlay";
 import { detectLowEndDevice } from "../../utils/mapDevice";
 import { useTheme } from "../../context/ThemeContext";
 import { getAccentHex } from "../../utils/accentColors";
@@ -213,18 +212,6 @@ function ndviToColor(ndvi) {
 /**
  * Convierte parcelas a GeoJSON FeatureCollection.
  */
-/** Interpolación lineal entre paradas [zoom → valor], con tope en los extremos (como "interpolate" de MapLibre). */
-function lerpStops(zoom, zooms, values) {
-  if (zoom <= zooms[0]) return values[0];
-  for (let i = 1; i < zooms.length; i++) {
-    if (zoom <= zooms[i]) {
-      const t = (zoom - zooms[i - 1]) / (zooms[i] - zooms[i - 1]);
-      return values[i - 1] + (values[i] - values[i - 1]) * t;
-    }
-  }
-  return values[values.length - 1];
-}
-
 function parcelsToGeoJSON(parcels, colorMode = "risk") {
   if (!parcels || parcels.length === 0) {
     return {
@@ -435,8 +422,6 @@ function ParcelMapGL({
   const activeRef = useRef(pageActive);
   activeRef.current = pageActive;
   const viewRef = useRef(null); // última vista, para conservarla al recrear
-  // Instancia de MapLibre ya con el estilo cargado: los contornos y los puntos se dibujan sobre ella (SVG).
-  const [glMap, setGlMap] = useState(null);
 
   const recover = useCallback(
     (reason) => {
@@ -507,7 +492,6 @@ function ParcelMapGL({
       const map = e.target;
       if (loadedRef.current) return;
       loadedRef.current = true;
-      setGlMap(map);
       const stable = setTimeout(() => (attemptsRef.current = 0), 5000);
       const canvas = map.getCanvas();
       const onLost = (ev) => {
@@ -517,7 +501,6 @@ function ParcelMapGL({
       };
       canvas.addEventListener("webglcontextlost", onLost);
       map.once("remove", () => {
-        setGlMap((m) => (m === map ? null : m));
         clearTimeout(stable);
         canvas.removeEventListener("webglcontextlost", onLost);
       });
@@ -525,6 +508,7 @@ function ParcelMapGL({
     [recover]
   );
   const [popupInfo, setPopupInfo] = useState(null);
+  const previouslyClickedRef = useRef(null);
   // Parcela seleccionada: se dibuja con otra figura (rombo) en vez del círculo.
   const [markedId, setMarkedId] = useState(null);
 
@@ -595,85 +579,165 @@ function ParcelMapGL({
   useEffect(() => {
     if (selectedId === undefined || selectedId === null) {
       // Se cerró el detalle: quita el resaltado de la parcela que estaba seleccionada.
+      const map = mapRef.current?.getMap();
+      if (map && previouslyClickedRef.current !== null) {
+        try {
+          map.setFeatureState({ source: "parcels", id: previouslyClickedRef.current }, { clicked: false });
+        } catch {
+          /* la fuente aún no existe: no hay nada que limpiar */
+        }
+        previouslyClickedRef.current = null;
+      }
       setMarkedId(null);
       return;
     }
-    const parcel = parcels.find((p) => p.id === selectedId);
-    if (!parcel) return;
-    setMarkedId(selectedId);
-    const map = mapRef.current?.getMap();
-    if (!map) return;
-    const transitionConfig = {
-      center: [parcel.lng, parcel.lat],
-      zoom: Math.max(map.getZoom(), 12),
-      essential: true,
-    };
-    if (isLowEnd) {
-      map.jumpTo(transitionConfig);
-    } else {
-      map.flyTo({
-        ...transitionConfig,
-        ...smoothFlight(map, transitionConfig.zoom),
-      });
+    if (selectedId !== undefined && selectedId !== null) {
+      const parcel = parcels.find((p) => p.id === selectedId);
+      if (parcel) {
+        const map = mapRef.current?.getMap();
+        if (map) {
+          // Limpiar estado anterior
+          if (previouslyClickedRef.current !== null && previouslyClickedRef.current !== selectedId) {
+            map.setFeatureState(
+              { source: "parcels", id: previouslyClickedRef.current },
+              { clicked: false }
+            );
+          }
+
+          // Establecer nuevo estado
+          map.setFeatureState({ source: "parcels", id: selectedId }, { clicked: true });
+          previouslyClickedRef.current = selectedId;
+          setMarkedId(selectedId);
+
+          const targetZoom = Math.max(map.getZoom(), 12);
+          const transitionConfig = {
+            center: [parcel.lng, parcel.lat],
+            zoom: targetZoom,
+            essential: true,
+          };
+
+          if (isLowEnd) {
+            map.jumpTo(transitionConfig);
+          } else {
+            map.flyTo({
+              ...transitionConfig,
+              ...smoothFlight(map, transitionConfig.zoom),
+            });
+          }
+        }
+      }
     }
   }, [selectedId, parcels, isLowEnd]);
 
-  // Clic en un punto de parcela (los puntos son círculos SVG, ver glVectorOverlay.js).
-  const handlePointClick = useCallback(
-    (parcelId) => {
-      const parcel = parcels.find((p) => p.id === parcelId);
-      if (!parcel) return;
-      setPopupInfo(parcel);
-      onSelect?.(parcel);
-      setMarkedId(parcelId);
+  const handleMapClick = useCallback(
+    (event) => {
+      if (!event.features || event.features.length === 0) return;
+
+      const feature = event.features[0];
+      if (feature && feature.geometry.type === "Point") {
+        const parcelId = feature.id;
+        const parcel = parcels.find((p) => p.id === parcelId);
+
+        if (parcel) {
+          setPopupInfo(parcel);
+          onSelect?.(parcel);
+
+          const map = mapRef.current?.getMap();
+          if (map) {
+            if (previouslyClickedRef.current !== null && previouslyClickedRef.current !== parcelId) {
+              map.setFeatureState(
+                { source: "parcels", id: previouslyClickedRef.current },
+                { clicked: false }
+              );
+            }
+
+            map.setFeatureState({ source: "parcels", id: parcelId }, { clicked: true });
+            previouslyClickedRef.current = parcelId;
+            setMarkedId(parcelId);
+          }
+        }
+      }
     },
     [parcels, onSelect]
   );
-  const pointClickRef = useRef(handlePointClick);
-  pointClickRef.current = handlePointClick;
 
-  // Radio y trazo de los puntos: mismas paradas que tenía la capa "circle" de MapLibre. De lejos los puntos
-  // son pequeños (no se amontonan en manchas enormes) y al acercarse llegan a su tamaño normal.
-  const pointRadius = useCallback((zoom, { clicked, hover }) => {
-    const stops = clicked
-      ? [6, 9, 14]
-      : hover
-        ? [5, 8, 11]
-        : [3.5, 6, 9];
-    return lerpStops(zoom, [4, 8, 12], stops);
+  const handleMouseEnter = useCallback((event) => {
+    if (!event.features || event.features.length === 0) return;
+
+    const feature = event.features[0];
+    if (feature && feature.geometry.type === "Point") {
+      const map = mapRef.current?.getMap();
+      if (map) {
+        map.getCanvas().style.cursor = "pointer";
+        map.setFeatureState({ source: "parcels", id: feature.id }, { hover: true });
+      }
+    }
   }, []);
-  const pointStroke = useCallback((zoom, { clicked }) => lerpStops(zoom, [4, 12], [1, clicked ? 3 : 2]), []);
 
-  // Contornos de estados: SVG reproyectado en cada cuadro (como la malla), sin pasar por el worker de MapLibre.
-  useEffect(() => {
-    if (!glMap || !showBoundaries) return undefined;
-    const ov = createLinesOverlay(glMap, estadosBoundaries, { color: accentHex, width: 2, opacity: 0.85, dashArray: [5, 4] });
-    return () => ov.destroy();
-  }, [glMap, showBoundaries, accentHex]);
+  const handleMouseLeave = useCallback((event) => {
+    if (event.features && event.features.length > 0) {
+      const feature = event.features[0];
+      if (feature && feature.geometry.type === "Point") {
+        const map = mapRef.current?.getMap();
+        if (map) {
+          map.setFeatureState({ source: "parcels", id: feature.id }, { hover: false });
+        }
+      }
+    }
 
-  // Puntos de parcelas: ídem.
-  const pointsRef = useRef(null);
-  useEffect(() => {
-    if (!glMap || viewOnly) return undefined;
-    const ov = createPointsOverlay(glMap, {
-      radius: pointRadius,
-      strokeWidth: pointStroke,
-      fillOpacity: 0.9,
-      onClick: (id) => pointClickRef.current(id),
-    });
-    pointsRef.current = ov;
-    return () => {
-      ov.destroy();
-      pointsRef.current = null;
-    };
-  }, [glMap, viewOnly, pointRadius, pointStroke]);
-  const pointItems = useMemo(
-    () => parcelGeoJSON.features.map((f) => ({ id: f.id, lng: f.geometry.coordinates[0], lat: f.geometry.coordinates[1], color: f.properties.color })),
-    [parcelGeoJSON]
-  );
-  useEffect(() => {
-    pointsRef.current?.set({ items: pointItems, clickedId: markedId });
-  }, [glMap, viewOnly, pointItems, markedId, pointRadius, pointStroke]);
+    const map = mapRef.current?.getMap();
+    if (map) map.getCanvas().style.cursor = "";
+  }, []);
+
+  // Estilo de la capa de parcelas
+  const parcelLayerStyle = {
+    id: "parcels-layer",
+    type: "circle",
+    paint: {
+      "circle-color": ["get", "color"],
+
+      // El radio crece con el zoom: de lejos los puntos son pequeños (no se amontonan en manchas
+      // enormes) y al acercarse llegan a su tamaño normal de forma gradual.
+      "circle-radius": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        4,
+        ["case", ["boolean", ["feature-state", "clicked"], false], 6, ["boolean", ["feature-state", "hover"], false], 5, 3.5],
+        8,
+        ["case", ["boolean", ["feature-state", "clicked"], false], 9, ["boolean", ["feature-state", "hover"], false], 8, 6],
+        12,
+        ["case", ["boolean", ["feature-state", "clicked"], false], 14, ["boolean", ["feature-state", "hover"], false], 11, 9],
+      ],
+
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-width": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        4,
+        1,
+        12,
+        ["case", ["boolean", ["feature-state", "clicked"], false], 3, 2],
+      ],
+
+      // El círculo del punto seleccionado se oculta: lo reemplaza el rombo (<Marker> de abajo).
+      "circle-opacity": ["case", ["boolean", ["feature-state", "clicked"], false], 0, 0.9],
+      "circle-stroke-opacity": ["case", ["boolean", ["feature-state", "clicked"], false], 0, 1],
+    },
+  };
+
+  // Estilo de límites estatales
+  const boundaryLineLayer = {
+    id: "state-boundaries-line",
+    type: "line",
+    paint: {
+      "line-color": accentHex,
+      "line-width": 2,
+      "line-opacity": 0.85,
+      "line-dasharray": [5, 4],
+    },
+  };
 
   return (
     <div
@@ -708,11 +772,15 @@ function ParcelMapGL({
         touchPitch={false}
         attributionControl={false}
         fadeDuration={0}
+        interactiveLayerIds={viewOnly ? [] : ["parcels-layer"]}
         onError={(e) => {
           // Sin WebGL (o contexto no disponible): avisa para que ParcelMap cambie a Leaflet.
           const message = String(e?.error?.message ?? e?.originalEvent?.message ?? e?.message ?? "");
           if (/webgl/i.test(message)) recover("error de WebGL");
         }}
+        onClick={handleMapClick}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         {/* Controles personalizados del mapa */}
         <CustomMapControls
@@ -724,6 +792,12 @@ function ParcelMapGL({
           className={zoomClassName}
           containerRef={containerRef}
         />
+
+        {showBoundaries && (
+          <Source id="state-boundaries" type="geojson" data={estadosBoundaries}>
+            <Layer {...boundaryLineLayer} />
+          </Source>
+        )}
 
         {viewOnly &&
           parcels?.map((parcel) => (
@@ -737,6 +811,12 @@ function ParcelMapGL({
               <LocationPin />
             </Marker>
           ))}
+
+        {!viewOnly && parcels && parcels.length > 0 && (
+          <Source id="parcels" type="geojson" data={parcelGeoJSON}>
+            <Layer {...parcelLayerStyle} />
+          </Source>
+        )}
 
         {!viewOnly && markedId !== null && (() => {
           const parcel = parcels?.find((p) => p.id === markedId);
