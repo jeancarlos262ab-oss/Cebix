@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, CalendarRange, ChevronRight, CloudRain, GraduationCap, ImageIcon, Landmark, MapPin, Network, Satellite, Sprout } from "lucide-react";
+import logoFira from "../assets/acerca/logo-fira.webp";
 import TopBar from "../components/layout/TopBar";
+import { useParcels } from "../context/ParcelsContext";
 import { RISK_COLORS } from "../utils/riskColors";
 import { WINDOWS } from "../data/satelite";
 
@@ -9,6 +12,11 @@ import { WINDOWS } from "../data/satelite";
  * Cada recuadro busca src/assets/acerca/imagen-N.(jpg|jpeg|png|webp|avif). Si el archivo existe se muestra
  * solo; si no, se ve un recuadro que dice qué foto poner. */
 const FILES = import.meta.glob("../assets/acerca/*.{jpg,jpeg,png,webp,avif}", { eager: true, import: "default" });
+/* Logo de FIRA sin fondo. Es azul marino, así que en tema oscuro se pasa a blanco para que se lea. */
+function FiraLogo({ className = "h-12" }) {
+  return <img src={logoFira} alt="FIRA" decoding="async" className={`w-auto dark:brightness-0 dark:invert ${className}`} />;
+}
+
 const imageFor = (n) => Object.entries(FILES).find(([path]) => new RegExp(`/imagen-${n}\\.[a-z]+$`).test(path))?.[1];
 
 const SLOTS = {
@@ -33,7 +41,7 @@ function Photo({ src, alt, className, position, eager, badge, zoom }) {
   }, [src]);
 
   return (
-    <div className={`relative overflow-hidden bg-gray-100 dark:bg-gray-900 ${className}`}>
+    <div className={`relative overflow-hidden bg-gray-100 dark:bg-gray-900 ${zoom ? "group" : ""} ${className}`}>
       <div
         aria-hidden="true"
         className={`absolute inset-0 bg-gray-200/70 transition-opacity duration-500 dark:bg-gray-800/60 ${loaded ? "opacity-0" : "animate-pulse motion-reduce:animate-none"}`}
@@ -77,16 +85,15 @@ function ImageSlot({ n, className = "", position = "center", eager = false, badg
 }
 
 /* ───────────── Piezas (mismo lenguaje que Modelo y Predicciones) ───────────── */
-const SECTION = "overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800";
 const LINE = "border-gray-200 dark:border-gray-800";
 const DIVIDE = "divide-gray-200 dark:divide-gray-800";
 const CHIP = "flex shrink-0 text-accent-600 dark:text-accent-400";
 
-/* Cada sección entra con el mismo fundido corto que usan Predicciones y Auth; solo la primera vez que aparece. */
+/* Cada bloque entra con el mismo fundido corto que usan Predicciones y Auth; solo la primera vez que aparece. */
 function Reveal({ children, className = "" }) {
   const reduce = useReducedMotion();
   return (
-    <motion.section
+    <motion.div
       className={className}
       initial={reduce ? false : { opacity: 0, y: 12 }}
       whileInView={{ opacity: 1, y: 0 }}
@@ -94,27 +101,52 @@ function Reveal({ children, className = "" }) {
       transition={{ duration: 0.45, ease: "easeOut" }}
     >
       {children}
-    </motion.section>
+    </motion.div>
   );
 }
 
-function Heading({ eyebrow, title, large = false, children }) {
+/** Tarjeta estándar de la app: contorno, encabezado con título/descripción, línea divisoria y cuerpo libre. */
+function Card({ icon: Icon, title, description, action, children, className = "" }) {
+  return (
+    <section className={`overflow-hidden rounded-2xl border ${LINE} ${className}`}>
+      <header className={`flex items-start justify-between gap-3 border-b px-5 py-4 ${LINE}`}>
+        <div className="flex min-w-0 items-start gap-3">
+          {Icon && <span className={`${CHIP} mt-0.5`}><Icon size={18} strokeWidth={1.6} /></span>}
+          <div className="min-w-0">
+            <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+            {description && <p className="mt-0.5 max-w-2xl text-xs leading-relaxed text-gray-500 dark:text-gray-400">{description}</p>}
+          </div>
+        </div>
+        {action}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function Heading({ icon: Icon, eyebrow, title, large = false, children }) {
   return (
     <div>
-      {eyebrow && <p className="text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{eyebrow}</p>}
-      <h2 className={`mt-1 font-display font-semibold text-gray-900 dark:text-gray-100 ${large ? "text-2xl sm:text-3xl" : "text-xl"}`}>{title}</h2>
+      {(Icon || eyebrow) && (
+        <div className="flex items-center gap-2">
+          {Icon && <span className={CHIP}><Icon size={18} strokeWidth={1.6} /></span>}
+          {eyebrow && <p className="text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{eyebrow}</p>}
+        </div>
+      )}
+      <h2 className={`${Icon || eyebrow ? "mt-1" : ""} font-display font-semibold text-gray-900 dark:text-gray-100 ${large ? "text-2xl sm:text-3xl" : "text-xl"}`}>{title}</h2>
       {children && <p className="mt-2 max-w-prose text-sm leading-relaxed text-gray-500 dark:text-gray-400">{children}</p>}
     </div>
   );
 }
 
-function Kpi({ icon: Icon, label, children }) {
+/* Dato sobre fondo de acento: icono y texto en blanco. */
+function Fact({ icon: Icon, label, children }) {
   return (
-    <div className="flex items-center gap-3 px-6 py-5">
-      <span className={CHIP}><Icon size={22} strokeWidth={1.6} /></span>
+    <div className="flex items-center gap-3 px-5 py-4">
+      <span className="flex shrink-0 text-white"><Icon size={22} strokeWidth={1.6} /></span>
       <div className="min-w-0">
-        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</p>
-        <p className="mt-0.5 font-display text-base font-bold leading-tight text-gray-900 dark:text-white">{children}</p>
+        <p className="text-xs font-medium text-white/80">{label}</p>
+        <p className="mt-0.5 font-display text-sm font-bold leading-tight text-white sm:whitespace-nowrap">{children}</p>
       </div>
     </div>
   );
@@ -150,9 +182,144 @@ const DATA = [
   { icon: Sprout, name: "Parcelas con rendimiento real", text: "138 parcelas de Hidalgo, Puebla y Tlaxcala con su cosecha del ciclo abril-octubre 2025, con las que se entrenó y validó el modelo." },
 ];
 
-export default function AcercaPage() {
+const QUICK = [
+  { icon: Sprout, label: "Cultivo", value: "Cebada" },
+  { icon: MapPin, label: "Zona de estudio", value: "Hidalgo, Puebla y Tlaxcala" },
+  { icon: CalendarRange, label: "Ciclo", value: "Abril a octubre" },
+  { icon: CloudRain, label: "Manejo", value: "Temporal, sin riego" },
+  { icon: Landmark, label: "Institución", value: "FIRA · desde 1954" },
+];
+
+/* ───────────── Columna derecha (tarjetas con contorno) ───────────── */
+
+function QuickInfo() {
   return (
-    <>
+    <Card title="Información rápida">
+      <ul className={`divide-y ${DIVIDE}`}>
+        {QUICK.map(({ icon: Icon, label, value }) => (
+          <li key={label} className="flex items-center gap-3 px-5 py-3">
+            <span className={CHIP}><Icon size={20} strokeWidth={1.6} /></span>
+            <div className="min-w-0">
+              <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{value}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+/* Conteos reales de las parcelas del usuario, con el mismo semáforo que el resto de la app. */
+function ParcelsGlance() {
+  const { parcels } = useParcels();
+  const rows = [
+    { key: "green", label: "Elegibles", color: RISK_COLORS.green },
+    { key: "yellow", label: "Revisión manual", color: RISK_COLORS.yellow },
+    { key: "red", label: "Alto riesgo", color: RISK_COLORS.red },
+  ].map((r) => ({ ...r, n: parcels.filter((p) => p.riskColor === r.key).length }));
+
+  return (
+    <Card
+      title="Tus parcelas"
+      action={
+        <Link to="/parcelas" className="group inline-flex items-center gap-1 text-xs font-medium text-accent-600 dark:text-accent-400">
+          Ver todas
+          <ArrowUpRight size={12} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+        </Link>
+      }
+    >
+      <div className="p-5">
+        <p className="font-display text-4xl font-bold tabular-nums text-gray-900 dark:text-white">{parcels.length}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">en total</p>
+      </div>
+      <ul className={`divide-y border-t ${LINE} ${DIVIDE}`}>
+        {rows.map((r) => (
+          <li key={r.key} className="flex items-center gap-2 px-5 py-3 text-sm text-gray-600 dark:text-gray-300">
+            <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ background: r.color }} />
+            {r.label}
+            <span className="ml-auto font-medium tabular-nums text-gray-900 dark:text-gray-100">{r.n}</span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+/* La foto principal se funde con el fondo de la página hacia la izquierda y hacia abajo. Usa solo transparencia,
+ * así funciona igual en claro y en oscuro. */
+/* Los degradados usan muchas paradas con curva suave (sin un punto donde empiece de golpe), para que no se note
+ * dónde comienza el difuminado. */
+const FADE_LEFT = "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.03) 8%, rgba(0,0,0,0.12) 18%, rgba(0,0,0,0.28) 30%, rgba(0,0,0,0.5) 43%, rgba(0,0,0,0.74) 57%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.98) 85%, #000 100%)";
+const FADE_DOWN = "linear-gradient(to bottom, #000 0%, rgba(0,0,0,0.98) 15%, rgba(0,0,0,0.9) 28%, rgba(0,0,0,0.74) 40%, rgba(0,0,0,0.5) 53%, rgba(0,0,0,0.28) 66%, rgba(0,0,0,0.12) 78%, rgba(0,0,0,0.03) 90%, transparent 100%)";
+const HERO_MASK = {
+  maskImage: `${FADE_LEFT}, ${FADE_DOWN}`,
+  WebkitMaskImage: `${FADE_LEFT}, ${FADE_DOWN}`,
+  maskComposite: "intersect",
+  WebkitMaskComposite: "source-in",
+};
+
+/* La foto de la esquina termina antes de «Información rápida»: su alto se mide contra esa tarjeta, deja un espacio
+ * (HERO_GAP) y se acota para que no quede ni muy chica ni muy grande. Si la columna lateral no está al costado
+ * (pantallas menores a xl), se usa el alto fijo de siempre. */
+const HERO_GAP = 28;
+const HERO_MIN = 280;
+const HERO_MAX = 440;
+const HERO_MIN_W = 240;
+
+export default function AcercaPage() {
+  const rootRef = useRef(null);
+  const asideRef = useRef(null);
+  const factsRef = useRef(null);
+  const [heroH, setHeroH] = useState(null);
+  const [heroW, setHeroW] = useState(null);
+
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    const aside = asideRef.current;
+    const facts = factsRef.current;
+    if (!root || !aside) return undefined;
+
+    const measure = () => {
+      const rootRect = root.getBoundingClientRect();
+
+      // Alto: termina antes de «Información rápida» (solo cuando está al costado, desde xl).
+      if (!window.matchMedia("(min-width: 1280px)").matches) setHeroH(null);
+      else {
+        const top = aside.getBoundingClientRect().top - rootRect.top;
+        setHeroH(Math.round(Math.min(HERO_MAX, Math.max(HERO_MIN, top - HERO_GAP))));
+      }
+
+      // Ancho: la foto empieza justo a la mitad del contenedor Ciclo / Zona de estudio / Manejo (que queda por delante) y llega al borde de la página.
+      if (!facts || !window.matchMedia("(min-width: 1024px)").matches) setHeroW(null);
+      else {
+        const f = facts.getBoundingClientRect();
+        const left = f.left + f.width / 2 - rootRect.left;
+        setHeroW(Math.round(Math.max(HERO_MIN_W, rootRect.width - left)));
+      }
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(root);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
+  return (
+    <div ref={rootRef} className="relative isolate overflow-x-clip">
+      {/* Foto pegada a la esquina superior derecha, detrás del encabezado */}
+      <div
+        aria-hidden="false"
+        className={`pointer-events-none absolute right-0 top-0 -z-10 w-full opacity-30 lg:opacity-100 ${heroW ? "" : "lg:w-[45%]"} ${heroH ? "" : "h-80"}`}
+        style={{ ...HERO_MASK, ...(heroH ? { height: heroH } : null), ...(heroW ? { width: heroW } : null) }}
+      >
+        <ImageSlot n={1} eager position="40% 35%" className="size-full" />
+      </div>
+
       <TopBar
         title="Cebada y FIRA"
         subtitle="El cultivo, la institución que lo financia y el problema que resuelve CEBIX."
@@ -160,173 +327,204 @@ export default function AcercaPage() {
       />
 
       <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        {/* 1 · El cultivo: texto y datos clave a la izquierda, foto principal a la derecha */}
-        <Reveal className={`grid lg:grid-cols-12 ${SECTION}`}>
-          <div className="flex flex-col lg:col-span-7">
-            <div className="flex-1 px-6 py-6 lg:px-8 lg:py-7">
-              <Heading eyebrow="El cultivo" title="La cebada en el altiplano" large>
+          {/* 1 · El cultivo: texto sobre la foto, datos en una fila sin caja */}
+          <Reveal className="pb-6 pt-10 lg:pt-16">
+            <div className="max-w-xl">
+              <Heading title="La cebada en el altiplano" large>
                 La cebada es un cereal de clima templado. Una parte importante de la producción nacional se destina a la
                 industria de la malta, y Hidalgo, Puebla y Tlaxcala figuran entre las zonas donde más se cultiva. Casi toda
                 se siembra de temporal, sin riego: lo que llueve al inicio del ciclo marca gran parte de la cosecha.
               </Heading>
             </div>
-            <div className={`grid border-t sm:grid-cols-3 sm:divide-x ${LINE} ${DIVIDE} max-sm:divide-y`}>
-              <Kpi icon={CalendarRange} label="Ciclo">Abril a octubre</Kpi>
-              <Kpi icon={MapPin} label="Zona de estudio">Hidalgo, Puebla y Tlaxcala</Kpi>
-              <Kpi icon={CloudRain} label="Manejo">Temporal, sin riego</Kpi>
+            <div ref={factsRef} className="mt-8 grid max-w-4xl overflow-hidden rounded-2xl bg-accent-600 sm:grid-cols-[1fr_1.5fr_1fr] sm:divide-x max-sm:divide-y divide-white/20">
+              <Fact icon={CalendarRange} label="Ciclo">Abril a octubre</Fact>
+              <Fact icon={MapPin} label="Zona de estudio">Hidalgo, Puebla y Tlaxcala</Fact>
+              <Fact icon={CloudRain} label="Manejo">Temporal, sin riego</Fact>
             </div>
-          </div>
-          <ImageSlot n={1} eager position="30% 45%" className={`min-h-56 border-t lg:col-span-5 lg:min-h-0 lg:border-l lg:border-t-0 ${LINE}`} />
-        </Reveal>
+          </Reveal>
 
-        {/* 2 · Etapas: calendario del ciclo y una foto por etapa */}
-        <Reveal className={SECTION}>
-          <div className={`grid items-end gap-6 border-b px-6 py-5 lg:grid-cols-12 ${LINE}`}>
-            <div className="lg:col-span-5">
-              <Heading eyebrow="El ciclo" title="Etapas del cultivo">
-                CEBIX resume las imágenes por etapa, porque cada una dice algo distinto de la planta.
-              </Heading>
-            </div>
-            <div className="lg:col-span-7" aria-hidden="true">
-              <div className="grid grid-cols-7 gap-1">
-                {STAGES.map((s, i) => (
-                  <span
-                    key={s.key}
-                    className={`flex h-8 items-center justify-center gap-1.5 rounded-full text-[11px] font-semibold ${s.chip}`}
-                    style={{ gridColumn: `${s.from} / span 2` }}
-                  >
-                    <span className="tabular-nums">{i + 1}</span>
-                    <span className="hidden sm:inline">{s.name}</span>
-                  </span>
-                ))}
-                <span className="h-8 rounded-full bg-gray-100 dark:bg-gray-800" />
-              </div>
-              <div className="mt-1.5 grid grid-cols-7 text-center text-[11px] text-gray-400 dark:text-gray-500">
-                {MONTHS.map((m) => <span key={m}>{m}</span>)}
-              </div>
-            </div>
-          </div>
-          <ol className={`grid grid-cols-1 divide-y lg:grid-cols-3 lg:divide-x lg:divide-y-0 ${DIVIDE}`}>
-            {STAGES.map((s, i) => {
-              const w = WINDOWS[s.key];
-              return (
-                <li key={s.key} className="group">
-                  <ImageSlot n={s.img} zoom badge={w.range} className={`h-56 border-b ${LINE}`} />
-                  <div className="px-6 py-5">
-                    <div className="flex items-center gap-3">
-                      <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums ${s.chip}`}>{i + 1}</span>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{w.label}</p>
-                    </div>
-                    <p className="mt-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{s.text}</p>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        </Reveal>
-
-        {/* 3 · FIRA: foto a la izquierda, tres bloques con ícono a la derecha */}
-        <Reveal className={`grid lg:grid-cols-12 ${SECTION}`}>
-          <ImageSlot n={2} position="55% 50%" badge="Desde 1954" className={`min-h-64 border-b lg:col-span-4 lg:min-h-full lg:border-b-0 lg:border-r ${LINE}`} />
-          <div className="flex flex-col lg:col-span-8">
-            <div className="px-6 py-6 lg:px-8 lg:py-8">
-              <Heading eyebrow="La institución" title="FIRA" large>
-                Fideicomisos Instituidos en Relación con la Agricultura.
-              </Heading>
-            </div>
-            <div className={`grid flex-1 border-t md:grid-cols-3 md:divide-x max-md:divide-y ${LINE} ${DIVIDE}`}>
-              {FIRA_POINTS.map(({ icon: Icon, title, text }) => (
-                <div key={title} className="px-6 py-5">
-                  <span className={CHIP}><Icon size={22} strokeWidth={1.6} /></span>
-                  <p className="mt-4 text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</p>
-                  <p className="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{text}</p>
-                </div>
-              ))}
-            </div>
-            <a
-              href="https://www.fira.gob.mx"
-              target="_blank"
-              rel="noreferrer"
-              className={`group flex items-center justify-between border-t px-6 py-3 text-sm font-medium text-accent-600 transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:bg-gray-50 dark:text-accent-400 dark:hover:bg-gray-800/60 dark:focus-visible:bg-gray-800/60 ${LINE}`}
+          {/* 2 · Etapas del cultivo, con la columna de información a su derecha (sin fijar) */}
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_280px] xl:items-start">
+            <div className="min-w-0 space-y-6">
+          {/* 2 · Etapas: calendario arriba y tres columnas con foto */}
+          <Reveal className="min-w-0">
+            <Card
+              icon={Sprout}
+              title="Etapas del cultivo"
+              description="CEBIX resume las imágenes por etapa, porque cada una dice algo distinto de la planta."
             >
-              Sitio oficial de FIRA
-              <ArrowUpRight size={14} className="text-gray-300 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-gray-500 dark:text-gray-600" />
-            </a>
-          </div>
-        </Reveal>
-
-        {/* 4 · El problema: recorrido del dato y semáforo a la izquierda, vista satelital a la derecha */}
-        <Reveal className={`grid lg:grid-cols-12 ${SECTION}`}>
-          <div className="flex flex-col lg:col-span-6">
-            <div className="px-6 py-6 lg:px-8 lg:py-8">
-              <Heading eyebrow="El problema" title="Decidir un crédito antes de la cosecha">
-                En una parcela de temporal hay que saber cuánto va a cosechar antes de que ocurra, y casi nunca hay
-                mediciones de campo: visitarlas una por una es lento y caro. CEBIX estima el rendimiento con imágenes de
-                satélite y clima, y lo convierte en un puntaje de 0 a 100 que se lee como semáforo.
-              </Heading>
-
-              <ol className="mt-6 flex flex-wrap items-center gap-x-1 gap-y-2">
-                {FLOW.map((step, i) => (
-                  <li key={step} className="flex items-center gap-1">
-                    <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">{step}</span>
-                    {i < FLOW.length - 1 && <ChevronRight size={14} aria-hidden="true" className="text-gray-300 dark:text-gray-600" />}
-                  </li>
-                ))}
-              </ol>
-
-              <div className="mt-6" role="img" aria-label="Escala de 0 a 100: alto riesgo hasta 44, revisión manual de 45 a 69, elegible desde 70">
-                <div className="flex h-2 gap-1">
-                  {SEMAFORO.map((s) => (
-                    <span key={s.label} className="first:rounded-l-full last:rounded-r-full" style={{ width: `${s.width}%`, background: s.color }} />
+              <div className="p-5" aria-hidden="true">
+                <div className="grid grid-cols-7 gap-1">
+                  {STAGES.map((s, i) => (
+                    <span
+                      key={s.key}
+                      className={`flex h-8 items-center justify-center gap-1.5 rounded-full text-[11px] font-semibold ${s.chip}`}
+                      style={{ gridColumn: `${s.from} / span 2` }}
+                    >
+                      <span className="tabular-nums">{i + 1}</span>
+                      <span className="hidden sm:inline">{s.name}</span>
+                    </span>
                   ))}
+                  <span className="h-8 rounded-full bg-gray-100 dark:bg-gray-800" />
                 </div>
-                <div className="mt-1.5 flex gap-1 text-[11px] tabular-nums text-gray-400 dark:text-gray-500">
-                  {SEMAFORO.map((s) => <span key={s.label} style={{ width: `${s.width}%` }}>{s.range}</span>)}
+                <div className="mt-1.5 grid grid-cols-7 text-center text-[11px] text-gray-400 dark:text-gray-500">
+                  {MONTHS.map((m) => <span key={m}>{m}</span>)}
                 </div>
               </div>
-            </div>
-            <ul className={`flex-1 divide-y border-t ${LINE} ${DIVIDE}`}>
-              {[...SEMAFORO].reverse().map((s) => (
-                <li key={s.label} className="px-6 py-4 lg:px-8">
-                  <p className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ background: s.color }} />
-                    {s.label}
-                    <span
-                      className="ml-auto rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums text-gray-600 dark:text-gray-300"
-                      style={{ background: `color-mix(in srgb, ${s.color} 18%, transparent)` }}
-                    >
-                      {s.range}
-                    </span>
-                  </p>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{s.text}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <ImageSlot n={6} badge="Parcelas desde satélite" className={`min-h-72 border-t lg:col-span-6 lg:min-h-full lg:border-l lg:border-t-0 ${LINE}`} />
-        </Reveal>
+              <ol className={`grid border-t md:grid-cols-3 md:divide-x max-md:divide-y ${LINE} ${DIVIDE}`}>
+                {STAGES.map((s, i) => {
+                  const w = WINDOWS[s.key];
+                  return (
+                    <li key={s.key} className="group">
+                      <ImageSlot n={s.img} zoom badge={w.range} className="h-40" />
+                      <div className={`border-t p-4 ${LINE}`}>
+                        <div className="flex items-center gap-3">
+                          <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums ${s.chip}`}>{i + 1}</span>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{w.label}</p>
+                        </div>
+                        <p className="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{s.text}</p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </Card>
+          </Reveal>
 
-        {/* 5 · Los datos: fuentes con ícono (como en Modelo) y vista de la zona */}
-        <Reveal className={`grid md:grid-cols-5 ${SECTION}`}>
-          <div className="md:col-span-3">
-            <div className={`border-b px-6 py-5 ${LINE}`}>
-              <Heading eyebrow="Los datos" title="De dónde salen" />
-            </div>
-            <ul className={`divide-y ${DIVIDE}`}>
-              {DATA.map(({ icon: Icon, name, text }) => (
-                <li key={name} className="flex items-start gap-4 px-6 py-4">
-                  <span className={`${CHIP} mt-0.5`}><Icon size={22} strokeWidth={1.6} /></span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{name}</p>
-                    <p className="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{text}</p>
+          {/* 3 · FIRA: foto a la izquierda, tres puntos en filas */}
+          <Reveal>
+            <Card
+              title={
+                <span className="flex items-center gap-4">
+                  <FiraLogo className="h-12 sm:h-14" />
+                  <span className="max-w-xs text-xs font-normal leading-relaxed text-gray-500 dark:text-gray-400">
+                    Fideicomisos Instituidos en Relación con la Agricultura.
+                  </span>
+                </span>
+              }
+            >
+              <div className="grid lg:grid-cols-12">
+                <ImageSlot
+                  n={2}
+                  zoom
+                  position="55% 50%"
+                  badge="Desde 1954"
+                  className={`h-52 border-b lg:col-span-4 lg:h-auto lg:min-h-full lg:border-b-0 lg:border-r ${LINE}`}
+                />
+                <div className="flex flex-col lg:col-span-8">
+                  <ul className={`flex-1 divide-y ${DIVIDE}`}>
+                    {FIRA_POINTS.map(({ icon: Icon, title, text }) => (
+                      <li key={title} className="flex items-start gap-4 px-5 py-4">
+                        <span className={`${CHIP} mt-0.5`}><Icon size={20} strokeWidth={1.6} /></span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</p>
+                          <p className="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{text}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className={`border-t px-5 py-3 ${LINE}`}>
+                    <a
+                      href="https://www.fira.gob.mx"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group inline-flex w-fit items-center gap-1.5 text-sm font-medium text-accent-600 dark:text-accent-400"
+                    >
+                      Sitio oficial de FIRA
+                      <ArrowUpRight size={14} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                    </a>
                   </div>
-                </li>
-              ))}
-            </ul>
+                </div>
+              </div>
+            </Card>
+          </Reveal>
+
+          {/* 4 · El problema: texto y semáforo a la izquierda, foto satelital a la derecha */}
+          <Reveal>
+            <Card icon={Network} title="Decidir un crédito antes de la cosecha" description="El problema">
+              <div className="grid lg:grid-cols-12">
+                <div className="flex flex-col lg:col-span-7">
+                  <div className="space-y-5 p-5">
+                    <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                      En una parcela de temporal hay que saber cuánto va a cosechar antes de que ocurra, y casi nunca hay
+                      mediciones de campo: visitarlas una por una es lento y caro. CEBIX estima el rendimiento con imágenes de
+                      satélite y clima, y lo convierte en un puntaje de 0 a 100 que se lee como semáforo.
+                    </p>
+
+                    <ol className="flex flex-wrap items-center gap-x-1 gap-y-2">
+                      {FLOW.map((step, i) => (
+                        <li key={step} className="flex items-center gap-1">
+                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">{step}</span>
+                          {i < FLOW.length - 1 && <ChevronRight size={14} aria-hidden="true" className="text-gray-300 dark:text-gray-600" />}
+                        </li>
+                      ))}
+                    </ol>
+
+                    <div role="img" aria-label="Escala de 0 a 100: alto riesgo hasta 44, revisión manual de 45 a 69, elegible desde 70">
+                      <div className="flex h-2 gap-1">
+                        {SEMAFORO.map((s) => (
+                          <span key={s.label} className="first:rounded-l-full last:rounded-r-full" style={{ width: `${s.width}%`, background: s.color }} />
+                        ))}
+                      </div>
+                      <div className="mt-1.5 flex gap-1 text-[11px] tabular-nums text-gray-400 dark:text-gray-500">
+                        {SEMAFORO.map((s) => <span key={s.label} style={{ width: `${s.width}%` }}>{s.range}</span>)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <ul className={`grid flex-1 border-t md:grid-cols-3 md:divide-x max-md:divide-y ${LINE} ${DIVIDE}`}>
+                    {SEMAFORO.map((s) => (
+                      <li key={s.label} className="px-5 py-4">
+                        <p className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                          <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ background: s.color }} />
+                          {s.label}
+                        </p>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{s.text}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <ImageSlot
+                  n={6}
+                  zoom
+                  badge="Parcelas desde satélite"
+                  className={`h-52 border-t lg:col-span-5 lg:h-auto lg:min-h-full lg:border-l lg:border-t-0 ${LINE}`}
+                />
+              </div>
+            </Card>
+          </Reveal>
+
+          {/* 5 · Los datos */}
+          <Reveal>
+            <Card icon={Satellite} title="De dónde salen" description="Los datos">
+              <div className="grid md:grid-cols-5">
+                <ul className={`divide-y md:col-span-3 ${DIVIDE}`}>
+                  {DATA.map(({ icon: Icon, name, text }) => (
+                    <li key={name} className="flex items-start gap-4 px-5 py-4">
+                      <span className={`${CHIP} mt-0.5`}><Icon size={22} strokeWidth={1.6} /></span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{name}</p>
+                        <p className="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{text}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <ImageSlot
+                  n={7}
+                  zoom
+                  badge="138 parcelas · zona de estudio"
+                  className={`h-48 border-t md:col-span-2 md:h-auto md:min-h-full md:border-l md:border-t-0 ${LINE}`}
+                />
+              </div>
+            </Card>
+          </Reveal>
+            </div>
+            <aside ref={asideRef} className="min-w-0 space-y-6">
+              <QuickInfo />
+              <ParcelsGlance />
+            </aside>
           </div>
-          <ImageSlot n={7} badge="138 parcelas · zona de estudio" className={`min-h-56 border-t md:col-span-2 md:min-h-full md:border-l md:border-t-0 ${LINE}`} />
-        </Reveal>
       </div>
-    </>
+    </div>
   );
 }

@@ -8,6 +8,7 @@ import { preloadWorldTiles } from "./tilePreload";
 import { usePageActive } from "../../context/PageActiveContext";
 import { estadoBounds } from "../../utils/polygon";
 import { reportGLFailure, resolveMapEngine } from "../../utils/mapDevice";
+import { loadGlobeMapGL } from "../../utils/mapLoaders";
 import { parcelGridLines } from "../../utils/parcelGrid";
 import { ESTADOS } from "./config";
 import {
@@ -32,7 +33,7 @@ import "leaflet/dist/leaflet.css";
 // Globo 3D, cargado solo cuando se necesita. Si el equipo acepta WebGL se usa MapLibre GL con
 // proyección de globo; si no (PCs sin potencia / sin aceleración), el globo ligero de Canvas 2D.
 const GlobeMapCanvas = lazy(() => import("./GlobeMap"));
-const GlobeMapGL = lazy(() => import("./GlobeMapGL"));
+const GlobeMapGL = lazy(loadGlobeMapGL);
 
 const SATELLITE = { url: IMAGERY_URL };
 // Un solo mundo: sin copias repetidas en tiras y con el zoom mínimo limitado a lo que cabe en el mapa.
@@ -370,9 +371,11 @@ export default function GeometryMap(props) {
   const [glFailed, setGlFailed] = useState(false);
   const useGL = !glFailed && resolveMapEngine() === "gl";
   const GlobeMap = GlobeMapCanvas;
+  // Con MapLibre GL no hace falta: pide sus propias teselas y la precarga de 341 imágenes competiría con
+  // la carga inicial del globo por las mismas conexiones.
   useEffect(() => {
-    preloadWorldTiles();
-  }, []);
+    if (!useGL) preloadWorldTiles();
+  }, [useGL]);
   const boxRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   useEffect(() => {

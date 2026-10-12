@@ -439,7 +439,7 @@ function ParcelMapGL({
           loadedRef.current = false;
           setMapKey((k) => k + 1);
         }
-      }, 400 * attemptsRef.current);
+      }, 150 * attemptsRef.current);
     },
     [onWebGLError]
   );

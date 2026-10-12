@@ -11,77 +11,66 @@ import { lazySingleton } from "./singleton";
 
 const STORAGE_KEY = "cebix:mapEngine";
 
+const LOW_END_GPUS = [
+  /intel.*hd graphics [2-4]\d{3}/i,
+  /intel.*graphics media accelerator/i,
+  /swiftshader/i,
+  /llvmpipe/i,
+];
+
 /**
- * Detecta si el dispositivo tiene recursos limitados (GPU integrada vieja,
- * pocos núcleos, poca RAM o sin WebGL disponible).
+ * Sonda del equipo: se hace UNA sola vez por sesión, con UN solo contexto WebGL de prueba (que se libera al
+ * terminar). Antes se creaban hasta tres contextos por cada mapa que se abría (detección de motor, detección
+ * de equipo limitado y el propio mapa), y en Windows cada uno tarda cientos de ms en arrancar.
+ *
+ * `failIfMajorPerformanceCaveat` hace que falle si solo hay WebGL por software (lento): en ese caso conviene el
+ * mapa ligero. El navegador a veces rechaza el primer contexto (GPU arrancando, contextos recién liberados), así
+ * que solo si falla se reintenta una vez.
+ */
+const probeDevice = lazySingleton(() => {
+  const result = { webgl: false, lowEnd: true };
+  if (typeof window === "undefined") return result;
+  try {
+    let gl = null;
+    for (let attempt = 0; attempt < 2 && !gl; attempt++) {
+      const canvas = document.createElement("canvas");
+      gl =
+        canvas.getContext("webgl2", { failIfMajorPerformanceCaveat: true }) ||
+        canvas.getContext("webgl", { failIfMajorPerformanceCaveat: true });
+    }
+    if (!gl) return result;
+    result.webgl = true;
+
+    let lowEnd = false;
+    const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
+    if (debugInfo) {
+      const renderer = String(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)).toLowerCase();
+      lowEnd = LOW_END_GPUS.some((pattern) => pattern.test(renderer));
+    }
+    if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) lowEnd = true;
+    if (navigator.deviceMemory && navigator.deviceMemory <= 2) lowEnd = true;
+    result.lowEnd = lowEnd;
+
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+  } catch (error) {
+    console.warn("Error detectando capacidad del dispositivo:", error);
+  }
+  return result;
+});
+
+/**
+ * ¿El equipo tiene recursos limitados (GPU integrada vieja, pocos núcleos, poca RAM o sin WebGL)?
+ * Reutiliza la sonda única: no crea más contextos WebGL.
  *
  * @returns {boolean}
  */
 export function detectLowEndDevice() {
-  try {
-    if (typeof window === "undefined") return false;
-
-    const canvas = document.createElement("canvas");
-    const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-    if (!gl) return true;
-
-    const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
-    if (debugInfo) {
-      const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL).toLowerCase();
-
-      const lowEndGPUs = [
-        /intel.*hd graphics [2-4]\d{3}/i,
-        /intel.*graphics media accelerator/i,
-        /swiftshader/i,
-        /llvmpipe/i,
-      ];
-
-      if (lowEndGPUs.some((pattern) => pattern.test(renderer))) {
-        return true;
-      }
-    }
-
-    if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) {
-      return true;
-    }
-
-    if (navigator.deviceMemory && navigator.deviceMemory <= 2) {
-      return true;
-    }
-
-    return false;
-  } catch (error) {
-    console.warn("Error detectando capacidad del dispositivo:", error);
-    return true;
-  }
+  return probeDevice().lowEnd;
 }
 
-/**
- * ¿El navegador puede crear un contexto WebGL de verdad (con aceleración por hardware)?
- * `failIfMajorPerformanceCaveat` hace que falle si solo hay WebGL por software (lento),
- * y en ese caso conviene el mapa ligero. Libera el contexto de prueba al terminar.
- *
- * @returns {boolean}
- */
+/** ¿El navegador puede crear un contexto WebGL de verdad (con aceleración por hardware)? */
 function supportsWebGL() {
-  if (typeof window === "undefined") return false;
-  // El navegador a veces rechaza el primer contexto (GPU arrancando, contextos recién liberados por otras
-  // pantallas). Un solo fallo no debe mandar a toda la sesión al mapa ligero, así que se intenta dos veces.
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const canvas = document.createElement("canvas");
-      const gl =
-        canvas.getContext("webgl2", { failIfMajorPerformanceCaveat: true }) ||
-        canvas.getContext("webgl", { failIfMajorPerformanceCaveat: true });
-      if (gl) {
-        gl.getExtension("WEBGL_lose_context")?.loseContext();
-        return true;
-      }
-    } catch {
-      // se reintenta
-    }
-  }
-  return false;
+  return probeDevice().webgl;
 }
 
 /**

@@ -13,6 +13,7 @@ import Sidebar from "./components/layout/Sidebar";
 import { SidebarProvider } from "./context/SidebarContext";
 import { useParcels } from "./context/ParcelsContext";
 import { getPageRegistry } from "./utils/pageRegistry";
+import { prefetchMapEngine } from "./utils/mapLoaders";
 import { PageActiveContext } from "./context/PageActiveContext";
 
 // Cada página se separa en su propio chunk: el navegador solo descarga (y
@@ -76,6 +77,7 @@ function usePrefetchPages() {
       pageLoaders.acerca,
       pageLoaders.satelite,
       pageLoaders.mapa,
+      prefetchMapEngine, // motor de mapa (MapLibre/Leaflet): evita una segunda espera al abrir un mapa
     ];
     const idle = window.requestIdleCallback ?? ((cb) => window.setTimeout(cb, 600));
     const cancel = window.cancelIdleCallback ?? window.clearTimeout;

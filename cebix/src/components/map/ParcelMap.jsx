@@ -9,9 +9,10 @@
  */
 import { lazy, memo, Suspense, useCallback, useState } from "react";
 import { reportGLFailure, resolveMapEngine } from "../../utils/mapDevice";
+import { loadParcelMapGL, loadParcelMapLite } from "../../utils/mapLoaders";
 
-const ParcelMapGL = lazy(() => import("./ParcelMapGL"));
-const ParcelMapLite = lazy(() => import("./ParcelMapLite"));
+const ParcelMapGL = lazy(loadParcelMapGL);
+const ParcelMapLite = lazy(loadParcelMapLite);
 
 function MapLoadingFallback({ height, rounded }) {
   return (

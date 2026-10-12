@@ -205,7 +205,7 @@ export default function GlobeMapGL({
       // En una pantalla oculta no se recrea (le quitaría el contexto a la que sí se ve): espera a que se muestre.
       if (live.current.pageActive === false) pendingRecover.current = true;
       else setGen((g) => g + 1);
-    }, 400 * attempts.current);
+    }, 150 * attempts.current);
   }, []);
   useEffect(() => () => clearTimeout(retryTimer.current), []);
   useEffect(() => {
