@@ -181,7 +181,8 @@ export function createLinesOverlay(map, geojson, style) {
 }
 
 /**
- * Puntos (parcelas) como círculos SVG, con clic y hover.
+ * Puntos (parcelas) en un <canvas> 2D encima del mapa, con clic y hover. Un solo elemento sin importar cuántas
+ * parcelas haya (nada de un nodo DOM por punto): se dibujan por lotes y el clic/hover se resuelve aquí.
  * @param opts {{
  *   radius: (zoom:number, state:{hover:boolean, clicked:boolean}) => number,
  *   strokeWidth: (zoom:number, state) => number,
@@ -192,135 +193,183 @@ export function createLinesOverlay(map, geojson, style) {
  * @returns {{set({items: {id, lng, lat, color}[], clickedId}): void, destroy(): void}}
  */
 export function createPointsOverlay(map, opts) {
-  const svg = makeSvg(map);
+  const cv = document.createElement("canvas");
+  cv.setAttribute("aria-hidden", "true");
+  cv.style.cssText = "position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none";
+  const host = map.getCanvasContainer();
+  if (host.firstChild) host.insertBefore(cv, host.firstChild.nextSibling);
+  else host.appendChild(cv);
+  const ctx = cv.getContext("2d");
   const view = makeView(map);
   const fillOpacity = opts.fillOpacity ?? 0.9;
-  let nodes = []; // { id, c, lng, lat, v, shown, r, sw }
-  let byId = new Map();
+
   let items = [];
-  let clickedId = null;
-  let hoverId = null;
-  let lastZoom = NaN;
+  let vecs = [];
+  let n = 0;
+  let xs = new Float32Array(0);
+  let ys = new Float32Array(0);
+  let vis = new Uint8Array(0);
+  let groups = []; // [{color, idx: number[]}] para dibujar por lotes
+  let clickedIdx = -1;
+  let hoverIdx = -1;
   let baseR = 0;
   let baseSw = 0;
+  let zoom = 0;
+  let dpr = 1;
 
-  let down = null;
-  const onDown = (e) => (down = { x: e.clientX, y: e.clientY });
-
-  function build() {
-    svg.replaceChildren();
-    byId = new Map();
-    nodes = items.map((item) => {
-      const c = el("circle", { fill: item.color, stroke: "#ffffff", "fill-opacity": fillOpacity, "stroke-opacity": 1 });
-      c.style.cssText = "pointer-events:auto;cursor:pointer;display:none";
-      c.addEventListener("pointerdown", onDown);
-      c.addEventListener("click", (e) => {
-        // Un arrastre del mapa que termina sobre un punto no cuenta como clic.
-        if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 4) return;
-        e.stopPropagation();
-        opts.onClick?.(item.id);
-      });
-      c.addEventListener("pointerenter", () => {
-        hoverId = item.id;
-        opts.onHover?.(item.id);
-        styleOne(byId.get(item.id), lastZoom);
-      });
-      c.addEventListener("pointerleave", () => {
-        if (hoverId === item.id) hoverId = null;
-        opts.onHover?.(null);
-        styleOne(byId.get(item.id), lastZoom);
-      });
-      svg.appendChild(c);
-      const n = { id: item.id, c, lng: item.lng, lat: item.lat, v: unit(item.lng, item.lat), shown: false, r: -1, sw: -1 };
-      byId.set(item.id, n);
-      return n;
-    });
+  function sizeCanvas() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.max(1, Math.round(view.w * dpr));
+    cv.height = Math.max(1, Math.round(view.h * dpr));
   }
 
-  /** Radio y trazo de un punto (el normal comparte valores calculados una vez por cuadro de zoom). */
-  function styleOne(n, zoom) {
+  function build(next) {
+    items = next;
+    n = items.length;
+    vecs = items.map((it) => unit(it.lng, it.lat));
+    xs = new Float32Array(n);
+    ys = new Float32Array(n);
+    vis = new Uint8Array(n);
+    const byColor = new Map();
+    items.forEach((it, i) => {
+      if (!byColor.has(it.color)) byColor.set(it.color, []);
+      byColor.get(it.color).push(i);
+    });
+    groups = [...byColor].map(([color, idx]) => ({ color, idx }));
+    clickedIdx = -1;
+    hoverIdx = -1;
+  }
+
+  const indexOf = (id) => (id == null ? -1 : items.findIndex((it) => it.id === id));
+
+  function project() {
+    for (let i = 0; i < n; i++) {
+      if (view.hidden(vecs[i])) {
+        vis[i] = 0;
+        continue;
+      }
+      const { x, y } = map.project([items[i].lng, items[i].lat]);
+      xs[i] = x;
+      ys[i] = y;
+      vis[i] = x > -40 && y > -40 && x < view.w + 40 && y < view.h + 40 ? 1 : 0;
+    }
+  }
+
+  function paint() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, view.w, view.h);
     if (!n) return;
-    const special = n.id === clickedId || n.id === hoverId;
-    const state = { hover: n.id === hoverId, clicked: n.id === clickedId };
-    const r = special ? opts.radius(zoom, state) : baseR;
-    const sw = special ? opts.strokeWidth(zoom, state) : baseSw;
-    if (r !== n.r) {
-      n.c.setAttribute("r", r);
-      n.r = r;
+    zoom = map.getZoom();
+    baseR = opts.radius(zoom, { hover: false, clicked: false });
+    baseSw = opts.strokeWidth(zoom, { hover: false, clicked: false });
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = baseSw;
+    for (const { color, idx } of groups) {
+      ctx.beginPath();
+      for (const i of idx) {
+        if (!vis[i] || i === clickedIdx || i === hoverIdx) continue;
+        ctx.moveTo(xs[i] + baseR, ys[i]);
+        ctx.arc(xs[i], ys[i], baseR, 0, 6.2832);
+      }
+      ctx.globalAlpha = fillOpacity;
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.stroke();
     }
-    if (sw !== n.sw) {
-      n.c.setAttribute("stroke-width", sw);
-      n.sw = sw;
+    // El del hover va encima y más grande. El seleccionado no se dibuja: lo reemplaza el rombo.
+    if (hoverIdx >= 0 && hoverIdx !== clickedIdx && vis[hoverIdx]) {
+      const st = { hover: true, clicked: false };
+      ctx.beginPath();
+      ctx.arc(xs[hoverIdx], ys[hoverIdx], opts.radius(zoom, st), 0, 6.2832);
+      ctx.globalAlpha = fillOpacity;
+      ctx.fillStyle = items[hoverIdx].color;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = opts.strokeWidth(zoom, st);
+      ctx.stroke();
     }
-    const clicked = n.id === clickedId;
-    // El punto seleccionado se oculta: lo reemplaza el rombo.
-    n.c.setAttribute("fill-opacity", clicked ? 0 : fillOpacity);
-    n.c.setAttribute("stroke-opacity", clicked ? 0 : 1);
-    n.c.style.pointerEvents = clicked ? "none" : "auto";
   }
 
   function draw(force) {
-    if (!view.update(force === true)) return;
-    const zoom = map.getZoom();
-    if (zoom !== lastZoom || force === true) {
-      lastZoom = zoom;
-      baseR = opts.radius(zoom, { hover: false, clicked: false });
-      baseSw = opts.strokeWidth(zoom, { hover: false, clicked: false });
-    }
-    const w = view.w;
-    const h = view.h;
-    for (const n of nodes) {
-      let on = !view.hidden(n.v);
-      let x = 0;
-      let y = 0;
-      if (on) {
-        ({ x, y } = map.project([n.lng, n.lat]));
-        on = x > -40 && y > -40 && x < w + 40 && y < h + 40;
-      }
-      if (!on) {
-        if (n.shown) {
-          n.c.style.display = "none";
-          n.shown = false;
-        }
-        continue;
-      }
-      if (!n.shown) {
-        n.c.style.display = "";
-        n.shown = true;
-        n.r = -1; // al reaparecer se vuelve a estilar
-        n.sw = -1;
-      }
-      n.c.setAttribute("cx", x.toFixed(1));
-      n.c.setAttribute("cy", y.toFixed(1));
-      if ((n.r !== baseR || n.sw !== baseSw || n.id === clickedId || n.id === hoverId)) styleOne(n, zoom);
-    }
+    const changed = view.update(force === true);
+    if (!changed) return;
+    project();
+    paint();
   }
 
+  /** Índice del punto bajo (px, py), o -1. Los últimos dibujados quedan arriba, así que se busca al revés. */
+  function hit(px, py) {
+    for (let i = n - 1; i >= 0; i--) {
+      if (!vis[i] || i === clickedIdx) continue;
+      const r = (i === hoverIdx ? opts.radius(zoom, { hover: true, clicked: false }) : baseR) + 2;
+      const dx = xs[i] - px;
+      const dy = ys[i] - py;
+      if (dx * dx + dy * dy <= r * r) return i;
+    }
+    return -1;
+  }
+
+  let raf = 0;
+  let pending = null;
+  const onMove = (e) => {
+    pending = e.point;
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      if (!pending) return;
+      const i = hit(pending.x, pending.y);
+      pending = null;
+      if (i === hoverIdx) return;
+      hoverIdx = i;
+      map.getCanvas().style.cursor = i >= 0 ? "pointer" : "";
+      opts.onHover?.(i >= 0 ? items[i].id : null);
+      paint();
+    });
+  };
+  const onLeave = () => {
+    if (hoverIdx < 0) return;
+    hoverIdx = -1;
+    map.getCanvas().style.cursor = "";
+    opts.onHover?.(null);
+    paint();
+  };
+  const onClick = (e) => {
+    const i = hit(e.point.x, e.point.y);
+    if (i >= 0) opts.onClick?.(items[i].id);
+  };
+  const onResize = () => {
+    sizeCanvas();
+    draw(true);
+  };
+
+  sizeCanvas();
   map.on("render", draw);
+  map.on("resize", onResize);
+  map.on("mousemove", onMove);
+  map.on("mouseout", onLeave);
+  map.on("click", onClick);
 
   return {
     set(next) {
-      if (next.items && next.items !== items) {
-        items = next.items;
-        build();
-      }
-      if ("clickedId" in next && next.clickedId !== clickedId) {
-        // El que dejó de estar seleccionado y el nuevo se vuelven a estilar.
-        for (const id of [clickedId, next.clickedId]) {
-          const n = byId.get(id);
-          if (n) n.r = -1;
-        }
-        clickedId = next.clickedId;
-      }
-      lastZoom = NaN;
+      if (next.items && next.items !== items) build(next.items);
+      if ("clickedId" in next) clickedIdx = indexOf(next.clickedId);
       draw(true);
     },
     destroy() {
+      cancelAnimationFrame(raf);
       map.off("render", draw);
+      map.off("resize", onResize);
+      map.off("mousemove", onMove);
+      map.off("mouseout", onLeave);
+      map.off("click", onClick);
+      try {
+        map.getCanvas().style.cursor = "";
+      } catch {
+        // el mapa ya se eliminó
+      }
       view.destroy();
-      svg.remove();
-      nodes = [];
-      byId.clear();
+      cv.remove();
     },
   };
 }
