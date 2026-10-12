@@ -1,11 +1,13 @@
 /**
  * Capas vectoriales de MapLibre dibujadas como SVG encima del mapa, con el MISMO método que la malla de la
- * parcela (glTraceOverlay.js): cada coordenada se reproyecta con map.project() en cada cuadro "render".
+ * parcela (glTraceOverlay.js): cada coordenada se reproyecta con map.project() al cuadro "render".
  *
  * Las capas GeoJSON nativas (type "line" / "circle") pasan por el worker de MapLibre; si el worker tarda,
  * llega tarde tras recrear el mapa, o el contenedor nació con 0×0 px, a veces nunca se pintan (mientras la
- * malla, que no depende del worker, siempre aparece). Dibujándolas aquí no hay worker, ni teselado, ni estado
- * intermedio que pueda fallar: si el mapa se pinta, se pintan.
+ * malla, que no depende del worker, siempre aparece). Dibujándolas aquí no hay worker ni teselado que pueda fallar.
+ *
+ * Costo: "render" se emite en cada cuadro aunque el mapa esté quieto (fundido de teselas, animaciones), así que
+ * cada overlay compara una firma de la vista (centro, zoom, rumbo, tamaño) y no hace nada si no cambió.
  */
 
 const NS = "http://www.w3.org/2000/svg";
@@ -26,31 +28,55 @@ function makeSvg(map, { first = false } = {}) {
 }
 
 const RAD = Math.PI / 180;
-/** Distancia angular (°) entre dos puntos [lng, lat]. */
-function angularDistance(lng1, lat1, lng2, lat2) {
-  const a =
-    Math.sin(((lat2 - lat1) * RAD) / 2) ** 2 +
-    Math.cos(lat1 * RAD) * Math.cos(lat2 * RAD) * Math.sin(((lng2 - lng1) * RAD) / 2) ** 2;
-  return (2 * Math.asin(Math.min(1, Math.sqrt(a)))) / RAD;
-}
+/** Vector unitario de un [lng, lat] (se calcula una sola vez por punto). */
+const unit = (lng, lat) => {
+  const cl = Math.cos(lat * RAD);
+  return [cl * Math.cos(lng * RAD), cl * Math.sin(lng * RAD), Math.sin(lat * RAD)];
+};
+// cos(84°): más allá de esto, un punto está del lado oculto del globo.
+const HORIZON_DOT = 0.1;
+// Desde este zoom el globo ya es casi plano y lo visible es una zona chica: no hace falta descartar nada.
+const NO_CULL_ZOOM = 6;
 
 /**
- * ¿La coordenada está del lado oculto del globo? En el mapa plano nunca. En el globo, map.project() también
- * devuelve un punto para el hemisferio de atrás, así que hay que descartarlo para que no se dibuje "a través"
- * del planeta.
+ * Vista del mapa: firma barata para saber si cambió algo, y descarte del hemisferio oculto (en el globo,
+ * map.project() también devuelve un punto para el lado de atrás, y se dibujaría "a través" del planeta).
  */
-function makeOccluded(map) {
-  return (lng, lat) => {
-    try {
-      const t = map.transform;
-      if (typeof t?.isLocationOccluded === "function") return t.isLocationOccluded({ lng, lat });
-    } catch {
-      // se usa el cálculo propio
-    }
-    const proj = map.getProjection?.()?.type;
-    if (proj && proj !== "globe") return false;
-    const c = map.getCenter();
-    return angularDistance(c.lng, c.lat, lng, lat) > 84;
+function makeView(map) {
+  let sig = "";
+  let cx = 1;
+  let cy = 0;
+  let cz = 0;
+  let cull = false;
+  let w = 0;
+  let h = 0;
+  const readSize = () => {
+    const c = map.getCanvas();
+    w = c.clientWidth;
+    h = c.clientHeight;
+  };
+  readSize();
+  map.on("resize", readSize);
+  return {
+    get w() {
+      return w;
+    },
+    get h() {
+      return h;
+    },
+    /** true si la vista cambió desde la última vez (o si `force`). Deja listo el descarte. */
+    update(force) {
+      const c = map.getCenter();
+      const z = map.getZoom();
+      const next = `${c.lng}|${c.lat}|${z}|${map.getBearing()}|${w}|${h}`;
+      if (!force && next === sig) return false;
+      sig = next;
+      cull = z < NO_CULL_ZOOM && map.getProjection?.()?.type !== "mercator";
+      if (cull) [cx, cy, cz] = unit(c.lng, c.lat);
+      return true;
+    },
+    hidden: (v) => cull && v[0] * cx + v[1] * cy + v[2] * cz < HORIZON_DOT,
+    destroy: () => map.off("resize", readSize),
   };
 }
 
@@ -97,8 +123,12 @@ export function createLinesOverlay(map, geojson, style) {
   const svg = makeSvg(map, { first: true });
   const path = el("path", { fill: "none", "stroke-linejoin": "round", "stroke-linecap": "butt" });
   svg.appendChild(path);
-  const lines = collectLines(geojson);
-  const occluded = makeOccluded(map);
+  // Coordenadas y vectores se preparan una sola vez.
+  const rings = collectLines(geojson).map((ring) => ({
+    ll: ring,
+    v: ring.map(([lng, lat]) => unit(lng, lat)),
+  }));
+  const view = makeView(map);
   let st = style;
 
   function applyStyle() {
@@ -109,26 +139,33 @@ export function createLinesOverlay(map, geojson, style) {
     else path.removeAttribute("stroke-dasharray");
   }
 
-  function draw() {
-    let d = "";
-    for (const ring of lines) {
+  function draw(force) {
+    if (!view.update(force === true)) return;
+    const parts = [];
+    for (const { ll, v } of rings) {
       let pen = false; // ¿hay un tramo visible abierto?
-      for (const [lng, lat] of ring) {
-        if (occluded(lng, lat)) {
+      let lx = 0;
+      let ly = 0;
+      for (let i = 0; i < ll.length; i++) {
+        if (view.hidden(v[i])) {
           pen = false;
           continue;
         }
-        const { x, y } = map.project([lng, lat]);
-        d += `${pen ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`;
+        const { x, y } = map.project(ll[i]);
+        // Vértices a menos de 1.5 px del anterior no aportan nada a la vista (de lejos son la mayoría).
+        if (pen && Math.abs(x - lx) < 1.5 && Math.abs(y - ly) < 1.5 && i < ll.length - 1) continue;
+        parts.push(`${pen ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`);
+        lx = x;
+        ly = y;
         pen = true;
       }
     }
-    path.setAttribute("d", d);
+    path.setAttribute("d", parts.join(""));
   }
 
   applyStyle();
   map.on("render", draw);
-  draw();
+  draw(true);
 
   return {
     setStyle(next) {
@@ -137,6 +174,7 @@ export function createLinesOverlay(map, geojson, style) {
     },
     destroy() {
       map.off("render", draw);
+      view.destroy();
       svg.remove();
     },
   };
@@ -155,21 +193,26 @@ export function createLinesOverlay(map, geojson, style) {
  */
 export function createPointsOverlay(map, opts) {
   const svg = makeSvg(map);
-  const nodes = new Map(); // id -> { c: <circle>, item }
+  const view = makeView(map);
+  const fillOpacity = opts.fillOpacity ?? 0.9;
+  let nodes = []; // { id, c, lng, lat, v, shown, r, sw }
+  let byId = new Map();
   let items = [];
   let clickedId = null;
   let hoverId = null;
-  const occluded = makeOccluded(map);
+  let lastZoom = NaN;
+  let baseR = 0;
+  let baseSw = 0;
 
   let down = null;
   const onDown = (e) => (down = { x: e.clientX, y: e.clientY });
 
   function build() {
-    nodes.forEach(({ c }) => c.remove());
-    nodes.clear();
-    for (const item of items) {
-      const c = el("circle", { fill: item.color, stroke: "#ffffff", cx: -100, cy: -100, r: 0 });
-      c.style.cssText = "pointer-events:auto;cursor:pointer";
+    svg.replaceChildren();
+    byId = new Map();
+    nodes = items.map((item) => {
+      const c = el("circle", { fill: item.color, stroke: "#ffffff", "fill-opacity": fillOpacity, "stroke-opacity": 1 });
+      c.style.cssText = "pointer-events:auto;cursor:pointer;display:none";
       c.addEventListener("pointerdown", onDown);
       c.addEventListener("click", (e) => {
         // Un arrastre del mapa que termina sobre un punto no cuenta como clic.
@@ -180,42 +223,77 @@ export function createPointsOverlay(map, opts) {
       c.addEventListener("pointerenter", () => {
         hoverId = item.id;
         opts.onHover?.(item.id);
-        draw();
+        styleOne(byId.get(item.id), lastZoom);
       });
       c.addEventListener("pointerleave", () => {
         if (hoverId === item.id) hoverId = null;
         opts.onHover?.(null);
-        draw();
+        styleOne(byId.get(item.id), lastZoom);
       });
       svg.appendChild(c);
-      nodes.set(item.id, { c, item });
-    }
+      const n = { id: item.id, c, lng: item.lng, lat: item.lat, v: unit(item.lng, item.lat), shown: false, r: -1, sw: -1 };
+      byId.set(item.id, n);
+      return n;
+    });
   }
 
-  function draw() {
+  /** Radio y trazo de un punto (el normal comparte valores calculados una vez por cuadro de zoom). */
+  function styleOne(n, zoom) {
+    if (!n) return;
+    const special = n.id === clickedId || n.id === hoverId;
+    const state = { hover: n.id === hoverId, clicked: n.id === clickedId };
+    const r = special ? opts.radius(zoom, state) : baseR;
+    const sw = special ? opts.strokeWidth(zoom, state) : baseSw;
+    if (r !== n.r) {
+      n.c.setAttribute("r", r);
+      n.r = r;
+    }
+    if (sw !== n.sw) {
+      n.c.setAttribute("stroke-width", sw);
+      n.sw = sw;
+    }
+    const clicked = n.id === clickedId;
+    // El punto seleccionado se oculta: lo reemplaza el rombo.
+    n.c.setAttribute("fill-opacity", clicked ? 0 : fillOpacity);
+    n.c.setAttribute("stroke-opacity", clicked ? 0 : 1);
+    n.c.style.pointerEvents = clicked ? "none" : "auto";
+  }
+
+  function draw(force) {
+    if (!view.update(force === true)) return;
     const zoom = map.getZoom();
-    const w = map.getCanvas().clientWidth;
-    const h = map.getCanvas().clientHeight;
-    nodes.forEach(({ c, item }, id) => {
-      const clicked = id === clickedId;
-      const hover = id === hoverId;
-      const hidden = occluded(item.lng, item.lat);
-      const { x, y } = hidden ? { x: -1e4, y: -1e4 } : map.project([item.lng, item.lat]);
-      if (hidden || x < -40 || y < -40 || x > w + 40 || y > h + 40) {
-        c.style.display = "none";
-        return;
+    if (zoom !== lastZoom || force === true) {
+      lastZoom = zoom;
+      baseR = opts.radius(zoom, { hover: false, clicked: false });
+      baseSw = opts.strokeWidth(zoom, { hover: false, clicked: false });
+    }
+    const w = view.w;
+    const h = view.h;
+    for (const n of nodes) {
+      let on = !view.hidden(n.v);
+      let x = 0;
+      let y = 0;
+      if (on) {
+        ({ x, y } = map.project([n.lng, n.lat]));
+        on = x > -40 && y > -40 && x < w + 40 && y < h + 40;
       }
-      const state = { hover, clicked };
-      c.style.display = "";
-      c.setAttribute("cx", x.toFixed(1));
-      c.setAttribute("cy", y.toFixed(1));
-      c.setAttribute("r", opts.radius(zoom, state));
-      c.setAttribute("stroke-width", opts.strokeWidth(zoom, state));
-      // El punto seleccionado se oculta: lo reemplaza el rombo.
-      c.setAttribute("fill-opacity", clicked ? 0 : (opts.fillOpacity ?? 0.9));
-      c.setAttribute("stroke-opacity", clicked ? 0 : 1);
-      c.style.pointerEvents = clicked ? "none" : "auto";
-    });
+      if (!on) {
+        if (n.shown) {
+          n.c.style.display = "none";
+          n.shown = false;
+        }
+        continue;
+      }
+      if (!n.shown) {
+        n.c.style.display = "";
+        n.shown = true;
+        n.r = -1; // al reaparecer se vuelve a estilar
+        n.sw = -1;
+      }
+      n.c.setAttribute("cx", x.toFixed(1));
+      n.c.setAttribute("cy", y.toFixed(1));
+      if ((n.r !== baseR || n.sw !== baseSw || n.id === clickedId || n.id === hoverId)) styleOne(n, zoom);
+    }
   }
 
   map.on("render", draw);
@@ -226,13 +304,23 @@ export function createPointsOverlay(map, opts) {
         items = next.items;
         build();
       }
-      if ("clickedId" in next) clickedId = next.clickedId;
-      draw();
+      if ("clickedId" in next && next.clickedId !== clickedId) {
+        // El que dejó de estar seleccionado y el nuevo se vuelven a estilar.
+        for (const id of [clickedId, next.clickedId]) {
+          const n = byId.get(id);
+          if (n) n.r = -1;
+        }
+        clickedId = next.clickedId;
+      }
+      lastZoom = NaN;
+      draw(true);
     },
     destroy() {
       map.off("render", draw);
+      view.destroy();
       svg.remove();
-      nodes.clear();
+      nodes = [];
+      byId.clear();
     },
   };
 }
