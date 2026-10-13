@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { BarChart3, CalendarRange, ChevronDown, Layers, Sigma } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import InfoButton from "../components/ui/InfoButton";
 import { useModelInfo } from "../context/ModelInfoContext";
@@ -7,6 +7,8 @@ import { useParcels } from "../context/ParcelsContext";
 import { Contributions, Label } from "../components/results/ReportParts";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
 import RequireModelInfo from "../components/ui/RequireModelInfo";
+import { Card, DIVIDE, Heading, HeroPhoto, LINE, Reveal } from "../components/ui/PageKit";
+import heroImage from "../assets/shap/imagen-1.webp";
 
 /* ------------------------------------------------------------------ */
 /* Constantes y utilidades                                             */
@@ -51,9 +53,9 @@ function windowOf(feature) {
 // Celdas de valor pegadas, igual que las métricas de Predicciones: un marco redondeado con líneas divisorias
 // finas. El -mb-px/-mr-px esconde el borde sobrante de la última fila y columna. El icono grande sale de la
 // esquina, así que cada celda recorta lo que se desborda.
-function JoinedCells({ className = "", children }) {
+function JoinedCells({ className = "", bare = false, children }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
+    <div className={bare ? "overflow-hidden" : "overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800"}>
       <div className={`-mb-px -mr-px grid ${className}`}>{children}</div>
     </div>
   );
@@ -85,31 +87,14 @@ const netShap = (p) => (p.shap ?? []).reduce((s, d) => s + d.impact, 0);
 /* Piezas de UI (mismo lenguaje sobrio que Predicciones)               */
 /* ------------------------------------------------------------------ */
 
-/** Encabezado de sección de la columna lateral: título + descripción opcional. */
-function SectionHeader({ title, description }) {
-  return (
-    <div className="mb-6">
-      <h2 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
-      {description && (
-        <p className="mt-1 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">{description}</p>
-      )}
-    </div>
-  );
-}
-
 /** Fila etiqueta/valor de las fichas. */
 function DetailRow({ label, children }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 py-3 first:pt-0 last:pb-0">
+    <div className="flex items-baseline justify-between gap-4 py-3">
       <dt className="text-sm text-gray-500 dark:text-gray-400">{label}</dt>
-      <dd className="text-right text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">{children}</dd>
+      <dd className="text-right font-display text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">{children}</dd>
     </div>
   );
-}
-
-/** Texto descriptivo bajo un `Label` de sección. */
-function Description({ children }) {
-  return <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">{children}</p>;
 }
 
 /** Métrica del resumen: etiqueta fina, cifra y nota. Sin iconos ni colores. */
@@ -141,7 +126,7 @@ function ImportanceRow({ rank, row, share, cumulative, maxValue }) {
   return (
     <li className={`${IMPORTANCE_COLS} py-2.5 text-sm`}>
       <div className="flex min-w-0 items-baseline gap-3">
-        <span className="w-5 shrink-0 text-right text-xs tabular-nums text-gray-400 dark:text-gray-500">{rank}</span>
+        <span className="w-5 shrink-0 text-right font-display text-xs tabular-nums text-gray-400 dark:text-gray-500">{rank}</span>
         <div className="min-w-0">
           <span className="leading-snug text-gray-800 dark:text-gray-200">{row.feature}</span>
           <span className="mt-0.5 block text-[11px] text-gray-400 dark:text-gray-500">
@@ -162,12 +147,12 @@ function ImportanceRow({ rank, row, share, cumulative, maxValue }) {
         />
       </span>
 
-      <span className="text-right font-medium tabular-nums text-gray-900 dark:text-gray-100">
+      <span className="text-right font-display font-medium tabular-nums text-gray-900 dark:text-gray-100">
         {SIGN[row.direction] ?? ""}
         {row.value.toFixed(3)}
       </span>
 
-      <span className="hidden text-right text-xs tabular-nums text-gray-500 dark:text-gray-400 sm:block">
+      <span className="hidden text-right font-display text-xs tabular-nums text-gray-500 dark:text-gray-400 sm:block">
         {share}% · {cumulative}% acum.
       </span>
     </li>
@@ -205,7 +190,7 @@ function WindowBreakdown({ rows }) {
               style={{ width: `${Math.max(g.share, 1)}%`, backgroundColor: "var(--chart-1)" }}
             />
           </span>
-          <span className="text-right font-medium tabular-nums text-gray-900 dark:text-gray-100">
+          <span className="text-right font-display font-medium tabular-nums text-gray-900 dark:text-gray-100">
             {Math.round(g.share)}%
           </span>
         </li>
@@ -298,7 +283,10 @@ function ValidacionSHAPPageContent() {
   });
 
   return (
-    <>
+    <div className="relative isolate overflow-x-clip">
+      {/* Foto pegada a la esquina superior derecha, detrás del encabezado (igual que Cebada y FIRA) */}
+      <HeroPhoto src={heroImage} position="50% 45%" />
+
       <TopBar
         title="Validación SHAP"
         subtitle="Interpretabilidad del modelo: qué variables mueven la predicción y en qué dirección."
@@ -306,247 +294,296 @@ function ValidacionSHAPPageContent() {
         actions={<InfoButton title="Preguntas guía de la validación" questions={guidingQuestions} />}
       />
 
-      <div className="mt-6" aria-hidden="true" />
-
-      <div className="grid grid-cols-1 items-start gap-12 px-4 py-8 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-14 lg:px-8">
-        {/* Columna izquierda: lectura de la validación */}
-        <aside className="min-w-0 space-y-10">
-          <section>
-            <SectionHeader title="Consistencia del score" />
-            <p className="font-display text-3xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-              {checks.eligiblePositive}
-              <span className="ml-1.5 text-base font-normal text-gray-400 dark:text-gray-500">
-                de {checks.eligible} elegibles
-              </span>
-            </p>
-            <div
-              className="relative mt-4 h-4"
-              role="img"
-              aria-label={`${checks.eligiblePositive} de ${checks.eligible} parcelas elegibles con contribución SHAP neta positiva`}
-            >
-              <span className="absolute inset-x-0 top-1/2 h-px bg-gray-200 dark:bg-gray-800" />
-              <span
-                className="absolute left-0 top-1/2 h-1.5 -translate-y-1/2 transition-[width] duration-500"
-                style={{ width: `${pct(checks.eligiblePositive, checks.eligible)}%`, backgroundColor: "var(--chart-1)" }}
-              />
-            </div>
-            <p className="mt-4 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-              En {checks.eligiblePositive} de las {checks.eligible} parcelas con score ≥ 70 la suma de sus
-              principales contribuciones SHAP empuja el rendimiento hacia arriba, como se espera de una parcela
-              elegible.
-              {checks.eligible - checks.eligiblePositive > 0 && (
-                <>
-                  {" "}
-                  Las {checks.eligible - checks.eligiblePositive} restantes son elegibles aun con un SHAP neto
-                  negativo, así que conviene revisarlas manualmente.
-                </>
-              )}
-            </p>
-          </section>
-
-          <section>
-            <SectionHeader title="Datos de la validación" />
-            <dl>
-              <DetailRow label="Variable dominante como driver #1">
-                {checks.dominantTop}
-                <span className="ml-1 text-xs font-normal text-gray-400 dark:text-gray-500">de {checks.total}</span>
-              </DetailRow>
-              <DetailRow label="Variables que suman / restan">
-                {nPositive} / {nNegative}
-              </DetailRow>
-              <DetailRow label="Parcelas de entrenamiento">{modelSummary.trainingParcels}</DetailRow>
-              <DetailRow label="|SHAP| media máxima">{topFeature.value}</DetailRow>
-            </dl>
-            <p className="mt-6 text-xs leading-relaxed text-gray-400 dark:text-gray-500">
-              Cada parcela guarda sus 4 variables con mayor |SHAP|; los totales por parcela se calculan sobre esas 4.
-              {topFeature.feature.toLowerCase().includes("precipitación") &&
-                " Nota: la precipitación está parcialmente confundida con el estado por la resolución de CHIRPS (~5 km)."}
-            </p>
-          </section>
-        </aside>
-
-        {/* Contenido principal */}
-        <div className="min-w-0 space-y-10">
-          {/* Resumen */}
-          <section aria-label="Resumen de la validación">
-            <JoinedCells className="grid-cols-2 lg:grid-cols-4">
-              <SummaryStat
-                label="Variable dominante"
-                value={`${Math.round((topFeature.value / total) * 100)}%`}
-                hint={topFeature.feature}
-              />
-              <SummaryStat
-                label="Ventana más crítica"
-                value={`${windowShares.share}%`}
-                hint={`${topWindow.label} (${topWindow.note})`}
-              />
-              <SummaryStat
-                label="Coherencia con el semáforo"
-                value={`${pct(checks.eligiblePositive, checks.eligible)}%`}
-                hint={`${checks.eligiblePositive} de ${checks.eligible} parcelas elegibles con SHAP neto positivo`}
-              />
-              <SummaryStat
-                label="Correlación SHAP – rendimiento"
-                value={checks.r == null ? "—" : checks.r.toFixed(2)}
-                hint={`r de Pearson sobre ${checks.total} parcelas`}
-              />
-            </JoinedCells>
-          </section>
-
-          {/* 1. Importancia global */}
-          <section>
-            <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-              <div className="min-w-0">
-                <Label>Importancia global de variables</Label>
-                <Description>
-                  {`Media de |SHAP| sobre las ${modelSummary.shapParcels} parcelas del reto (entrenamiento y evaluación). Las 3 primeras variables concentran el ${rankedRows[2].cumulative}% de la importancia.`}
-                </Description>
+      <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        {/* Introducción: texto sobre la foto y datos en una fila sin caja */}
+        <Reveal className="pb-6 pt-10 lg:pt-16">
+          <div className="max-w-xl">
+            <Heading title="Qué mueve la predicción" large>
+              SHAP reparte cada predicción entre las variables que la produjeron. Aquí se revisa que el modelo dé
+              peso a lo que debe, que lo haga en la dirección esperada y que el semáforo sea coherente con ello.
+            </Heading>
+          </div>
+          {/* Cifras grandes con la etiqueta debajo, separadas por una línea fina (sin caja ni iconos) */}
+          <dl className="mt-10 grid max-w-5xl gap-y-6 sm:grid-cols-3 sm:divide-x sm:divide-gray-200 sm:dark:divide-gray-800">
+            {[
+              {
+                label: "Variable dominante",
+                big: `${Math.round((topFeature.value / total) * 100)}%`,
+                note: topFeature.feature,
+              },
+              {
+                label: "Ventana más crítica",
+                big: `${windowShares.share}%`,
+                note: `${topWindow.label} · ${topWindow.note}`,
+              },
+              {
+                label: "Coherencia con el semáforo",
+                big: checks.eligible ? `${pct(checks.eligiblePositive, checks.eligible)}%` : "—",
+                note: checks.eligible
+                  ? `${checks.eligiblePositive} de ${checks.eligible} parcelas elegibles`
+                  : "Aún no hay parcelas elegibles para comparar",
+              },
+            ].map((f) => (
+              <div key={f.label} className="min-w-0 sm:px-8 sm:first:pl-0 sm:last:pr-0">
+                <dt className="text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{f.label}</dt>
+                <dd className="mt-2 font-display text-4xl font-semibold tabular-nums text-accent-600 dark:text-accent-400 sm:text-5xl">{f.big}</dd>
+                <dd className="mt-2 text-sm leading-snug text-gray-600 dark:text-gray-300">{f.note}</dd>
               </div>
-              <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar por efecto">
-                {FILTERS.map((f) => {
-                  const active = filter === f.key;
-                  return (
-                    <button
-                      key={f.key}
-                      type="button"
-                      onClick={() => setFilter(f.key)}
-                      aria-pressed={active}
-                      className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 ${
-                        active
-                          ? "border-gray-300 bg-gray-100 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                          : "border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-400 dark:hover:bg-gray-800"
-                      }`}
-                    >
-                      {f.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            ))}
+          </dl>
+        </Reveal>
 
-            <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5">
-              {Object.keys(EFFECT_LABEL)
-                .filter((k) => globalImportance.some((r) => r.direction === k))
-                .map((k) => (
-                  <li key={k} className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                    <span className="h-2 w-2 shrink-0" style={{ backgroundColor: EFFECT_COLOR[k] }} />
-                    {EFFECT_LABEL[k]}
-                  </li>
-                ))}
-            </ul>
-
-            <div className="mt-3">
-              <div className={`${IMPORTANCE_COLS} pb-2 text-[11px] text-gray-400 dark:text-gray-500`}>
-                <span className="pl-8">Variable</span>
-                <span>Peso relativo</span>
-                <span className="text-right">|SHAP|</span>
-                <span className="hidden text-right sm:block">Parte · acumulado</span>
-              </div>
-              <ol className="divide-y divide-gray-100 border-y border-gray-100 dark:divide-gray-800/70 dark:border-gray-800/70">
-                {visibleRows.map(({ row, rank, share, cumulative }) => (
-                  <ImportanceRow
-                    key={row.feature}
-                    rank={rank}
-                    row={row}
-                    share={share}
-                    cumulative={cumulative}
-                    maxValue={maxValue}
-                  />
-                ))}
-              </ol>
-            </div>
-          </section>
-
-          {/* 2. Por ventana fenológica */}
-          <section>
-            <Label>Importancia por ventana fenológica</Label>
-            <Description>
-              Cómo se reparte la importancia entre las etapas del ciclo: indica cuándo es más crítico monitorear la
-              parcela.
-            </Description>
-            <WindowBreakdown rows={globalImportance} />
-          </section>
-
-          {/* 3. Explicación local */}
-          <section>
-            <Label>Explicación por parcela</Label>
-            <Description>
-              Contribución SHAP local de las 4 variables con mayor peso en la parcela. Las barras a la derecha suman
-              al rendimiento estimado; a la izquierda restan.
-            </Description>
-
-            {selected ? (
-              <>
-                <div className="relative mt-4 max-w-md">
-                  <select
-                    value={selected.id}
-                    onChange={(e) => setSelectedId(Number(e.target.value))}
-                    aria-label="Parcela a explicar"
-                    className="w-full appearance-none rounded-full border border-gray-200 bg-white py-2.5 pl-4 pr-10 text-sm font-medium text-gray-800 shadow-xs focus:border-accent-500 focus:outline-hidden focus:ring-1 focus:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-200"
-                  >
-                    {selectable.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} · {p.municipio}, {p.region}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown
-                    size={16}
-                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
-                  />
-                </div>
-
-                <JoinedCells className="mt-6 grid-cols-2 sm:grid-cols-4">
+        {/* Resumen: a todo el ancho */}
+        <Reveal>
+              <Card icon={Sigma} title="Resumen de la validación">
+                <JoinedCells bare className="grid-cols-2 lg:grid-cols-4">
                   <SummaryStat
-                    label="Rendimiento estimado"
-                    value={
-                      <>
-                        {selected.yieldEstimate.toFixed(2)}
-                        <span className="ml-1 text-sm font-normal text-gray-400 dark:text-gray-500">ton/ha</span>
-                      </>
-                    }
+                    label="Variable dominante"
+                    value={`${Math.round((topFeature.value / total) * 100)}%`}
+                    hint={topFeature.feature}
                   />
                   <SummaryStat
-                    label="Score"
-                    value={
-                      <>
-                        {selected.score}
-                        <span className="ml-1 text-sm font-normal text-gray-400 dark:text-gray-500">{selected.risk}</span>
-                      </>
-                    }
+                    label="Ventana más crítica"
+                    value={`${windowShares.share}%`}
+                    hint={`${topWindow.label} (${topWindow.note})`}
                   />
                   <SummaryStat
-                    label="SHAP neto (top 4)"
-                    value={`${localNet >= 0 ? "+" : "−"}${Math.abs(localNet).toFixed(3)}`}
+                    label="Coherencia con el semáforo"
+                    value={`${pct(checks.eligiblePositive, checks.eligible)}%`}
+                    hint={`${checks.eligiblePositive} de ${checks.eligible} parcelas elegibles con SHAP neto positivo`}
                   />
-                  <SummaryStat label="Variable dominante" value={null} hint={localDrivers[0].feature} />
+                  <SummaryStat
+                    label="Correlación SHAP – rendimiento"
+                    value={checks.r == null ? "—" : checks.r.toFixed(2)}
+                    hint={`r de Pearson sobre ${checks.total} parcelas`}
+                  />
                 </JoinedCells>
+              </Card>
+            </Reveal>
 
-                <Contributions
-                  data={localDrivers.map((d) => ({
-                    feature: d.feature,
-                    value: Math.abs(d.impact),
-                    direction: d.impact >= 0 ? "positivo" : "negativo",
-                  }))}
-                />
+        {/* Fila 1: importancia global (ancha) y, a su lado, consistencia + ventanas */}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-stretch">
+          <Reveal className="min-w-0 h-full">
+              <Card
+                className="h-full"
+                icon={BarChart3}
+                title="Importancia global de variables"
+                description={`Media de |SHAP| sobre las ${modelSummary.shapParcels} parcelas del reto (entrenamiento y evaluación). Las 3 primeras variables concentran el ${rankedRows[2].cumulative}% de la importancia.`}
+                action={
+                  <div className="flex flex-wrap items-center justify-end gap-2" role="group" aria-label="Filtrar por efecto">
+                    {FILTERS.map((f) => {
+                      const active = filter === f.key;
+                      return (
+                        <button
+                          key={f.key}
+                          type="button"
+                          onClick={() => setFilter(f.key)}
+                          aria-pressed={active}
+                          className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 ${
+                            active
+                              ? "border-gray-300 bg-gray-100 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                              : "border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-400 dark:hover:bg-gray-800"
+                          }`}
+                        >
+                          {f.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                }
+              >
+                <div className="p-5">
+                  <ul className="flex flex-wrap gap-x-4 gap-y-1.5">
+                    {Object.keys(EFFECT_LABEL)
+                      .filter((k) => globalImportance.some((r) => r.direction === k))
+                      .map((k) => (
+                        <li key={k} className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                          <span className="h-2 w-2 shrink-0" style={{ backgroundColor: EFFECT_COLOR[k] }} />
+                          {EFFECT_LABEL[k]}
+                        </li>
+                      ))}
+                  </ul>
 
-                {divergent.length > 0 && (
-                  <p className="mt-3 text-xs leading-relaxed text-gray-400 dark:text-gray-500">
-                    En esta parcela {divergent.map((d) => d.feature).join(", ")}{" "}
-                    {divergent.length === 1 ? "actúa" : "actúan"} en dirección distinta al efecto promedio global
-                    (varía según la parcela).
+                  <div className="mt-3">
+                    <div className={`${IMPORTANCE_COLS} pb-2 text-[11px] text-gray-400 dark:text-gray-500`}>
+                      <span className="pl-8">Variable</span>
+                      <span>Peso relativo</span>
+                      <span className="text-right">|SHAP|</span>
+                      <span className="hidden text-right sm:block">Parte · acumulado</span>
+                    </div>
+                    <ol className="divide-y divide-gray-100 border-y border-gray-100 dark:divide-gray-800/70 dark:border-gray-800/70">
+                      {visibleRows.map(({ row, rank, share, cumulative }) => (
+                        <ImportanceRow
+                          key={row.feature}
+                          rank={rank}
+                          row={row}
+                          share={share}
+                          cumulative={cumulative}
+                          maxValue={maxValue}
+                        />
+                      ))}
+                    </ol>
+                  </div>
+                </div>
+              </Card>
+            </Reveal>
+          <div className="flex min-w-0 flex-col gap-6">
+            <Reveal className="flex-auto">
+              <Card className="h-full" title="Consistencia del score">
+                <div className="p-5">
+                  <p className="font-display text-3xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                    {checks.eligiblePositive}
+                    <span className="ml-1.5 text-base font-normal text-gray-400 dark:text-gray-500">
+                      de {checks.eligible} elegibles
+                    </span>
+                  </p>
+                  <div
+                    className="relative mt-4 h-4"
+                    role="img"
+                    aria-label={`${checks.eligiblePositive} de ${checks.eligible} parcelas elegibles con contribución SHAP neta positiva`}
+                  >
+                    <span className="absolute inset-x-0 top-1/2 h-px bg-gray-200 dark:bg-gray-800" />
+                    <span
+                      className="absolute left-0 top-1/2 h-1.5 -translate-y-1/2 transition-[width] duration-500"
+                      style={{ width: `${pct(checks.eligiblePositive, checks.eligible)}%`, backgroundColor: "var(--chart-1)" }}
+                    />
+                  </div>
+                  <p className="mt-4 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                    En {checks.eligiblePositive} de las {checks.eligible} parcelas con score ≥ 70 la suma de sus
+                    principales contribuciones SHAP empuja el rendimiento hacia arriba, como se espera de una parcela
+                    elegible.
+                    {checks.eligible - checks.eligiblePositive > 0 && (
+                      <>
+                        {" "}
+                        Las {checks.eligible - checks.eligiblePositive} restantes son elegibles aun con un SHAP neto
+                        negativo, así que conviene revisarlas manualmente.
+                      </>
+                    )}
+                  </p>
+                </div>
+              </Card>
+            </Reveal>
+            <Reveal className="flex-auto">
+              <Card
+                className="h-full"
+                icon={CalendarRange}
+                title="Importancia por ventana fenológica"
+                description="Cómo se reparte la importancia entre las etapas del ciclo: indica cuándo es más crítico monitorear la parcela."
+              >
+                <div className="px-5 pb-5">
+                  <WindowBreakdown rows={globalImportance} />
+                </div>
+              </Card>
+            </Reveal>
+          </div>
+        </div>
+
+        {/* Fila 2: datos de la validación (angosta) y explicación por parcela (ancha) */}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-stretch">
+          <Reveal className="min-w-0 h-full">
+              <Card className="h-full" title="Datos de la validación">
+                <dl className={`divide-y px-5 py-1 ${DIVIDE}`}>
+                  <DetailRow label="Variable dominante como driver #1">
+                    {checks.dominantTop}
+                    <span className="ml-1 text-xs font-normal text-gray-400 dark:text-gray-500">de {checks.total}</span>
+                  </DetailRow>
+                  <DetailRow label="Variables que suman / restan">
+                    {nPositive} / {nNegative}
+                  </DetailRow>
+                  <DetailRow label="Parcelas de entrenamiento">{modelSummary.trainingParcels}</DetailRow>
+                  <DetailRow label="|SHAP| media máxima">{topFeature.value}</DetailRow>
+                </dl>
+                <p className={`border-t px-5 py-4 text-xs leading-relaxed text-gray-400 dark:text-gray-500 ${LINE}`}>
+                  Cada parcela guarda sus 4 variables con mayor |SHAP|; los totales por parcela se calculan sobre esas 4.
+                  {topFeature.feature.toLowerCase().includes("precipitación") &&
+                    " Nota: la precipitación está parcialmente confundida con el estado por la resolución de CHIRPS (~5 km)."}
+                </p>
+              </Card>
+            </Reveal>
+          <Reveal className="min-w-0 h-full">
+              <Card
+                className="h-full"
+                icon={Layers}
+                title="Explicación por parcela"
+                description="Contribución SHAP local de las 4 variables con mayor peso en la parcela. Las barras a la derecha suman al rendimiento estimado; a la izquierda restan."
+              >
+                {selected ? (
+                  <>
+                    <div className={`border-b p-5 ${LINE}`}>
+                      <div className="relative max-w-md">
+                        <select
+                          value={selected.id}
+                          onChange={(e) => setSelectedId(Number(e.target.value))}
+                          aria-label="Parcela a explicar"
+                          className="w-full appearance-none rounded-full border border-gray-200 bg-white py-2.5 pl-4 pr-10 text-sm font-medium text-gray-800 shadow-xs focus:border-accent-500 focus:outline-hidden focus:ring-1 focus:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-200"
+                        >
+                          {selectable.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name} · {p.municipio}, {p.region}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown
+                          size={16}
+                          className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+                        />
+                      </div>
+                    </div>
+
+                    <JoinedCells bare className="grid-cols-2 xl:grid-cols-4">
+                      <SummaryStat
+                        label="Rendimiento estimado"
+                        value={
+                          <>
+                            {selected.yieldEstimate.toFixed(2)}
+                            <span className="ml-1 text-sm font-normal text-gray-400 dark:text-gray-500">ton/ha</span>
+                          </>
+                        }
+                      />
+                      <SummaryStat
+                        label="Score"
+                        value={
+                          <>
+                            {selected.score}
+                            <span className="ml-1 text-sm font-normal text-gray-400 dark:text-gray-500">{selected.risk}</span>
+                          </>
+                        }
+                      />
+                      <SummaryStat
+                        label="SHAP neto (top 4)"
+                        value={`${localNet >= 0 ? "+" : "−"}${Math.abs(localNet).toFixed(3)}`}
+                      />
+                      <SummaryStat label="Variable dominante" value={null} hint={localDrivers[0].feature} />
+                    </JoinedCells>
+
+                    <div className="px-5 pb-5">
+                      <Contributions
+                        data={localDrivers.map((d) => ({
+                          feature: d.feature,
+                          value: Math.abs(d.impact),
+                          direction: d.impact >= 0 ? "positivo" : "negativo",
+                        }))}
+                      />
+
+                      {divergent.length > 0 && (
+                        <p className="mt-3 text-xs leading-relaxed text-gray-400 dark:text-gray-500">
+                          En esta parcela {divergent.map((d) => d.feature).join(", ")}{" "}
+                          {divergent.length === 1 ? "actúa" : "actúan"} en dirección distinta al efecto promedio global
+                          (varía según la parcela).
+                        </p>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <p className="p-5 text-sm text-gray-500 dark:text-gray-400">
+                    Aún no hay parcelas con contribuciones SHAP para explicar.
                   </p>
                 )}
-              </>
-            ) : (
-              <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                Aún no hay parcelas con contribuciones SHAP para explicar.
-              </p>
-            )}
-          </section>
+              </Card>
+            </Reveal>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
