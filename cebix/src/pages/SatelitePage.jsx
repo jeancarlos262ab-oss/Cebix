@@ -656,7 +656,7 @@ function ValidacionTab({ rows, setRows }) {
           <ul className="mt-3 list-disc space-y-2 pl-4 text-sm text-gray-600 marker:text-gray-300 dark:text-gray-400 dark:marker:text-gray-600">
             <li>Que el polígono esté en lat/lng y no en UTM.</li>
             <li>Que se use promedio por escena → mediana por ventana, y no un compuesto por píxel.</li>
-            <li>Que la lluvia sume los 61 días de abril y mayo (si falta un día, el backend no devuelve el valor).</li>
+            <li>Que la lluvia sume los 61 días de abril y mayo (si falta un día, no se puede calcular el valor).</li>
           </ul>
         </div>
       </div>

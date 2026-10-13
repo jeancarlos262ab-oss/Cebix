@@ -13,8 +13,7 @@ export default function RequireModelInfo({ children }) {
     return (
       <div className="flex flex-col items-center gap-3 py-24 text-center text-sm text-gray-500 dark:text-gray-400">
         <Loader2 size={22} className="animate-spin text-accent-500" />
-        Cargando información del modelo desde el backend…
-        <span className="text-xs text-gray-400">Si está en plan gratuito puede tardar ~30 s en despertar.</span>
+        Cargando información del modelo…
       </div>
     );
   }

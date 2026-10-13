@@ -144,7 +144,7 @@ export const SAT_QUESTIONS = [
   {
     question: "¿Por qué tarda?",
     answer:
-      "Para cada una de las ~25 escenas de la temporada se descarga solo el recorte de tu parcela, y la lluvia se suma día por día durante 61 días. Una parcela tarda entre 30 y 90 s. La primera consulta del día puede tardar más si el servidor estaba dormido.",
+      "Para cada una de las ~25 escenas de la temporada se descarga solo el recorte de tu parcela, y la lluvia se suma día por día durante 61 días. Una parcela tarda entre 30 y 90 s.",
   },
   {
     question: "¿Cómo se calcula cada valor?",

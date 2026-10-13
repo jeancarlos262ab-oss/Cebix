@@ -55,8 +55,8 @@ const Photo = memo(function Photo({ src, alt, className, position, eager, badge,
         decoding="async"
         onLoad={() => setLoaded(true)}
         onError={() => setLoaded(true)}
-        className={`absolute inset-0 size-full transform-gpu object-cover transition-[opacity,transform] duration-700 ease-out motion-reduce:transition-none ${
-          loaded ? `scale-100 opacity-100 ${zoom ? "group-hover:scale-[1.04]" : ""}` : "scale-[1.02] opacity-0"
+        className={`absolute inset-0 size-full transform-gpu object-cover transition-[opacity,scale] duration-700 ease-out will-change-transform motion-reduce:transition-none ${
+          loaded ? `scale-100 opacity-100 ${zoom ? "group-hover:scale-[1.05] motion-reduce:group-hover:scale-100" : ""}` : "scale-[1.02] opacity-0"
         }`}
         style={{ objectPosition: position }}
       />
@@ -209,7 +209,7 @@ export default function AcercaPage() {
           {/* 1 · El cultivo: texto sobre la foto, datos en una fila sin caja */}
           <Reveal className="pb-6 pt-10 lg:pt-16">
             <div className="max-w-xl">
-              <Heading title="La cebada en el altiplano" large>
+              <Heading title="La cebada en el altiplano" large bebas>
                 La cebada es un cereal de clima templado. Una parte importante de la producción nacional se destina a la
                 industria de la malta, y Hidalgo, Puebla y Tlaxcala figuran entre las zonas donde más se cultiva. Casi toda
                 se siembra de temporal, sin riego: lo que llueve al inicio del ciclo marca gran parte de la cosecha.

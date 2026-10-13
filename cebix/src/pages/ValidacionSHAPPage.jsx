@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { BarChart3, CalendarRange, ChevronDown, Layers, Sigma } from "lucide-react";
+import { BarChart3, CalendarRange, ChevronDown, ImageIcon, Layers, Sigma } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import InfoButton from "../components/ui/InfoButton";
 import { useModelInfo } from "../context/ModelInfoContext";
@@ -9,6 +9,39 @@ import RequireAnalysis from "../components/ui/RequireAnalysis";
 import RequireModelInfo from "../components/ui/RequireModelInfo";
 import { Card, DIVIDE, Heading, HeroPhoto, LINE, Reveal } from "../components/ui/PageKit";
 import heroImage from "../assets/shap/imagen-1.webp";
+
+/* ───────────── Imágenes ─────────────
+ * Cada recuadro busca src/assets/shap/imagen-N.webp. Si el archivo existe se muestra solo;
+ * si no, se ve un recuadro que dice qué foto poner (igual que en Acerca). La 1 es la foto de esquina. */
+const FILES = import.meta.glob("../assets/shap/imagen-*.webp", { eager: true, import: "default" });
+const imageFor = (n) => Object.entries(FILES).find(([path]) => new RegExp(`/imagen-${n}\\.[a-z]+$`).test(path))?.[1];
+
+const SLOTS = {
+  2: { title: "Parcelas de cebada desde el aire", hint: "Vista aérea amplia de parcelas. Abre la sección de lectura de SHAP.", size: "1600 × 700", caption: "Cada parcela recibe su propia explicación" },
+  3: { title: "Espigas de cebada al sol", hint: "Espigas doradas en primer plano, con luz de día.", size: "1200 × 800", caption: "Del dato satelital a la espiga" },
+  4: { title: "Espiga de cebada con gotas de lluvia", hint: "Espiga verde con gotas de agua: ilustra la precipitación, la variable que más pesa.", size: "1200 × 480", caption: "Lluvia: la variable que más pesa" },
+};
+
+function ShapImage({ n, className = "", position = "center" }) {
+  const src = imageFor(n);
+  const slot = SLOTS[n];
+  if (src) {
+    return (
+      <figure className={`group relative overflow-hidden bg-gray-100 dark:bg-gray-900 ${className}`}>
+        <img src={src} alt={slot.title} loading="lazy" decoding="async" className="absolute inset-0 size-full transform-gpu object-cover transition-transform duration-700 ease-out will-change-transform group-hover:scale-[1.05] motion-reduce:transition-none motion-reduce:group-hover:scale-100" style={{ objectPosition: position }} />
+        <figcaption className="absolute bottom-3 left-3 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white">{slot.caption}</figcaption>
+      </figure>
+    );
+  }
+  return (
+    <div className={`flex flex-col items-center justify-center gap-2 bg-gray-50 px-6 py-8 text-center dark:bg-gray-900/60 ${className}`}>
+      <ImageIcon size={20} strokeWidth={1.5} className="text-gray-300 dark:text-gray-600" />
+      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Imagen {n}: {slot.title}</p>
+      <p className="max-w-xs text-xs leading-relaxed text-gray-500 dark:text-gray-400">{slot.hint}</p>
+      <p className="text-[11px] tabular-nums text-gray-400 dark:text-gray-500">{slot.size} px</p>
+    </div>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /* Constantes y utilidades                                             */
@@ -298,7 +331,7 @@ function ValidacionSHAPPageContent() {
         {/* Introducción: texto sobre la foto y datos en una fila sin caja */}
         <Reveal className="pb-6 pt-10 lg:pt-16">
           <div className="max-w-xl">
-            <Heading title="Qué mueve la predicción" large>
+            <Heading title="Qué mueve la predicción" large bebas>
               SHAP reparte cada predicción entre las variables que la produjeron. Aquí se revisa que el modelo dé
               peso a lo que debe, que lo haga en la dirección esperada y que el semáforo sea coherente con ello.
             </Heading>
@@ -331,6 +364,11 @@ function ValidacionSHAPPageContent() {
               </div>
             ))}
           </dl>
+        </Reveal>
+
+        {/* Franja de foto a todo el ancho */}
+        <Reveal>
+          <ShapImage n={2} position="50% 55%" className={`h-44 rounded-xl border sm:h-56 lg:h-64 ${LINE}`} />
         </Reveal>
 
         {/* Resumen: a todo el ancho */}
@@ -477,6 +515,14 @@ function ValidacionSHAPPageContent() {
             </Reveal>
           </div>
         </div>
+
+        {/* Dos fotos que acompañan la lectura de la validación */}
+        <Reveal>
+          <div className="grid gap-6 sm:grid-cols-2">
+            <ShapImage n={3} position="50% 50%" className={`h-48 rounded-xl border sm:h-56 ${LINE}`} />
+            <ShapImage n={4} position="50% 50%" className={`h-48 rounded-xl border sm:h-56 ${LINE}`} />
+          </div>
+        </Reveal>
 
         {/* Fila 2: datos de la validación (angosta) y explicación por parcela (ancha) */}
         <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-stretch">

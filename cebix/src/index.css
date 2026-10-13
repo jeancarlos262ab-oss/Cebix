@@ -71,6 +71,17 @@
     sans-serif;
 }
 
+@utility font-bebas {
+  /* Títulos grandes de Acerca y SHAP (Heading con la prop `bebas`). Fuente de un solo grosor. */
+  font-family:
+    'Bebas Neue',
+    'Sora',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+}
+
 @utility font-garet {
   /* Exclusivo del wordmark CEBIX (Logo.jsx). El resto de la app usa Inter. */
   font-family:

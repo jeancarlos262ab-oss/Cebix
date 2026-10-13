@@ -175,7 +175,7 @@ export default function RunModelPanel() {
         <Step
           n={2}
           title="Sube y ejecuta"
-          description="El backend corre el Random Forest entrenado en ese momento; no son resultados guardados."
+          description="Se corre el Random Forest entrenado en ese momento; no son resultados guardados."
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             <Dropzone accept=".csv" active={Boolean(file)} onFiles={handleFiles}>
@@ -219,7 +219,7 @@ export default function RunModelPanel() {
           last
           description={
             loading
-              ? "El backend está corriendo el Random Forest sobre tu CSV…"
+              ? "Se está corriendo el Random Forest sobre tu CSV…"
               : results
               ? `${results.length} parcelas procesadas en vivo por el modelo.`
               : "Aquí aparecerán las predicciones cuando ejecutes el modelo."

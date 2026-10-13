@@ -177,7 +177,7 @@ const VERDICT_STYLE = {
 function ProcesoTab() {
   const { buildProcess: p, modelSummary } = useModelInfo().info;
   if (!p) {
-    return <p className="py-16 text-center text-sm text-gray-500 dark:text-gray-400">Esta información aún no está disponible en el backend.</p>;
+    return <p className="py-16 text-center text-sm text-gray-500 dark:text-gray-400">Esta información aún no está disponible.</p>;
   }
   return (
     <div className="space-y-6">

@@ -10,6 +10,7 @@ import {
 import AuthShell from "./components/auth/AuthShell";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Sidebar from "./components/layout/Sidebar";
+import CornerGlow from "./components/layout/CornerGlow";
 import { SidebarProvider } from "./context/SidebarContext";
 import { useParcels } from "./context/ParcelsContext";
 import { getPageRegistry } from "./utils/pageRegistry";
@@ -217,7 +218,7 @@ const PageSlot = memo(function PageSlot({ active, entry }) {
 function AuthenticatedLayout() {
   usePrefetchPages();
   // En el mapa satelital el mapa ocupa TODA la pantalla (también detrás del
-  // sidebar, que flota encima) y no hay degradado de la esquina. Solo cuando hay
+  // sidebar, que flota encima) y el degradado de la esquina lo monta la propia página entre sus capas. Solo cuando hay
   // parcelas: sin ellas se muestra "Aún no hay resultados del modelo", que se centra
   // en el área de contenido como el resto de pantallas (sidebar normal, no flotante).
   const { parcels } = useParcels();
@@ -233,8 +234,9 @@ function AuthenticatedLayout() {
   return (
     <SidebarProvider>
       <div className="relative isolate flex h-screen w-full overflow-hidden supports-[height:100dvh]:h-dvh bg-white dark:bg-black">
-        {/* Degradado fijo de la esquina superior izquierda: va detrás del panel y de todas las pantallas. */}
-        <div className={`app-corner-glow pointer-events-none absolute inset-0 -z-10 ${onMap ? "hidden" : ""}`} aria-hidden="true" />
+        {/* Degradado fijo de la esquina superior izquierda: va detrás del panel y de todas las pantallas.
+            En el mapa lo monta la propia página (MapaSatelitalPage) entre sus capas, con este mismo componente. */}
+        <CornerGlow className={`-z-10 ${onMap ? "hidden" : ""}`} />
         <Sidebar floating={onMap} />
 
         <main

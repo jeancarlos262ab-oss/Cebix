@@ -1,6 +1,7 @@
 import { userMessage } from "../../utils/userMessages";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import LocationPickerMap from "../map/LocationPickerMap";
 import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_PRIMARY, ModalField, modalInput } from "../ui/Modal";
 
 const REGIONS = ["Hidalgo", "Tlaxcala", "Puebla"];
@@ -192,6 +193,17 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
           <Field label="Longitud" error={errors.lng}>
             <input value={form.lng} onChange={(e) => set("lng", e.target.value)} placeholder="-98.30" className={inputClass(errors.lng)} />
           </Field>
+
+          <div className="col-span-2">
+            <span className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-300">
+              Ubicación en el mapa
+            </span>
+            <LocationPickerMap
+              lat={form.lat}
+              lng={form.lng}
+              onChange={(lat, lng) => setForm((f) => ({ ...f, lat: String(lat), lng: String(lng) }))}
+            />
+          </div>
 
           {!metadataOnly && (
             <Field label="NDVI pico" error={errors.ndvi}>

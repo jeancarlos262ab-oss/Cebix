@@ -22,7 +22,7 @@ export default function TopBar({ title, subtitle, actions, hideSearch = false })
           <Menu size={18} className="text-accent-600 dark:text-accent-400" />
         </button>
         <div className="min-w-0">
-          <h1 className="truncate font-display text-xl font-bold text-gray-900 dark:text-white">{t(title)}</h1>
+          <h1 className="truncate font-display text-xl font-bold tracking-tight sm:text-2xl text-gray-900 dark:text-white">{t(title)}</h1>
           {subtitle && (
             <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{t(subtitle)}</p>
           )}

@@ -6,7 +6,7 @@ const ModelInfoContext = createContext(null);
 /**
  * Carga una sola vez, desde el backend (GET /model-info), todo lo que describe al modelo:
  * métricas de validación, comparación de algoritmos, importancia SHAP global, preguntas guía...
- * Si el backend está dormido (plan gratuito) reintenta con `reload`.
+ * Si la carga falla, se reintenta con `reload`.
  */
 export function ModelInfoProvider({ children }) {
   const [info, setInfo] = useState(null);

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "../services/toast";
-import { ChevronDown, Send, CheckCircle2, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ChevronDown, FileDown, Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import InfoButton from "../components/ui/InfoButton";
 import Semaphore from "../components/ui/Semaphore";
@@ -10,8 +10,7 @@ import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { useModelInfo } from "../context/ModelInfoContext";
 import { generateCreditReportPDF } from "../utils/creditReport";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
-import { formatDate, formatDateTime, formatNumber } from "../utils/intl";
-import { usePreferences } from "../context/PreferencesContext";
+import { formatNumber } from "../utils/intl";
 
 const chartQuestions = [
   {
@@ -54,27 +53,25 @@ function DetailRow({ label, children }) {
 }
 
 function PrediccionesPageContent() {
-  const { t } = usePreferences();
-  const { parcels, submissions, submitToCommittee } = useParcels();
+  const { parcels } = useParcels();
   const { info } = useModelInfo();
   const [selectedId, setSelectedId] = useState(parcels[0].id);
   const parcel = parcels.find((p) => p.id === selectedId) ?? parcels[0];
-  const submittedAt = submissions[parcel.id];
-  const [justSubmitted, setJustSubmitted] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
-  const handleSubmit = () => {
-    submitToCommittee(parcel.id);
-    generateCreditReportPDF(parcel, { submitted: true, modelSummary: info?.modelSummary });
-    toast.success("Solicitud enviada al comité y reporte PDF generado.");
-    setJustSubmitted(true);
-    window.setTimeout(() => setJustSubmitted(false), 2500);
+  const handleGenerate = async () => {
+    if (generating) return;
+    setGenerating(true);
+    try {
+      await generateCreditReportPDF(parcel, { modelSummary: info?.modelSummary });
+      toast.success("Reporte PDF generado.");
+    } catch (err) {
+      console.error("Error al generar el PDF", err);
+      toast.error("No se pudo generar el reporte PDF. Inténtalo de nuevo.");
+    } finally {
+      setGenerating(false);
+    }
   };
-
-  const buttonLabel = useMemo(() => {
-    if (justSubmitted) return "Enviado ✓";
-    if (submittedAt) return "Reenviar a comité de crédito";
-    return "Enviar a comité de crédito";
-  }, [justSubmitted, submittedAt]);
 
   // Promedios de la región de la parcela seleccionada, para dar contexto a
   // las variables que aún no aparecen en las tarjetas superiores (EVI y GDD).
@@ -159,32 +156,17 @@ function PrediccionesPageContent() {
             <dl>
               <DetailRow label="Municipio">{parcel.municipio}</DetailRow>
               <DetailRow label="Superficie">{parcel.area}</DetailRow>
-              {submittedAt && (
-                <DetailRow label={t("Última solicitud")}>
-                  <span className="text-ndvi-600 dark:text-ndvi-400">
-                    {formatDate(submittedAt)}
-                  </span>
-                </DetailRow>
-              )}
             </dl>
 
             <button
               type="button"
-              onClick={handleSubmit}
-              className={`mt-8 flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold shadow-xs transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black ${
-                justSubmitted
-                  ? "bg-ndvi-600 text-white"
-                  : "bg-accent-500 text-accent-contrast hover:bg-accent-600"
-              }`}
+              onClick={handleGenerate}
+              disabled={generating}
+              className="mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:opacity-60 dark:focus-visible:ring-offset-black"
             >
-              {justSubmitted ? <CheckCircle2 size={15} /> : <Send size={15} />}
-              {buttonLabel}
+              {generating ? <Loader2 size={15} className="animate-spin" /> : <FileDown size={15} />}
+              Generar reporte PDF
             </button>
-            {submittedAt && !justSubmitted && (
-              <p className="mt-3 text-center text-xs text-gray-400 dark:text-gray-500">
-                {t("Enviada el")} {formatDateTime(submittedAt)}
-              </p>
-            )}
           </section>
         </aside>
 

@@ -13,7 +13,7 @@ import RequireAnalysis from "../components/ui/RequireAnalysis";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import ParcelFormModal from "../components/dashboard/ParcelFormModal";
 import useParcelActions from "../hooks/useParcelActions";
-import { formatDate, formatNumber as intlNumber } from "../utils/intl";
+import { formatNumber as intlNumber } from "../utils/intl";
 
 // Los valores del modelo/CSV pueden traer muchos decimales (p. ej. 512.34567891):
 // se redondean para que quepan en el recuadro y se separan los miles.
@@ -26,7 +26,7 @@ function formatNumber(value, maxDecimals = 1) {
 function ParcelaDetallePageContent() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { parcels, submissions } = useParcels();
+  const { parcels } = useParcels();
   const { info } = useModelInfo();
   const { saveParcel, deleteParcel } = useParcelActions();
   const [dialog, setDialog] = useState(null); // null | "edit" | "delete"
@@ -45,7 +45,6 @@ function ParcelaDetallePageContent() {
     );
   }
 
-  const submittedAt = submissions[parcel.id];
 
   return (
     <>
@@ -93,6 +92,9 @@ function ParcelaDetallePageContent() {
             <div className="absolute inset-0">
               {hasCoords(parcel) ? (
                 <ParcelMap
+                  // Al cambiar de parcela (o editar sus coordenadas) el mapa se recrea centrado en ese punto;
+                  // sin la key conservaba la vista de la parcela anterior.
+                  key={`${parcel.id}:${parcel.lat}:${parcel.lng}`}
                   parcels={[parcel]}
                   height="100%"
                   center={[parcel.lat, parcel.lng]}
@@ -171,26 +173,24 @@ function ParcelaDetallePageContent() {
                 <Row label="Coordenadas">
                   {hasCoords(parcel) ? `${parcel.lat.toFixed(3)}, ${parcel.lng.toFixed(3)}` : "—"}
                 </Row>
-                {submittedAt && (
-                  <Row label="Enviado a comité">
-                    <span className="text-ndvi-600 dark:text-ndvi-400">
-                      {formatDate(submittedAt)}
-                    </span>
-                  </Row>
-                )}
               </dl>
             </section>
 
             <button
               type="button"
-              onClick={() => {
-                generateCreditReportPDF(parcel, { submitted: Boolean(submittedAt), modelSummary: info?.modelSummary });
-                toast.success("Reporte PDF generado.");
+              onClick={async () => {
+                try {
+                  await generateCreditReportPDF(parcel, { modelSummary: info?.modelSummary });
+                  toast.success("Reporte PDF generado.");
+                } catch (err) {
+                  console.error("Error al generar el PDF", err);
+                  toast.error("No se pudo generar el reporte PDF. Inténtalo de nuevo.");
+                }
               }}
               className="flex w-full items-center justify-center gap-2 rounded-full bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
             >
               <FileDown size={15} />
-              Generar reporte de crédito
+              Generar reporte PDF
             </button>
           </aside>
         </div>

@@ -9,6 +9,7 @@ import ScrollColumn from "../components/map/explorer/ScrollColumn";
 import RiskTiles from "../components/map/explorer/RiskTiles";
 import SelectedParcelCard from "../components/map/explorer/SelectedParcelCard";
 import YieldCard from "../components/map/explorer/YieldCard";
+import CornerGlow from "../components/layout/CornerGlow";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { useSidebar } from "../context/SidebarContext";
@@ -71,6 +72,10 @@ function MapaSatelitalPageContent() {
     // encima (ver Sidebar floating), con un degradado oscuro detrás de él.
     <div className="map-flat flex h-full flex-col">
       <div className="relative isolate flex flex-1 flex-col">
+        {/* Degradado de la esquina (el mismo componente del layout): delante de los degradados negros (z-900) y
+            detrás del título, la barra de capas y los paneles (z-1000). El sidebar flota por encima de todo. */}
+        <CornerGlow className="z-950" />
+
         <div className="relative min-h-[420px] flex-1">
           <div className="absolute inset-0">
             <ParcelMap
@@ -124,7 +129,7 @@ function MapaSatelitalPageContent() {
 
           {/* Título sobre el mapa */}
           <div className={`pointer-events-none absolute left-[66px] top-2 z-1000 lg:top-4 ${contentLeft}`}>
-            <h1 className="text-xl font-thin leading-none tracking-tight text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.7)] lg:text-[28px]">
+            <h1 className="font-display text-lg font-bold leading-none tracking-tight text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.7)] lg:text-2xl">
               Mapa satelital
             </h1>
             <p className="mt-1.5 text-[11px] text-white/60 [text-shadow:0_1px_8px_rgba(0,0,0,0.8)] lg:text-xs">
