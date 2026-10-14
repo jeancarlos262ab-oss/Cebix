@@ -235,5 +235,5 @@ CHIRPS v3.0 reemplaza a v2.0, asi que si v2.0 deja de publicarse el servicio pas
 (el valor puede diferir un poco del dataset oficial). Las rutas NO estan verificadas desde el entorno de desarrollo:
 corre `python scripts/diagnose_chirps.py 2024` en el servidor para ver cual responde y con que error.
 
-Variables de entorno: `CHIRPS_URL_TEMPLATES` (varias plantillas separadas por coma, con `{year}`, `{month:02d}`, `{day:02d}`)
+Variables de entorno: `CHIRPS_URL_TEMPLATES` (varias plantillas separadas por coma; deben ser la ruta de UN ARCHIVO con `{year}`, `{month:02d}` y `{day:02d}`, no una carpeta. Se prueban antes que las de por defecto)
 o `CHIRPS_URL_TEMPLATE` (una sola, se prueba primero). No hace falta tocar codigo para cambiar la ruta.

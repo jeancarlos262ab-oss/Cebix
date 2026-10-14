@@ -74,9 +74,18 @@ _CHIRPS_DEFAULTS = [
 
 
 def _chirps_templates() -> list[str]:
+    """Plantillas personalizadas primero, luego las por defecto. Se descartan las que no traen {year}
+    (p. ej. una carpeta en vez de un archivo), porque darían la misma URL todos los días."""
     custom = [t.strip() for t in os.environ.get("CHIRPS_URL_TEMPLATES", "").split(",") if t.strip()]
     single = os.environ.get("CHIRPS_URL_TEMPLATE", "").strip()
-    return custom or ([single] if single else []) + _CHIRPS_DEFAULTS
+    if single:
+        custom.append(single)
+    valid = [t for t in custom if "{year}" in t and "{month" in t and "{day" in t]
+    out: list[str] = []
+    for t in valid + _CHIRPS_DEFAULTS:
+        if t not in out:
+            out.append(t)
+    return out
 
 
 CHIRPS_URL_TEMPLATE = _chirps_templates()[0]  # compatibilidad con scripts que lo importan
