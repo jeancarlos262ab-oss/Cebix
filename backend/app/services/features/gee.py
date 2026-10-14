@@ -430,7 +430,7 @@ def extract_features_gee(geometry_geojson: dict, year: int = 2025) -> dict:
             f"en {year}. Suele pasar si las escenas están muy nubladas o el año aún no tiene datos en esa ventana."
         )
     for k in missing:
-        warnings.append(f"Sin escenas válidas para «{k}»: el modelo usó la mediana de entrenamiento.")
+        warnings.append(f"Sin escenas válidas para '{k}': el modelo usó la mediana de entrenamiento.")
     for window, n in scenes_per_window.items():
         if n < 3:
             warnings.append(f"Solo {n} escena(s) de Sentinel-2 en la ventana {window}: la mediana es poco representativa.")

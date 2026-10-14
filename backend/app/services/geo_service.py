@@ -172,17 +172,17 @@ def _expand(uploads: list[tuple[str, bytes]]) -> dict[str, bytes]:
             try:
                 zf = zipfile.ZipFile(io.BytesIO(data))
             except zipfile.BadZipFile:
-                raise GeoParseError(400, f"«{name}» no es un .zip/.kmz válido.") from None
+                raise GeoParseError(400, f"'{name}' no es un .zip/.kmz válido.") from None
             infos = [i for i in zf.infolist() if not i.is_dir()]
             if len(infos) > MAX_ZIP_ENTRIES:
-                raise GeoParseError(400, f"«{name}» trae demasiados archivos ({len(infos)}).")
+                raise GeoParseError(400, f"'{name}' trae demasiados archivos ({len(infos)}).")
             if sum(i.file_size for i in infos) > MAX_UNZIPPED_BYTES:
-                raise GeoParseError(413, f"«{name}» descomprimido es demasiado grande.")
+                raise GeoParseError(413, f"'{name}' descomprimido es demasiado grande.")
             for info in infos:
                 try:
                     add(f"{name}/{info.filename}", zf.read(info))
                 except (zipfile.BadZipFile, RuntimeError, NotImplementedError):
-                    raise GeoParseError(400, f"«{name}»: no se pudo leer «{info.filename}» (¿con contraseña?).") from None
+                    raise GeoParseError(400, f"'{name}': no se pudo leer '{info.filename}' (¿con contraseña?).") from None
         else:
             add(name, data)
     return files
@@ -226,7 +226,7 @@ def _geojson_crs(obj: dict, src: str):
     try:
         c = CRS.from_user_input(name)
     except Exception:
-        raise GeoParseError(422, f"{src}: no reconozco el sistema de coordenadas «{name}».") from None
+        raise GeoParseError(422, f"{src}: no reconozco el sistema de coordenadas '{name}'.") from None
     return None if _is_wgs84(c) else c
 
 
@@ -234,7 +234,7 @@ def _read_geojson(data: bytes, src: str, skipped: list) -> list[dict]:
     try:
         obj = json.loads(data.decode("utf-8-sig"))
     except (UnicodeDecodeError, json.JSONDecodeError):
-        raise GeoParseError(400, f"«{src}» no es un GeoJSON/JSON válido.") from None
+        raise GeoParseError(400, f"'{src}' no es un GeoJSON/JSON válido.") from None
     crs = _geojson_crs(obj, src)
     out: list[dict] = []
 
@@ -259,11 +259,11 @@ def _read_geojson(data: bytes, src: str, skipped: list) -> list[dict]:
 
 def _read_kml(data: bytes, src: str, skipped: list) -> list[dict]:
     if re.search(rb"<!\s*(DOCTYPE|ENTITY)", data, re.I):
-        raise GeoParseError(400, f"«{src}»: los KML con DTD o entidades no se aceptan.")
+        raise GeoParseError(400, f"'{src}': los KML con DTD o entidades no se aceptan.")
     try:
         root = ET.fromstring(data)
     except ET.ParseError:
-        raise GeoParseError(400, f"«{src}» no es un KML válido.") from None
+        raise GeoParseError(400, f"'{src}' no es un KML válido.") from None
     for el in root.iter():  # quita los espacios de nombres: {http://...}Placemark -> Placemark
         if isinstance(el.tag, str):
             el.tag = el.tag.rsplit("}", 1)[-1]
@@ -287,7 +287,7 @@ def _read_kml(data: bytes, src: str, skipped: list) -> list[dict]:
             try:
                 ring = [(float(p[0]), float(p[1])) for p in (tok.split(",") for tok in coords.split()) if len(p) >= 2]
             except ValueError:
-                raise GeoParseError(400, f"«{src}»: coordenadas inválidas en el KML.") from None
+                raise GeoParseError(400, f"'{src}': coordenadas inválidas en el KML.") from None
             holes = poly.find("innerBoundaryIs") is not None
             out.append({"ring": ring, "holes": holes, "props": props, "name": name, "src": src, "crs": None})
             found = True
@@ -343,11 +343,11 @@ def _read_shapefile(files: dict[str, bytes], shp_key: str, skipped: list) -> lis
     try:
         reader = shapefile.Reader(encoding=encoding, encodingErrors="replace", **kwargs)
     except Exception as e:
-        raise GeoParseError(400, f"«{src}» no se pudo leer como shapefile ({e}).") from None
+        raise GeoParseError(400, f"'{src}' no se pudo leer como shapefile ({e}).") from None
 
     polygon_types = {shapefile.POLYGON, shapefile.POLYGONZ, shapefile.POLYGONM}
     if reader.shapeType not in polygon_types:
-        raise GeoParseError(422, f"«{src}» no contiene polígonos (tipo de geometría {reader.shapeType}).")
+        raise GeoParseError(422, f"'{src}' no contiene polígonos (tipo de geometría {reader.shapeType}).")
 
     crs = None
     if prj:
@@ -376,12 +376,12 @@ def _read_shapefile(files: dict[str, bytes], shp_key: str, skipped: list) -> lis
     except GeoParseError:
         raise
     except Exception as e:
-        raise GeoParseError(400, f"«{src}» está dañado o incompleto ({e}).") from None
+        raise GeoParseError(400, f"'{src}' está dañado o incompleto ({e}).") from None
 
     if out and not has_prj and not _lonlat_like(out[0]["ring"]):
         raise GeoParseError(
             422,
-            f"«{src}» no trae .prj y sus coordenadas no parecen lat/lng. "
+            f"'{src}' no trae .prj y sus coordenadas no parecen lat/lng. "
             "Incluye el archivo .prj (o sube todo en un .zip) para saber el sistema de coordenadas.",
         )
     return out
@@ -562,7 +562,7 @@ def parse_uploads(uploads: list[tuple[str, bytes]]) -> dict:
         if "prj" not in present:
             notes.append("sin .prj se asume que las coordenadas ya están en lat/lng")
         if notes:
-            advertencias.append(f"«{only.rsplit('/', 1)[-1]}.shp»: " + "; ".join(notes) + ".")
+            advertencias.append(f"'{only.rsplit('/', 1)[-1]}.shp': " + "; ".join(notes) + ".")
 
     for key in sorted(files):
         ext = _ext(key)

@@ -11,6 +11,12 @@ export const OVER_LIMIT_COLOR = "#ef4444";
 export const OVER_LIMIT_FILL_OPACITY = 0.18;
 
 export const OUTLINE_WEIGHT = 2.5;
+
+/** Contorno EXACTO que se descarga / se envía al cálculo (toGeoJSONPolygon): trazo punteado sobre el dibujo. */
+export const EXPORT_COLOR = "#22d3ee";
+export const EXPORT_WEIGHT = 2;
+export const EXPORT_DASH = [6, 5]; // px: trazo, hueco
+export const EXPORT_LABEL = "Contorno que se descarga";
 export const GRID_WEIGHT = 1;
 
 /** Modo de mezcla de todo el dibujo de la parcela. */
@@ -49,7 +55,7 @@ export function drawStatus({ locked, drawing, ready, closed, count }) {
   if (locked) return "Calculando índices… la parcela queda bloqueada";
   if (drawing) {
     return ready
-      ? "Sigue marcando vértices · toca el círculo hueco del primer punto o «Terminar» para cerrar"
+      ? "Sigue marcando vértices · toca el círculo hueco del primer punto o 'Terminar' para cerrar"
       : `Haz clic en el mapa para marcar los vértices (${count}/3 mínimo)`;
   }
   if (closed) return "Arrastra los vértices para ajustar el contorno";

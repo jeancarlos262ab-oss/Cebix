@@ -1,5 +1,7 @@
-import { Download, RotateCcw } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Check, Download, Loader2, RotateCcw, Save } from "lucide-react";
 import FeaturesTable from "./FeaturesTable";
+import DownloadedPolygon from "./DownloadedPolygon";
 import Semaphore from "../ui/Semaphore";
 import { Contributions, Label, SummaryPanel } from "../results/ReportParts";
 import { formatHa } from "../../utils/polygon";
@@ -13,7 +15,11 @@ import { formatHa } from "../../utils/polygon";
 const BTN =
   "inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800";
 
-export default function ParcelResult({ result, view, ran, stale, onDownload, onReset }) {
+const BTN_PRIMARY =
+  "inline-flex items-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black";
+
+/** save = { saving, savedId, onSave }: guarda el resultado en las parcelas del usuario (persistente). */
+export default function ParcelResult({ result, view, ran, stale, save, downloaded, onDownload, onReset }) {
   return (
     <div className={`space-y-10 transition-opacity ${stale ? "opacity-60" : ""}`}>
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-gray-200 pb-4 dark:border-gray-800">
@@ -25,7 +31,22 @@ export default function ParcelResult({ result, view, ran, stale, onDownload, onR
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={onDownload} className={BTN}>
+          {save?.savedId ? (
+            <>
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-accent-50 px-3 py-1.5 text-xs font-medium text-accent-700 dark:bg-accent-500/15 dark:text-accent-400">
+                <Check size={13} strokeWidth={2.25} /> Guardada
+              </span>
+              <Link to={`/parcelas/${save.savedId}`} className={BTN}>
+                Ver parcela
+              </Link>
+            </>
+          ) : (
+            <button type="button" onClick={save?.onSave} disabled={stale || save?.saving} className={BTN_PRIMARY}>
+              {save?.saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} strokeWidth={1.75} />}
+              {save?.saving ? "Guardando…" : "Guardar parcela"}
+            </button>
+          )}
+          <button type="button" onClick={() => onDownload(downloaded)} className={BTN}>
             <Download size={13} strokeWidth={1.75} /> Descargar variables (JSON)
           </button>
           <button type="button" onClick={onReset} className={BTN}>
@@ -56,6 +77,9 @@ export default function ParcelResult({ result, view, ran, stale, onDownload, onR
         </p>
         <Contributions data={result.shap} />
       </section>
+
+      {/* El polígono, leído de los mismos datos que se descargan */}
+      <DownloadedPolygon data={downloaded} />
 
       {/* Variables calculadas */}
       <section>

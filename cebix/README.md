@@ -4,7 +4,7 @@ Dashboard de predicción de rendimiento de cebada y elegibilidad crediticia,
 construido sobre el dataset del Reto AgroCebada 2026 (Sentinel-2/Landsat,
 Planet, CHIRPS, CHIRTS-ERA5, INEGI CEM 4.0).
 
-## Pantalla «Parcela satelital» (`/satelite`)
+## Pantalla "Parcela satelital" (`/satelite`)
 
 Permite dibujar (o importar en GeoJSON) una parcela nueva y obtener su predicción con las 10
 variables del modelo calculadas en vivo desde imágenes satelitales reales.
@@ -30,9 +30,9 @@ GeoJSON importado se abre directo el mapa plano.
 
 Las pantallas `/satelite` y `/earthengine` usan los mismos archivos de mapa. El diseño de referencia es el de
 **Leaflet** (mapa plano) y MapLibre lo reproduce: contorno 2.5 px, malla 1 px, vértices circulares, trazo en modo
-«difference» (invierte la imagen) y rojo al pasar la superficie máxima. Todo eso vive en `parcelStyle.js`; para
+"difference" (invierte la imagen) y rojo al pasar la superficie máxima. Todo eso vive en `parcelStyle.js`; para
 cambiar cómo se ve la malla o los vértices se edita ahí y cambia en ambos motores. MapLibre pinta contorno y malla en
-un SVG sobre el mapa (`glTraceOverlay.js`) porque WebGL no admite el modo «difference». `GeometryMap` recibe
+un SVG sobre el mapa (`glTraceOverlay.js`) porque WebGL no admite el modo "difference". `GeometryMap` recibe
 `maxAreaHa` (opcional) para el límite de superficie.
 
 ## Notificaciones con sonido
@@ -45,7 +45,7 @@ se muestra igual, sin sonido.
 ## Parcela satelital: superficie máxima
 
 El cálculo acepta hasta 5000 ha (`MAX_AREA_HA` en `src/data/satelite.js`, igual a `SAT_MAX_AREA_HA` del
-backend). Si el contorno se pasa, la malla se pinta en rojo y «Calcular» queda bloqueado hasta ajustarlo;
+backend). Si el contorno se pasa, la malla se pinta en rojo y "Calcular" queda bloqueado hasta ajustarlo;
 desde 1000 ha solo se advierte que la zona mezcla coberturas.
 
 ## Requisitos

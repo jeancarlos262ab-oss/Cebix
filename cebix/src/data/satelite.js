@@ -1,5 +1,5 @@
 /**
- * Especificación de las 10 variables que calcula la pantalla «Parcela satelital» (ver
+ * Especificación de las 10 variables que calcula la pantalla 'Parcela satelital' (ver
  * ml/GUIA_GOOGLE_EARTH_ENGINE.md y backend/stac_features.py). Aquí NO hay resultados del modelo:
  * solo la definición de qué se calcula, de dónde y en qué ventana.
  */
@@ -117,11 +117,22 @@ export const SAT_FEATURES = [
 export const TRAINED_YEAR = 2025;
 
 // Superficie máxima que acepta el cálculo satelital (el servicio no alcanza a procesar más): al pasarla la malla
-// se pinta en rojo y «Calcular» queda bloqueado hasta que el contorno se ajuste. Debe coincidir con SAT_MAX_AREA_HA
+// se pinta en rojo y 'Calcular' queda bloqueado hasta que el contorno se ajuste. Debe coincidir con SAT_MAX_AREA_HA
 // del backend. A partir de WARN_AREA_HA solo se advierte que la zona mezcla coberturas distintas.
 export const MAX_AREA_HA = 5000;
 export const WARN_AREA_HA = 1000;
 export const YEARS = [2025, 2024, 2023];
+
+// Zona urbana (ciudad o pueblo): el modelo es de cebada de temporal y las parcelas deben ser SOLO terreno agrícola.
+// Se rechaza el contorno si OpenStreetMap muestra cualquiera de estas señales dentro de él. Muchos pueblos pequeños están
+// poco mapeados, por eso se combinan varias señales y los umbrales son bajos a propósito (mejor un falso aviso que dejar
+// pasar un pueblo). Ajústalos si resultan demasiado estrictos.
+export const URBAN_MAX_SHARE = 0.05; // fracción de puntos de muestra sobre mancha urbana (landuse residencial, comercial…)
+export const URBAN_MIN_BUILDINGS = 3; // construcciones dentro del contorno…
+export const URBAN_BUILDINGS_PER_HA = 1.5; // …y por hectárea
+export const URBAN_MIN_PLACES = 1; // poblados marcados (place=city/town/village/hamlet/suburb…) dentro del contorno
+export const URBAN_MIN_STREETS = 2; // calles urbanas (residential, living_street, pedestrian) dentro del contorno
+export const URBAN_MIN_AMENITIES = 3; // comercios, escuelas, iglesias… dentro del contorno
 
 /** Estados con los que se entrenó y valida el modelo. */
 export const ESTADOS = ["Hidalgo", "Puebla", "Tlaxcala"];
@@ -154,7 +165,7 @@ export const SAT_QUESTIONS = [
   {
     question: "¿Los números son idénticos a los del dataset oficial?",
     answer:
-      "No necesariamente. Pueden diferir un poco por la versión del procesamiento de las imágenes y por cómo se ponderan los píxeles de borde. Por eso existe la pestaña «Validación del cálculo», que compara contra el dataset oficial parcela por parcela.",
+      "No necesariamente. Pueden diferir un poco por la versión del procesamiento de las imágenes y por cómo se ponderan los píxeles de borde. Por eso existe la pestaña 'Validación del cálculo', que compara contra el dataset oficial parcela por parcela.",
   },
   {
     question: "¿Qué pasa si elijo otro año?",

@@ -6,7 +6,7 @@ import MapControls from "./MapControls";
 import { GHOST, PANEL, PRIMARY, STATUS } from "./mapUi";
 import { preloadWorldTiles } from "./tilePreload";
 import { usePageActive } from "../../context/PageActiveContext";
-import { estadoBounds } from "../../utils/polygon";
+import { estadoBounds, toGeoJSONPolygon } from "../../utils/polygon";
 import { reportGLFailure, resolveMapEngine } from "../../utils/mapDevice";
 import { loadGlobeMapGL } from "../../utils/mapLoaders";
 import { parcelGridLines } from "../../utils/parcelGrid";
@@ -16,6 +16,10 @@ import {
   IMAGERY_CREDIT,
   IMAGERY_URL,
   OUTLINE_WEIGHT,
+  EXPORT_COLOR,
+  EXPORT_DASH,
+  EXPORT_LABEL,
+  EXPORT_WEIGHT,
   OVER_LIMIT_COLOR,
   OVER_LIMIT_FILL_OPACITY,
   STUDY,
@@ -191,6 +195,11 @@ function FlatGeometryMap({
   const ready = points.length >= 3;
   // Malla en perspectiva que se adapta a la forma de la parcela ya cerrada.
   const gridLines = useMemo(() => (closed && ready ? parcelGridLines(points) : []), [closed, ready, points]);
+  // Anillo que se descarga, como [lat,lng][] (mismo redondeo a 6 decimales que el GeoJSON).
+  const exportRing = useMemo(
+    () => (closed && ready ? toGeoJSONPolygon(points).coordinates[0].map(([lng, lat]) => [lat, lng]) : []),
+    [closed, ready, points],
+  );
   const { accent, resolvedTheme } = useTheme();
   const accentHex = getAccentHex(accent, resolvedTheme);
   const stateStyle = useMemo(() => boundaryLeafletStyle(accentHex), [accentHex]);
@@ -201,10 +210,10 @@ function FlatGeometryMap({
 
   const status =
     drawStatus({ locked, drawing, ready, closed, count: points.length }) ??
-    "Pulsa «Dibujar parcela» y marca el contorno sobre la imagen";
+    "Pulsa 'Dibujar parcela' y marca el contorno sobre la imagen";
 
   return (
-    <div className="relative h-full min-h-[440px] w-full overflow-hidden rounded-lg">
+    <div className="relative h-full min-h-[440px] w-full overflow-hidden">
       <MapContainer
         ref={setMap}
         bounds={startBounds}
@@ -276,6 +285,18 @@ function FlatGeometryMap({
               />
             );
           })}
+        </Pane>
+
+        {/* Contorno que se descarga: el anillo exacto de toGeoJSONPolygon, en un panel aparte con mezcla normal
+            (el panel "parcel" usa "difference" y alteraría el color). */}
+        <Pane name="export" style={{ zIndex: 460 }}>
+          {closed && ready && (
+            <Polyline
+              positions={exportRing}
+              pathOptions={{ color: EXPORT_COLOR, weight: EXPORT_WEIGHT, dashArray: EXPORT_DASH.join(" "), lineCap: "butt" }}
+              interactive={false}
+            />
+          )}
         </Pane>
 
         <DrawEvents drawing={drawing && !locked} onAdd={(p) => onChange([...points, p])} />
@@ -351,6 +372,12 @@ function FlatGeometryMap({
           />
           {status}
         </p>
+        {closed && ready && (
+          <p className="flex items-center gap-2 bg-black/60 px-1.5 py-0.5 text-[10px] text-gray-200">
+            <span aria-hidden="true" className="inline-block h-0 w-5 border-t-2 border-dashed" style={{ borderColor: EXPORT_COLOR }} />
+            {EXPORT_LABEL}
+          </p>
+        )}
         <p className="bg-black/60 px-1.5 py-0.5 text-[10px] text-gray-300">{IMAGERY_CREDIT}</p>
       </div>
     </div>
@@ -422,7 +449,7 @@ function GeometryMap(props) {
   if (useGL) {
     return (
       <div ref={boxRef} className="relative h-full min-h-[440px] w-full [&:fullscreen]:bg-black">
-        <Suspense fallback={<div className="h-full w-full rounded-lg bg-black" />}>
+        <Suspense fallback={<div className="h-full w-full bg-black" />}>
           <GlobeMapGL
             {...props}
             onFail={() => {
@@ -442,7 +469,7 @@ function GeometryMap(props) {
     <div ref={boxRef} className="relative h-full min-h-[440px] w-full [&:fullscreen]:bg-black">
       {globeCreated && (
         <div className={pane(view === "globe")}>
-          <Suspense fallback={<div className="h-full w-full rounded-lg bg-black" />}>
+          <Suspense fallback={<div className="h-full w-full bg-black" />}>
             <GlobeMap
               entry={globeEntry}
               active={view === "globe"}

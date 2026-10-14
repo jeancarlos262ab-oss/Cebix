@@ -31,7 +31,7 @@ export default function BatchSizeDialog({ total, omitted = 0, fileName, onConfir
   return (
     <Modal
       title={total === 1 ? "El archivo trae 1 parcela" : `El archivo trae ${total} parcelas`}
-      description={`${fileName ? `«${fileName}». ` : ""}Cada parcela se calcula con imágenes de satélite y tarda entre ${SECONDS_PER_PARCEL[0]} y ${SECONDS_PER_PARCEL[1]} s. Se calculan una por una.${omitted > 0 ? ` (${omitted} más no se pueden calcular y se omiten).` : ""}`}
+      description={`${fileName ? `'${fileName}'. ` : ""}Cada parcela se calcula con imágenes de satélite y tarda entre ${SECONDS_PER_PARCEL[0]} y ${SECONDS_PER_PARCEL[1]} s. Se calculan una por una.${omitted > 0 ? ` (${omitted} más no se pueden calcular y se omiten).` : ""}`}
       onClose={onClose}
       footer={
         <>

@@ -140,7 +140,13 @@ function fromDatabaseParcel(row) {
     isTrainingSet: false,
     isCustom: true,
     shap: row.shap ?? [],
+    satelite: row.satelite ?? null, // detalle del cálculo satelital (contorno, variables, intervalo) si la parcela viene de ahí
   };
+}
+
+/** true si el error de Supabase es porque la tabla aún no tiene la columna `satelite` (falta correr la migración). */
+function isMissingSateliteColumn(err) {
+  return Boolean(err) && /satelite/i.test(`${err.message ?? ""} ${err.details ?? ""}`) && /column|schema cache/i.test(`${err.message ?? ""} ${err.details ?? ""} ${err.code ?? ""}`);
 }
 
 function toDatabaseParcel(record) {
@@ -163,6 +169,8 @@ function toDatabaseParcel(record) {
     precip: record.precip,
     gdd: record.gdd,
     shap: record.shap,
+    // Solo se manda cuando hay detalle satelital: así editar otras parcelas no toca esa columna.
+    ...(record.satelite ? { satelite: record.satelite } : {}),
   };
 }
 
@@ -173,7 +181,7 @@ function buildParcelRecord(fields, existingParcels, importance = []) {
   const ndvi = Number(fields.ndvi);
   const evi = Number(fields.evi ?? ndvi * 0.22);
   const precip = Number(fields.precip);
-  const gdd = Number(fields.gdd);
+  const gdd = Number.isFinite(Number(fields.gdd)) ? Number(fields.gdd) : 0;
   const region = fields.region;
   const score =
     fields.score !== undefined && fields.score !== "" && !Number.isNaN(Number(fields.score))
@@ -202,7 +210,9 @@ function buildParcelRecord(fields, existingParcels, importance = []) {
     gdd,
     isTrainingSet: false,
     isCustom: true,
-    shap: approximateShap({ ndvi, evi, precip }, existingParcels, importance),
+    // Si la parcela ya trae su SHAP real (la calculó el modelo, p. ej. desde Parcela satelital) se conserva tal cual.
+    shap: Array.isArray(fields.shap) ? fields.shap : approximateShap({ ndvi, evi, precip }, existingParcels, importance),
+    satelite: fields.satelite ?? null,
   };
 }
 
@@ -469,17 +479,21 @@ export function ParcelsProvider({ children }) {
 
   const addParcel = useCallback(async (fields) => {
     const record = buildParcelRecord(fields, latestRef.current, globalImportance);
-    const { data, error: insertError } = await supabase
-      .from("parcels_custom")
-      .insert(toDatabaseParcel(record))
-      .select()
-      .single();
+    const insert = (payload) => supabase.from("parcels_custom").insert(payload).select().single();
+    let { data, error: insertError } = await insert(toDatabaseParcel(record));
+    let warning = null;
+    if (insertError && record.satelite && isMissingSateliteColumn(insertError)) {
+      // La tabla aún no tiene la columna: se guarda la parcela igual (sin el detalle) y se avisa.
+      const { satelite: _omit, ...withoutSatelite } = toDatabaseParcel(record);
+      ({ data, error: insertError } = await insert(withoutSatelite));
+      warning = "satelite-column";
+    }
     if (insertError) return { error: insertError };
 
     const savedParcel = fromDatabaseParcel(data);
     latestRef.current = [...latestRef.current, savedParcel];
     setCustomParcels((prev) => [...prev, savedParcel]);
-    return { data: savedParcel, error: null };
+    return { data: savedParcel, error: null, warning };
   }, [globalImportance]);
 
   /** Guarda la corrida actual (ya modificada) en estado y en el navegador, separada por usuario. */
@@ -527,17 +541,19 @@ export function ParcelsProvider({ children }) {
       [...analysisParcels, ...customParcels.filter((parcel) => parcel.id !== id)],
       globalImportance
     );
-    const { data, error: updateError } = await supabase
-      .from("parcels_custom")
-      .update(toDatabaseParcel(record))
-      .eq("id", id)
-      .select()
-      .single();
+    const update = (payload) => supabase.from("parcels_custom").update(payload).eq("id", id).select().single();
+    let { data, error: updateError } = await update(toDatabaseParcel(record));
+    let warning = null;
+    if (updateError && record.satelite && isMissingSateliteColumn(updateError)) {
+      const { satelite: _omit, ...withoutSatelite } = toDatabaseParcel(record);
+      ({ data, error: updateError } = await update(withoutSatelite));
+      warning = "satelite-column";
+    }
     if (updateError) return { error: updateError };
 
     const savedParcel = fromDatabaseParcel(data);
     setCustomParcels((prev) => prev.map((parcel) => (parcel.id === id ? savedParcel : parcel)));
-    return { data: savedParcel, error: null };
+    return { data: savedParcel, error: null, warning };
   }, [analysis, analysisParcels, customParcels, globalImportance, persistAnalysis]);
 
   /** Elimina una parcela: de Supabase si es propia, o de la corrida actual si viene del modelo. */

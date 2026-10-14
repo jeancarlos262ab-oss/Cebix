@@ -6,10 +6,11 @@
  * Mismo estilo que Leaflet (parcelStyle.js): trazo blanco (rojo si pasa la superficie máxima) con el grosor
  * de contorno y de malla compartidos. Las capas de MapLibre no tienen el modo "difference" de Leaflet.
  */
-import { GRID_WEIGHT, OUTLINE_WEIGHT, OVER_LIMIT_COLOR, OVER_LIMIT_FILL_OPACITY, traceColor } from "./parcelStyle";
+import { toGeoJSONPolygon } from "../../utils/polygon";
+import { EXPORT_COLOR, EXPORT_DASH, EXPORT_WEIGHT, GRID_WEIGHT, OUTLINE_WEIGHT, OVER_LIMIT_COLOR, OVER_LIMIT_FILL_OPACITY, traceColor } from "./parcelStyle";
 
 const SRC = "parcel-trace";
-const LAYERS = ["parcel-fill", "parcel-grid", "parcel-outline"];
+const LAYERS = ["parcel-fill", "parcel-grid", "parcel-outline", "parcel-export"];
 const ROUND = { "line-join": "round", "line-cap": "round" };
 const EMPTY = { type: "FeatureCollection", features: [] };
 
@@ -27,6 +28,8 @@ function toGeoJSON({ points, closed, grid, overLimit }) {
       feature("outline", { type: "LineString", coordinates: polygon ? [...ring, ring[0]] : ring }),
     );
   }
+  // Mismo anillo (redondeado a 6 decimales) que sale en el GeoJSON descargado y que recibe el cálculo.
+  if (polygon) features.push(feature("export", { type: "LineString", coordinates: toGeoJSONPolygon(points).coordinates[0] }));
   if (polygon && grid.length) {
     features.push(feature("grid", { type: "MultiLineString", coordinates: grid.map((l) => l.map(lngLat)) }));
   }
@@ -55,6 +58,14 @@ export function createTraceLayers(map) {
     });
     map.addLayer({ id: "parcel-grid", type: "line", source: SRC, filter: kind("grid"), layout: ROUND, paint: { "line-color": "#fff", "line-width": GRID_WEIGHT } });
     map.addLayer({ id: "parcel-outline", type: "line", source: SRC, filter: kind("outline"), layout: ROUND, paint: { "line-color": "#fff", "line-width": OUTLINE_WEIGHT } });
+    map.addLayer({
+      id: "parcel-export",
+      type: "line",
+      source: SRC,
+      filter: kind("export"),
+      layout: { "line-join": "round", "line-cap": "butt" },
+      paint: { "line-color": EXPORT_COLOR, "line-width": EXPORT_WEIGHT, "line-dasharray": [EXPORT_DASH[0] / EXPORT_WEIGHT, EXPORT_DASH[1] / EXPORT_WEIGHT] },
+    });
     paint();
   }
 

@@ -6,6 +6,7 @@ import TopBar from "../components/layout/TopBar";
 import ParcelMap from "../components/map/ParcelMap";
 import Semaphore from "../components/ui/Semaphore";
 import { Contributions, Label, RangeBar, Row } from "../components/results/ReportParts";
+import FeaturesTable from "../components/satelite/FeaturesTable";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { useModelInfo } from "../context/ModelInfoContext";
 import { generateCreditReportPDF } from "../utils/creditReport";
@@ -159,6 +160,24 @@ function ParcelaDetallePageContent() {
               </p>
               <Contributions data={parcel.shap} />
             </section>
+
+            {/* Solo parcelas guardadas desde 'Parcela satelital': lo que se calculó en ese momento. */}
+            {parcel.satelite?.features && (
+              <section>
+                <Label>Variables calculadas desde satélite</Label>
+                <p className="mb-3 mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                  Ciclo {parcel.satelite.anio}
+                  {Number.isFinite(parcel.satelite.ic90_inferior) && Number.isFinite(parcel.satelite.ic90_superior)
+                    ? ` · intervalo al 90 %: ${parcel.satelite.ic90_inferior.toFixed(2)} a ${parcel.satelite.ic90_superior.toFixed(2)} ton/ha`
+                    : ""}
+                  {parcel.satelite.calculado_en
+                    ? ` · calculado el ${new Date(parcel.satelite.calculado_en).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })}`
+                    : ""}
+                  .
+                </p>
+                <FeaturesTable features={parcel.satelite.features} />
+              </section>
+            )}
           </div>
 
           {/* Columna lateral */}

@@ -25,7 +25,7 @@ const SLOTS = {
   3: { title: "Cebada recién emergida", hint: "Plántulas o macollos de cebada, cerca del suelo.", size: "1200 × 900" },
   4: { title: "Cebada en encañado", hint: "Tallos alargándose, cultivo verde y alto, aún sin espiga.", size: "1200 × 900" },
   5: { title: "Cebada espigada", hint: "Espigas formadas y grano llenándose, color dorado verdoso.", size: "1200 × 900" },
-  6: { title: "Parcelas vistas desde satélite", hint: "Vista cenital de parcelas, o una captura de «Parcela satelital» con su malla.", size: "1600 × 1000" },
+  6: { title: "Parcelas vistas desde satélite", hint: "Vista cenital de parcelas, o una captura de 'Parcela satelital' con su malla.", size: "1600 × 1000" },
   7: { title: "Zona de estudio desde el aire", hint: "Vista aérea o satelital de Hidalgo, Puebla y Tlaxcala.", size: "1200 × 900" },
 };
 

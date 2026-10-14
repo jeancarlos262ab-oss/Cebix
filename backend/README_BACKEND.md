@@ -203,7 +203,7 @@ python scripts/validate_satelite.py --csv ../ml/02_datos_procesados/features_com
 ```
 Imprime la diferencia porcentual por variable y guarda `validacion_satelite.json`; cópialo a `cebix/src/data/sateliteValidation.json`.
 
-### Si `/satellite-status` o la pantalla dicen «Faltan librerías en el servidor»
+### Si `/satellite-status` o la pantalla dicen "Faltan librerías en el servidor"
 
 - `rasterio: no instalado` → `python -m pip install -r requirements.txt` en el MISMO entorno que ejecuta `uvicorn`, y reiniciar.
 - `libexpat.so.1: cannot open shared object file` → falta una librería del **sistema**, no de Python. En Docker ya se instala en el `Dockerfile`
@@ -221,3 +221,19 @@ límites de memoria (no los medí con esta carga).
 `/predict` y `/predict-csv` ejecutan el modelo real sobre features YA CALCULADAS. Las parcelas nuevas dibujadas en el mapa
 solo se pueden predecir con `/predict-from-geometry`, que lee satélites reales pero cuyo parecido con el dataset oficial
 depende de que la validación del Paso 8 haya pasado. El modelo final ya no usa Planet (de pago): todas sus features son reproducibles con fuentes gratuitas.
+
+
+## CHIRPS: fuentes y diagnostico
+
+La lluvia de abril-mayo se lee de COG/GeoTIFF diarios publicados por el Climate Hazards Center. El servicio prueba, en orden:
+
+1. CHIRPS v2.0 (`.../CHIRPS-2.0/global_daily/cogs/p05/...`), la version con la que se entreno el modelo.
+2. CHIRPS v3.0 `sat` (`.../CHIRPS/v3.0/daily/final/sat/...`).
+3. CHIRPS v3.0 `rnl` (`.../CHIRPS/v3.0/daily/final/rnl/...`).
+
+CHIRPS v3.0 reemplaza a v2.0, asi que si v2.0 deja de publicarse el servicio pasa solo a v3.0 y lo avisa en `advertencias`
+(el valor puede diferir un poco del dataset oficial). Las rutas NO estan verificadas desde el entorno de desarrollo:
+corre `python scripts/diagnose_chirps.py 2024` en el servidor para ver cual responde y con que error.
+
+Variables de entorno: `CHIRPS_URL_TEMPLATES` (varias plantillas separadas por coma, con `{year}`, `{month:02d}`, `{day:02d}`)
+o `CHIRPS_URL_TEMPLATE` (una sola, se prueba primero). No hace falta tocar codigo para cambiar la ruta.

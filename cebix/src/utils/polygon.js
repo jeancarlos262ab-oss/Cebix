@@ -96,7 +96,7 @@ export function parseGeoJSON(text) {
   return { points: ring, extra: polygons.length > 1 ? polygons.length - 1 : 0 };
 }
 
-function pointInRing(lat, lng, ring) {
+export function pointInRing(lat, lng, ring) {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const [xi, yi] = ring[i];
@@ -150,3 +150,26 @@ export function selfIntersects(points) {
 }
 
 export const formatHa = (ha) => (ha < 10 ? ha.toFixed(2) : ha < 100 ? ha.toFixed(1) : formatNumber(Math.round(ha)));
+
+/**
+ * Puntos de muestra distribuidos en una rejilla dentro del polígono [lat,lng][] (más vértices y centroide).
+ * Sirve para estimar qué fracción del contorno cae sobre una zona dada.
+ */
+export function sampleInside(points, perSide = 24) {
+  const lats = points.map((p) => p[0]);
+  const lngs = points.map((p) => p[1]);
+  const [s, n] = [Math.min(...lats), Math.max(...lats)];
+  const [w, e] = [Math.min(...lngs), Math.max(...lngs)];
+  const ring = points.map(([lat, lng]) => [lng, lat]); // pointInRing espera [x=lng, y=lat]
+  const out = [];
+  for (let i = 0; i < perSide; i++) {
+    for (let j = 0; j < perSide; j++) {
+      const lat = s + ((i + 0.5) / perSide) * (n - s);
+      const lng = w + ((j + 0.5) / perSide) * (e - w);
+      if (pointInRing(lat, lng, ring)) out.push([lat, lng]);
+    }
+  }
+  const c = centroid(points);
+  if (c && pointInRing(c[0], c[1], ring)) out.push(c);
+  return out.length ? out : points.slice();
+}

@@ -5,7 +5,7 @@ Paso 8 de ml/GUIA_GOOGLE_EARTH_ENGINE.md — validar el cálculo en vivo contra 
 Corre la extracción de features (por defecto con fuentes abiertas, sin cuenta) sobre N parcelas de ENTRENAMIENTO (cuyos valores oficiales ya están en
 features_completo.csv), compara las 10 columnas y deja:
   * una tabla de diferencia porcentual en consola, y
-  * un JSON [{id, official, gee}] que la pantalla «Validación del cálculo» del frontend puede usar
+  * un JSON [{id, official, gee}] que la pantalla 'Validación del cálculo' del frontend puede usar
     (reemplaza el ejemplo inventado de cebix/src/data/earthEngineValidationDemo.js).
 
 Uso (desde backend/, con la clave a la mano y fuera del repo):

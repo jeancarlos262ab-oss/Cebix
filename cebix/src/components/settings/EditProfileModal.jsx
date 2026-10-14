@@ -28,8 +28,8 @@ export default function EditProfileModal({ account, onClose, onSave }) {
   const [saving, setSaving] = useState(false);
   const fileRef = useRef(null);
 
-  // Foto: se elige y se previsualiza aquí, pero NO se sube hasta pulsar «Guardar»
-  // (así «Cancelar» no deja nada en el servidor).
+  // Foto: se elige y se previsualiza aquí, pero NO se sube hasta pulsar 'Guardar'
+  // (así 'Cancelar' no deja nada en el servidor).
   const [photoFile, setPhotoFile] = useState(null); // archivo original elegido, sin tocar
   const [photoBlob, setPhotoBlob] = useState(null); // miniatura 256x256 para la barra lateral
   const [photoPreview, setPhotoPreview] = useState(null); // URL local para mostrarla

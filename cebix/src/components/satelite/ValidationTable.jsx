@@ -46,8 +46,8 @@ function Segmented({ value, onChange, options }) {
 
 /**
  * Comparación entre el cálculo en vivo y el dataset oficial. Dos vistas:
- *  - «Diferencia»: matriz compacta, una fila por variable y una columna por parcela (% de diferencia).
- *  - «Valores»: por parcela, tres columnas separadas (oficial · en vivo · diferencia) para compararlas lado a lado.
+ *  - 'Diferencia': matriz compacta, una fila por variable y una columna por parcela (% de diferencia).
+ *  - 'Valores': por parcela, tres columnas separadas (oficial · en vivo · diferencia) para compararlas lado a lado.
  */
 export default function ValidationTable({ rows, onClear, onDownload }) {
   const [mode, setMode] = useState("diff");

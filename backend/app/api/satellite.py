@@ -41,7 +41,7 @@ def predict_from_geometry(payload: GeometryRequest):
         advertencias.append(f"El modelo se entrenó con el ciclo 2025; para {payload.anio} extrapola (clima distinto).")
     artifact, _ = get_artifact()
     if payload.Estado not in artifact["rmse_by_region"]:
-        advertencias.append(f"«{payload.Estado}» no es un estado de entrenamiento: se usó el margen de confianza global.")
+        advertencias.append(f"'{payload.Estado}' no es un estado de entrenamiento: se usó el margen de confianza global.")
 
     return {
         "ID_POLIGONO": payload.ID_POLIGONO,

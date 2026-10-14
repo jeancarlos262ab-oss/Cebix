@@ -14,6 +14,8 @@ import { createStarsLayer } from "./globeStarsGL";
 import { createTraceLayers } from "./glTraceLayers";
 import { boundaryGLPaint } from "../map/boundaryStyle";
 import {
+  EXPORT_COLOR,
+  EXPORT_LABEL,
   IMAGERY_CREDIT,
   IMAGERY_URL,
   STUDY,
@@ -462,10 +464,10 @@ export default function GlobeMapGL({
       ? "Cargando imágenes satelitales del planeta…"
       : tilesError
         ? "No se pudieron cargar las imágenes del globo (sin conexión o bloqueadas)."
-        : "Arrastra para girar · rueda o +/− para acercar · «Dibujar parcela» para marcar el contorno");
+        : "Arrastra para girar · rueda o +/− para acercar · 'Dibujar parcela' para marcar el contorno");
 
   return (
-    <div className="relative h-full min-h-[440px] w-full overflow-hidden rounded-lg bg-black">
+    <div className="relative h-full min-h-[440px] w-full overflow-hidden bg-black">
       <div ref={mapEl} aria-label="Globo terráqueo interactivo" className="absolute inset-0 isolate h-full w-full" />
 
       <div className="pointer-events-none absolute left-3 top-3 z-10">
@@ -527,6 +529,12 @@ export default function GlobeMapGL({
           />
           {status}
         </p>
+        {closed && ok && (
+          <p className="flex items-center gap-2 bg-black/60 px-1.5 py-0.5 text-[10px] text-gray-200">
+            <span aria-hidden="true" className="inline-block h-0 w-5 border-t-2 border-dashed" style={{ borderColor: EXPORT_COLOR }} />
+            {EXPORT_LABEL}
+          </p>
+        )}
         <p className="bg-black/60 px-1.5 py-0.5 text-[10px] text-gray-300">{IMAGERY_CREDIT}</p>
       </div>
     </div>

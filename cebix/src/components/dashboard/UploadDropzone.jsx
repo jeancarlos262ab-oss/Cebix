@@ -143,7 +143,7 @@ export default function UploadDropzone({ onParsed }) {
 
         for (const [i, poly] of batch.entries()) {
           toast.loading(
-            `Parcela ${i + 1} de ${batch.length} («${poly.nombre}»): calculando índices desde satélite. Tarda entre 30 y 90 s.`,
+            `Parcela ${i + 1} de ${batch.length} ('${poly.nombre}'): calculando índices desde satélite. Tarda entre 30 y 90 s.`,
             { id, action: cancel }
           );
           try {
@@ -165,7 +165,7 @@ export default function UploadDropzone({ onParsed }) {
               cancelled = true;
               break;
             }
-            failures.push(`«${poly.nombre}»: ${userMessage(err)}`);
+            failures.push(`'${poly.nombre}': ${userMessage(err)}`);
           }
         }
 

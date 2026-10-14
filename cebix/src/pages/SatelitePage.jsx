@@ -1,6 +1,6 @@
 import { userMessage } from "../utils/userMessages";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "../services/toast";
 import {
   AlertTriangle,
@@ -12,6 +12,7 @@ import {
   Loader2,
   Pencil,
   RotateCcw,
+  Save,
   Square,
 } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
@@ -22,7 +23,7 @@ import RunProgress from "../components/satelite/RunProgress";
 import ParcelResult from "../components/satelite/ParcelResult";
 import ValidationTable from "../components/satelite/ValidationTable";
 import ValidationRunner from "../components/satelite/ValidationRunner";
-import { classifyRisk, scoreFromInputs } from "../context/ParcelsContext";
+import { classifyRisk, scoreFromInputs, useParcels } from "../context/ParcelsContext";
 import { predictFromGeometry } from "../services/sateliteApi";
 import { parseGeometryFiles } from "../services/geoApi";
 import { ESTADOS, MAX_AREA_HA, SAT_QUESTIONS, TRAINED_YEAR, WARN_AREA_HA, YEARS } from "../data/satelite";
@@ -37,6 +38,7 @@ import {
   toGeoJSONPolygon,
 } from "../utils/polygon";
 import { formatDistance } from "../utils/geo";
+import { checkPointUrban, checkUrban } from "../utils/urbanCheck";
 
 // Validación REAL: salida de backend/scripts/validate_satelite.py guardada como src/data/sateliteValidation.json.
 // Si el archivo no existe, la pestaña lo dice; nunca muestra cifras de ejemplo.
@@ -195,6 +197,16 @@ function NuevaParcelaTab() {
   const resultsRef = useRef(null);
   const running = phase === "running";
 
+  // ── Guardado: el resultado se guarda en las parcelas del usuario (Supabase) solo al pulsar 'Guardar parcela'.
+  const { addParcel, updateParcel, isCustomParcel } = useParcels();
+  const [savedId, setSavedId] = useState(null); // parcela guardada de la última vez (se actualiza al volver a guardar)
+  const [savedFor, setSavedFor] = useState(null); // resultado (objeto `ran`) que ya quedó guardado
+  const [saving, setSaving] = useState(false);
+
+  // ── Zona urbana: se consulta OpenStreetMap cada vez que cambia el contorno cerrado.
+  const [urban, setUrban] = useState({ status: "idle" }); // idle | checking | ok | urban | unknown
+  const [recheck, setRecheck] = useState(0); // sube al pulsar 'Reintentar verificación'
+
   const info = useMemo(() => {
     if (!closed || points.length < 3) return null;
     const c = centroid(points);
@@ -212,8 +224,51 @@ function NuevaParcelaTab() {
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
+  useEffect(() => {
+    if (!closed || points.length < 3) {
+      setUrban({ status: "idle" });
+      return undefined;
+    }
+    const controller = new AbortController();
+    setUrban({ status: "checking" });
+    // Espera un instante a que se deje de mover el vértice para no consultar en cada arrastre.
+    const timer = setTimeout(async () => {
+      try {
+        const r = await checkUrban(points, { signal: controller.signal });
+        if (controller.signal.aborted) return;
+        setUrban({ status: r.urban ? "urban" : "ok", ...r });
+        if (r.urban) toast.error("Ese contorno cae sobre una zona urbana. Dibuja la parcela sobre terreno agrícola.", { id: "urban-block" });
+      } catch (err) {
+        if (err.name === "AbortError" || controller.signal.aborted) return;
+        console.warn("No se pudo verificar la zona urbana", err);
+        setUrban({ status: "unknown" });
+      }
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [closed, points, recheck]);
+
+  const isUrban = urban.status === "urban";
   const overLimit = Boolean(info && info.ha > MAX_AREA_HA);
   const warnings = [];
+  if (isUrban) {
+    const why = {
+      landuse: `cerca del ${Math.round((urban.share ?? 0) * 100)} % del contorno está sobre mancha urbana`,
+      place: "hay un poblado marcado dentro del contorno",
+      streets: `hay ${urban.streets} calles urbanas dentro del contorno`,
+      buildings: `hay ${urban.buildings} construcciones dentro del contorno (${(urban.perHa ?? 0).toFixed(1)} por ha)`,
+      amenities: `hay ${urban.amenities} comercios, escuelas o iglesias dentro del contorno`,
+    }[urban.reason] ?? "se detectó una zona urbana";
+    warnings.push({
+      tone: "error",
+      text: `Esta parcela cae sobre una ciudad o un pueblo (${why}). No se puede calcular ni guardar: mueve los vértices a terreno agrícola o dibuja otra parcela.`,
+    });
+  }
+  if (urban.status === "checking") warnings.push({ tone: "info", text: "Verificando que el contorno no caiga sobre una zona urbana…" });
+  if (urban.status === "unknown")
+    warnings.push({ tone: "warn", text: "No se pudo verificar que el contorno sea terreno agrícola (OpenStreetMap no respondió). Puedes calcular de todos modos, pero asegúrate tú de que la parcela no caiga sobre un pueblo o una ciudad: si es así, el resultado no será válido. También puedes pulsar 'Reintentar verificación'." });
   if (info?.crosses) warnings.push({ tone: "error", text: "El contorno se cruza consigo mismo. Arrastra los vértices o redibuja la parcela." });
   if (info && !info.crosses && info.ha < 1) warnings.push({ tone: "warn", text: "Menos de 1 ha (≈ 100 píxeles de 10 m): el promedio por escena puede ser poco representativo." });
   if (overLimit)
@@ -229,7 +284,7 @@ function NuevaParcelaTab() {
 
   const signature = `${points.map((p) => p.map((n) => n.toFixed(6)).join(",")).join(";")}|${estado}|${anio}`;
   const stale = Boolean(result && ran && ran.signature !== signature);
-  const canRun = Boolean(info && !info.crosses && !overLimit && name.trim() && estado && !running);
+  const canRun = Boolean(info && !info.crosses && !overLimit && !isUrban && (urban.status === "ok" || urban.status === "unknown") && name.trim() && estado && !running);
 
   // ── Acciones de dibujo ───────────────────────────────────────────────────
   // Handlers estables: GeometryMap está memoizado y no debe repintarse al escribir el nombre de la parcela.
@@ -238,6 +293,8 @@ function NuevaParcelaTab() {
     setResult(null);
     setRan(null);
     setError(null);
+    setSavedId(null);
+    setSavedFor(null);
   }, []);
   const startDrawing = useCallback(() => {
     setPoints([]);
@@ -245,6 +302,38 @@ function NuevaParcelaTab() {
     setDrawing(true);
     resetResults();
   }, [resetResults]);
+  // Cada vértice nuevo (o movido) se verifica contra OpenStreetMap: si cae sobre una ciudad o un pueblo se rechaza
+  // en el momento y la parcela vuelve a como estaba. Si OpenStreetMap no responde no se bloquea (la verificación
+  // del contorno completo, al cerrarlo, vuelve a intentarlo y avisa).
+  const pointsRef = useRef(points);
+  pointsRef.current = points;
+  const onPointsChange = useCallback((next) => {
+    const prev = pointsRef.current;
+    setPoints(next);
+
+    let vertex = null;
+    let restore = null; // vértice anterior (arrastre) o null (vértice recién agregado: se quita)
+    if (next.length === prev.length + 1) vertex = next[next.length - 1];
+    else if (next.length === prev.length) {
+      const i = next.findIndex((p, k) => p[0] !== prev[k][0] || p[1] !== prev[k][1]);
+      if (i >= 0) {
+        vertex = next[i];
+        restore = prev[i];
+      }
+    }
+    if (!vertex) return;
+
+    const same = (p) => p[0] === vertex[0] && p[1] === vertex[1];
+    checkPointUrban(vertex)
+      .then((r) => {
+        if (!r.urban) return;
+        setPoints((cur) => (restore ? cur.map((p) => (same(p) ? restore : p)) : cur.filter((p) => !same(p))));
+        toast.error("Ahí hay una ciudad o un pueblo. Marca el vértice sobre terreno agrícola.", { id: "urban-vertex" });
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") console.warn("No se pudo verificar el vértice", err);
+      });
+  }, []);
   const pointCount = points.length;
   const finishDrawing = useCallback(() => {
     if (pointCount < 3) return;
@@ -284,7 +373,7 @@ function NuevaParcelaTab() {
       if (poly.Estado) setEstadoManual(poly.Estado);
       const extra = res.poligonos.length - 1;
       toast.success(
-        `«${poly.nombre}» importada (${formatHa(poly.area_ha)} ha).${
+        `'${poly.nombre}' importada (${formatHa(poly.area_ha)} ha).${
           extra > 0 ? ` El archivo traía ${extra} polígono${extra === 1 ? "" : "s"} más; usé el primero.` : ""
         }`,
         { id },
@@ -330,9 +419,10 @@ function NuevaParcelaTab() {
   // ── Ejecución del cálculo ────────────────────────────────────────────────
   async function run() {
     if (!canRun) return;
+    if (isUrban) return;
     const controller = new AbortController();
     abortRef.current = controller;
-    const snapshot = { name: name.trim(), estado, anio, ha: info.ha, center: info.center, signature };
+    const snapshot = { name: name.trim(), estado, anio, ha: info.ha, center: info.center, signature, geometry: toGeoJSONPolygon(points) };
 
     setPhase("running");
     setPredicting(false);
@@ -365,6 +455,72 @@ function NuevaParcelaTab() {
     }
   }
 
+  async function saveResult() {
+    if (!result || !view || !ran || saving || stale || isUrban) return;
+    const f = view.features;
+    const fields = {
+      name: ran.name,
+      area: `${ran.ha.toFixed(2)} ha`,
+      yieldEstimate: result.yieldEstimate,
+      confidence: view.half,
+      score: view.score, // el mismo score que se ve en pantalla
+      region: ran.estado,
+      municipio: "—",
+      lat: ran.center[0],
+      lng: ran.center[1],
+      ndvi: f.bas_ndvi_emergencia_macollamiento ?? 0,
+      evi: f.bas_evi_emergencia_macollamiento ?? 0,
+      precip: f.precip_acum_emergencia_macollamiento_mm ?? 0,
+      gdd: 0, // el cálculo satelital no incluye grados-día
+      shap: result.shap ?? [], // SHAP real de esta predicción
+      // Todo lo calculado, para poder reabrirlo después: contorno, las 10 variables, intervalo y ciclo.
+      satelite: {
+        version: 1,
+        geometry: ran.geometry,
+        anio: ran.anio,
+        estado: ran.estado,
+        features: result.features_calculadas ?? {},
+        ic90_inferior: result.ic90_inferior,
+        ic90_superior: result.ic90_superior,
+        advertencias: result.advertencias ?? [],
+        proveedor: result.proveedor ?? null,
+        calculado_en: new Date().toISOString(),
+      },
+    };
+    setSaving(true);
+    // Si ya se había guardado y sigue existiendo, se actualiza en vez de duplicarla.
+    const res = savedId && isCustomParcel(savedId) ? await updateParcel(savedId, fields) : await addParcel(fields);
+    setSaving(false);
+    if (res?.error || !res?.data) {
+      console.error("No se pudo guardar la parcela", res?.error);
+      toast.error("No se pudo guardar la parcela.", { description: userMessage(res?.error, "Inténtalo de nuevo en un momento.") });
+      return;
+    }
+    setSavedId(res.data.id);
+    setSavedFor(ran);
+    if (res.warning === "satelite-column") {
+      toast.warning(`'${ran.name}' guardada, pero sin el detalle del cálculo.`, {
+        description: "Falta la columna 'satelite' en la tabla parcels_custom. Ejecuta supabase/parcels_custom_satelite.sql y vuelve a guardar.",
+        duration: 12000,
+      });
+      return;
+    }
+    toast.success(`'${ran.name}' guardada en tus parcelas con todo lo calculado.`);
+  }
+
+  const isSaved = Boolean(savedId && savedFor === ran);
+  // Un cálculo tarda hasta 90 s: si hay un resultado sin guardar, el navegador avisa antes de cerrar o recargar.
+  const unsaved = phase === "done" && Boolean(result) && !isSaved;
+  useEffect(() => {
+    if (!unsaved) return undefined;
+    const warn = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [unsaved]);
+
   function cancel() {
     abortRef.current?.abort();
     setPhase("idle");
@@ -396,11 +552,12 @@ function NuevaParcelaTab() {
         : "Dibuja el contorno sobre la imagen satelital o importa un shapefile (.zip o .shp/.dbf/.prj/.shx/.cpg), GeoJSON o KML/KMZ."
       : points.length < 3
         ? `${points.length} de 3 vértices mínimos. Sigue marcando sobre el mapa.`
-        : `${points.length} vértices. Cierra con «Terminar» o tocando el primer punto.`;
+        : `${points.length} vértices. Cierra con 'Terminar' o tocando el primer punto.`;
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+      {/* Un solo contenedor para el mapa y el panel de trabajo (separados por una línea fina) */}
+      <div className="grid grid-cols-1 overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 lg:grid-cols-[minmax(0,1fr)_360px]">
         {/* ── Mapa: protagonista de la pantalla ── */}
         <div className="relative min-h-[460px] sm:min-h-[560px] lg:min-h-[640px]">
           <div className="absolute inset-0">
@@ -409,10 +566,10 @@ function NuevaParcelaTab() {
               closed={closed}
               drawing={drawing}
               locked={running}
-              overLimit={overLimit}
+              overLimit={overLimit || isUrban}
               maxAreaHa={MAX_AREA_HA}
               fitKey={fitKey}
-              onChange={setPoints}
+              onChange={onPointsChange}
               onStartDrawing={startDrawing}
               onFinish={finishDrawing}
               onClear={clearAll}
@@ -422,7 +579,7 @@ function NuevaParcelaTab() {
         </div>
 
         {/* ── Panel de trabajo: tres pasos, de arriba abajo ── */}
-        <aside className="min-w-0 self-start divide-y divide-gray-200 overflow-hidden rounded-2xl border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+        <aside className="min-w-0 divide-y divide-gray-200 border-t border-gray-200 dark:divide-gray-800 dark:border-gray-800 lg:border-l lg:border-t-0">
           <PanelSection n={1} state={s1} title="Contorno de la parcela">
             {info ? (
               <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 dark:border-gray-800 dark:bg-gray-800">
@@ -461,6 +618,11 @@ function NuevaParcelaTab() {
               <button type="button" onClick={() => fileRef.current?.click()} disabled={running} className={BTN}>
                 <FileUp size={13} strokeWidth={1.75} className="text-gray-400" /> Importar archivo
               </button>
+              {urban.status === "unknown" && (
+                <button type="button" onClick={() => setRecheck((k) => k + 1)} className={BTN}>
+                  <RotateCcw size={13} strokeWidth={1.75} className="text-gray-400" /> Reintentar verificación
+                </button>
+              )}
               {closed && (
                 <button type="button" onClick={copyGeoJSON} className={BTN}>
                   <Copy size={13} strokeWidth={1.75} className="text-gray-400" /> Copiar
@@ -515,9 +677,44 @@ function NuevaParcelaTab() {
                 {result ? "Recalcular índices satelitales" : "Calcular índices satelitales"}
               </button>
             )}
+            {!running && phase === "done" && result && ran && (
+              <div className="mt-3">
+                {isSaved ? (
+                  <div className="flex items-center justify-between gap-3 rounded-lg bg-accent-50 px-3 py-2 text-xs font-medium text-accent-700 dark:bg-accent-500/15 dark:text-accent-400">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Check size={13} strokeWidth={2.25} /> Guardada con todo lo calculado
+                    </span>
+                    <Link to={`/parcelas/${savedId}`} className="underline underline-offset-2">
+                      Ver parcela
+                    </Link>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={saveResult}
+                    disabled={saving || stale || isUrban}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-accent-500 px-4 py-2.5 text-sm font-medium text-accent-700 transition-colors hover:bg-accent-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:text-accent-400 dark:hover:bg-accent-500/10 dark:focus-visible:ring-offset-black"
+                  >
+                    {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} strokeWidth={1.75} />}
+                    {saving ? "Guardando…" : "Guardar parcela"}
+                  </button>
+                )}
+                {!isSaved && (
+                  <p className="mt-2 text-xs leading-relaxed text-gray-400 dark:text-gray-500">
+                    {stale ? "Recalcula antes de guardar: el contorno cambió." : "El cálculo no se guarda solo. Pulsa 'Guardar parcela' para conservarlo en tus parcelas."}
+                  </p>
+                )}
+              </div>
+            )}
             <p className="mt-3 text-xs leading-relaxed text-gray-400 dark:text-gray-500">
-              {canRun || running
+              {canRun && urban.status === "unknown"
+                ? "Sin verificar la zona urbana: si la parcela cae sobre un pueblo o una ciudad, el resultado no será válido. Se leen imágenes reales de 10 variables (30 a 90 s)."
+                : canRun || running
                 ? "Se leen imágenes reales de 10 variables. Tarda entre 30 y 90 s."
+                : isUrban
+                  ? "El contorno cae sobre una zona urbana: muévelo a terreno agrícola para poder calcular."
+                  : urban.status === "checking"
+                    ? "Verificando que no sea zona urbana…"
                 : overLimit
                   ? `Reduce la parcela a ${formatHa(MAX_AREA_HA)} ha o menos para poder calcular.`
                   : info?.crosses
@@ -590,7 +787,7 @@ function NuevaParcelaTab() {
                 ))}
                 {stale && (
                   <Notice>
-                    Cambiaste el contorno, el estado o el año después de calcular. Pulsa «Recalcular índices satelitales» para actualizar este resultado.
+                    Cambiaste el contorno, el estado o el año después de calcular. Pulsa &quot;Recalcular índices satelitales&quot; para actualizar este resultado.
                   </Notice>
                 )}
               </div>
@@ -601,12 +798,9 @@ function NuevaParcelaTab() {
               view={view}
               ran={ran}
               stale={stale}
-              onDownload={() =>
-                downloadBlob(
-                  `${ran.name}_features_${ran.anio}.json`,
-                  JSON.stringify({ ID_POLIGONO: ran.name, Estado: ran.estado, anio: ran.anio, features: view.features }, null, 2),
-                )
-              }
+              save={{ saving, savedId: savedFor === ran ? savedId : null, onSave: saveResult }}
+              downloaded={{ ID_POLIGONO: ran.name, Estado: ran.estado, anio: ran.anio, geometry: ran.geometry, features: view.features }}
+              onDownload={(payload) => downloadBlob(`${ran.name}_features_${ran.anio}.json`, JSON.stringify(payload, null, 2))}
               onReset={clearAll}
             />
           </>
@@ -636,7 +830,7 @@ function ValidacionTab({ rows, setRows }) {
         <div className="rounded-2xl border border-dashed border-gray-300 px-6 py-10 text-center dark:border-gray-700">
           <h3 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Aún no hay parcelas comparadas</h3>
           <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-            Sube arriba el CSV con los valores oficiales y los contornos de esas parcelas, y pulsa «Calcular y comparar». Los resultados
+            Sube arriba el CSV con los valores oficiales y los contornos de esas parcelas, y pulsa &quot;Calcular y comparar&quot;. Los resultados
             aparecen aquí, parcela por parcela, a medida que se calculan.
           </p>
         </div>

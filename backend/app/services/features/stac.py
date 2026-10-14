@@ -4,7 +4,7 @@ Extracción de las 10 features del modelo SIN cuentas, tarjetas ni cuotas
 
 Todas las fuentes son abiertas y se leen de forma anónima:
 
-  * Sentinel-2 L2A y Landsat 8/9 -> catálogo STAC «Earth Search» (Element 84) sobre el
+  * Sentinel-2 L2A y Landsat 8/9 -> catálogo STAC 'Earth Search' (Element 84) sobre el
     Registro de Datos Abiertos de AWS. Las imágenes son Cloud-Optimized GeoTIFF: solo se
     descarga el recorte de la parcela (unos KB por banda), no la escena entera.
   * Lluvia -> CHIRPS v2.0 diario (Climate Hazards Center, UCSB), también COG anónimo.
@@ -14,7 +14,7 @@ Método (igual que el dataset oficial): por cada escena se promedia el
 
 Diferencias a conocer frente al dataset oficial (por eso hay que correr scripts/validate_satelite.py):
   * Un píxel con valor no finito (p. ej. LAI con SAVI >= 0.69) se descarta píxel a píxel; la guía
-    dice que esa escena «no aporta». Puede mover un poco el LAI.
+    dice que esa escena 'no aporta'. Puede mover un poco el LAI.
   * Píxel dentro del polígono = su centro cae dentro (la guía pondera por fracción cubierta).
     En 10 m la diferencia es mínima; en CHIRPS (5.5 km) sí se pondera por fracción cubierta.
   * Es más lento: ~30–90 s por parcela (muchas lecturas HTTP pequeñas), según la red.
@@ -32,6 +32,7 @@ esto; si el servicio los cambia, basta con ajustar estas variables, sin tocar el
 
 from __future__ import annotations
 
+import logging
 import os
 import statistics
 import threading
@@ -61,10 +62,25 @@ from app.services.features.common import (
 STAC_API_URL = os.environ.get("STAC_API_URL", "https://earth-search.aws.element84.com/v1")
 S2_COLLECTION = os.environ.get("STAC_S2_COLLECTION", "sentinel-2-l2a")
 LS_COLLECTION = os.environ.get("STAC_LS_COLLECTION", "landsat-c2-l2")
-CHIRPS_URL_TEMPLATE = os.environ.get(
-    "CHIRPS_URL_TEMPLATE",
+# Plantillas candidatas de CHIRPS, en orden de preferencia. Se usa la primera que responda.
+#   1) v2.0 COG: con la que se entrenó el modelo (si el servidor ya no la publica, se pasa a la siguiente).
+#   2) v3.0 diario "sat" y 3) v3.0 diario "rnl": CHIRPS v3 reemplaza a v2 (Climate Hazards Center).
+# Se pueden sobreescribir con CHIRPS_URL_TEMPLATES (varias, separadas por coma) o CHIRPS_URL_TEMPLATE (una sola).
+_CHIRPS_DEFAULTS = [
     "https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/cogs/p05/{year}/chirps-v2.0.{year}.{month:02d}.{day:02d}.cog",
-)
+    "https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/sat/{year}/chirps-v3.0.sat.{year}.{month:02d}.{day:02d}.tif",
+    "https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/rnl/{year}/chirps-v3.0.rnl.{year}.{month:02d}.{day:02d}.tif",
+]
+
+
+def _chirps_templates() -> list[str]:
+    custom = [t.strip() for t in os.environ.get("CHIRPS_URL_TEMPLATES", "").split(",") if t.strip()]
+    single = os.environ.get("CHIRPS_URL_TEMPLATE", "").strip()
+    return custom or ([single] if single else []) + _CHIRPS_DEFAULTS
+
+
+CHIRPS_URL_TEMPLATE = _chirps_templates()[0]  # compatibilidad con scripts que lo importan
+_chirps_ok_template: str | None = None  # plantilla que ya funcionó en este proceso
 WORKERS = max(1, int(os.environ.get("STAC_WORKERS", "6")))
 READ_TRIES = 3
 SUPERSAMPLE = 20  # submuestreo para ponderar CHIRPS por fracción de píxel cubierta
@@ -103,7 +119,7 @@ def status() -> dict:
         try:
             __import__(mod)
         except ImportError as e:
-            # «No module named» = no instalado; cualquier otro texto = instalado pero roto (p. ej. falta una DLL de GDAL)
+            # 'No module named' = no instalado; cualquier otro texto = instalado pero roto (p. ej. falta una DLL de GDAL)
             problems[pkg] = {"instalado": "No module named" not in str(e), "detalle": " ".join(str(e).split())[:200]}
     return {
         "provider": "stac",
@@ -161,7 +177,7 @@ def _asset_ref(item, key: str) -> tuple[str, float, float]:
     así toda la serie queda comparable entre versiones de procesamiento."""
     asset = item.assets.get(key)
     if asset is None:
-        raise KeyError(f"La escena {item.id} no trae la banda «{key}».")
+        raise KeyError(f"La escena {item.id} no trae la banda '{key}'.")
     rb = (asset.extra_fields.get("raster:bands") or [{}])[0]
     scale = rb.get("scale")
     offset = rb.get("offset")
@@ -269,7 +285,7 @@ def _chirps_day(url: str, geom: dict) -> float | None:
     from rasterio.windows import Window
     from affine import Affine
 
-    with rasterio.Env():
+    with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", GDAL_HTTP_TIMEOUT="30", GDAL_HTTP_MAX_RETRY="2", GDAL_HTTP_RETRY_DELAY="1"):
         with rasterio.open(url) as src:
             g = transform_geom("EPSG:4326", src.crs, geom)
             xs = [c[0] for c in g["coordinates"][0]]
@@ -300,26 +316,68 @@ def _chirps_day(url: str, geom: dict) -> float | None:
     return float((data * weights).sum() / weights.sum())
 
 
+def _pick_chirps_template(geom: dict, year: int, errors: list[str]) -> str | None:
+    """Prueba cada plantilla con un día de la ventana y devuelve la primera que responde."""
+    global _chirps_ok_template
+    candidates = _chirps_templates()
+    if _chirps_ok_template in candidates:
+        candidates = [_chirps_ok_template] + [t for t in candidates if t != _chirps_ok_template]
+    for tpl in candidates:
+        url = tpl.format(year=year, month=4, day=15)
+        try:
+            value = _retry(_chirps_day, url, geom)
+        except Exception as e:  # noqa: BLE001
+            errors.append(f"{type(e).__name__}: {_short(e)} [{url}]")
+            continue
+        if value is not None:
+            _chirps_ok_template = tpl
+            return tpl
+        errors.append(f"Sin datos válidos en el píxel [{url}]")
+    return None
+
+
 def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
     start = date(year, 4, 1)
     days = [start + timedelta(d) for d in range((date(year, 6, 1) - start).days)]  # 1 abr – 31 may
-    urls = [CHIRPS_URL_TEMPLATE.format(year=d.year, month=d.month, day=d.day) for d in days]
+    log = logging.getLogger(__name__)
+
+    probe_errors: list[str] = []
+    tpl = _pick_chirps_template(geom, year, probe_errors)
+    if tpl is None:
+        log.warning("CHIRPS: ninguna fuente respondió. %s", " | ".join(probe_errors))
+        warnings.append(
+            "CHIRPS: no se pudo leer la lluvia de abril-mayo ("
+            + (probe_errors[0] if probe_errors else "sin detalle")
+            + "); el modelo usó la mediana de entrenamiento para esta variable."
+        )
+        return None
+
+    urls = [tpl.format(year=d.year, month=d.month, day=d.day) for d in days]
+    errors: list[str] = []
 
     def one(url):
         try:
             return _retry(_chirps_day, url, geom)
-        except Exception:  # noqa: BLE001
+        except Exception as e:  # noqa: BLE001
+            errors.append(f"{type(e).__name__}: {_short(e)} [{url}]")
             return None
 
     with ThreadPoolExecutor(WORKERS) as pool:
         values = list(pool.map(one, urls))
     missing = sum(v is None for v in values)
     if missing:
+        detail = errors[0] if errors else "el píxel no tenía datos válidos"
+        log.warning("CHIRPS: faltaron %d de %d días. Primer error: %s", missing, len(days), detail)
         warnings.append(
-            f"CHIRPS: faltaron {missing} de {len(days)} días; no se suma la lluvia incompleta y el modelo usó la mediana de entrenamiento. "
-            "Pasa con años recientes (CHIRPS final tarda semanas en publicarse) o si cambió la ruta de descarga."
+            f"CHIRPS: faltaron {missing} de {len(days)} días ({detail}); no se suma la lluvia incompleta "
+            "y el modelo usó la mediana de entrenamiento."
         )
         return None
+    if "v3.0" in tpl:
+        warnings.append(
+            "La lluvia se calculó con CHIRPS v3.0 (v2.0 ya no respondió). El modelo se entrenó con v2.0, "
+            "así que el valor puede diferir un poco del dataset oficial."
+        )
     return round(sum(values), 3)
 
 
@@ -438,7 +496,7 @@ def extract_features_stac(geometry_geojson: dict, year: int = 2025) -> dict:
             "Suele pasar si las escenas están muy nubladas o el año aún no tiene datos en esa ventana."
         )
     for k in missing:
-        warnings.append(f"Sin datos válidos para «{k}»: el modelo usó la mediana de entrenamiento.")
+        warnings.append(f"Sin datos válidos para '{k}': el modelo usó la mediana de entrenamiento.")
     for window, n in scene_counts.items():
         if n < 3:
             warnings.append(f"Solo {n} escena(s) de Sentinel-2 en la ventana {window}: la mediana es poco representativa.")

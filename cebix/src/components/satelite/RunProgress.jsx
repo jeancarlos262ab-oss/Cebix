@@ -41,7 +41,7 @@ export default function RunProgress({ predicting: responded = false, year }) {
       clearInterval(steps);
     };
   }, [total]);
-  const current = responded ? total : step; // al llegar la respuesta pasa a «Predicción del modelo»
+  const current = responded ? total : step; // al llegar la respuesta pasa a 'Predicción del modelo'
   const predicting = current >= total;
   const pct = Math.min(100, Math.round((Math.min(current, total) / total) * 100));
   const stateOf = (i) => (i < current ? "done" : i === current ? "running" : "pending");

@@ -315,7 +315,7 @@ function ResultsGuide({ results }) {
           {top && (
             <>
               {" "}
-              Lo que más influyó fue «{top.feature}», que{" "}
+              Lo que más influyó fue &quot;{top.feature}&quot;, que{" "}
               {top.direction === "positivo" ? "subió" : "bajó"} la estimación.
             </>
           )}
