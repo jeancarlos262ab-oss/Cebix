@@ -105,21 +105,8 @@ export default function EditProfileModal({ account, onClose, onSave }) {
       as="form"
       onSubmit={handleSubmit}
       title="Editar perfil"
-      busy={saving}
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" onClick={onClose} disabled={saving} className={MODAL_BTN_CANCEL}>
-            Cancelar
-          </button>
-          <button type="submit" disabled={saving} className={MODAL_BTN_PRIMARY}>
-            {saving && <Loader2 size={14} className="animate-spin" />}
-            {saving ? "Guardando…" : "Guardar"}
-          </button>
-        </>
-      }
-    >
-        <div className="flex items-center gap-4">
+      aside={
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
@@ -152,8 +139,22 @@ export default function EditProfileModal({ account, onClose, onSave }) {
           </div>
           <input ref={fileRef} type="file" accept={ACCEPTED_TYPES.join(",")} onChange={handleFile} className="hidden" />
         </div>
-
-        <div className="mt-5 space-y-4">
+      }
+      busy={saving}
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" onClick={onClose} disabled={saving} className={MODAL_BTN_CANCEL}>
+            Cancelar
+          </button>
+          <button type="submit" disabled={saving} className={MODAL_BTN_PRIMARY}>
+            {saving && <Loader2 size={14} className="animate-spin" />}
+            {saving ? "Guardando…" : "Guardar"}
+          </button>
+        </>
+      }
+    >
+        <div className="space-y-4">
           <ModalField label="Nombre" error={errors.name}>
             <input value={form.name} onChange={(e) => set("name", e.target.value)} className={modalInput(errors.name)} />
           </ModalField>

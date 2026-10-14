@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import { loadFonts } from "./utils/loadFonts.js";
+import { lockImages } from "./utils/lockImages.js";
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
@@ -12,6 +13,7 @@ import { ParcelsProvider } from "./context/ParcelsContext.jsx";
 import AppToaster from "./components/ui/AppToaster.jsx";
 
 loadFonts();
+lockImages();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

@@ -4,6 +4,18 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Imágenes bloqueadas como cebada.webp: sin arrastrar, sin seleccionar, sin menú de "guardar imagen" en móvil.
+   (El arrastre y el clic derecho se bloquean además en utils/lockImages.js.) */
+@layer base {
+  img,
+  picture {
+    -webkit-user-drag: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
+
 @theme {
   --color-accent-50: var(--accent-50);
   --color-accent-100: var(--accent-100);

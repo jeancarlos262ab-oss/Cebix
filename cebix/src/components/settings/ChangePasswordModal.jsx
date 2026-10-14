@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "../../services/toast";
 import { supabase } from "../../services/supabaseClient";
-import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_PRIMARY, ModalField, modalInput } from "../ui/Modal";
+import Modal, { MODAL_COLS, MODAL_BTN_CANCEL, MODAL_BTN_PRIMARY, ModalField, modalInput } from "../ui/Modal";
 
 function validate(form) {
   const errors = {};
@@ -61,43 +61,51 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
         </>
       }
     >
-      <div className="space-y-4">
-        <ModalField label="Contraseña actual" error={errors.current}>
-          <input
-            type="password"
-            value={form.current}
-            onChange={(e) => set("current", e.target.value)}
-            className={modalInput(errors.current)}
-          />
-        </ModalField>
+      <div className={MODAL_COLS}>
+        <div className="space-y-4">
+          <ModalField label="Contraseña actual" error={errors.current}>
+            <input
+              type="password"
+              value={form.current}
+              onChange={(e) => set("current", e.target.value)}
+              className={modalInput(errors.current)}
+            />
+          </ModalField>
+          <ul className="space-y-1 rounded-lg border border-gray-200 px-3 py-2.5 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
+            <li>• Mínimo 8 caracteres.</li>
+            <li>• Incluye al menos un número.</li>
+          </ul>
+        </div>
 
-        <ModalField label="Nueva contraseña" error={errors.next}>
-          <div className="relative">
+        <div className="space-y-4">
+          <ModalField label="Nueva contraseña" error={errors.next}>
+            <div className="relative">
+              <input
+                type={show ? "text" : "password"}
+                value={form.next}
+                onChange={(e) => set("next", e.target.value)}
+                className={modalInput(errors.next) + " pr-9"}
+              />
+              <button
+                type="button"
+                onClick={() => setShow((s) => !s)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-200"
+                aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {show ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </ModalField>
+
+          <ModalField label="Confirmar nueva contraseña" error={errors.confirm}>
             <input
               type={show ? "text" : "password"}
-              value={form.next}
-              onChange={(e) => set("next", e.target.value)}
-              className={modalInput(errors.next) + " pr-9"}
+              value={form.confirm}
+              onChange={(e) => set("confirm", e.target.value)}
+              className={modalInput(errors.confirm)}
             />
-            <button
-              type="button"
-              onClick={() => setShow((s) => !s)}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-200"
-              aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"}
-            >
-              {show ? <EyeOff size={15} /> : <Eye size={15} />}
-            </button>
-          </div>
-        </ModalField>
-
-        <ModalField label="Confirmar nueva contraseña" error={errors.confirm}>
-          <input
-            type={show ? "text" : "password"}
-            value={form.confirm}
-            onChange={(e) => set("confirm", e.target.value)}
-            className={modalInput(errors.confirm)}
-          />
-        </ModalField>
+          </ModalField>
+        </div>
       </div>
     </Modal>
   );

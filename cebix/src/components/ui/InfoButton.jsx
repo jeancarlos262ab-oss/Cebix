@@ -32,9 +32,9 @@ export default function InfoButton({ title = "Acerca de este panel", questions, 
         <Modal title={title} size="lg" onClose={() => setOpen(false)}>
           {children && <div className="mb-5">{children}</div>}
 
-          <div className="space-y-4">
+          <div className="gap-x-10 md:columns-2">
             {questions.map((q) => (
-              <div key={q.question}>
+              <div key={q.question} className="mb-5 break-inside-avoid">
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{q.question}</p>
                 <p className="mt-0.5 text-sm leading-relaxed text-gray-600 dark:text-gray-400">{q.answer}</p>
               </div>

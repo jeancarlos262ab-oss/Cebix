@@ -1,6 +1,5 @@
-import { formatDateTime } from "./intl";
+import { formatDate, formatDateTime } from "./intl";
 import { RISK_COLORS } from "./riskColors";
-import logoFira from "../assets/acerca/logo-fira.webp";
 
 /**
  * Genera y descarga el reporte de elegibilidad en PDF de una parcela, con los
@@ -10,12 +9,11 @@ import logoFira from "../assets/acerca/logo-fira.webp";
  * jsPDF pesa bastante (~350 KB): se descarga solo al generar el primer reporte.
  */
 
-/* ---------- Paleta sobria (RGB) ---------- */
-const INK = [24, 28, 33];
-const MUTED = [107, 114, 122];
-const RULE = [214, 218, 222];
-const ZEBRA = [247, 248, 249];
-const ACCENT = [122, 88, 26]; // brand-700, el dorado oscuro de la marca
+/* ---------- Paleta (RGB): estilo factura, bandas gris claro + texto negro/gris ---------- */
+const INK = [0, 0, 0];
+const MUTED = [150, 150, 150];
+const RULE = [200, 200, 200];
+const BAND = [228, 230, 233]; // gris claro de las bandas superior e inferior
 const POS = [60, 122, 78];
 const NEG = [184, 73, 59];
 
@@ -30,45 +28,52 @@ const MARK_PATH = [
   "M374 374L501 508H696L471 283Z",
 ].join("");
 
-/** Dibuja el isotipo en un canvas y lo devuelve como PNG (jsPDF no admite SVG). */
-function markToPng(color = "#181c21") {
+/**
+ * Dibuja el logo completo (isotipo + wordmark CEBIX) en un canvas y lo devuelve como PNG
+ * (jsPDF no admite SVG ni fuentes web). Misma geometría que components/ui/Logo.jsx:
+ * isotipo de 1.05em, separación de 0.32em y wordmark en font-garet (Garet → Poppins ExtraBold, el
+ * que carga loadFonts.js), mayúsculas, tracking-tight (-0.025em).
+ */
+async function logoToPng(color = "#000000") {
   try {
-    const scale = 3;
+    const E = 160; // 1em en px del canvas (alta resolución)
+    const family = '"Garet", "Poppins", -apple-system, "Segoe UI", sans-serif';
+    const fontSpec = `800 ${E}px ${family}`;
+    try {
+      await document.fonts.load(fontSpec, "CEBIX");
+    } catch {
+      /* si la fuente no carga se usa la de respaldo */
+    }
+    const markH = 1.05 * E;
+    const markW = (markH * MARK_W) / MARK_H;
+    const gap = 0.32 * E;
+
     const canvas = document.createElement("canvas");
-    canvas.width = MARK_W * scale;
-    canvas.height = MARK_H * scale;
     const ctx = canvas.getContext("2d");
-    ctx.scale(scale, scale);
+    ctx.font = fontSpec;
+    if ("letterSpacing" in ctx) ctx.letterSpacing = `${-0.025 * E}px`;
+    const metrics = ctx.measureText("CEBIX");
+    const textW = Math.ceil(metrics.width);
+    const capH = metrics.actualBoundingBoxAscent;
+
+    canvas.width = Math.ceil(markW + gap + textW + 4);
+    canvas.height = Math.ceil(markH);
+    // Cambiar el tamaño del canvas reinicia el contexto: se vuelve a configurar.
+    ctx.font = fontSpec;
+    if ("letterSpacing" in ctx) ctx.letterSpacing = `${-0.025 * E}px`;
     ctx.fillStyle = color;
+
+    ctx.save();
+    ctx.scale(markW / MARK_W, markH / MARK_H);
     ctx.fill(new Path2D(MARK_PATH));
-    return { data: canvas.toDataURL("image/png"), w: MARK_W, h: MARK_H };
+    ctx.restore();
+
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("CEBIX", markW + gap, markH / 2 + capH / 2);
+    return { data: canvas.toDataURL("image/png"), w: canvas.width, h: canvas.height };
   } catch {
     return null;
   }
-}
-
-/** Carga una imagen (webp incluido) y la convierte a PNG para jsPDF. */
-function imageToPng(src) {
-  return new Promise((resolve) => {
-    if (typeof Image === "undefined") return resolve(null);
-    const img = new Image();
-    img.onload = () => {
-      try {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-        resolve({ data: canvas.toDataURL("image/png"), w: img.naturalWidth, h: img.naturalHeight });
-      } catch {
-        resolve(null);
-      }
-    };
-    img.onerror = () => resolve(null);
-    img.src = src;
-  });
 }
 
 /* ---------- Utilidades de formato ---------- */
@@ -96,17 +101,18 @@ function riskRgb(parcel) {
 export async function generateCreditReportPDF(parcel, { modelSummary = null } = {}) {
   if (!parcel) throw new Error("No hay parcela para generar el reporte.");
 
-  const [{ jsPDF }, fira] = await Promise.all([import("jspdf"), imageToPng(logoFira)]);
-  const mark = markToPng();
+  const [{ jsPDF }, logo] = await Promise.all([import("jspdf"), logoToPng()]);
+  
 
+  // Una sola hoja carta, con letra chica (7–9 pt) al estilo de una factura.
   const doc = new jsPDF({ unit: "pt", format: "letter" });
-  const PW = doc.internal.pageSize.getWidth();
-  const PH = doc.internal.pageSize.getHeight();
-  const M = 56; // margen lateral
-  const R = PW - M; // borde derecho del contenido
-  const TOP = 56;
-  const BOTTOM = PH - 64;
-  let y = TOP;
+  const PW = doc.internal.pageSize.getWidth(); // 612
+  const PH = doc.internal.pageSize.getHeight(); // 792
+  const M = 30;
+  const R = PW - M;
+  const HEADER_H = 64;
+  const FOOTER_H = 112;
+  const FOOTER_Y = PH - FOOTER_H;
 
   const color = (rgb) => doc.setTextColor(rgb[0], rgb[1], rgb[2]);
   const stroke = (rgb) => doc.setDrawColor(rgb[0], rgb[1], rgb[2]);
@@ -116,227 +122,224 @@ export async function generateCreditReportPDF(parcel, { modelSummary = null } = 
     doc.setFontSize(size);
     color(rgb);
   };
-  const txt = (value, x, yy = y, opts) => doc.text(clean(value), x, yy, opts);
-  const rule = (yy = y, rgb = RULE, w = 0.6) => {
+  const txt = (value, x, y, opts) => doc.text(clean(value), x, y, opts);
+  const hline = (y, x1 = M, x2 = R, rgb = RULE, w = 0.6) => {
     stroke(rgb);
     doc.setLineWidth(w);
-    doc.line(M, yy, R, yy);
+    doc.line(x1, y, x2, y);
   };
+  const wrap = (value, width) => doc.splitTextToSize(clean(value), width);
 
-  /* ---------- Encabezado de la primera página ---------- */
-  const drawHeader = () => {
-    const markH = 26;
-    let x = M;
-    if (mark) {
-      const markW = (markH * mark.w) / mark.h;
-      doc.addImage(mark.data, "PNG", x, y, markW, markH);
-      x += markW + 8;
-    }
-    font("bold", 21, INK);
-    txt("CEBIX", x, y + 21, { charSpace: 1 });
+  /* ---------- Banda superior ---------- */
+  fill(BAND);
+  doc.rect(0, 0, PW, HEADER_H, "F");
 
-    if (fira) {
-      const h = 34;
-      const w = (h * fira.w) / fira.h;
-      doc.addImage(fira.data, "PNG", R - w, y - 4, w, h);
-    }
-    y += markH + 14;
-    rule(y, ACCENT, 1.4);
-    y += 30;
-  };
-  drawHeader();
+  // Marca: isotipo (la X) + wordmark CEBIX, igual que en el sidebar
+  const boxX = M;
+  const boxY = 21;
+  const logoH = 22;
+  if (logo) {
+    doc.addImage(logo.data, "PNG", boxX, boxY, (logoH * logo.w) / logo.h, logoH);
+  } else {
+    font("bold", 15, INK);
+    txt("CEBIX", boxX, boxY + 16);
+  }
 
-  /* ---------- Título ---------- */
-  font("bold", 17, INK);
-  txt("Reporte de elegibilidad crediticia", M);
-  y += 17;
-  font("normal", 9.5, MUTED);
-  txt(`Generado el ${formatDateTime(new Date())}  ·  Reto AgroCebada 2026`, M);
-  y += 28;
+  font("bold", 16, INK);
+  txt("REPORTE", R, 31, { align: "right" });
+  font("normal", 7, INK);
+  txt(`Elegibilidad crediticia  ·  ${parcel.polygonId ?? parcel.id ?? "—"}`, R, 44, { align: "right" });
 
-  /* Salto de página si el siguiente bloque no cabe. */
-  const ensure = (needed) => {
-    if (y + needed > BOTTOM) {
-      doc.addPage();
-      y = TOP;
-    }
-  };
-  const sectionTitle = (title) => {
-    ensure(48);
-    font("bold", 8.5, ACCENT);
-    txt(title.toUpperCase(), M, y, { charSpace: 0.8 });
-    y += 7;
-    rule(y);
-    y += 6;
-  };
-
-  /* ---------- 1. Identificación de la parcela ---------- */
-  sectionTitle("Identificación de la parcela");
+  /* ---------- Bloque de datos de la parcela ---------- */
   const lat = num(parcel.lat);
   const lng = num(parcel.lng);
   const area = String(parcel.area ?? "").trim() || "—";
-  const idRows = [
-    ["Nombre", parcel.name ?? "—"],
-    ["Identificador", String(parcel.polygonId ?? parcel.id ?? "—")],
-    ["Municipio", parcel.municipio ?? "—"],
-    ["Estado", parcel.region ?? "—"],
-    ["Superficie", area],
-    ["Coordenadas", lat !== null && lng !== null ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : "Sin coordenadas"],
-    ["Origen del dato", parcel.isCustom ? "Registro manual en CEBIX" : "Corrida del modelo / dataset Reto AgroCebada 2026"],
-  ];
-  const kv = (rows, labelX = M + 6, valueX = M + 190) => {
-    rows.forEach(([label, value], i) => {
-      font("bold", 9.5, INK);
-      const lines = doc.splitTextToSize(clean(value), R - valueX - 6);
-      const rowH = Math.max(22, lines.length * 12 + 10);
-      ensure(rowH);
-      if (i % 2 === 0) {
-        fill(ZEBRA);
-        doc.rect(M, y, R - M, rowH, "F");
-      }
-      font("normal", 9.5, MUTED);
-      txt(label, labelX, y + 14);
-      font("bold", 9.5, INK);
-      doc.text(lines, valueX, y + 14);
-      y += rowH;
-    });
-  };
-  kv(idRows);
-  y += 26;
+  const origin = parcel.isCustom ? "Registro manual en CEBIX" : "Corrida del modelo / dataset Reto AgroCebada 2026";
+  const coords = lat !== null && lng !== null ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : "Sin coordenadas";
 
-  /* ---------- 2. Resultado del modelo ---------- */
-  sectionTitle("Resultado de la predicción");
-  ensure(86);
+  const label = (t, x, y, opts) => {
+    font("normal", 7, MUTED);
+    txt(t, x, y, opts);
+  };
+  const strong = (t, x, y, opts) => {
+    font("bold", 9, INK);
+    txt(t, x, y, opts);
+  };
+  const soft = (t, x, y, opts) => {
+    font("normal", 7.5, MUTED);
+    txt(t, x, y, opts);
+  };
+
+  let y = HEADER_H + 34;
+  label("PARCELA", M, y);
+  strong(wrap(parcel.name ?? "—", 180)[0], M, y + 14);
+  soft(`ID: ${parcel.polygonId ?? parcel.id ?? "—"}`, M, y + 28);
+  soft(`${parcel.municipio ?? "—"}, ${parcel.region ?? "—"}`, M, y + 40);
+
+  label("SUPERFICIE Y UBICACIÓN", 234, y);
+  strong(area, 234, y + 14);
+  soft(`Coordenadas: ${coords}`, 234, y + 28);
+  font("normal", 7.5, MUTED);
+  doc.text(wrap(`Origen: ${origin}`, 190).slice(0, 2), 234, y + 40);
+
+  label("GENERADO", R - 105, y, { align: "right" });
+  label("PROYECTO", R, y, { align: "right" });
+  strong(formatDate(new Date()), R - 105, y + 14, { align: "right" });
+  font("bold", 9, INK);
+  txt("AgroCebada 2026", R, y + 14, { align: "right" });
+
+  /* ---------- Tabla 1: resultado y variables del ciclo ---------- */
+  y += 78;
+  const COL = { concept: M + 10, desc: 130, value: 410, unit: 470 };
+  const tableHeader = (cols, yy) => {
+    font("bold", 8, INK);
+    cols.forEach(([t, x, opts]) => txt(t, x, yy, opts));
+    hline(yy + 8, M, R, [150, 150, 150], 0.7);
+  };
+  tableHeader(
+    [
+      ["Variable", COL.concept],
+      ["Descripción", COL.desc],
+      ["Valor", COL.value],
+      ["Unidad", COL.unit],
+    ],
+    y
+  );
+  y += 8;
+
   const ic = Array.isArray(parcel.ic90) ? parcel.ic90.map(num) : [];
   const hasIc = ic.length === 2 && ic[0] !== null && ic[1] !== null;
-  const cells = [
-    {
-      label: "RENDIMIENTO ESPERADO",
-      value: fix(parcel.yieldEstimate),
-      unit: "ton/ha",
-      note: hasIc ? `IC 90%: ${ic[0].toFixed(2)} – ${ic[1].toFixed(2)}` : `± ${fix(parcel.confidence)} ton/ha`,
-    },
-    { label: "SCORE DE ELEGIBILIDAD", value: String(parcel.score ?? "—"), unit: "/ 100", note: "Escala de 0 a 100" },
-    { label: "CLASIFICACIÓN", value: String(parcel.risk ?? "—"), unit: "", note: "Semáforo de elegibilidad", dot: riskRgb(parcel) },
+  const rows = [
+    ["IC 90%", "Intervalo de confianza del rendimiento", hasIc ? `${ic[0].toFixed(2)} – ${ic[1].toFixed(2)}` : `± ${fix(parcel.confidence)}`, "ton/ha"],
+    ["NDVI", "Vigor del cultivo, pico del ciclo", fix(parcel.ndvi, 3), "índice"],
+    ["EVI", "Índice de vegetación mejorado", fix(parcel.evi, 3), "índice"],
+    ["Precipitación", "Lluvia acumulada del ciclo", fix(parcel.precip, 0), "mm"],
+    ["GDD", "Grados-día de crecimiento", fix(parcel.gdd, 0), "°C·día"],
   ];
-  const gap = 12;
-  const cw = (R - M - gap * 2) / 3;
-  const ch = 76;
-  cells.forEach((c, i) => {
-    const x = M + i * (cw + gap);
-    stroke(RULE);
-    doc.setLineWidth(0.8);
-    doc.roundedRect(x, y, cw, ch, 4, 4, "S");
-    font("bold", 7, MUTED);
-    txt(c.label, x + 12, y + 17, { charSpace: 0.5 });
-    let vx = x + 12;
-    if (c.dot) {
-      fill(c.dot);
-      doc.circle(x + 17, y + 41, 5, "F");
-      vx = x + 29;
-    }
-    const vSize = c.dot ? 15 : 22;
-    font("bold", vSize, INK);
-    txt(c.value, vx, y + 47);
-    if (c.unit) {
-      const w = doc.getTextWidth(clean(c.value));
-      font("normal", 9, MUTED);
-      txt(c.unit, vx + w + 4, y + 47);
-    }
-    font("normal", 8, MUTED);
-    txt(c.note, x + 12, y + 65);
+  const RH = 19;
+  rows.forEach(([a, b, c, d]) => {
+    font("normal", 8, INK);
+    txt(a, COL.concept, y + 13);
+    txt(b, COL.desc, y + 13);
+    txt(c, COL.value, y + 13);
+    txt(d, COL.unit, y + 13);
+    y += RH;
+    hline(y);
   });
-  y += ch + 26;
 
-  /* ---------- 3. Variables satelitales y climáticas ---------- */
-  sectionTitle("Variables satelitales y climáticas del ciclo");
-  kv([
-    ["NDVI pico del ciclo", fix(parcel.ndvi, 3)],
-    ["EVI", fix(parcel.evi, 3)],
-    ["Precipitación acumulada", `${fix(parcel.precip, 0)} mm`],
-    ["Grados-día de crecimiento (GDD)", fix(parcel.gdd, 0)],
-  ]);
-  y += 26;
+  /* ---------- Totales: rendimiento, score y clasificación ---------- */
+  y += 6;
+  const TX = 410;
+  const totalRows = [
+    ["Rendimiento esperado", `${fix(parcel.yieldEstimate)} ton/ha`],
+    ["Score de elegibilidad", `${parcel.score ?? "—"} / 100`],
+  ];
+  totalRows.forEach(([a, b]) => {
+    font("normal", 8, INK);
+    txt(a, TX, y + 14);
+    txt(b, R - 10, y + 14, { align: "right" });
+    y += 24;
+    hline(y, TX, R);
+  });
+  // Clasificación (equivalente al "Total Due" de la factura)
+  hline(y + 1.5, TX, R, [170, 170, 170], 1.4);
+  font("bold", 9, INK);
+  txt("Clasificación", TX, y + 18);
+  const dot = riskRgb(parcel);
+  font("bold", 9, INK);
+  const riskTxt = String(parcel.risk ?? "—");
+  txt(riskTxt, R - 10, y + 18, { align: "right" });
+  fill(dot);
+  doc.circle(R - 10 - doc.getTextWidth(clean(riskTxt)) - 8, y + 15.5, 3.5, "F");
+  const totalsBottom = y + 26;
 
-  /* ---------- 4. SHAP local ---------- */
-  sectionTitle("Variables que explican la predicción (SHAP local)");
-  const shap = (Array.isArray(parcel.shap) ? parcel.shap : [])
+  // Texto de apoyo a la izquierda de los totales (zona vacía en la factura de referencia)
+  font("normal", 7, MUTED);
+  doc.text(
+    wrap(
+      "El score va de 0 a 100 y el semáforo se deriva del rendimiento esperado, su incertidumbre y el vigor del cultivo (NDVI).",
+      300
+    ),
+    M + 10,
+    y - 40
+  );
+
+  /* ---------- Tabla 2: SHAP local ---------- */
+  y = totalsBottom + 18;
+  const shapAll = (Array.isArray(parcel.shap) ? parcel.shap : [])
     .map((item) => ({ feature: item?.feature ?? "—", impact: num(item?.impact ?? item?.value) ?? 0, direction: item?.direction }))
     .map((item) => ({ ...item, impact: item.direction === "negativo" ? -Math.abs(item.impact) : item.impact }))
     .sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
 
-  if (shap.length === 0) {
-    font("normal", 9.5, MUTED);
-    txt("Sin desglose SHAP disponible para esta parcela.", M + 6, y + 14);
-    y += 26;
-  } else {
-    const max = Math.max(...shap.map((s) => Math.abs(s.impact)), 0.0001);
-    const barCenter = M + 330;
-    const barHalf = 95;
-    font("normal", 7.5, MUTED);
-    txt("Resta", barCenter - barHalf, y + 9);
-    txt("Suma", barCenter + barHalf, y + 9, { align: "right" });
-    y += 14;
-    shap.forEach((item, i) => {
-      ensure(22);
-      if (i % 2 === 0) {
-        fill(ZEBRA);
-        doc.rect(M, y, R - M, 22, "F");
-      }
-      font("normal", 9.5, INK);
-      const label = doc.splitTextToSize(clean(item.feature), 215)[0];
-      doc.text(label, M + 6, y + 14.5);
+  const barCenter = 360;
+  const barHalf = 95;
+  tableHeader(
+    [
+      ["Variables que explican la predicción (SHAP local)", COL.concept],
+      ["Resta", barCenter - barHalf, { align: "left" }],
+      ["Suma", barCenter + barHalf, { align: "right" }],
+      ["Impacto", R - 10, { align: "right" }],
+    ],
+    y
+  );
+  y += 8;
 
-      // Barra divergente alrededor del eje central.
+  const availBottom = FOOTER_Y - 14;
+  if (shapAll.length === 0) {
+    font("normal", 8, MUTED);
+    txt("Sin desglose SHAP disponible para esta parcela.", COL.concept, y + 14);
+  } else {
+    // La fila se adapta al espacio libre para que todo quepa en una sola hoja.
+    const SH = Math.min(18, Math.floor((availBottom - y) / Math.min(shapAll.length, 12)));
+    const maxRows = Math.max(1, Math.floor((availBottom - y) / SH));
+    const shap = shapAll.slice(0, maxRows);
+    const max = Math.max(...shap.map((s) => Math.abs(s.impact)), 0.0001);
+    shap.forEach((item) => {
+      const mid = y + SH / 2;
+      font("normal", 8, INK);
+      txt(wrap(item.feature, 215)[0], COL.concept, mid + 2.8);
       stroke(RULE);
       doc.setLineWidth(0.6);
-      doc.line(barCenter, y + 4, barCenter, y + 18);
+      doc.line(barCenter, y + 3, barCenter, y + SH - 3);
       const len = Math.max(1.5, (Math.abs(item.impact) / max) * barHalf);
       const positive = item.impact >= 0;
       fill(positive ? POS : NEG);
-      doc.rect(positive ? barCenter : barCenter - len, y + 7, len, 8, "F");
-
-      font("bold", 9.5, positive ? POS : NEG);
-      txt(`${positive ? "+" : "-"}${Math.abs(item.impact).toFixed(3)}`, R - 6, y + 14.5, { align: "right" });
-      y += 22;
+      doc.rect(positive ? barCenter : barCenter - len, mid - 3, len, 6, "F");
+      font("bold", 8, positive ? POS : NEG);
+      txt(`${positive ? "+" : "-"}${Math.abs(item.impact).toFixed(3)}`, R - 10, mid + 2.8, { align: "right" });
+      y += SH;
+      hline(y);
     });
-    y += 6;
-    font("normal", 8, MUTED);
-    const note = doc.splitTextToSize(
-      "Cada barra indica cuánto sumó (verde) o restó (rojo) esa variable al rendimiento estimado de esta parcela, en ton/ha respecto al promedio del modelo.",
-      R - M
-    );
-    ensure(note.length * 10 + 6);
-    doc.text(note, M, y + 8);
-    y += note.length * 10 + 10;
   }
-  y += 14;
 
-  /* ---------- 5. Nota metodológica ---------- */
+  /* ---------- Banda inferior: notas ---------- */
+  fill(BAND);
+  doc.rect(0, FOOTER_Y, PW, FOOTER_H, "F");
+
   const modelNote = modelSummary
     ? `El rendimiento se estimó con ${modelSummary.modelName} (${modelSummary.validation}; RMSE ${modelSummary.rmse} ton/ha).`
     : "El rendimiento se estimó con el modelo predictivo de CEBIX.";
-  font("normal", 8.5, MUTED);
-  const method = doc.splitTextToSize(
-    `${modelNote} El score y el semáforo de elegibilidad se derivan del rendimiento esperado, su incertidumbre y el vigor del cultivo (NDVI). Este documento es informativo y de apoyo a la decisión; no constituye por sí mismo una resolución de crédito.`,
-    R - M
-  );
-  sectionTitle("Nota metodológica");
-  font("normal", 8.5, MUTED);
-  ensure(method.length * 11 + 6);
-  doc.text(method, M, y + 8);
-  y += method.length * 11 + 8;
+  const fy = FOOTER_Y + 24;
+  font("bold", 8.5, INK);
+  txt("Nota metodológica:", M, fy);
+  font("normal", 7, INK);
+  doc.text(wrap(modelNote, 190), M, fy + 14);
 
-  /* ---------- Pie de página en todas las hojas ---------- */
-  const pages = doc.getNumberOfPages();
-  for (let i = 1; i <= pages; i++) {
-    doc.setPage(i);
-    rule(PH - 48);
-    font("normal", 8, MUTED);
-    doc.text("CEBIX  ·  Reto AgroCebada 2026", M, PH - 34);
-    doc.text(clean(parcel.name ?? ""), PW / 2, PH - 34, { align: "center", maxWidth: 220 });
-    doc.text(`Página ${i} de ${pages}`, R, PH - 34, { align: "right" });
-  }
+  font("bold", 8.5, INK);
+  txt("Interpretación:", 234, fy);
+  font("normal", 7, INK);
+  doc.text(
+    wrap(
+      "Cada barra SHAP indica cuánto sumó (verde) o restó (rojo) esa variable al rendimiento estimado de esta parcela, en ton/ha respecto al promedio del modelo. Este documento es informativo y de apoyo a la decisión; no constituye por sí mismo una resolución de crédito.",
+      R - 234
+    ),
+    234,
+    fy + 14
+  );
+
+  font("normal", 6.5, INK);
+  txt(`CEBIX  ·  Reto AgroCebada 2026  ·  Generado el ${formatDateTime(new Date())}`, M, PH - 14);
+  txt(clean(parcel.name ?? ""), R, PH - 14, { align: "right", maxWidth: 220 });
 
   const safeId = String(parcel.polygonId || parcel.id || "parcela").replace(/[^\w.-]+/g, "_");
   const filename = `reporte-elegibilidad-${safeId}.pdf`;

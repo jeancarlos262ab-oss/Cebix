@@ -33,17 +33,8 @@ export default function BatchSizeDialog({ total, omitted = 0, fileName, onConfir
       title={total === 1 ? "El archivo trae 1 parcela" : `El archivo trae ${total} parcelas`}
       description={`${fileName ? `'${fileName}'. ` : ""}Cada parcela se calcula con imágenes de satélite y tarda entre ${SECONDS_PER_PARCEL[0]} y ${SECONDS_PER_PARCEL[1]} s. Se calculan una por una.${omitted > 0 ? ` (${omitted} más no se pueden calcular y se omiten).` : ""}`}
       onClose={onClose}
-      footer={
+      aside={
         <>
-          <button type="button" onClick={onClose} className={MODAL_BTN_CANCEL}>
-            Cancelar
-          </button>
-          <button type="button" disabled={!valid} onClick={() => onConfirm(count)} className={MODAL_BTN_PRIMARY}>
-            {valid ? `Calcular ${count === 1 ? "1 parcela" : `${count} parcelas`}` : "Calcular"}
-          </button>
-        </>
-      }
-    >
       <label htmlFor="batch-count" className="block text-xs font-medium text-gray-600 dark:text-gray-300">
         ¿Cuántas parcelas quieres calcular?
       </label>
@@ -76,10 +67,22 @@ export default function BatchSizeDialog({ total, omitted = 0, fileName, onConfir
         ))}
       </div>
       {!valid && <p className="mt-2 text-xs text-red-600 dark:text-red-400">Escribe un número entre 1 y {total}.</p>}
-
+        </>
+      }
+      footer={
+        <>
+          <button type="button" onClick={onClose} className={MODAL_BTN_CANCEL}>
+            Cancelar
+          </button>
+          <button type="button" disabled={!valid} onClick={() => onConfirm(count)} className={MODAL_BTN_PRIMARY}>
+            {valid ? `Calcular ${count === 1 ? "1 parcela" : `${count} parcelas`}` : "Calcular"}
+          </button>
+        </>
+      }
+    >
       {valid && (
         <div
-          className={`mt-4 flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs ${
+          className={`flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs ${
             long
               ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300"
               : "border-gray-200 text-gray-600 dark:border-gray-800 dark:text-gray-300"
@@ -94,6 +97,7 @@ export default function BatchSizeDialog({ total, omitted = 0, fileName, onConfir
           </p>
         </div>
       )}
+      {!valid && <p className="text-xs text-gray-500 dark:text-gray-400">Indica cuántas parcelas calcular para ver el tiempo estimado.</p>}
     </Modal>
   );
 }

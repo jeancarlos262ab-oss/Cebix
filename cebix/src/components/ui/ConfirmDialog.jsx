@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_DANGER } from "./Modal";
 
 /**
@@ -41,6 +41,19 @@ export default function ConfirmDialog({ title, description, confirmLabel = "Elim
       size="sm"
       role="alertdialog"
       busy={busy}
+      aside={
+        <div className="flex items-start gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400">
+            <AlertTriangle size={18} />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Acción irreversible</p>
+            <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+              Revisa con cuidado antes de continuar: no es posible deshacer este cambio.
+            </p>
+          </div>
+        </div>
+      }
       onClose={onClose}
       footer={
         <>

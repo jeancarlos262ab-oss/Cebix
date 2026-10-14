@@ -10,7 +10,11 @@ import { X } from "lucide-react";
  *   description?: string,          // texto breve bajo el título, en el encabezado
  *   onClose: () => void,
  *   busy?: boolean,                // mientras es true no se cierra con Esc, con el fondo ni con la X
- *   size?: "sm" | "md" | "lg",
+ *   size?: "sm" | "md" | "lg",     // todas son anchas en escritorio; en móvil ocupan el ancho disponible
+ *   asideSide?: "left" | "right",  // lado de la columna lateral (por defecto izquierda)
+ *   asideFlush?: boolean,          // la columna lateral sin relleno ni fondo (para que un mapa la ocupe completa)
+ *   splitScroll?: boolean,         // en escritorio cada columna se desplaza por separado
+ *   aside?: React.ReactNode,       // columna izquierda (contexto/ayuda); en móvil queda arriba del contenido
  *   as?: "div" | "form",           // "form": el pie queda dentro del formulario (el submit funciona)
  *   onSubmit?: (e: React.FormEvent) => void,
  *   role?: "dialog" | "alertdialog",
@@ -19,7 +23,10 @@ import { X } from "lucide-react";
  *   children?: React.ReactNode,
  * }} props
  */
-const SIZES = { sm: "max-w-sm", md: "max-w-md", lg: "max-w-lg" };
+const SIZES = { sm: "max-w-3xl", md: "max-w-4xl", lg: "max-w-5xl" };
+
+/** Rejilla de dos columnas para el cuerpo (una sola columna en móvil). */
+export const MODAL_COLS = "grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2";
 
 export default function Modal({
   title,
@@ -31,10 +38,25 @@ export default function Modal({
   onSubmit,
   role = "dialog",
   zClass = "z-50",
+  aside,
+  asideSide = "left",
+  splitScroll = false,
+  asideFlush = false,
   footer,
   children,
 }) {
   const titleId = useId();
+  const asidePanel = aside ? (
+    <div
+      className={`border-gray-100 dark:border-gray-800 ${
+        asideFlush ? "relative" : "bg-gray-50 px-5 py-5 sm:px-8 sm:py-6 dark:bg-gray-900/40"
+      } ${
+        asideSide === "right" ? "border-t md:border-l md:border-t-0" : "border-b md:border-b-0 md:border-r"
+      } ${splitScroll ? "md:min-h-0 md:overflow-y-auto" : ""}`}
+    >
+      {aside}
+    </div>
+  ) : null;
 
   useEffect(() => {
     const onKey = (e) => e.key === "Escape" && !busy && onClose();
@@ -44,7 +66,7 @@ export default function Modal({
 
   return (
     <div
-      className={`fixed inset-0 ${zClass} flex items-center justify-center bg-black/50 px-4`}
+      className={`fixed inset-0 ${zClass} flex items-center justify-center bg-black/50 px-3 sm:px-6`}
       onClick={() => !busy && onClose()}
     >
       <Tag
@@ -53,9 +75,9 @@ export default function Modal({
         aria-labelledby={titleId}
         onSubmit={onSubmit}
         onClick={(e) => e.stopPropagation()}
-        className={`flex max-h-[86vh] w-full ${SIZES[size]} flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card dark:border-gray-800 dark:bg-black`}
+        className={`flex max-h-[92vh] sm:max-h-[88vh] w-full ${SIZES[size]} flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-card dark:border-gray-800 dark:bg-black`}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-4 dark:border-gray-800">
+        <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-4 sm:px-8 sm:py-5 dark:border-gray-800">
           <div className="min-w-0">
             <h2 id={titleId} className="font-display text-base font-semibold text-gray-900 dark:text-white">
               {title}
@@ -73,10 +95,22 @@ export default function Modal({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        {aside ? (
+          <div
+            className={`min-h-0 flex-1 overflow-y-auto md:grid md:grid-cols-2 ${
+              splitScroll ? "md:h-[62vh] md:grid-rows-[minmax(0,1fr)] md:overflow-hidden" : ""
+            }`}
+          >
+            {asideSide === "left" && asidePanel}
+            <div className={`px-5 py-5 sm:px-8 sm:py-6 ${splitScroll ? "md:min-h-0 md:overflow-y-auto" : ""}`}>{children}</div>
+            {asideSide === "right" && asidePanel}
+          </div>
+        ) : (
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-8 sm:py-6">{children}</div>
+        )}
 
         {footer && (
-          <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4 dark:border-gray-800">{footer}</div>
+          <div className="flex flex-col-reverse gap-2 border-t border-gray-100 px-5 py-4 sm:px-8 sm:flex-row sm:justify-end dark:border-gray-800">{footer}</div>
         )}
       </Tag>
     </div>

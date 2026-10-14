@@ -81,6 +81,19 @@ function SignOutConfirm({ onCancel, onConfirm, loading }) {
       size="sm"
       role="alertdialog"
       zClass="z-60"
+      aside={
+        <div className="flex items-start gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-black dark:text-gray-300">
+            <LogOut size={18} />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">{t("Sesión actual")}</p>
+            <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+              {t("Tu información queda guardada en tu cuenta.")}
+            </p>
+          </div>
+        </div>
+      }
       busy={loading}
       onClose={onCancel}
       footer={

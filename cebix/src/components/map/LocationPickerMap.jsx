@@ -5,16 +5,24 @@
  * aparece el pin de ubicación (el mismo de los demás mapas). El pin también se
  * puede arrastrar. Si cambian `lat`/`lng` desde los campos de texto, el pin y
  * la vista se mueven con ellos.
+ *
+ * Estilo: sin controles ni etiqueta por defecto de Leaflet; botones de zoom propios
+ * (mismo panel plano y oscuro que el resto de los mapas, ver geomap/mapUi.js) y una
+ * pastilla con las coordenadas.
  */
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { Minus, Plus } from "lucide-react";
+import { PANEL } from "../geomap/mapUi";
 import { locationPinHtml, PIN_SIZE, PIN_TIP_OFFSET } from "./LocationPin";
 import "leaflet/dist/leaflet.css";
 
 const DEFAULT_CENTER = [19.9, -98.1]; // Hidalgo / Tlaxcala / Puebla
 const DEFAULT_ZOOM = 8;
 const POINT_ZOOM = 15;
+const MIN_ZOOM = 4;
+const MAX_ZOOM = 18;
 
 const pinIcon = L.divIcon({
   className: "",
@@ -53,10 +61,42 @@ function Recenter({ position }) {
   return null;
 }
 
+/** Botones + / − propios. Los clics no llegan al mapa (si no, marcarían un punto). */
+function ZoomButtons() {
+  const map = useMap();
+  const ref = useRef(null);
+  const [zoom, setZoom] = useState(map.getZoom());
+  useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
+  useEffect(() => {
+    if (ref.current) {
+      L.DomEvent.disableClickPropagation(ref.current);
+      L.DomEvent.disableScrollPropagation(ref.current);
+    }
+  }, []);
+  const btn =
+    "flex h-8 w-8 items-center justify-center rounded-md text-gray-200 transition-colors hover:bg-white/10 active:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent";
+  return (
+    <div
+      ref={ref}
+      role="group"
+      aria-label="Zoom del mapa"
+      className={`absolute right-2.5 top-2.5 z-1000 flex flex-col items-center gap-0.5 p-1 ${PANEL}`}
+    >
+      <button type="button" className={btn} aria-label="Acercar" title="Acercar" disabled={zoom >= MAX_ZOOM} onClick={() => map.zoomIn()}>
+        <Plus size={16} strokeWidth={1.75} />
+      </button>
+      <div className="h-px w-5 bg-white/15" aria-hidden="true" />
+      <button type="button" className={btn} aria-label="Alejar" title="Alejar" disabled={zoom <= MIN_ZOOM} onClick={() => map.zoomOut()}>
+        <Minus size={16} strokeWidth={1.75} />
+      </button>
+    </div>
+  );
+}
+
 /**
- * @param {{ lat: string|number, lng: string|number, onChange: (lat:number, lng:number) => void, height?: number }} props
+ * @param {{ lat: string|number, lng: string|number, onChange: (lat:number, lng:number) => void, height?: number|string, bare?: boolean }} props
  */
-export default function LocationPickerMap({ lat, lng, onChange, height = 240 }) {
+export default function LocationPickerMap({ lat, lng, onChange, height = 260, bare = false }) {
   const latN = lat === "" || lat == null ? NaN : Number(lat);
   const lngN = lng === "" || lng == null ? NaN : Number(lng);
   const hasPoint = Number.isFinite(latN) && Number.isFinite(lngN);
@@ -70,47 +110,56 @@ export default function LocationPickerMap({ lat, lng, onChange, height = 240 }) 
   );
 
   return (
-    <div>
-      <div
-        className="overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700"
-        style={{ height }}
+    <div
+      className={`relative overflow-hidden bg-gray-100 dark:bg-gray-900 ${bare ? "" : "rounded-xl border border-gray-300 dark:border-gray-700"}`}
+      style={{ height }}
+    >
+      <MapContainer
+        center={initial.center}
+        zoom={initial.zoom}
+        minZoom={MIN_ZOOM}
+        maxZoom={MAX_ZOOM}
+        scrollWheelZoom
+        zoomControl={false}
+        attributionControl={false}
+        style={{ height: "100%", width: "100%", cursor: "crosshair", background: "transparent" }}
       >
-        <MapContainer
-          center={initial.center}
-          zoom={initial.zoom}
-          minZoom={4}
-          maxZoom={18}
-          scrollWheelZoom
-          style={{ height: "100%", width: "100%", cursor: "crosshair" }}
-        >
-          <TileLayer
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            attribution="Tiles &copy; Esri"
-            maxNativeZoom={17}
-            maxZoom={18}
+        <TileLayer
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          maxNativeZoom={17}
+          maxZoom={MAX_ZOOM}
+        />
+        <ClickHandler onPick={onChange} />
+        <Recenter position={position} />
+        <ZoomButtons />
+        {position && (
+          <Marker
+            position={position}
+            icon={pinIcon}
+            draggable
+            eventHandlers={{
+              dragend(e) {
+                const p = e.target.getLatLng();
+                onChange(round(p.lat), round(p.lng));
+              },
+            }}
           />
-          <ClickHandler onPick={onChange} />
-          <Recenter position={position} />
-          {position && (
-            <Marker
-              position={position}
-              icon={pinIcon}
-              draggable
-              eventHandlers={{
-                dragend(e) {
-                  const p = e.target.getLatLng();
-                  onChange(round(p.lat), round(p.lng));
-                },
-              }}
-            />
-          )}
-        </MapContainer>
+        )}
+      </MapContainer>
+
+      {/* Pastilla de estado: coordenadas del pin o instrucción. No intercepta clics. */}
+      <div className={`pointer-events-none absolute bottom-2.5 left-2.5 z-1000 max-w-[calc(100%-1.25rem)] px-3 py-1.5 text-xs text-gray-200 ${PANEL}`}>
+        {hasPoint ? (
+          <>
+            <span className="font-mono tabular-nums">
+              {latN.toFixed(5)}, {lngN.toFixed(5)}
+            </span>
+            <span className="hidden text-gray-400 sm:inline"> · arrastra el pin o toca otro lugar</span>
+          </>
+        ) : (
+          "Toca el mapa para marcar dónde está la parcela"
+        )}
       </div>
-      <p className="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
-        {hasPoint
-          ? `Ubicación: ${latN.toFixed(5)}, ${lngN.toFixed(5)} · arrastra el pin o toca otro lugar para moverlo.`
-          : "Toca el mapa para marcar dónde está la parcela."}
-      </p>
     </div>
   );
 }

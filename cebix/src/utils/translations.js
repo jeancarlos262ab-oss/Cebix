@@ -24,6 +24,8 @@ const EN = {
   "Cerrando sesión...": "Signing out...",
   "¿Cerrar sesión?": "Sign out?",
   "Tendrás que iniciar sesión de nuevo para volver a entrar.": "You'll need to sign in again to get back in.",
+  "Sesión actual": "Current session",
+  "Tu información queda guardada en tu cuenta.": "Your information stays saved in your account.",
   Cancelar: "Cancel",
   "Abrir menú": "Open menu",
   "Cerrar menú": "Close menu",

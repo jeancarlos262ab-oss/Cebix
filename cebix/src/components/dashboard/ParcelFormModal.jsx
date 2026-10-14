@@ -1,7 +1,9 @@
 import { userMessage } from "../../utils/userMessages";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import LocationPickerMap from "../map/LocationPickerMap";
+import { detectEstado } from "../../utils/polygon";
+import { reverseLocation } from "../../utils/reverseGeocode";
 import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_PRIMARY, ModalField, modalInput } from "../ui/Modal";
 
 const REGIONS = ["Hidalgo", "Tlaxcala", "Puebla"];
@@ -82,8 +84,55 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
   const isEdit = Boolean(parcel);
   const metadataOnly = Boolean(parcel?.fromModelRun);
 
+  // ── Autollenado al marcar el punto en el mapa (igual que el estado en la pantalla satelital) ──
+  const [locating, setLocating] = useState(false);
+  const formRef = useRef(form);
+  formRef.current = form;
+  const autoMunicipio = useRef(""); // último municipio puesto automáticamente (para no pisar lo que escribió el usuario)
+  const regionTouched = useRef(false); // el usuario eligió la región a mano: ya no se cambia sola
+  const geoRequest = useRef(null);
+  useEffect(() => () => geoRequest.current?.abort(), []);
+
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
+  }
+
+  function handlePick(lat, lng) {
+    // Región inmediata (sin red) para Hidalgo / Tlaxcala / Puebla; luego la afina la consulta a internet.
+    const estado = detectEstado(lat, lng);
+    setForm((f) => ({
+      ...f,
+      lat: String(lat),
+      lng: String(lng),
+      ...(estado && !metadataOnly && !regionTouched.current ? { region: estado } : {}),
+    }));
+    setErrors((e) => ({ ...e, lat: undefined, lng: undefined }));
+
+    // Región y municipio: se consultan a OpenStreetMap, así funcionan en cualquier lugar donde se ponga el punto.
+    // La región solo se escribe si el usuario no la eligió a mano; el municipio solo si está vacío o lo llenó el autollenado.
+    geoRequest.current?.abort();
+    const controller = new AbortController();
+    geoRequest.current = controller;
+    setLocating(true);
+    reverseLocation(lat, lng, { signal: controller.signal })
+      .then(({ municipio, estado }) => {
+        if (controller.signal.aborted) return;
+        if (estado && !metadataOnly && !regionTouched.current) {
+          setForm((f) => ({ ...f, region: estado }));
+        }
+        if (municipio) {
+          const current = formRef.current.municipio.trim();
+          if (current === "" || current === autoMunicipio.current) {
+            autoMunicipio.current = municipio;
+            setForm((f) => ({ ...f, municipio }));
+            setErrors((e) => ({ ...e, municipio: undefined }));
+          }
+        }
+      })
+      .catch(() => {}) // sin red o servicio saturado: queda la región detectada sin red y el municipio a mano
+      .finally(() => {
+        if (!controller.signal.aborted) setLocating(false);
+      });
   }
 
   async function handleSubmit(e) {
@@ -118,6 +167,19 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
       size="lg"
       busy={saving}
       onClose={onClose}
+      splitScroll
+      asideSide="right"
+      asideFlush
+      aside={
+        <div className="relative h-80 md:absolute md:inset-0 md:h-auto">
+          <LocationPickerMap lat={form.lat} lng={form.lng} onChange={handlePick} height="100%" bare />
+          {locating && (
+            <span className="pointer-events-none absolute left-2.5 top-2.5 z-1000 inline-flex items-center gap-1.5 rounded-md bg-black/70 px-2.5 py-1 text-xs text-gray-100">
+              <Loader2 size={11} className="animate-spin" /> Buscando región y municipio…
+            </span>
+          )}
+        </div>
+      }
       title={isEdit ? "Editar parcela" : "Registrar nueva parcela"}
       description={
         metadataOnly
@@ -136,7 +198,10 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
         </>
       }
     >
-      <div className="grid grid-cols-2 gap-3">
+      <div>
+        <section className="grid grid-cols-2 content-start gap-3">
+          <SectionTitle>Datos de la parcela</SectionTitle>
+
           <Field label="Nombre" span2 error={errors.name}>
             <input
               value={form.name}
@@ -154,35 +219,26 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
             />
           </Field>
 
-          {!metadataOnly && (
+          {!metadataOnly ? (
             <Field label="Región">
-              <select value={form.region} onChange={(e) => set("region", e.target.value)} className={inputClass()}>
-                {REGIONS.map((r) => (
+              <select
+                value={form.region}
+                onChange={(e) => {
+                  regionTouched.current = true;
+                  set("region", e.target.value);
+                }}
+                className={inputClass()}
+              >
+                {(REGIONS.includes(form.region) || !form.region ? REGIONS : [...REGIONS, form.region]).map((r) => (
                   <option key={r} value={r}>
                     {r}
                   </option>
                 ))}
               </select>
             </Field>
-          )}
-
-          <Field label="Superficie (ha)" error={errors.area}>
-            <input
-              value={form.area}
-              onChange={(e) => set("area", e.target.value)}
-              placeholder="7.5"
-              className={inputClass(errors.area)}
-            />
-          </Field>
-
-          {!metadataOnly && (
-            <Field label="Rendimiento esperado (ton/ha)" error={errors.yieldEstimate}>
-              <input
-                value={form.yieldEstimate}
-                onChange={(e) => set("yieldEstimate", e.target.value)}
-                placeholder="3.9"
-                className={inputClass(errors.yieldEstimate)}
-              />
+          ) : (
+            <Field label="Superficie (ha)" error={errors.area}>
+              <input value={form.area} onChange={(e) => set("area", e.target.value)} placeholder="7.5" className={inputClass(errors.area)} />
             </Field>
           )}
 
@@ -194,43 +250,26 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
             <input value={form.lng} onChange={(e) => set("lng", e.target.value)} placeholder="-98.30" className={inputClass(errors.lng)} />
           </Field>
 
-          <div className="col-span-2">
-            <span className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-300">
-              Ubicación en el mapa
-            </span>
-            <LocationPickerMap
-              lat={form.lat}
-              lng={form.lng}
-              onChange={(lat, lng) => setForm((f) => ({ ...f, lat: String(lat), lng: String(lng) }))}
-            />
-          </div>
+        </section>
 
-          {!metadataOnly && (
-            <Field label="NDVI pico" error={errors.ndvi}>
-              <input value={form.ndvi} onChange={(e) => set("ndvi", e.target.value)} placeholder="0.68" className={inputClass(errors.ndvi)} />
+        {!metadataOnly && (
+          <section className="mt-3 grid grid-cols-2 content-start gap-3">
+            <SectionTitle>Superficie y rendimiento</SectionTitle>
+
+            <Field label="Superficie (ha)" error={errors.area}>
+              <input value={form.area} onChange={(e) => set("area", e.target.value)} placeholder="7.5" className={inputClass(errors.area)} />
             </Field>
-          )}
 
-          {!metadataOnly && (
-            <Field label="EVI" error={errors.evi}>
-              <input value={form.evi} onChange={(e) => set("evi", e.target.value)} placeholder="0.35" className={inputClass(errors.evi)} />
+            <Field label="Rendimiento esperado (ton/ha)" error={errors.yieldEstimate}>
+              <input
+                value={form.yieldEstimate}
+                onChange={(e) => set("yieldEstimate", e.target.value)}
+                placeholder="3.9"
+                className={inputClass(errors.yieldEstimate)}
+              />
             </Field>
-          )}
 
-          {!metadataOnly && (
-            <Field label="Precipitación (mm)" error={errors.precip}>
-              <input value={form.precip} onChange={(e) => set("precip", e.target.value)} placeholder="1100" className={inputClass(errors.precip)} />
-            </Field>
-          )}
-
-          {!metadataOnly && (
-            <Field label="GDD acumulados" error={errors.gdd}>
-              <input value={form.gdd} onChange={(e) => set("gdd", e.target.value)} placeholder="2900" className={inputClass(errors.gdd)} />
-            </Field>
-          )}
-
-          {!metadataOnly && (
-            <Field label="Margen de error (± ton/ha)" error={errors.confidence}>
+            <Field label="Margen de error (± ton/ha)" span2 error={errors.confidence}>
               <input
                 value={form.confidence}
                 onChange={(e) => set("confidence", e.target.value)}
@@ -238,8 +277,27 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
                 className={inputClass(errors.confidence)}
               />
             </Field>
-          )}
-        </div>
+
+            <SectionTitle className="mt-2">Índices y clima</SectionTitle>
+
+            <Field label="NDVI pico" error={errors.ndvi}>
+              <input value={form.ndvi} onChange={(e) => set("ndvi", e.target.value)} placeholder="0.68" className={inputClass(errors.ndvi)} />
+            </Field>
+
+            <Field label="EVI" error={errors.evi}>
+              <input value={form.evi} onChange={(e) => set("evi", e.target.value)} placeholder="0.35" className={inputClass(errors.evi)} />
+            </Field>
+
+            <Field label="Precipitación (mm)" error={errors.precip}>
+              <input value={form.precip} onChange={(e) => set("precip", e.target.value)} placeholder="1100" className={inputClass(errors.precip)} />
+            </Field>
+
+            <Field label="GDD acumulados" error={errors.gdd}>
+              <input value={form.gdd} onChange={(e) => set("gdd", e.target.value)} placeholder="2900" className={inputClass(errors.gdd)} />
+            </Field>
+          </section>
+        )}
+      </div>
 
       {submitError && (
         <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">
@@ -251,6 +309,14 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
 }
 
 const inputClass = modalInput;
+
+function SectionTitle({ className = "", children }) {
+  return (
+    <h3 className={`col-span-2 border-b border-gray-100 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:text-gray-400 ${className}`}>
+      {children}
+    </h3>
+  );
+}
 
 function Field({ span2, ...props }) {
   return <ModalField className={span2 ? "col-span-2" : ""} {...props} />;
