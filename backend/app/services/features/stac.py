@@ -362,6 +362,28 @@ def _pick_chirps_template(geom: dict, year: int, errors: list[str]) -> str | Non
     return None
 
 
+def _precip_gee_fallback(geom: dict, year: int, warnings: list[str], motivo: str) -> float | None:
+    """Plan B cuando el CHC bloquea (403) a este servidor: el mismo CHIRPS diario pero servido por Earth Engine.
+
+    Solo se usa si hay credenciales de GEE (GEE_SERVICE_ACCOUNT_JSON/FILE). Es el mismo producto (UCSB-CHG/CHIRPS/DAILY,
+    v2.0), así que el valor es comparable con el del entrenamiento; solo cambia la ruta de descarga.
+    """
+    try:
+        from . import gee
+
+        if not gee.configured():
+            return None
+        ee = gee.ensure_initialized()
+        value = gee._with_retries(gee._precip, ee, ee.Geometry(geom), year)
+    except Exception as e:  # noqa: BLE001 — cualquier fallo aquí deja el comportamiento anterior (mediana)
+        logging.getLogger(__name__).warning("CHIRPS vía Earth Engine falló: %s", _short(e))
+        return None
+    if value is None or not np.isfinite(value):
+        return None
+    warnings.append(f"CHIRPS: {motivo}; la lluvia se leyó del mismo producto CHIRPS a través de Google Earth Engine.")
+    return round(float(value), 3)
+
+
 def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
     start = date(year, 4, 1)
     days = [start + timedelta(d) for d in range((date(year, 6, 1) - start).days)]  # 1 abr – 31 may
@@ -371,6 +393,9 @@ def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
     tpl = _pick_chirps_template(geom, year, probe_errors)
     if tpl is None:
         log.warning("CHIRPS: ninguna fuente respondió. %s", " | ".join(probe_errors))
+        alt = _precip_gee_fallback(geom, year, warnings, "el servidor del CHC no respondió (bloqueo 403)")
+        if alt is not None:
+            return alt
         warnings.append(
             "CHIRPS: no se pudo leer la lluvia de abril-mayo ("
             + (probe_errors[0] if probe_errors else "sin detalle")
@@ -463,6 +488,9 @@ def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
         detail = errors[0] if errors else "el píxel no tenía datos válidos"
         log.warning("CHIRPS: faltaron %d de %d días. Primer error: %s", missing, len(days), detail)
         if len(values) == 0 or missing / len(days) > CHIRPS_MAX_MISSING:
+            alt = _precip_gee_fallback(geom, year, warnings, f"faltaron {missing} de {len(days)} días en el CHC")
+            if alt is not None:
+                return alt
             warnings.append(
                 f"CHIRPS: faltaron {missing} de {len(days)} días ({detail}); no se suma la lluvia incompleta "
                 "y el modelo usó la mediana de entrenamiento."

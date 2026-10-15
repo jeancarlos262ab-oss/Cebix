@@ -87,15 +87,30 @@ function SelectField({ value, onChange, disabled, children }) {
   );
 }
 
-function Notice({ tone = "warn", children }) {
+function Notice({ tone = "warn", children, action = null, loading = false }) {
   const border = tone === "error" ? "border-red-500" : tone === "info" ? "border-gray-300 dark:border-gray-700" : "border-amber-500";
   return (
     <p
       role={tone === "error" ? "alert" : undefined}
       className={`flex items-start gap-2 border-l-2 bg-gray-50 py-2 pl-3 pr-3 text-xs leading-relaxed text-gray-700 dark:bg-gray-900/60 dark:text-gray-300 ${border}`}
     >
-      <AlertTriangle size={13} strokeWidth={1.75} className={`mt-0.5 shrink-0 ${tone === "error" ? "text-red-600 dark:text-red-400" : "text-gray-500"}`} />
-      <span>{children}</span>
+      {loading ? (
+        <Loader2 size={16} strokeWidth={2.25} className="mt-px shrink-0 animate-spin text-accent-600 dark:text-accent-400" aria-hidden="true" />
+      ) : (
+        <AlertTriangle size={13} strokeWidth={1.75} className={`mt-0.5 shrink-0 ${tone === "error" ? "text-red-600 dark:text-red-400" : "text-gray-500"}`} />
+      )}
+      <span>
+        {children}
+        {action && (
+          <button
+            type="button"
+            onClick={action.onClick}
+            className="ml-2 inline rounded-md border border-gray-300 bg-white px-2 py-0.5 text-[11px] font-medium text-gray-700 hover:bg-gray-100 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+          >
+            {action.label}
+          </button>
+        )}
+      </span>
     </p>
   );
 }
@@ -206,6 +221,12 @@ function NuevaParcelaTab() {
   // ── Zona urbana: se consulta OpenStreetMap cada vez que cambia el contorno cerrado.
   const [urban, setUrban] = useState({ status: "idle" }); // idle | checking | ok | urban | unknown
   const [recheck, setRecheck] = useState(0); // sube al pulsar 'Reintentar verificación'
+  // La persona puede OMITIR la verificación de zona urbana: desde ahí la validez del resultado depende de ella.
+  const [urbanOverride, setUrbanOverride] = useState(false);
+  const [vertexHit, setVertexHit] = useState(false); // se rechazó un vértice por caer en zona urbana
+  const urbanCtlRef = useRef(null);
+  const urbanOverrideRef = useRef(false);
+  urbanOverrideRef.current = urbanOverride;
 
   const info = useMemo(() => {
     if (!closed || points.length < 3) return null;
@@ -227,9 +248,14 @@ function NuevaParcelaTab() {
   useEffect(() => {
     if (!closed || points.length < 3) {
       setUrban({ status: "idle" });
+      if (points.length === 0) {
+        setUrbanOverride(false); // parcela nueva: vuelve a verificarse
+        setVertexHit(false);
+      }
       return undefined;
     }
     const controller = new AbortController();
+    urbanCtlRef.current = controller;
     setUrban({ status: "checking" });
     // Espera un instante a que se deje de mover el vértice para no consultar en cada arrastre.
     const timer = setTimeout(async () => {
@@ -237,7 +263,8 @@ function NuevaParcelaTab() {
         const r = await checkUrban(points, { signal: controller.signal });
         if (controller.signal.aborted) return;
         setUrban({ status: r.urban ? "urban" : "ok", ...r });
-        if (r.urban) toast.error("Ese contorno cae sobre una zona urbana. Dibuja la parcela sobre terreno agrícola.", { id: "urban-block" });
+        if (r.urban && !urbanOverrideRef.current)
+          toast.error("Ese contorno cae sobre una zona urbana. Dibuja la parcela sobre terreno agrícola o usa 'Omitir verificación' si estás seguro.", { id: "urban-block" });
       } catch (err) {
         if (err.name === "AbortError" || controller.signal.aborted) return;
         console.warn("No se pudo verificar la zona urbana", err);
@@ -250,8 +277,15 @@ function NuevaParcelaTab() {
     };
   }, [closed, points, recheck]);
 
-  const isUrban = urban.status === "urban";
+  const isUrban = urban.status === "urban"; // se detectó zona urbana
+  const urbanBlocked = isUrban && !urbanOverride; // ...y la persona no omitió la verificación
   const overLimit = Boolean(info && info.ha > MAX_AREA_HA);
+  const skipUrbanCheck = () => {
+    urbanCtlRef.current?.abort(); // se descarta la consulta a OpenStreetMap en curso
+    setUrbanOverride(true);
+    setVertexHit(false);
+    setUrban({ status: "skipped" });
+  };
   const warnings = [];
   if (isUrban) {
     const why = {
@@ -261,12 +295,39 @@ function NuevaParcelaTab() {
       buildings: `hay ${urban.buildings} construcciones dentro del contorno (${(urban.perHa ?? 0).toFixed(1)} por ha)`,
       amenities: `hay ${urban.amenities} comercios, escuelas o iglesias dentro del contorno`,
     }[urban.reason] ?? "se detectó una zona urbana";
+    if (urbanOverride) {
+      warnings.push({
+        tone: "warn",
+        text: `Omitiste la verificación de zona urbana (${why}). Desde ahora es tu responsabilidad que esta parcela sea terreno agrícola: si cae sobre una ciudad o un pueblo, el resultado no será válido.`,
+        action: { label: "Volver a verificar", onClick: () => setUrbanOverride(false) },
+      });
+    } else {
+      warnings.push({
+        tone: "error",
+        text: `Esta parcela cae sobre una ciudad o un pueblo (${why}). No se puede calcular ni guardar: mueve los vértices a terreno agrícola o dibuja otra parcela. Si estás seguro de que es terreno agrícola, puedes omitir la verificación, pero entonces la validez del resultado depende de ti.`,
+        action: { label: "Omitir verificación", onClick: () => setUrbanOverride(true) },
+      });
+    }
+  } else if (vertexHit && !urbanOverride) {
     warnings.push({
-      tone: "error",
-      text: `Esta parcela cae sobre una ciudad o un pueblo (${why}). No se puede calcular ni guardar: mueve los vértices a terreno agrícola o dibuja otra parcela.`,
+      tone: "warn",
+      text: "Un vértice se rechazó porque ahí hay una ciudad o un pueblo. Si estás seguro de que es terreno agrícola, puedes omitir la verificación; desde ahí, que el resultado sea válido depende de ti.",
+      action: { label: "Omitir verificación", onClick: () => { setUrbanOverride(true); setVertexHit(false); } },
     });
   }
-  if (urban.status === "checking") warnings.push({ tone: "info", text: "Verificando que el contorno no caiga sobre una zona urbana…" });
+  if (urban.status === "checking")
+    warnings.push({
+      tone: "info",
+      loading: true,
+      text: "Verificando que el contorno no caiga sobre una zona urbana…",
+      action: { label: "Omitir", onClick: skipUrbanCheck },
+    });
+  if (urban.status === "skipped")
+    warnings.push({
+      tone: "warn",
+      text: "Verificación de zona urbana omitida: asegúrate tú de que la parcela sea terreno agrícola; si cae sobre un pueblo o una ciudad, el resultado no será válido.",
+      action: { label: "Verificar", onClick: () => { setUrbanOverride(false); setRecheck((k) => k + 1); } },
+    });
   if (urban.status === "unknown")
     warnings.push({ tone: "warn", text: "No se pudo verificar que el contorno sea terreno agrícola (OpenStreetMap no respondió). Puedes calcular de todos modos, pero asegúrate tú de que la parcela no caiga sobre un pueblo o una ciudad: si es así, el resultado no será válido. También puedes pulsar 'Reintentar verificación'." });
   if (info?.crosses) warnings.push({ tone: "error", text: "El contorno se cruza consigo mismo. Arrastra los vértices o redibuja la parcela." });
@@ -284,7 +345,7 @@ function NuevaParcelaTab() {
 
   const signature = `${points.map((p) => p.map((n) => n.toFixed(6)).join(",")).join(";")}|${estado}|${anio}`;
   const stale = Boolean(result && ran && ran.signature !== signature);
-  const canRun = Boolean(info && !info.crosses && !overLimit && !isUrban && (urban.status === "ok" || urban.status === "unknown") && name.trim() && estado && !running);
+  const canRun = Boolean(info && !info.crosses && !overLimit && !urbanBlocked && (urban.status === "ok" || urban.status === "unknown" || urban.status === "skipped") && name.trim() && estado && !running);
 
   // ── Acciones de dibujo ───────────────────────────────────────────────────
   // Handlers estables: GeometryMap está memoizado y no debe repintarse al escribir el nombre de la parcela.
@@ -323,12 +384,17 @@ function NuevaParcelaTab() {
     }
     if (!vertex) return;
 
+    if (urbanOverrideRef.current) return; // verificación omitida por la persona
     const same = (p) => p[0] === vertex[0] && p[1] === vertex[1];
     checkPointUrban(vertex)
       .then((r) => {
-        if (!r.urban) return;
+        if (!r.urban) {
+          setVertexHit(false);
+          return;
+        }
+        setVertexHit(true);
         setPoints((cur) => (restore ? cur.map((p) => (same(p) ? restore : p)) : cur.filter((p) => !same(p))));
-        toast.error("Ahí hay una ciudad o un pueblo. Marca el vértice sobre terreno agrícola.", { id: "urban-vertex" });
+        toast.error("Ahí hay una ciudad o un pueblo. Marca el vértice sobre terreno agrícola o usa 'Omitir verificación'.", { id: "urban-vertex" });
       })
       .catch((err) => {
         if (err.name !== "AbortError") console.warn("No se pudo verificar el vértice", err);
@@ -349,6 +415,8 @@ function NuevaParcelaTab() {
   const undo = useCallback(() => setPoints((p) => p.slice(0, -1)), []);
 
   function applyImported(pts, extra = 0) {
+    setUrbanOverride(false);
+    setVertexHit(false);
     setPoints(pts);
     setClosed(true);
     setDrawing(false);
@@ -419,7 +487,7 @@ function NuevaParcelaTab() {
   // ── Ejecución del cálculo ────────────────────────────────────────────────
   async function run() {
     if (!canRun) return;
-    if (isUrban) return;
+    if (urbanBlocked) return;
     const controller = new AbortController();
     abortRef.current = controller;
     const snapshot = { name: name.trim(), estado, anio, ha: info.ha, center: info.center, signature, geometry: toGeoJSONPolygon(points) };
@@ -456,7 +524,7 @@ function NuevaParcelaTab() {
   }
 
   async function saveResult() {
-    if (!result || !view || !ran || saving || stale || isUrban) return;
+    if (!result || !view || !ran || saving || stale || urbanBlocked) return;
     const f = view.features;
     const fields = {
       name: ran.name,
@@ -566,7 +634,7 @@ function NuevaParcelaTab() {
               closed={closed}
               drawing={drawing}
               locked={running}
-              overLimit={overLimit || isUrban}
+              overLimit={overLimit || urbanBlocked}
               maxAreaHa={MAX_AREA_HA}
               fitKey={fitKey}
               onChange={onPointsChange}
@@ -598,7 +666,7 @@ function NuevaParcelaTab() {
               <div className="pt-2">
                 <SlideList
                   items={warnings.map((w) => ({ ...w, key: w.text }))}
-                  render={(w) => <Notice tone={w.tone}>{w.text}</Notice>}
+                  render={(w) => <Notice tone={w.tone} action={w.action} loading={w.loading}>{w.text}</Notice>}
                 />
               </div>
             </Collapse>
@@ -692,7 +760,7 @@ function NuevaParcelaTab() {
                   <button
                     type="button"
                     onClick={saveResult}
-                    disabled={saving || stale || isUrban}
+                    disabled={saving || stale || urbanBlocked}
                     className="flex w-full items-center justify-center gap-2 rounded-lg border border-accent-500 px-4 py-2.5 text-sm font-medium text-accent-700 transition-colors hover:bg-accent-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:text-accent-400 dark:hover:bg-accent-500/10 dark:focus-visible:ring-offset-black"
                   >
                     {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} strokeWidth={1.75} />}
@@ -707,12 +775,16 @@ function NuevaParcelaTab() {
               </div>
             )}
             <p className="mt-3 text-xs leading-relaxed text-gray-400 dark:text-gray-500">
-              {canRun && urban.status === "unknown"
+              {canRun && urban.status === "skipped"
+                ? "Verificación de zona urbana omitida: la validez del resultado depende de que la parcela sea terreno agrícola. Se leen imágenes reales de 10 variables (30 a 90 s)."
+                : canRun && urbanOverride && isUrban
+                ? "Verificación de zona urbana omitida: la validez del resultado depende de que la parcela sea terreno agrícola. Se leen imágenes reales de 10 variables (30 a 90 s)."
+                : canRun && urban.status === "unknown"
                 ? "Sin verificar la zona urbana: si la parcela cae sobre un pueblo o una ciudad, el resultado no será válido. Se leen imágenes reales de 10 variables (30 a 90 s)."
                 : canRun || running
                 ? "Se leen imágenes reales de 10 variables. Tarda entre 30 y 90 s."
-                : isUrban
-                  ? "El contorno cae sobre una zona urbana: muévelo a terreno agrícola para poder calcular."
+                : urbanBlocked
+                  ? "El contorno cae sobre una zona urbana: muévelo a terreno agrícola u omite la verificación para poder calcular."
                   : urban.status === "checking"
                     ? "Verificando que no sea zona urbana…"
                 : overLimit
@@ -729,7 +801,7 @@ function NuevaParcelaTab() {
       <div ref={resultsRef} className="scroll-mt-6 space-y-12">
         {phase === "idle" && !result && <Facts />}
 
-        {running && <RunProgress predicting={predicting} year={anio} />}
+        {running && <RunProgress predicting={predicting} year={anio} points={points} />}
 
         {phase === "error" && (
           <div className="space-y-4 border-l-2 border-red-500 bg-gray-50 py-4 pl-5 pr-5 dark:bg-gray-900/60">

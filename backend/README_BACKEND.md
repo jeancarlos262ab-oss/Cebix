@@ -225,6 +225,10 @@ depende de que la validación del Paso 8 haya pasado. El modelo final ya no usa 
 
 ## CHIRPS: fuentes y diagnostico
 
+**Si todas las plantillas devuelven 403** (visto en Render): el CHC está bloqueando la IP del servidor (los reintentos, el User-Agent y los
+pocos hilos ya están aplicados y no lo arreglan). Plan B automático: si defines `GEE_SERVICE_ACCOUNT_JSON`, la lluvia se lee del mismo
+CHIRPS diario (`UCSB-CHG/CHIRPS/DAILY`) a través de Earth Engine y se avisa en `advertencias`. Sin credenciales de GEE queda la mediana de entrenamiento.
+
 La lluvia de abril-mayo se lee de COG/GeoTIFF diarios publicados por el Climate Hazards Center. El servicio prueba, en orden:
 
 1. CHIRPS v2.0 (`.../CHIRPS-2.0/global_daily/cogs/p05/...`), la version con la que se entreno el modelo.
