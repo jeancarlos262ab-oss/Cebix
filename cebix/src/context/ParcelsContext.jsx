@@ -30,7 +30,8 @@ const scopedKey = (key, uid) => `${key}:${uid}`;
 // vez (datos de antes de usar Supabase); después, Supabase manda: si otra computadora borró algo, aquí también
 // desaparece y no se vuelve a subir una copia vieja.
 const SYNCED_KEY = "cebix-cloud-synced-v1";
-const EMPTY_STORE = { uid: null, analysis: null, submissions: {} };
+// `dirty` = la corrida del modelo está en pantalla pero NO se ha guardado: solo se guarda al pulsar "Guardar".
+const EMPTY_STORE = { uid: null, analysis: null, submissions: {}, dirty: false };
 
 // Claves antiguas (globales, compartidas entre cuentas). Se borran para que no "se cuelen" datos viejos.
 const LEGACY_KEYS = [SUBMISSIONS_KEY, ANALYSIS_KEY];
@@ -294,7 +295,9 @@ export function ParcelsProvider({ children }) {
   // Resultado de la última corrida REAL del modelo y envíos a comité DE ESTE USUARIO.
   // Arranca vacío: el dashboard no trae datos precargados ni mezcla los de otras cuentas.
   const [stored, setStored] = useState(EMPTY_STORE);
-  const { analysis, submissions } = stored.uid === uid && uid !== null ? stored : EMPTY_STORE;
+  const { analysis, submissions, dirty: analysisDirty } = stored.uid === uid && uid !== null ? stored : EMPTY_STORE;
+  const dirtyRef = useRef(false);
+  dirtyRef.current = analysisDirty;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -324,7 +327,7 @@ export function ParcelsProvider({ children }) {
     const localAnalysis = appStorage.getJSON(scopedKey(ANALYSIS_KEY, uid), null);
     const localSubmissions = appStorage.getJSON(scopedKey(SUBMISSIONS_KEY, uid), {});
     editsRef.current = { analysis: 0, submissions: 0 };
-    setStored({ uid, analysis: localAnalysis, submissions: localSubmissions });
+    setStored({ uid, analysis: localAnalysis, submissions: localSubmissions, dirty: false });
 
     // 2) Trae lo guardado en Supabase (lo que se ve igual en cualquier PC).
     let cancelled = false;
@@ -373,6 +376,7 @@ export function ParcelsProvider({ children }) {
           uid,
           analysis: editsRef.current.analysis === edits.analysis ? nextAnalysis : prev.analysis,
           submissions: editsRef.current.submissions === edits.submissions ? nextSubmissions : prev.submissions,
+          dirty: prev.dirty,
         };
       });
       setHydratedUid(uid);
@@ -416,21 +420,55 @@ export function ParcelsProvider({ children }) {
     const built = predicciones.map((pred, i) => buildAnalysisParcel(pred, byId.get(String(pred.ID_POLIGONO)), i));
     const next = { parcels: built, fileName, runAt: new Date().toISOString() };
     if (uid) {
+      // Queda como BORRADOR: se ve en todas las pantallas, pero no se guarda (ni en el navegador ni en
+      // Supabase) hasta que la persona pulse "Guardar corrida" (saveAnalysisDraft).
       editsRef.current.analysis += 1;
-      setStored((prev) => ({ ...(prev.uid === uid ? prev : { ...EMPTY_STORE, uid }), analysis: next }));
-      appStorage.setJSON(scopedKey(ANALYSIS_KEY, uid), next);
-      saveAnalysis(uid, next).then(({ error: e }) => e && notifySaveError("la corrida del modelo", e));
+      setStored((prev) => ({ ...(prev.uid === uid ? prev : { ...EMPTY_STORE, uid }), analysis: next, dirty: true }));
     }
     return built;
-  }, [uid, notifySaveError]);
+  }, [uid]);
 
   const clearAnalysis = useCallback(() => {
     if (!uid) return;
     editsRef.current.analysis += 1;
-    setStored((prev) => (prev.uid === uid ? { ...prev, analysis: null } : prev));
+    setStored((prev) => (prev.uid === uid ? { ...prev, analysis: null, dirty: false } : prev));
     appStorage.remove(scopedKey(ANALYSIS_KEY, uid));
     saveAnalysis(uid, null).then(({ error: e }) => e && notifySaveError("el borrado de la corrida", e));
   }, [uid, notifySaveError]);
+
+  /** Guarda la corrida del modelo (borrador) en Supabase y en la copia local. Solo se llama desde el botón. */
+  const saveAnalysisDraft = useCallback(async () => {
+    if (!uid || !dirtyRef.current) return { error: null };
+    const current = analysis;
+    const { error: e } = await saveAnalysis(uid, current);
+    if (e) {
+      console.error("No se pudo guardar la corrida del modelo en Supabase", e);
+      return { error: e }; // sigue como borrador: se puede reintentar
+    }
+    if (current) appStorage.setJSON(scopedKey(ANALYSIS_KEY, uid), current);
+    else appStorage.remove(scopedKey(ANALYSIS_KEY, uid));
+    setStored((prev) => (prev.uid === uid ? { ...prev, dirty: false } : prev));
+    return { error: null };
+  }, [uid, analysis]);
+
+  /** Descarta el borrador y vuelve a la última corrida guardada (o a vacío si no había). */
+  const discardAnalysisDraft = useCallback(() => {
+    if (!uid) return;
+    const saved = appStorage.getJSON(scopedKey(ANALYSIS_KEY, uid), null);
+    editsRef.current.analysis += 1;
+    setStored((prev) => (prev.uid === uid ? { ...prev, analysis: saved, dirty: false } : prev));
+  }, [uid]);
+
+  // Si hay una corrida sin guardar, el navegador avisa antes de cerrar o recargar la pestaña.
+  useEffect(() => {
+    if (!analysisDirty) return undefined;
+    const warn = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [analysisDirty]);
 
   const regionSummary = useMemo(() => {
     const counts = new Map();
@@ -452,7 +490,7 @@ export function ParcelsProvider({ children }) {
   // envía cuando cambia algo realmente.
   const syncedRef = useRef({ uid: null, sig: "" });
   useEffect(() => {
-    if (authLoading || loading || analysisLoading || !uid || stored.uid !== uid) return undefined;
+    if (authLoading || loading || analysisLoading || !uid || stored.uid !== uid || analysisDirty) return undefined; // un borrador sin guardar no se manda al servidor
     const compact = parcels.map((p) => ({
       id: String(p.polygonId ?? p.id),
       name: p.name,
@@ -469,7 +507,7 @@ export function ParcelsProvider({ children }) {
       if (!syncError) syncedRef.current = { uid, sig };
     }, 2500);
     return () => clearTimeout(timer);
-  }, [authLoading, loading, analysisLoading, uid, stored.uid, parcels]);
+  }, [authLoading, loading, analysisLoading, uid, stored.uid, parcels, analysisDirty]);
 
   // Lista más reciente de parcelas, para que varias altas seguidas (importar un CSV) no repitan código.
   const latestRef = useRef([]);
@@ -501,6 +539,11 @@ export function ParcelsProvider({ children }) {
     (nextAnalysis) => {
       if (!uid) return;
       editsRef.current.analysis += 1;
+      if (dirtyRef.current) {
+        // Hay una corrida sin guardar: los cambios se suman al borrador y se guardan juntos con el botón.
+        setStored((prev) => ({ ...(prev.uid === uid ? prev : { ...EMPTY_STORE, uid }), analysis: nextAnalysis, dirty: true }));
+        return;
+      }
       setStored((prev) => ({ ...(prev.uid === uid ? prev : { ...EMPTY_STORE, uid }), analysis: nextAnalysis }));
       if (nextAnalysis) appStorage.setJSON(scopedKey(ANALYSIS_KEY, uid), nextAnalysis);
       else appStorage.remove(scopedKey(ANALYSIS_KEY, uid));
@@ -636,6 +679,9 @@ export function ParcelsProvider({ children }) {
       analysisMeta: analysis ? { fileName: analysis.fileName, runAt: analysis.runAt, count: analysisParcels.length } : null,
       loadAnalysis,
       clearAnalysis,
+      analysisDirty,
+      saveAnalysisDraft,
+      discardAnalysisDraft,
       addParcel,
       updateParcel,
       removeParcel,
@@ -654,6 +700,9 @@ export function ParcelsProvider({ children }) {
       analysis,
       loadAnalysis,
       clearAnalysis,
+      analysisDirty,
+      saveAnalysisDraft,
+      discardAnalysisDraft,
       addParcel,
       updateParcel,
       removeParcel,

@@ -1,6 +1,6 @@
 import { userMessage } from "../../utils/userMessages";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, UploadCloud } from "lucide-react";
+import { Loader2, Save, UploadCloud, X } from "lucide-react";
 import { toast } from "../../services/toast";
 import { parseCSV } from "../../utils/csv";
 import { detectEstado } from "../../utils/polygon";
@@ -81,19 +81,49 @@ export default function UploadDropzone({ onParsed }) {
   const [busy, setBusy] = useState(false);
   const abortRef = useRef(null);
   const [pendingBatch, setPendingBatch] = useState(null); // { total, omitted, fileName, resolve }
+  // Parcelas leídas/calculadas pero SIN guardar: solo se guardan al pulsar "Guardar".
+  const [staged, setStaged] = useState([]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
   // Mientras se calculan parcelas, el navegador avisa antes de cerrar o recargar la pestaña.
   useEffect(() => {
-    if (!busy) return undefined;
+    if (!busy && staged.length === 0) return undefined;
     const warn = (e) => {
       e.preventDefault();
       e.returnValue = "";
     };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [busy]);
+  }, [busy, staged.length]);
+
+  const stage = useCallback((records) => setStaged((prev) => [...prev, ...records]), []);
+
+  async function handleSaveStaged() {
+    if (staged.length === 0 || saving) return;
+    setSaving(true);
+    try {
+      const result = await onParsed?.(staged);
+      const failedRecords = result?.failedRecords ?? [];
+      const failed = result?.failed ?? failedRecords.length;
+      const saved = staged.length - failed;
+      // Las que no se pudieron guardar se quedan en la lista para reintentar con el botón.
+      setStaged(failedRecords);
+      if (failed > 0) {
+        toast.error(
+          `${plural(failed, "parcela no se pudo guardar", "parcelas no se pudieron guardar")}.${saved > 0 ? ` Se guardaron ${saved}.` : ""} Sigue${failed === 1 ? "" : "n"} en la lista para reintentar.`,
+          { duration: 12000 }
+        );
+      } else {
+        toast.success(`${plural(saved, "parcela guardada", "parcelas guardadas")}.`);
+      }
+    } catch (err) {
+      toast.error(userMessage(err, "No se pudieron guardar las parcelas."));
+    } finally {
+      setSaving(false);
+    }
+  }
 
   /** Abre el diálogo y espera cuántas parcelas quiere calcular el usuario (null = canceló). */
   const askBatchSize = useCallback(
@@ -103,7 +133,8 @@ export default function UploadDropzone({ onParsed }) {
 
   /**
    * Shapefile / GeoJSON / KML / KMZ: el backend lee el archivo (/parse-geometry), y cada polígono se
-   * calcula con imágenes satelitales y el modelo (/predict-from-geometry). Se guardan al terminar.
+   * calcula con imágenes satelitales y el modelo (/predict-from-geometry). Quedan en la lista de
+   * "sin guardar" hasta que la persona pulse "Guardar".
    */
   const processGeometry = useCallback(
     async (files) => {
@@ -135,9 +166,7 @@ export default function UploadDropzone({ onParsed }) {
           return;
         }
         const batch = valid.slice(0, wanted);
-        let added = 0;
-        let saveFailed = 0;
-        let saveMessage = null;
+        const computed = [];
         const failures = [];
         let cancelled = false;
 
@@ -152,14 +181,8 @@ export default function UploadDropzone({ onParsed }) {
               { ID_POLIGONO: poly.ID_POLIGONO, Estado: estado, geometry: poly.geometry, anio: GEO_YEAR },
               { signal: controller.signal }
             );
-            // Se guarda al terminar cada parcela: si algo falla o se cancela, no se pierde lo ya calculado.
-            const saved = await onParsed?.([geometryResultToFields(poly, estado, data)]);
-            if (saved?.failed) {
-              saveFailed += saved.failed;
-              saveMessage ??= saved.message;
-            } else {
-              added += 1;
-            }
+            // No se guarda: pasa a la lista de "sin guardar". Si algo falla o se cancela, lo ya calculado se conserva ahí.
+            computed.push(geometryResultToFields(poly, estado, data));
           } catch (err) {
             if (err.name === "AbortError") {
               cancelled = true;
@@ -174,8 +197,9 @@ export default function UploadDropzone({ onParsed }) {
         if (rejected.length) notes.push(`${plural(rejected.length, "polígono omitido", "polígonos omitidos")} (${rejected[0].nombre}: ${userMessage(rejected[0].error, "contorno no válido")})`);
         if (valid.length > batch.length && !cancelled) notes.push(`Elegiste calcular ${batch.length}; quedaron ${valid.length - batch.length} sin calcular.`);
         if (failures.length) notes.push(`No se pudo calcular ${failures[0]}${failures.length > 1 ? ` (y ${failures.length - 1} más)` : ""}`);
-        if (saveFailed) notes.push(`${plural(saveFailed, "parcela no se pudo guardar", "parcelas no se pudieron guardar")}`);
-        const summary = added > 0 ? `${plural(added, "parcela agregada", "parcelas agregadas")} desde ${files[0].name}.` : "No se agregó ninguna parcela.";
+        if (computed.length > 0) stage(computed);
+        const added = computed.length;
+        const summary = added > 0 ? `${plural(added, "parcela calculada", "parcelas calculadas")} desde ${files[0].name}. Pulsa "Guardar" para agregarlas.` : "No se calculó ninguna parcela.";
         const message = [summary, ...notes].join(" ");
 
         if (added > 0 && notes.length === 0) toast.success(message, { id });
@@ -189,7 +213,7 @@ export default function UploadDropzone({ onParsed }) {
         setBusy(false);
       }
     },
-    [onParsed, askBatchSize]
+    [askBatchSize, stage]
   );
 
   const processFiles = useCallback(
@@ -228,23 +252,13 @@ export default function UploadDropzone({ onParsed }) {
         const validRows = results.filter((r) => r.valid).map((r) => r.fields);
         const invalidCount = results.length - validRows.length;
 
-        // onParsed puede devolver { failed, message } (cuántas no se pudieron guardar y por qué).
-        const saved = validRows.length > 0 ? await onParsed?.(validRows) : null;
-        const failed = Math.min(saved?.failed ?? 0, validRows.length);
-        const added = validRows.length - failed;
+        // No se guarda aquí: las filas válidas pasan a la lista de "sin guardar" hasta pulsar "Guardar".
+        if (validRows.length > 0) stage(validRows);
 
-        if (failed > 0) {
-          toast.error(
-            `${failed} parcela${failed === 1 ? "" : "s"} no se pudo guardar${failed === 1 ? "" : "n"}${
-              "."
-            }${added > 0 ? ` Se agregaron ${added}.` : ""}`
-          );
-        } else if (invalidCount === 0) {
-          toast.success(`${validRows.length} parcela${validRows.length === 1 ? "" : "s"} agregada${
-              validRows.length === 1 ? "" : "s"
-            } desde ${file.name}.`);
+        if (invalidCount === 0 && validRows.length > 0) {
+          toast.success(`${plural(validRows.length, "fila lista", "filas listas")} desde ${file.name}. Pulsa "Guardar" para agregarlas.`);
         } else if (validRows.length > 0) {
-          toast.warning(`${validRows.length} fila(s) agregadas; ${invalidCount} fila(s) omitidas por datos faltantes o inválidos (se requieren: ${REQUIRED_FIELDS.join(", ")}).`);
+          toast.warning(`${validRows.length} fila(s) listas para guardar; ${invalidCount} fila(s) omitidas por datos faltantes o inválidos (se requieren: ${REQUIRED_FIELDS.join(", ")}).`);
         } else {
           toast.error(`Ninguna fila es válida. Columnas requeridas: ${REQUIRED_FIELDS.join(", ")}.`);
         }
@@ -252,7 +266,7 @@ export default function UploadDropzone({ onParsed }) {
         toast.error(userMessage(err, "No se pudo leer el archivo. Revisa que sea un CSV válido."));
       }
     },
-    [onParsed, busy, processGeometry]
+    [busy, processGeometry, stage]
   );
 
   return (
@@ -286,6 +300,44 @@ export default function UploadDropzone({ onParsed }) {
           </>
         )}
       </Dropzone>
+
+      {staged.length > 0 && (
+        <div className="mt-3 rounded-xl border border-amber-500/60 bg-white p-3 dark:bg-gray-900">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-medium text-gray-800 dark:text-gray-100">
+              {plural(staged.length, "parcela sin guardar", "parcelas sin guardar")}
+              <span className="ml-1 font-normal text-gray-500 dark:text-gray-400">· no se guardan solas</span>
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setStaged([])}
+                disabled={saving || busy}
+                className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                <X size={12} /> Descartar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveStaged}
+                disabled={saving || busy}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-medium text-accent-contrast hover:bg-accent-600 disabled:opacity-60"
+              >
+                {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} strokeWidth={1.75} />}
+                Guardar {staged.length}
+              </button>
+            </div>
+          </div>
+          <ul className="mt-2 max-h-32 space-y-0.5 overflow-y-auto text-xs text-gray-600 dark:text-gray-400">
+            {staged.map((f, i) => (
+              <li key={`${f.name}-${i}`} className="flex justify-between gap-3">
+                <span className="truncate">{f.name}</span>
+                <span className="shrink-0 tabular-nums">{Number.isFinite(Number(f.yieldEstimate)) ? `${Number(f.yieldEstimate).toFixed(2)} t/ha` : "—"}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {pendingBatch && (
         <BatchSizeDialog

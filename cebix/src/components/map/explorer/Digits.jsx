@@ -1,0 +1,16 @@
+import { Fragment } from "react";
+
+/** Texto con los números en Sora (font-display) y el resto con la tipografía de la app: "Parcela 12" → "Parcela " + "12". */
+export default function Digits({ children }) {
+  if (typeof children !== "string" && typeof children !== "number") return children;
+  const parts = String(children).split(/(\d[\d.,]*)/);
+  return parts.map((part, i) =>
+    i % 2 === 1 ? (
+      <span key={i} className="font-display tabular-nums">
+        {part}
+      </span>
+    ) : (
+      <Fragment key={i}>{part}</Fragment>
+    )
+  );
+}

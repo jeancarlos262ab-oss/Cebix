@@ -13,7 +13,7 @@ export default function RiskTiles({ counts }) {
         return (
           <div key={key}>
             <Icon size={16} strokeWidth={2.25} style={{ color: meta.color }} aria-hidden="true" />
-            <p className="mt-3 text-[26px] font-thin leading-none tracking-tight tabular-nums text-white">
+            <p className="mt-3 text-[26px] font-display font-bold leading-none tracking-tight tabular-nums text-white">
               {counts[key] ?? 0}
             </p>
             <p className="mt-1.5 truncate text-[11px] text-white/50">{meta.plural}</p>

@@ -6,7 +6,9 @@ export default function BigNumber({ value, decimals = 1, unit, className = "text
   const [int, dec] = value.toFixed(decimals).split(".");
   return (
     <span className="inline-flex items-baseline gap-1.5">
-      <span className={`font-thin leading-none tracking-tight tabular-nums text-white ${className}`}>
+      <span
+        className={`font-display font-bold leading-none tracking-tight tabular-nums text-white ${className}`}
+      >
         {int}
         {dec !== undefined && <span className="text-white/35">.{dec}</span>}
       </span>

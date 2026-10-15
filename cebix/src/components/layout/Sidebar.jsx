@@ -166,9 +166,9 @@ function Sidebar({ floating = false }) {
           // Sobre el mapa satelital el contenedor es siempre negro (translúcido); "dark" fuerza
           // los colores oscuros dentro del sidebar aunque la app esté en modo claro. Lo demás es igual.
           "border border-gray-200 shadow-card dark:border-gray-800",
-          floating ? "dark bg-black/65" : "bg-white dark:bg-black",
-          collapsed ? "lg:w-20" : "lg:w-[264px]",
-          "w-[264px] max-w-[calc(100vw-1.5rem)]",
+          floating ? "dark bg-black/65" : "bg-white/65 dark:bg-black/65",
+          collapsed ? "lg:w-20" : "lg:w-[232px]",
+          "w-[232px] max-w-[calc(100vw-1.5rem)]",
           floating
             ? "lg:absolute lg:inset-y-3 lg:left-3 lg:m-0 lg:translate-x-0"
             : "lg:static lg:inset-auto lg:m-3 lg:translate-x-0",
@@ -233,7 +233,7 @@ function Sidebar({ floating = false }) {
         <div className="border-t border-gray-100 py-2 dark:border-gray-800 transition-colors duration-300 ease-out">
           <NavLink
             to="/perfil"
-            title={collapsed ? profile?.name || user?.email || t("Perfil") : undefined}
+            title={collapsed ? profile?.name || t("Perfil") : undefined}
             className={[
               "flex w-full items-center py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors duration-300 ease-out",
               collapsed ? "justify-center px-0" : "gap-3 px-4",
@@ -247,10 +247,7 @@ function Sidebar({ floating = false }) {
               <>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-gray-900 dark:text-white transition-colors duration-300 ease-out">
-                    {profile?.name || user?.email || t("Perfil")}
-                  </span>
-                  <span className="block truncate text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300 ease-out">
-                    {user?.email || ""}
+                    {profile?.name || t("Perfil")}
                   </span>
                 </span>
                 <ChevronRight size={16} className="shrink-0 text-gray-500 dark:text-gray-400 transition-colors duration-300 ease-out" />

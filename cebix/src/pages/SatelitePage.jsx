@@ -785,6 +785,24 @@ function NuevaParcelaTab() {
                 {result.advertencias?.map((w) => (
                   <Notice key={w}>{w}</Notice>
                 ))}
+                {result.advertencias?.some((w) => /mediana de entrenamiento|CHIRPS: faltaron/i.test(w)) && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-l-2 border-amber-500 bg-gray-50 py-2 pl-3 pr-3 text-xs leading-relaxed text-gray-700 dark:bg-gray-900/60 dark:text-gray-300">
+                    <span>
+                      {result.advertencias.some((w) => /mediana de entrenamiento/i.test(w))
+                        ? "Parte de la lluvia (CHIRPS) no se pudo leer y el modelo la sustituyó por la mediana de entrenamiento: este resultado es menos preciso."
+                        : "Faltaron algunos días de lluvia (CHIRPS) y la suma se estimó con los días válidos: el resultado es aproximado."}{" "}
+                      Suele ser un bloqueo temporal del servidor de CHIRPS; reintentar casi siempre lo resuelve.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={run}
+                      disabled={running}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-medium text-accent-contrast hover:bg-accent-600 disabled:opacity-60"
+                    >
+                      <RotateCcw size={13} strokeWidth={1.75} /> Reintentar cálculo
+                    </button>
+                  </div>
+                )}
                 {stale && (
                   <Notice>
                     Cambiaste el contorno, el estado o el año después de calcular. Pulsa &quot;Recalcular índices satelitales&quot; para actualizar este resultado.

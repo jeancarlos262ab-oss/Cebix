@@ -33,12 +33,15 @@ esto; si el servicio los cambia, basta con ajustar estas variables, sin tocar el
 from __future__ import annotations
 
 import logging
+import hashlib
+import json
 import os
 import statistics
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 import numpy as np
 
@@ -91,6 +94,13 @@ def _chirps_templates() -> list[str]:
 CHIRPS_URL_TEMPLATE = _chirps_templates()[0]  # compatibilidad con scripts que lo importan
 _chirps_ok_template: str | None = None  # plantilla que ya funcionó en este proceso
 WORKERS = max(1, int(os.environ.get("STAC_WORKERS", "6")))
+
+# CHIRPS: el servidor del CHC responde 403 cuando recibe muchas lecturas en paralelo, así que se lee con
+# pocos hilos, se reintenta con espera creciente y cada día leído se guarda en disco (solo se reintentan los que faltan).
+CHIRPS_WORKERS = max(1, int(os.environ.get("CHIRPS_WORKERS", "3")))
+CHIRPS_TRIES = max(1, int(os.environ.get("CHIRPS_TRIES", "4")))
+CHIRPS_MAX_MISSING = float(os.environ.get("CHIRPS_MAX_MISSING", "0.10"))  # hasta 10 % de días sin dato: se escala
+CHIRPS_CACHE_DIR = Path(os.environ.get("CHIRPS_CACHE_DIR", "/tmp/cebix_chirps_cache"))
 READ_TRIES = 3
 SUPERSAMPLE = 20  # submuestreo para ponderar CHIRPS por fracción de píxel cubierta
 
@@ -294,7 +304,14 @@ def _chirps_day(url: str, geom: dict) -> float | None:
     from rasterio.windows import Window
     from affine import Affine
 
-    with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", GDAL_HTTP_TIMEOUT="30", GDAL_HTTP_MAX_RETRY="2", GDAL_HTTP_RETRY_DELAY="1"):
+    with rasterio.Env(
+        GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR",
+        GDAL_HTTP_TIMEOUT="30",
+        GDAL_HTTP_MAX_RETRY="4",
+        GDAL_HTTP_RETRY_DELAY="2",
+        GDAL_HTTP_RETRY_CODES="ALL",  # incluye 403/429/5xx (límite de peticiones del servidor)
+        GDAL_HTTP_USERAGENT="cebix-backend/1.0",
+    ):
         with rasterio.open(url) as src:
             g = transform_geom("EPSG:4326", src.crs, geom)
             xs = [c[0] for c in g["coordinates"][0]]
@@ -361,33 +378,108 @@ def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
         )
         return None
 
-    urls = [tpl.format(year=d.year, month=d.month, day=d.day) for d in days]
-    errors: list[str] = []
+    geom_key = hashlib.sha1(json.dumps(geom, sort_keys=True).encode()).hexdigest()[:16]
+    tpl_key = hashlib.sha1(tpl.encode()).hexdigest()[:8]
 
-    def one(url):
+    def cache_file(d: date) -> Path:
+        return CHIRPS_CACHE_DIR / f"{geom_key}_{tpl_key}" / f"{d.isoformat()}.json"
+
+    def cache_get(d: date):
         try:
-            return _retry(_chirps_day, url, geom)
-        except Exception as e:  # noqa: BLE001
-            errors.append(f"{type(e).__name__}: {_short(e)} [{url}]")
+            return json.loads(cache_file(d).read_text())["mm"]
+        except Exception:  # noqa: BLE001 — el caché es opcional
             return None
 
-    with ThreadPoolExecutor(WORKERS) as pool:
-        values = list(pool.map(one, urls))
-    missing = sum(v is None for v in values)
+    def cache_set(d: date, mm: float) -> None:
+        try:
+            f = cache_file(d)
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text(json.dumps({"mm": mm}))
+        except Exception:  # noqa: BLE001
+            pass
+
+    errors: list[str] = []
+
+    def read_day(d: date, template: str = tpl, tries: int = CHIRPS_TRIES):
+        url = template.format(year=d.year, month=d.month, day=d.day)
+        for attempt in range(tries):
+            try:
+                v = _chirps_day(url, geom)
+                if v is not None:
+                    return v
+                errors.append(f"Sin datos válidos en el píxel [{url}]")
+                return None  # no es un fallo de red: reintentar no cambia nada
+            except Exception as e:  # noqa: BLE001
+                if attempt == tries - 1:
+                    errors.append(f"{type(e).__name__}: {_short(e)} [{url}]")
+                else:
+                    time.sleep(2 ** attempt)  # 1, 2, 4 s: deja respirar al servidor
+        return None
+
+    values: dict[date, float] = {}
+    pending: list[date] = []
+    for d in days:
+        cached = cache_get(d)
+        if cached is not None:
+            values[d] = cached
+        else:
+            pending.append(d)
+
+    # 1) Lectura con pocos hilos.
+    with ThreadPoolExecutor(CHIRPS_WORKERS) as pool:
+        for d, v in zip(pending, pool.map(read_day, pending)):
+            if v is not None:
+                values[d] = v
+                cache_set(d, v)
+
+    # 2) Los que fallaron (típicamente 403 por ráfaga) se reintentan uno a uno, con pausa.
+    still = [d for d in days if d not in values]
+    if still:
+        time.sleep(5)
+        for d in still:
+            v = read_day(d, tries=3)
+            if v is not None:
+                values[d] = v
+                cache_set(d, v)
+
+    # 3) Si aún faltan, se prueba con las otras plantillas SOLO para esos días (se avisa: puede ser otra versión).
+    still = [d for d in days if d not in values]
+    used_alt = False
+    if still:
+        for alt in (t for t in _chirps_templates() if t != tpl):
+            for d in list(still):
+                v = read_day(d, template=alt, tries=2)
+                if v is not None:
+                    values[d] = v
+                    used_alt = True
+            still = [d for d in days if d not in values]
+            if not still:
+                break
+
+    missing = len(days) - len(values)
+    if used_alt:
+        warnings.append("CHIRPS: algunos días se leyeron de otra versión del producto porque la principal no respondió.")
     if missing:
         detail = errors[0] if errors else "el píxel no tenía datos válidos"
         log.warning("CHIRPS: faltaron %d de %d días. Primer error: %s", missing, len(days), detail)
+        if len(values) == 0 or missing / len(days) > CHIRPS_MAX_MISSING:
+            warnings.append(
+                f"CHIRPS: faltaron {missing} de {len(days)} días ({detail}); no se suma la lluvia incompleta "
+                "y el modelo usó la mediana de entrenamiento."
+            )
+            return None
+        # Pocos días perdidos: se escala por días válidos / totales y se avisa que es una estimación.
         warnings.append(
-            f"CHIRPS: faltaron {missing} de {len(days)} días ({detail}); no se suma la lluvia incompleta "
-            "y el modelo usó la mediana de entrenamiento."
+            f"CHIRPS: faltaron {missing} de {len(days)} días ({detail}); la lluvia se escaló con los "
+            f"{len(values)} días válidos (estimada)."
         )
-        return None
+        return round(sum(values.values()) * len(days) / len(values), 3)
     if "v3.0" in tpl:
         warnings.append(
             "La lluvia se calculó con CHIRPS v3.0 (v2.0 ya no respondió). El modelo se entrenó con v2.0, "
             "así que el valor puede diferir un poco del dataset oficial."
         )
-    return round(sum(values), 3)
+    return round(sum(values.values()), 3)
 
 
 # ─────────────────────────────── Catálogo y orquestación ───────────────────────────────

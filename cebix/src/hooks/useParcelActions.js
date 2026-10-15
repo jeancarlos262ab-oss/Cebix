@@ -46,14 +46,16 @@ export default function useParcelActions() {
     async (records) => {
       let failed = 0;
       let message = null;
+      const failedRecords = [];
       for (const record of records) {
         const result = await addParcel(record);
         if (result?.error) {
           failed += 1;
+          failedRecords.push(record);
           message ??= result.error.message;
         }
       }
-      return { failed, message };
+      return { failed, message, failedRecords };
     },
     [addParcel]
   );

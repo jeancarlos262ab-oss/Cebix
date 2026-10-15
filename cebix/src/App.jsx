@@ -11,6 +11,7 @@ import AuthShell from "./components/auth/AuthShell";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Sidebar from "./components/layout/Sidebar";
 import CornerGlow from "./components/layout/CornerGlow";
+import UnsavedBar from "./components/ui/UnsavedBar";
 import { SidebarProvider } from "./context/SidebarContext";
 import { useParcels } from "./context/ParcelsContext";
 import { getPageRegistry } from "./utils/pageRegistry";
@@ -249,6 +250,7 @@ function AuthenticatedLayout() {
             <KeepAliveOutlet />
           </Suspense>
         </main>
+        <UnsavedBar />
       </div>
     </SidebarProvider>
   );

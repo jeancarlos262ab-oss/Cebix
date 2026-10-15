@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Palette, Bell, Globe2, RotateCcw } from "lucide-react";
+import { Palette, Bell, Globe2, RotateCcw, Save, Loader2 } from "lucide-react";
 import { isToastSoundEnabled, setToastSoundEnabled, toast } from "../services/toast";
 import TopBar from "../components/layout/TopBar";
 import SettingsSection from "../components/settings/SettingsSection";
@@ -8,7 +8,7 @@ import Toggle from "../components/settings/Toggle";
 import { useTheme } from "../context/ThemeContext";
 import useAccount from "../hooks/useAccount";
 import { usePreferences } from "../context/PreferencesContext";
-import { timeZoneOffsetLabel } from "../utils/intl";
+import { DEFAULT_REGION, timeZoneOffsetLabel } from "../utils/intl";
 
 const ACCENTS = [
   { id: "brand", label: "Ámbar", swatch: "#C08A2E" },
@@ -45,43 +45,76 @@ export default function AjustesPage() {
   const { theme, setTheme, accent, setAccent, resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
   const swatchOf = (a) => (isDark && a.darkSwatch) || a.swatch;
-  const accentColor = swatchOf(ACCENTS.find((a) => a.id === accent) ?? ACCENTS[0]);
 
-  // Preferencias de correo: se guardan en el perfil (Supabase). El estado local se actualiza al
-  // instante y se revierte si el guardado falla.
+  // Nada de Ajustes se guarda solo: todo se edita en un BORRADOR y se aplica/guarda con "Guardar cambios".
   const { account, updateAccount } = useAccount();
+  const savedPref = { theme, accent, idioma, formatoFecha, zonaHoraria };
+  const savedNotifs = { email: account.notifEmail, riesgo: account.notifRisk, resumenSemanal: account.notifWeekly };
+  const [pref, setPref] = useState(savedPref);
+  const [notifs, setNotifs] = useState(savedNotifs);
   const [soundOn, setSoundOn] = useState(isToastSoundEnabled);
-  const [notifs, setNotifs] = useState({
-    email: account.notifEmail,
-    riesgo: account.notifRisk,
-    resumenSemanal: account.notifWeekly,
-  });
+  const [saving, setSaving] = useState(false);
+  const accentColor = swatchOf(ACCENTS.find((a) => a.id === pref.accent) ?? ACCENTS[0]);
+
+  // Si la cuenta termina de cargar (o cambia en otro lado) el borrador de avisos se alinea con lo guardado.
   useEffect(() => {
     setNotifs({ email: account.notifEmail, riesgo: account.notifRisk, resumenSemanal: account.notifWeekly });
   }, [account.notifEmail, account.notifRisk, account.notifWeekly]);
 
-  const NOTIF_FIELD = { email: "notifEmail", riesgo: "notifRisk", resumenSemanal: "notifWeekly" };
-  async function saveNotif(key, value) {
-    const previous = notifs[key];
-    setNotifs((n) => ({ ...n, [key]: value }));
-    const { error } = await updateAccount({ [NOTIF_FIELD[key]]: value });
-    if (error) {
-      setNotifs((n) => ({ ...n, [key]: previous }));
-      toast.error(t("No se pudo guardar la preferencia. Intenta de nuevo."));
-    } else {
-      toast.success(value ? t("Aviso activado.") : t("Aviso desactivado."));
+  const dirty =
+    Object.keys(savedPref).some((k) => pref[k] !== savedPref[k]) ||
+    Object.keys(savedNotifs).some((k) => notifs[k] !== savedNotifs[k]) ||
+    soundOn !== isToastSoundEnabled();
+
+  // Aviso del navegador si hay cambios sin guardar.
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const warn = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
+  async function handleSave() {
+    if (!dirty || saving) return;
+    setSaving(true);
+    // Primero lo que vive en el servidor (perfil): si falla, no se aplica nada y el borrador sigue ahí.
+    const patch = {};
+    if (notifs.email !== account.notifEmail) patch.notifEmail = notifs.email;
+    if (notifs.riesgo !== account.notifRisk) patch.notifRisk = notifs.riesgo;
+    if (notifs.resumenSemanal !== account.notifWeekly) patch.notifWeekly = notifs.resumenSemanal;
+    if (Object.keys(patch).length > 0) {
+      const { error } = await updateAccount(patch);
+      if (error) {
+        setSaving(false);
+        toast.error(t("No se pudieron guardar los ajustes. Intenta de nuevo."));
+        return;
+      }
     }
+    setToastSoundEnabled(soundOn);
+    if (pref.theme !== theme) setTheme(pref.theme);
+    if (pref.accent !== accent) setAccent(pref.accent);
+    if (pref.formatoFecha !== formatoFecha) setFormatoFecha(pref.formatoFecha);
+    if (pref.zonaHoraria !== zonaHoraria) setZonaHoraria(pref.zonaHoraria);
+    if (pref.idioma !== idioma) setIdioma(pref.idioma); // cambia el idioma de toda la app (vuelve a montar la pantalla)
+    setSaving(false);
+    toast.success(t("Ajustes guardados."));
   }
 
+  function handleDiscard() {
+    setPref(savedPref);
+    setNotifs(savedNotifs);
+    setSoundOn(isToastSoundEnabled());
+  }
+
+  // "Restablecer" solo carga los valores por defecto en el borrador; se aplican al pulsar "Guardar cambios".
   function handleReset() {
-    setTheme("system");
-    setAccent("brand");
+    setPref({ theme: "system", accent: "brand", ...DEFAULT_REGION });
     setNotifs({ email: true, riesgo: true, resumenSemanal: false });
-    updateAccount({ notifEmail: true, notifRisk: true, notifWeekly: false }).then(({ error }) => {
-      if (error) toast.error(t("No se pudieron restablecer las notificaciones."));
-    });
-    resetRegion();
-    toast.info(t("Ajustes restablecidos."));
+    setSoundOn(true);
+    toast.info(t("Valores por defecto cargados. Pulsa Guardar cambios para aplicarlos."));
   }
 
   return (
@@ -92,6 +125,25 @@ export default function AjustesPage() {
         hideSearch
         actions={
           <div className="flex items-center gap-2">
+            {dirty && (
+              <button
+                type="button"
+                onClick={handleDiscard}
+                disabled={saving}
+                className="rounded-full border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                {t("Descartar")}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!dirty || saving}
+              className="flex items-center gap-1.5 rounded-full bg-accent-500 px-3.5 py-2 text-xs font-medium text-accent-contrast hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} strokeWidth={1.75} />}
+              {t("Guardar cambios")}
+            </button>
             <button
               type="button"
               onClick={handleReset}
@@ -117,24 +169,24 @@ export default function AjustesPage() {
               label={t("Claro")}
               description={t("Ideal para exteriores")}
               variant="light"
-              active={theme === "light"}
-              onSelect={() => setTheme("light")}
+              active={pref.theme === "light"}
+              onSelect={() => setPref((p) => ({ ...p, theme: "light" }))}
               accentColor={accentColor}
             />
             <ThemePreviewCard
               label={t("Oscuro")}
               description={t("Menos fatiga visual")}
               variant="dark"
-              active={theme === "dark"}
-              onSelect={() => setTheme("dark")}
+              active={pref.theme === "dark"}
+              onSelect={() => setPref((p) => ({ ...p, theme: "dark" }))}
               accentColor={accentColor}
             />
             <ThemePreviewCard
               label={t("Sistema")}
               description={t("Sigue al dispositivo")}
               variant="split"
-              active={theme === "system"}
-              onSelect={() => setTheme("system")}
+              active={pref.theme === "system"}
+              onSelect={() => setPref((p) => ({ ...p, theme: "system" }))}
               accentColor={accentColor}
             />
           </div>
@@ -155,10 +207,10 @@ export default function AjustesPage() {
                   key={a.id}
                   type="button"
                   aria-label={t((isDark && a.darkLabel) || a.label)}
-                  onClick={() => setAccent(a.id)}
+                  onClick={() => setPref((p) => ({ ...p, accent: a.id }))}
                   className="flex h-8 w-8 items-center justify-center rounded-full border-2 transition-transform hover:scale-105"
                   style={{
-                    borderColor: accent === a.id ? swatchOf(a) : "transparent",
+                    borderColor: pref.accent === a.id ? swatchOf(a) : "transparent",
                   }}
                 >
                   <span
@@ -181,31 +233,27 @@ export default function AjustesPage() {
             label={t("Alertas por correo")}
             description={t("Interruptor general: si lo apagas no recibirás ningún correo de CEBIX")}
             checked={notifs.email}
-            onChange={(v) => saveNotif("email", v)}
+            onChange={(v) => setNotifs((n) => ({ ...n, email: v }))}
           />
           <Toggle
             label={t("Alertas de riesgo")}
             description={t("Cuando una parcela cambia a semáforo rojo o amarillo")}
             checked={notifs.riesgo}
             disabled={!notifs.email}
-            onChange={(v) => saveNotif("riesgo", v)}
+            onChange={(v) => setNotifs((n) => ({ ...n, riesgo: v }))}
           />
           <Toggle
             label={t("Resumen semanal")}
             description={t("Reporte cada lunes con el estado general del portafolio")}
             checked={notifs.resumenSemanal}
             disabled={!notifs.email}
-            onChange={(v) => saveNotif("resumenSemanal", v)}
+            onChange={(v) => setNotifs((n) => ({ ...n, resumenSemanal: v }))}
           />
           <Toggle
             label={t("Sonido de notificaciones")}
             description={t("Reproduce un sonido cuando aparece un aviso en la esquina inferior derecha (solo en este dispositivo)")}
             checked={soundOn}
-            onChange={(v) => {
-              setSoundOn(v);
-              setToastSoundEnabled(v);
-              if (v) toast.info(t("Sonido de notificaciones activado."));
-            }}
+            onChange={(v) => setSoundOn(v)}
           />
         </SettingsSection>
 
@@ -221,8 +269,8 @@ export default function AjustesPage() {
                 {t("Idioma")}
               </span>
               <select
-                value={idioma}
-                onChange={(e) => setIdioma(e.target.value)}
+                value={pref.idioma}
+                onChange={(e) => setPref((p) => ({ ...p, idioma: e.target.value }))}
                 className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-accent-500 dark:focus:border-accent-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
               >
                 <option value="es-MX">Español (México)</option>
@@ -234,8 +282,8 @@ export default function AjustesPage() {
                 {t("Formato de fecha")}
               </span>
               <select
-                value={formatoFecha}
-                onChange={(e) => setFormatoFecha(e.target.value)}
+                value={pref.formatoFecha}
+                onChange={(e) => setPref((p) => ({ ...p, formatoFecha: e.target.value }))}
                 className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-accent-500 dark:focus:border-accent-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
               >
                 <option value="dd/mm/aaaa">DD/MM/AAAA</option>
@@ -247,8 +295,8 @@ export default function AjustesPage() {
                 {t("Zona horaria")}
               </span>
               <select
-                value={zonaHoraria}
-                onChange={(e) => setZonaHoraria(e.target.value)}
+                value={pref.zonaHoraria}
+                onChange={(e) => setPref((p) => ({ ...p, zonaHoraria: e.target.value }))}
                 className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-accent-500 dark:focus:border-accent-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
               >
                 {TIME_ZONES.map((z) => (

@@ -78,10 +78,10 @@ export default function RunModelPanel() {
         sleep(MIN_THINKING_MS),
       ]).then(([d, text]) => [d, text]);
       setResults(data.predicciones);
-      // Los resultados reales alimentan Resumen, Parcelas, Mapa, Predicciones y SHAP.
+      // Los resultados reales alimentan Resumen, Parcelas, Mapa, Predicciones y SHAP como borrador: no se guardan hasta pulsar el botón.
       loadAnalysis(data.predicciones, csvText, f.name);
       toast.success(
-        `Modelo ejecutado: ${data.predicciones.length} parcela${data.predicciones.length === 1 ? "" : "s"} procesada${data.predicciones.length === 1 ? "" : "s"}.`
+        `Modelo ejecutado: ${data.predicciones.length} parcela${data.predicciones.length === 1 ? "" : "s"} procesada${data.predicciones.length === 1 ? "" : "s"}. Pulsa "Guardar corrida" para conservarla.`
       );
     } catch (err) {
       toast.error(friendlyError(err));

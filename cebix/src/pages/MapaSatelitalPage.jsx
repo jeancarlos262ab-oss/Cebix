@@ -24,10 +24,10 @@ function MapaSatelitalPageContent() {
   const [region, setRegion] = useState("all");
   const [selectedId, setSelectedId] = useState(null);
 
-  // En escritorio el sidebar flota sobre el mapa (12px de margen + 264px, o 80px contraído).
-  // La barra de capas va a 12px de él (42px de ancho) y el resto del contenido a 12px de la barra.
-  const pillsLeft = collapsed ? "lg:left-[340px]" : "lg:left-[524px]"; // tras el título (más chico)
-  const contentLeft = collapsed ? "lg:left-[108px]" : "lg:left-[292px]";
+  // En escritorio el sidebar flota sobre el mapa (12px de margen + 232px + 12px de margen, o 80px contraído).
+  // El contenido queda a 32px del sidebar, igual que el padding lateral (lg:px-8) de las demás pantallas.
+  const pillsLeft = collapsed ? "lg:left-[368px]" : "lg:left-[520px]"; // tras el título (más chico)
+  const contentLeft = collapsed ? "lg:left-[136px]" : "lg:left-[288px]";
 
   const regionOptions = useMemo(() => {
     const counts = new Map();
@@ -128,11 +128,11 @@ function MapaSatelitalPageContent() {
           </div>
 
           {/* Título sobre el mapa */}
-          <div className={`pointer-events-none absolute left-[66px] top-2 z-1000 lg:top-4 ${contentLeft}`}>
-            <h1 className="font-display text-lg font-bold leading-none tracking-tight text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.7)] lg:text-2xl">
+          <div className={`pointer-events-none absolute left-[66px] top-2 z-1000 lg:top-6 ${contentLeft}`}>
+            <h1 className="font-garet text-xl font-extrabold tracking-[0.02em] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.7)]">
               Mapa satelital
             </h1>
-            <p className="mt-1.5 text-[11px] text-white/60 [text-shadow:0_1px_8px_rgba(0,0,0,0.8)] lg:text-xs">
+            <p className="mt-0.5 text-sm text-white/60 [text-shadow:0_1px_8px_rgba(0,0,0,0.8)]">
               Sentinel-2 · {visible.length} parcela{visible.length === 1 ? "" : "s"}
               {region !== "all" ? ` en ${region}` : ""}
             </p>
@@ -142,14 +142,14 @@ function MapaSatelitalPageContent() {
         {/* En celular estos bloques van uno tras otro bajo el mapa, sobre fondo negro. En
             escritorio (lg:contents) cada uno flota sobre el mapa con su propia posición. */}
         <div className="flex flex-col gap-3 bg-black px-4 py-4 lg:contents">
-          <div className={`pointer-events-none lg:absolute lg:top-4 lg:z-1000 lg:flex lg:justify-center lg:right-[364px] ${pillsLeft}`}>
+          <div className={`pointer-events-none lg:absolute lg:top-6 lg:z-1000 lg:flex lg:justify-center lg:right-[364px] ${pillsLeft}`}>
             <div className="pointer-events-auto max-w-full">
               <RegionPills options={regionOptions.pills} value={region} onChange={setRegion} />
             </div>
           </div>
 
           {/* Columna derecha: leyenda, detalle y panel de resumen. Si no caben, se desplaza y las flechas van mostrando el resto. */}
-          <ScrollColumn className="lg:absolute lg:bottom-[176px] lg:right-0 lg:top-0 lg:z-1000 lg:w-[352px]">
+          <ScrollColumn className="lg:absolute lg:bottom-[290px] lg:right-5 lg:top-3 lg:z-1000 lg:w-[352px]">
             <RiskLegend className="shrink-0" />
 
             {selected && (
@@ -177,7 +177,7 @@ function MapaSatelitalPageContent() {
             parcels={ranked}
             selectedId={selected?.id ?? null}
             onSelect={handleSelect}
-            className={`min-w-0 lg:absolute lg:bottom-4 lg:right-[96px] lg:z-1000 ${contentLeft}`}
+            className={`min-w-0 lg:absolute lg:bottom-8 lg:right-[96px] lg:z-1000 ${contentLeft}`}
           />
         </div>
       </div>
