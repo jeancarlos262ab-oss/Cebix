@@ -435,7 +435,9 @@ def extract_features_gee(geometry_geojson: dict, year: int = 2025) -> dict:
         if n < 3:
             warnings.append(f"Solo {n} escena(s) de Sentinel-2 en la ventana {window}: la mediana es poco representativa.")
     n_obs = ordered.get("bas_n_obs_ciclo")
-    if n_obs is not None and not (25 <= n_obs <= 90):
-        warnings.append(f"El conteo de escenas ({n_obs}) está lejos de las ≈54 del dataset oficial; revisa la ubicación.")
+    from app.services.features.common import n_obs_warning  # noqa: PLC0415 — este módulo es autónomo
+
+    if (w := n_obs_warning(n_obs)) is not None:
+        warnings.append(w)
 
     return {"features": ordered, "advertencias": warnings, "area_ha": round(area_ha, 3)}

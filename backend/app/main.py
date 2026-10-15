@@ -19,6 +19,7 @@ Endpoints:
     POST /predict, /predict-csv           predicción sobre features ya calculadas
     GET  /satellite-status                proveedor satelital activo
     POST /predict-from-geometry           polígono GeoJSON + año -> features en vivo + predicción
+    POST /overpass                        proxy de Overpass/OSM (verificación de zonas urbanas, sin CORS)
     POST /parse-geometry                  SHP (.zip o .shp+.dbf+.prj) / GeoJSON / KML / KMZ -> polígonos lng/lat
 
 Correr localmente (desde backend/):
@@ -28,7 +29,7 @@ Correr localmente (desde backend/):
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import geo, health, model, predict, satellite
+from app.api import geo, health, model, overpass, predict, satellite
 from app.config import ALLOWED_ORIGIN_REGEX, ALLOWED_ORIGINS
 
 app = FastAPI(
@@ -45,5 +46,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for r in (health.router, model.router, predict.router, satellite.router, geo.router):
+for r in (health.router, model.router, predict.router, satellite.router, geo.router, overpass.router):
     app.include_router(r)

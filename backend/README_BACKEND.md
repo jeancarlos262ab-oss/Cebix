@@ -241,3 +241,13 @@ corre `python scripts/diagnose_chirps.py 2024` en el servidor para ver cual resp
 
 Variables de entorno: `CHIRPS_URL_TEMPLATES` (varias plantillas separadas por coma; deben ser la ruta de UN ARCHIVO con `{year}`, `{month:02d}` y `{day:02d}`, no una carpeta. Se prueban antes que las de por defecto)
 o `CHIRPS_URL_TEMPLATE` (una sola, se prueba primero). No hace falta tocar codigo para cambiar la ruta.
+
+
+## Correcciones recientes (CHIRPS 403, escenas, Overpass)
+
+- **Lluvia sin red (recomendado para 2025):** `python scripts/build_chirps_grid.py 2025` (desde tu PC, donde el CHC sí responde) crea
+  `data/chirps/chirps_abr_may_2025.tif`. Haz commit y redespliega: el servicio lo lee primero y ya no depende del 403 del CHC.
+  Orden de la lluvia: rejilla local → caché de los 61 días → CHC (v2.0, v3.0) → Earth Engine (si hay credenciales) → mediana.
+- **Aviso de escenas:** ahora usa el rango real de entrenamiento (≈28–80 fechas, media 54) y ya no dice "revisa la ubicación".
+- **Overpass:** `POST /overpass` reenvía la consulta a varios espejos; el frontend lo usa primero (sin CORS).
+- Variables nuevas: `CHIRPS_LOCAL_DIR`, `CHIRPS_USER_AGENT`, `OVERPASS_ENDPOINTS`, `OVERPASS_TIMEOUT_S`.

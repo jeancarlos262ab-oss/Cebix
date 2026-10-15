@@ -182,6 +182,33 @@ def area_warning(ha: float | None) -> str | None:
     )
 
 
+# Conteo de fechas con escena (bas_n_obs_ciclo) en las 138 parcelas de entrenamiento (media y desviación del scaler del modelo).
+N_OBS_TRAIN_MEAN = 54.17
+N_OBS_TRAIN_STD = 8.65
+
+
+def n_obs_warning(n_obs: float | None) -> str | None:
+    """Aviso solo si el conteo sale del rango que vio el modelo (media ± 3 desviaciones, ≈ 28–80 fechas).
+    Un conteo alto no indica una ubicación equivocada: es típico en el traslape de dos órbitas de Sentinel-2
+    o dos trayectorias de Landsat, donde la misma parcela se observa más veces."""
+    if n_obs is None:
+        return None
+    lo = round(N_OBS_TRAIN_MEAN - 3 * N_OBS_TRAIN_STD)
+    hi = round(N_OBS_TRAIN_MEAN + 3 * N_OBS_TRAIN_STD)
+    if lo <= n_obs <= hi:
+        return None
+    side = "más alto" if n_obs > hi else "más bajo"
+    cause = (
+        "Suele pasar cuando la parcela cae en el traslape de dos órbitas de satélite (se observa más veces)."
+        if n_obs > hi
+        else "Suele pasar por mucha nubosidad o porque el año aún no termina."
+    )
+    return (
+        f"El conteo de escenas ({int(n_obs)}) es {side} que el de las parcelas de entrenamiento (≈{lo}–{hi}, típico ≈54). "
+        f"{cause} No es un error de ubicación; para el modelo equivale al extremo del rango que vio en el entrenamiento."
+    )
+
+
 def validate_year(year: int) -> int:
     last = date.today().year
     if not isinstance(year, int) or isinstance(year, bool) or year < FIRST_YEAR or year > last:

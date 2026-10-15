@@ -11,6 +11,7 @@
  * Los dos servidores públicos se consultan A LA VEZ y gana el primero que responde.
  * Si ninguno responde se lanza un Error: quien llama decide qué hacer (la pantalla avisa pero no bloquea).
  */
+import { API_URL } from "../services/modelApi";
 import { areaHa, sampleInside } from "./polygon";
 import {
   URBAN_BUILDINGS_PER_HA,
@@ -21,14 +22,11 @@ import {
   URBAN_MIN_STREETS,
 } from "../data/satelite";
 
-// Servidores públicos de Overpass (se consultan a la vez; gana el primero que responde). Son gratuitos y a veces se
-// saturan o devuelven 429/504, por eso hay varios y una segunda ronda de intentos.
-const ENDPOINTS = [
-  "https://overpass-api.de/api/interpreter",
-  "https://overpass.kumi.systems/api/interpreter",
-  "https://overpass.private.coffee/api/interpreter",
-  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
-];
+// Primero el proxy del backend (POST /overpass): no tiene CORS y prueba varios espejos del lado del servidor. Los
+// servidores públicos se dejan como respaldo en paralelo (gana el primero que responde). overpass.kumi.systems y
+// overpass.private.coffee ya no se llaman desde el navegador: no mandan cabeceras CORS ("blocked by CORS policy").
+const PROXY = `${API_URL}/overpass`;
+const ENDPOINTS = [PROXY, "https://overpass-api.de/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
 const TIMEOUT_MS = 20000;
 const ROUNDS = 2; // rondas completas sobre todos los servidores
 const RETRY_DELAY_MS = 1500;
@@ -103,10 +101,11 @@ async function overpass(query, signal) {
   const attempt = async (url, i) => {
     const timer = setTimeout(() => controllers[i].abort(), TIMEOUT_MS);
     try {
+      const viaProxy = url === PROXY;
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `data=${encodeURIComponent(query)}`,
+        headers: { "Content-Type": viaProxy ? "application/json" : "application/x-www-form-urlencoded" },
+        body: viaProxy ? JSON.stringify({ query }) : `data=${encodeURIComponent(query)}`,
         signal: controllers[i].signal,
       });
       if (!res.ok) throw new Error(`Overpass respondió ${res.status}.`);

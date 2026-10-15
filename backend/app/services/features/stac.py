@@ -56,6 +56,7 @@ from app.services.features.common import (
     SatelliteError,
     SatelliteNoData,
     area_warning,
+    n_obs_warning,
     validate_geometry,
     validate_year,
 )
@@ -101,6 +102,10 @@ CHIRPS_WORKERS = max(1, int(os.environ.get("CHIRPS_WORKERS", "3")))
 CHIRPS_TRIES = max(1, int(os.environ.get("CHIRPS_TRIES", "4")))
 CHIRPS_MAX_MISSING = float(os.environ.get("CHIRPS_MAX_MISSING", "0.10"))  # hasta 10 % de días sin dato: se escala
 CHIRPS_CACHE_DIR = Path(os.environ.get("CHIRPS_CACHE_DIR", "/tmp/cebix_chirps_cache"))
+CHIRPS_USER_AGENT = os.environ.get("CHIRPS_USER_AGENT", "cebix-backend/1.0")
+# Rejilla local de lluvia acumulada abr–may (GeoTIFF de 1 banda, mm). Se genera una vez con scripts/build_chirps_grid.py
+# desde una máquina a la que el CHC sí responda; así la lluvia de un ciclo ya cerrado (2025) no depende de la red.
+CHIRPS_LOCAL_DIR = Path(os.environ.get("CHIRPS_LOCAL_DIR", str(Path(__file__).resolve().parents[3] / "data" / "chirps")))
 READ_TRIES = 3
 SUPERSAMPLE = 20  # submuestreo para ponderar CHIRPS por fracción de píxel cubierta
 
@@ -310,7 +315,7 @@ def _chirps_day(url: str, geom: dict) -> float | None:
         GDAL_HTTP_MAX_RETRY="4",
         GDAL_HTTP_RETRY_DELAY="2",
         GDAL_HTTP_RETRY_CODES="ALL",  # incluye 403/429/5xx (límite de peticiones del servidor)
-        GDAL_HTTP_USERAGENT="cebix-backend/1.0",
+        GDAL_HTTP_USERAGENT=CHIRPS_USER_AGENT,
     ):
         with rasterio.open(url) as src:
             g = transform_geom("EPSG:4326", src.crs, geom)
@@ -342,8 +347,22 @@ def _chirps_day(url: str, geom: dict) -> float | None:
     return float((data * weights).sum() / weights.sum())
 
 
+def _chirps_local_total(geom: dict, year: int) -> float | None:
+    """Lluvia abr–may desde la rejilla local (si existe y cubre la parcela). Mismo ponderado por fracción de píxel."""
+    path = CHIRPS_LOCAL_DIR / f"chirps_abr_may_{year}.tif"
+    if not path.is_file():
+        return None
+    try:
+        value = _chirps_day(str(path), geom)  # la rejilla ya es la suma de los 61 días: se lee como un "día" más
+    except Exception as e:  # noqa: BLE001 — rejilla dañada o parcela fuera de ella: se sigue con la red
+        logging.getLogger(__name__).warning("Rejilla CHIRPS local no utilizable (%s): %s", path.name, _short(e))
+        return None
+    return None if value is None else round(value, 3)
+
+
 def _pick_chirps_template(geom: dict, year: int, errors: list[str]) -> str | None:
-    """Prueba cada plantilla con un día de la ventana y devuelve la primera que responde."""
+    """Prueba cada plantilla con un día de la ventana y devuelve la primera que responde.
+    Un 403 suele ser temporal (límite de peticiones del CHC): se reintenta con espera antes de pasar a la siguiente."""
     global _chirps_ok_template
     candidates = _chirps_templates()
     if _chirps_ok_template in candidates:
@@ -351,7 +370,15 @@ def _pick_chirps_template(geom: dict, year: int, errors: list[str]) -> str | Non
     for tpl in candidates:
         url = tpl.format(year=year, month=4, day=15)
         try:
-            value = _retry(_chirps_day, url, geom)
+            value = None
+            for attempt in range(2):
+                try:
+                    value = _chirps_day(url, geom)
+                    break
+                except Exception:  # noqa: BLE001
+                    if attempt == 1:
+                        raise
+                    time.sleep(3)
         except Exception as e:  # noqa: BLE001
             errors.append(f"{type(e).__name__}: {_short(e)} [{url}]")
             continue
@@ -389,6 +416,26 @@ def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
     days = [start + timedelta(d) for d in range((date(year, 6, 1) - start).days)]  # 1 abr – 31 may
     log = logging.getLogger(__name__)
 
+    # 0) Rejilla local (sin red): es el mismo CHIRPS ya acumulado.
+    local = _chirps_local_total(geom, year)
+    if local is not None:
+        return local
+
+    # 1) Caché en disco: si los 61 días ya se leyeron antes para esta parcela, no hace falta tocar el servidor del CHC.
+    geom_key = hashlib.sha1(json.dumps(geom, sort_keys=True).encode()).hexdigest()[:16]
+    for cached_tpl in _chirps_templates():
+        tkey = hashlib.sha1(cached_tpl.encode()).hexdigest()[:8]
+        try:
+            vals = [json.loads((CHIRPS_CACHE_DIR / f"{geom_key}_{tkey}" / f"{d.isoformat()}.json").read_text())["mm"] for d in days]
+        except Exception:  # noqa: BLE001 — falta algún día o no hay caché
+            continue
+        if "v3.0" in cached_tpl:
+            warnings.append(
+                "La lluvia se calculó con CHIRPS v3.0 (v2.0 ya no respondió). El modelo se entrenó con v2.0, "
+                "así que el valor puede diferir un poco del dataset oficial."
+            )
+        return round(sum(vals), 3)
+
     probe_errors: list[str] = []
     tpl = _pick_chirps_template(geom, year, probe_errors)
     if tpl is None:
@@ -399,11 +446,10 @@ def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
         warnings.append(
             "CHIRPS: no se pudo leer la lluvia de abril-mayo ("
             + (probe_errors[0] if probe_errors else "sin detalle")
-            + "); el modelo usó la mediana de entrenamiento para esta variable."
+            + "); el modelo usó la mediana de entrenamiento para la lluvia."
         )
         return None
 
-    geom_key = hashlib.sha1(json.dumps(geom, sort_keys=True).encode()).hexdigest()[:16]
     tpl_key = hashlib.sha1(tpl.encode()).hexdigest()[:8]
 
     def cache_file(d: date) -> Path:
@@ -624,12 +670,15 @@ def extract_features_stac(geometry_geojson: dict, year: int = 2025) -> dict:
             f"Solo se obtuvieron {len(FEATURE_KEYS) - len(missing)} de {len(FEATURE_KEYS)} variables en {year}. "
             "Suele pasar si las escenas están muy nubladas o el año aún no tiene datos en esa ventana."
         )
+    precip_explained = any(w.startswith("CHIRPS:") for w in warnings)  # ya hay un aviso específico de la lluvia
     for k in missing:
+        if k == "precip_acum_emergencia_macollamiento_mm" and precip_explained:
+            continue
         warnings.append(f"Sin datos válidos para '{k}': el modelo usó la mediana de entrenamiento.")
     for window, n in scene_counts.items():
         if n < 3:
             warnings.append(f"Solo {n} escena(s) de Sentinel-2 en la ventana {window}: la mediana es poco representativa.")
-    if not (25 <= n_obs <= 90):
-        warnings.append(f"El conteo de escenas ({n_obs}) está lejos de las ≈54 del dataset oficial; revisa la ubicación.")
+    if (w := n_obs_warning(n_obs)) is not None:
+        warnings.append(w)
 
     return {"features": ordered, "advertencias": warnings, "area_ha": round(area_ha, 3)}
