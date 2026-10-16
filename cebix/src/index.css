@@ -415,18 +415,36 @@
   text-decoration: underline;
 }
 
-.results-skeleton .react-loading-skeleton {
+.results-skeleton .react-loading-skeleton,
+.app-skeleton .react-loading-skeleton {
   --base-color: #f2f4f7;
   --highlight-color: #ffffff;
 }
-.results-skeleton .strong .react-loading-skeleton {
+.results-skeleton .strong .react-loading-skeleton,
+.app-skeleton .strong .react-loading-skeleton {
   --base-color: #e4e7ec;
 }
-html.dark .results-skeleton .react-loading-skeleton {
+/* Un poco más marcado que el de la tabla de resultados: se ve sobre toda la pantalla, no sobre un recuadro. */
+.app-skeleton .react-loading-skeleton {
+  --base-color: #eceff3;
+}
+html.dark .results-skeleton .react-loading-skeleton,
+html.dark .app-skeleton .react-loading-skeleton {
   --base-color: #1d2939;
   --highlight-color: #344054;
 }
-html.dark .results-skeleton .strong .react-loading-skeleton {
+html.dark .results-skeleton .strong .react-loading-skeleton,
+html.dark .app-skeleton .strong .react-loading-skeleton {
+  --base-color: #344054;
+  --highlight-color: #475467;
+}
+
+/* Mapa satelital: el lienzo es negro también en modo claro. */
+.dark-skeleton .react-loading-skeleton {
+  --base-color: #1d2939;
+  --highlight-color: #344054;
+}
+.dark-skeleton .strong .react-loading-skeleton {
   --base-color: #344054;
   --highlight-color: #475467;
 }

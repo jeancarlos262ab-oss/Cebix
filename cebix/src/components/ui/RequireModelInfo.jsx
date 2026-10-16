@@ -1,20 +1,18 @@
-import { Loader2, RefreshCw, ServerCrash } from "lucide-react";
+import { RefreshCw, ServerCrash } from "lucide-react";
+import { PageBodySkeleton, RouteSkeleton } from "./PageSkeleton";
 import { useModelInfo } from "../../context/ModelInfoContext";
 
 /**
  * Muestra su contenido cuando el backend ya entregó la información del modelo
  * (GET /model-info); mientras tanto, un indicador de carga, y si falla, el error con reintento.
  */
-export default function RequireModelInfo({ children }) {
+export default function RequireModelInfo({ children, skeleton = "modeloTab", withBar = false }) {
   const { info, loading, error, reload } = useModelInfo();
   if (info) return children;
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center gap-3 py-24 text-center text-sm text-gray-500 dark:text-gray-400">
-        <Loader2 size={22} className="animate-spin text-accent-500" />
-        Cargando información del modelo…
-      </div>
+      withBar ? <RouteSkeleton page={skeleton} /> : <PageBodySkeleton page={skeleton} />
     );
   }
 

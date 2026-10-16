@@ -14,6 +14,9 @@ MODEL_PATH = os.environ.get("MODEL_PATH", str(BASE_DIR / "models" / "model_artif
 META_PATH = os.environ.get("MODEL_META_PATH", str(BASE_DIR / "models" / "model_meta.json"))
 EXAMPLE_CSV_PATH = os.environ.get("EXAMPLE_CSV_PATH", str(BASE_DIR / "data" / "ejemplo_features_predict.csv"))
 
+# Tabla de referencia de las 197 parcelas oficiales (Estado, Municipio, área, lat/lng, CONJUNTO y lluvia abr–may 2025).
+PARCELAS_OFICIALES_PATH = os.environ.get("PARCELAS_OFICIALES_PATH", str(BASE_DIR / "data" / "parcelas_oficiales.csv"))
+
 # CORS: en Render se define ALLOWED_ORIGINS con el dominio del frontend en Vercel
 # (varios separados por coma, sin "/" al final), p. ej.:
 #   ALLOWED_ORIGINS=https://cebix.vercel.app,https://cebix.com
@@ -26,4 +29,4 @@ ALLOWED_ORIGINS = [
 ALLOWED_ORIGIN_REGEX = os.environ.get("ALLOWED_ORIGIN_REGEX") or None
 
 # Campos que vienen en el CSV/JSON y se devuelven tal cual junto a la predicción.
-PASSTHROUGH_FIELDS = ["Municipio", "lat", "lng", "area_ha"]
+PASSTHROUGH_FIELDS = ["Municipio", "lat", "lng", "area_ha", "CONJUNTO"]

@@ -247,7 +247,7 @@ function ParcelaDetallePageContent() {
 
 export default function ParcelaDetallePage() {
   return (
-    <RequireAnalysis title="Detalle de parcela" >
+    <RequireAnalysis skeleton="detalle" title="Detalle de parcela" >
       <ParcelaDetallePageContent />
     </RequireAnalysis>
   );

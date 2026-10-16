@@ -559,7 +559,10 @@ function ValidacionSHAPPageContent() {
                       <div className="relative max-w-md">
                         <select
                           value={selected.id}
-                          onChange={(e) => setSelectedId(Number(e.target.value))}
+                          // Los ids de las parcelas agregadas son UUID (texto): no se convierten a número.
+                          onChange={(e) =>
+                            setSelectedId(selectable.find((p) => String(p.id) === e.target.value)?.id ?? null)
+                          }
                           aria-label="Parcela a explicar"
                           className="w-full appearance-none rounded-full border border-gray-200 bg-white py-2.5 pl-4 pr-10 text-sm font-medium text-gray-800 shadow-xs focus:border-accent-500 focus:outline-hidden focus:ring-1 focus:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-200"
                         >
@@ -635,8 +638,8 @@ function ValidacionSHAPPageContent() {
 
 export default function ValidacionSHAPPage() {
   return (
-    <RequireAnalysis title="Validación SHAP" subtitle="Qué variables explican cada predicción." >
-      <RequireModelInfo>
+    <RequireAnalysis skeleton="shap" title="Validación SHAP" subtitle="Qué variables explican cada predicción." >
+      <RequireModelInfo skeleton="shap" withBar>
         <ValidacionSHAPPageContent />
       </RequireModelInfo>
     </RequireAnalysis>

@@ -4,6 +4,7 @@ import { ArrowLeft, Check, ChevronRight, Minus, Pencil, Search, Trash2, X } from
 import TopBar from "../components/layout/TopBar";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import Pagination from "../components/ui/Pagination";
+import { PageBodySkeleton } from "../components/ui/PageSkeleton";
 import ParcelFormModal from "../components/dashboard/ParcelFormModal";
 import usePagination from "../hooks/usePagination";
 import useParcelActions from "../hooks/useParcelActions";
@@ -232,7 +233,7 @@ function ParcelasHistorialContent() {
       return (
         <>
           <TopBar title="Todas las parcelas" hideSearch />
-          <p className="px-4 py-20 text-center text-sm text-gray-500 dark:text-gray-400">Cargando tus datos…</p>
+          <PageBodySkeleton page="historial" />
         </>
       );
     }

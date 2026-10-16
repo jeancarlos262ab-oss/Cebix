@@ -17,6 +17,7 @@ import { useParcels } from "./context/ParcelsContext";
 import { getPageRegistry } from "./utils/pageRegistry";
 import { prefetchMapEngine } from "./utils/mapLoaders";
 import { PageActiveContext } from "./context/PageActiveContext";
+import { FullScreenSkeleton, RouteSkeleton, pageKeyFromPath } from "./components/ui/PageSkeleton";
 
 // Cada página se separa en su propio chunk: el navegador solo descarga (y
 // cachea) el código de la pantalla que se visita, en vez de todo el bundle
@@ -53,12 +54,17 @@ const loadSignup = () => import("./pages/SignupPage");
 const LoginPage = lazy(loadLogin);
 const SignupPage = lazy(loadSignup);
 
-function RouteFallback() {
-  return (
-    <div className="flex h-full w-full items-center justify-center py-24">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-accent-500 dark:border-gray-700" />
-    </div>
-  );
+// Esqueleto con la forma de la pantalla que se está abriendo (según la ruta), no un círculo genérico.
+function RouteFallback({ pathname }) {
+  const page = pageKeyFromPath(pathname ?? (typeof window !== "undefined" ? window.location.pathname : ""));
+  return <RouteSkeleton page={page ?? "dashboard"} />;
+}
+
+// Fallback de la raíz: aún no hay layout. En login/registro no se dibuja nada de la app (tienen su propio marco).
+function RootFallback() {
+  const path = typeof window !== "undefined" ? window.location.pathname : "";
+  if (/^\/(login|signup)\/?$/.test(path)) return <div className="h-screen w-full bg-white dark:bg-black" />;
+  return <FullScreenSkeleton page={pageKeyFromPath(path) ?? "dashboard"} />;
 }
 
 // Con la sesión iniciada, descarga el resto de pantallas cuando el navegador
@@ -207,7 +213,7 @@ const PageSlot = memo(function PageSlot({ active, entry }) {
     <div style={active ? { display: "contents" } : HIDDEN_STYLE} aria-hidden={active ? undefined : true}>
       {/* Suspense por pantalla: al cargar por primera vez una página, las
           demás (ya montadas) no se tocan. */}
-      <Suspense fallback={<RouteFallback />}>
+      <Suspense fallback={<RouteFallback pathname={entry.location.pathname} />}>
         <PageActiveContext.Provider value={active}>
           <LocationContext.Provider value={frozen.current}>{entry.outlet}</LocationContext.Provider>
         </PageActiveContext.Provider>
@@ -223,7 +229,8 @@ function AuthenticatedLayout() {
   // parcelas: sin ellas se muestra "Aún no hay resultados del modelo", que se centra
   // en el área de contenido como el resto de pantallas (sidebar normal, no flotante).
   const { parcels } = useParcels();
-  const onMap = useLocation().pathname.replace(/\/+$/, "") === "/mapa" && parcels.length > 0;
+  const pathname = useLocation().pathname;
+  const onMap = pathname.replace(/\/+$/, "") === "/mapa" && parcels.length > 0;
 
   // El <main> cambia de tamaño al entrar/salir del mapa: se avisa a los mapas
   // (MapLibre y Leaflet escuchan el resize de la ventana) para que se ajusten.
@@ -246,7 +253,7 @@ function AuthenticatedLayout() {
         >
           {/* Suspense propio: al abrir una pantalla por primera vez solo cambia el
               contenido; el sidebar ya no desaparece detrás del spinner global. */}
-          <Suspense fallback={<RouteFallback />}>
+          <Suspense fallback={<RouteFallback pathname={pathname} />}>
             <KeepAliveOutlet />
           </Suspense>
         </main>
@@ -265,7 +272,7 @@ export default function App() {
   }, []);
 
   return (
-    <Suspense fallback={<RouteFallback />}>
+    <Suspense fallback={<RootFallback />}>
       <Routes>
         <Route element={<AuthShell />}>
           <Route path="/login" element={<LoginPage />} />

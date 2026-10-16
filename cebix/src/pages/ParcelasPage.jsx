@@ -114,7 +114,7 @@ function ParcelasPageContent() {
       {empty ? (
         // Sin parcelas no hay nada que exportar y "Agregar parcela" ya está en "Otras opciones":
         // se ocultan ambos botones y el estado vacío pone su propia barra superior.
-        <EmptyAnalysis title="Parcelas" subtitle="0 parcelas en tu cuenta." onAdd={() => setModal("add")} />
+        <EmptyAnalysis skeleton="parcelas" title="Parcelas" subtitle="0 parcelas en tu cuenta." onAdd={() => setModal("add")} />
       ) : (
         <>
       <TopBar

@@ -37,6 +37,13 @@ const SCROLL_MAX_MS = 1100;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// El CSV Básico oficial del reto (~34 MB) se reconoce por su encabezado. El backend lo procesa completo, así que
+// no hace falta leerlo ni parsearlo aquí.
+async function isOfficialBasico(f) {
+  const head = await f.slice(0, 4096).text();
+  return head.includes("fecha_captura") && head.includes("porcentaje_nubosidad") && head.includes("sensor");
+}
+
 const formatSize = (bytes) =>
   bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
@@ -52,6 +59,9 @@ export default function RunModelPanel() {
   const { loadAnalysis, clearAnalysis, hasAnalysis, analysisMeta } = useParcels();
   const { info } = useModelInfo();
   const requiredColumns = [
+    "Conjunto_datos_BASICO_AgroCebada2026.csv (oficial, sin modificar)",
+  ];
+  const altColumns = [
     "ID_POLIGONO",
     "Estado",
     info ? `${info.modelSummary.nFeatures} features del modelo` : "Features del modelo",
@@ -72,9 +82,10 @@ export default function RunModelPanel() {
     try {
       // La petición real y el mínimo de 5 s corren en paralelo: si el modelo termina antes,
       // se espera lo que falte; si tarda más, no se añade tiempo extra.
+      const official = await isOfficialBasico(f);
       const [data, csvText] = await Promise.all([
         predictCsv(f),
-        f.text(),
+        official ? Promise.resolve("") : f.text(),
         sleep(MIN_THINKING_MS),
       ]).then(([d, text]) => [d, text]);
       setResults(data.predicciones);
@@ -135,7 +146,7 @@ export default function RunModelPanel() {
         <Step
           n={1}
           title="Prepara tu archivo"
-          description="El CSV necesita estas columnas; el de ejemplo trae el formato exacto."
+          description="Sube solo el CSV Básico oficial del reto. También se acepta un CSV con features ya calculadas."
         >
           {/* sm:mt-12 deja sitio arriba para el documento, que sobresale 40 px del contenedor. */}
           <div className="relative flex flex-col gap-4 rounded-2xl border border-gray-200 p-4 dark:border-gray-800 sm:mt-12 sm:flex-row sm:items-center sm:justify-between">
@@ -158,7 +169,9 @@ export default function RunModelPanel() {
                 ))}
               </div>
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Estado: {STATES.join(", ")}. Opcionales: Municipio, area_ha, lat y lng (para el mapa y las tablas).
+                Con el CSV Básico oficial se estiman las 59 parcelas de predicción; el resto de archivos del dataset no
+                hace falta subirlos. Alternativa: un CSV con {altColumns.join(", ")}. Estado: {STATES.join(", ")}.
+                Opcionales: Municipio, area_ha, lat y lng (para el mapa y las tablas).
               </p>
             </div>
             <a

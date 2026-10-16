@@ -129,8 +129,9 @@ function PrediccionesPageContent() {
             />
             <div className="relative">
               <select
-                value={selectedId}
-                onChange={(e) => setSelectedId(Number(e.target.value))}
+                value={parcel.id}
+                // Los ids de las parcelas agregadas son UUID (texto): no se convierten a número.
+                onChange={(e) => setSelectedId(parcels.find((p) => String(p.id) === e.target.value)?.id ?? parcels[0].id)}
                 className="w-full appearance-none rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-black py-2.5 pl-4 pr-10 text-sm font-medium text-gray-800 dark:text-gray-200 shadow-xs focus:border-accent-500 focus:outline-hidden focus:ring-1 focus:ring-accent-500"
               >
                 {parcels.map((p) => (
@@ -278,7 +279,7 @@ function PrediccionesPageContent() {
 
 export default function PrediccionesPage() {
   return (
-    <RequireAnalysis title="Predicciones" subtitle="Rendimiento estimado por el modelo." >
+    <RequireAnalysis skeleton="predicciones" title="Predicciones" subtitle="Rendimiento estimado por el modelo." >
       <PrediccionesPageContent />
     </RequireAnalysis>
   );

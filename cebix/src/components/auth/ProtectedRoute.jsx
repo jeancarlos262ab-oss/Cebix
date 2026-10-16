@@ -1,12 +1,10 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
+import { FullScreenSkeleton, pageKeyFromPath } from "../ui/PageSkeleton";
+
 function AuthLoadingFallback() {
-  return (
-    <div className="flex h-full w-full items-center justify-center py-24">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-[#d4a63c] dark:border-gray-700" />
-    </div>
-  );
+  return <FullScreenSkeleton page={pageKeyFromPath(window.location.pathname) ?? "dashboard"} />;
 }
 
 export default function ProtectedRoute({ children }) {

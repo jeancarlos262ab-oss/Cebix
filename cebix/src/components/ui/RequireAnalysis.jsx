@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Download, FileSpreadsheet, Loader2, Plus } from "lucide-react";
+import { ArrowUpRight, Download, FileSpreadsheet, Plus } from "lucide-react";
+import { PageBodySkeleton } from "./PageSkeleton";
 import TopBar from "../layout/TopBar";
 import DocumentPeek from "./DocumentPeek";
 import UploadDropzone from "../dashboard/UploadDropzone";
@@ -41,7 +42,7 @@ function OptionRow({ icon: Icon, title, description, highlight = false, ...props
  * calcula. Mientras no haya parcelas, aquí se ofrece importarlas (el mismo dropzone de la tabla de
  * parcelas), descargar el archivo de ejemplo o ejecutar el modelo con un CSV.
  */
-export function EmptyAnalysis({ title, subtitle, onAdd }) {
+export function EmptyAnalysis({ title, subtitle, onAdd, skeleton = "dashboard" }) {
   const { importParcels } = useParcelActions();
   const { customParcelsLoading } = useParcels();
 
@@ -51,10 +52,7 @@ export function EmptyAnalysis({ title, subtitle, onAdd }) {
     return (
       <div className="relative flex min-h-full flex-col">
         {title && <TopBar title={title} subtitle={subtitle} />}
-        <div className="flex flex-1 items-center justify-center py-24">
-          <Loader2 size={20} strokeWidth={1.5} className="animate-spin text-gray-400 dark:text-gray-500" />
-          <span className="ml-3 text-sm text-gray-500 dark:text-gray-400">Cargando tus datos…</span>
-        </div>
+        <PageBodySkeleton page={skeleton} />
       </div>
     );
   }
@@ -135,8 +133,8 @@ export function EmptyAnalysis({ title, subtitle, onAdd }) {
 }
 
 /** Envuelve el contenido de una pantalla: muestra el estado vacío hasta que haya resultados. */
-export default function RequireAnalysis({ title, subtitle, children }) {
+export default function RequireAnalysis({ title, subtitle, skeleton, children }) {
   const { parcels } = useParcels();
-  if (parcels.length === 0) return <EmptyAnalysis title={title} subtitle={subtitle} />;
+  if (parcels.length === 0) return <EmptyAnalysis title={title} subtitle={subtitle} skeleton={skeleton} />;
   return children;
 }

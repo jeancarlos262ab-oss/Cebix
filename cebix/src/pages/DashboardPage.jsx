@@ -25,7 +25,7 @@ function DashboardPageContent() {
 
 export default function DashboardPage() {
   return (
-    <RequireAnalysis title="Resumen general" subtitle="Del dato satelital a la decisión financiera." >
+    <RequireAnalysis skeleton="dashboard" title="Resumen general" subtitle="Del dato satelital a la decisión financiera." >
       <DashboardPageContent />
     </RequireAnalysis>
   );

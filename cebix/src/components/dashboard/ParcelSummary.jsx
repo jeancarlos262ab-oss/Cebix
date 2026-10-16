@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 import ParcelEmblem from "./ParcelEmblem";
 import MiniBarChart from "./MiniBarChart";
 import FeatureImportanceChart from "../charts/FeatureImportanceChart";
+import { LinesSkeleton } from "../ui/PageSkeleton";
 import { useModelInfo } from "../../context/ModelInfoContext";
 import { useParcels } from "../../context/ParcelsContext";
 import { downloadCSV } from "../../utils/csv";
@@ -195,7 +196,7 @@ export default function ParcelSummary() {
                 {importance.length ? (
                   <FeatureImportanceChart data={importance.slice(0, 6)} />
                 ) : (
-                  <p className="py-6 text-sm text-gray-500 dark:text-gray-400">Cargando importancia de variables…</p>
+                  <LinesSkeleton lines={6} className="app-skeleton py-6" />
                 )}
               </div>
             ) : (

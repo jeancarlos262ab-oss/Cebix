@@ -8,6 +8,7 @@
  * Las páginas siguen importando "../components/map/ParcelMap" sin cambios.
  */
 import { lazy, memo, Suspense, useCallback, useState } from "react";
+import { BlockSkeleton } from "../ui/PageSkeleton";
 import { reportGLFailure, resolveMapEngine } from "../../utils/mapDevice";
 import { loadParcelMapGL, loadParcelMapLite } from "../../utils/mapLoaders";
 
@@ -16,11 +17,8 @@ const ParcelMapLite = lazy(loadParcelMapLite);
 
 function MapLoadingFallback({ height, rounded }) {
   return (
-    <div
-      style={{ height: typeof height === "number" ? `${height}px` : height }}
-      className={`flex w-full items-center justify-center bg-black text-sm text-gray-400 ${rounded ? "rounded-2xl" : ""}`}
-    >
-      Cargando mapa…
+    <div className="app-skeleton w-full" style={{ height: typeof height === "number" ? `${height}px` : height }}>
+      <BlockSkeleton height="100%" rounded={!!rounded} />
     </div>
   );
 }
