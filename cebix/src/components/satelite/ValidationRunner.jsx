@@ -211,7 +211,7 @@ export default function ValidationRunner({ onRows }) {
           <span className="text-xs text-gray-500 dark:text-gray-400">
             {polys
               ? `${polys.size} contornos válidos · toca para cambiar`
-              : "Shapefile (.zip o .shp/.dbf/.prj/.shx/.cpg), GeoJSON o KML con el mismo ID_POLIGONO"}
+              : "Shapefile (.zip o solo el .shp), GeoJSON o KML con el mismo ID_POLIGONO"}
           </span>
         </Dropzone>
       </div>

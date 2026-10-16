@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Palette, Bell, Globe2, RotateCcw, Save, Loader2 } from "lucide-react";
+import { Palette, Bell, Globe2, RotateCcw } from "lucide-react";
 import { isToastSoundEnabled, setToastSoundEnabled, toast } from "../services/toast";
 import TopBar from "../components/layout/TopBar";
 import SettingsSection from "../components/settings/SettingsSection";
@@ -46,75 +46,61 @@ export default function AjustesPage() {
   const isDark = resolvedTheme === "dark";
   const swatchOf = (a) => (isDark && a.darkSwatch) || a.swatch;
 
-  // Nada de Ajustes se guarda solo: todo se edita en un BORRADOR y se aplica/guarda con "Guardar cambios".
+  // Todo se guarda solo: cada cambio se aplica al instante (apariencia, región y sonido en este navegador;
+  // los avisos en la cuenta). No hay botón de guardar.
   const { account, updateAccount } = useAccount();
-  const savedPref = { theme, accent, idioma, formatoFecha, zonaHoraria };
-  const savedNotifs = { email: account.notifEmail, riesgo: account.notifRisk, resumenSemanal: account.notifWeekly };
-  const [pref, setPref] = useState(savedPref);
-  const [notifs, setNotifs] = useState(savedNotifs);
+  const pref = { theme, accent, idioma, formatoFecha, zonaHoraria };
+  const [notifs, setNotifs] = useState({
+    email: account.notifEmail,
+    riesgo: account.notifRisk,
+    resumenSemanal: account.notifWeekly,
+  });
   const [soundOn, setSoundOn] = useState(isToastSoundEnabled);
-  const [saving, setSaving] = useState(false);
   const accentColor = swatchOf(ACCENTS.find((a) => a.id === pref.accent) ?? ACCENTS[0]);
 
-  // Si la cuenta termina de cargar (o cambia en otro lado) el borrador de avisos se alinea con lo guardado.
+  // Si la cuenta termina de cargar (o cambia en otro lado) los avisos se alinean con lo guardado.
   useEffect(() => {
     setNotifs({ email: account.notifEmail, riesgo: account.notifRisk, resumenSemanal: account.notifWeekly });
   }, [account.notifEmail, account.notifRisk, account.notifWeekly]);
 
-  const dirty =
-    Object.keys(savedPref).some((k) => pref[k] !== savedPref[k]) ||
-    Object.keys(savedNotifs).some((k) => notifs[k] !== savedNotifs[k]) ||
-    soundOn !== isToastSoundEnabled();
+  /** Aplica y guarda al instante un cambio de apariencia o región. */
+  function applyPref(patch) {
+    if ("theme" in patch && patch.theme !== theme) setTheme(patch.theme);
+    if ("accent" in patch && patch.accent !== accent) setAccent(patch.accent);
+    if ("formatoFecha" in patch && patch.formatoFecha !== formatoFecha) setFormatoFecha(patch.formatoFecha);
+    if ("zonaHoraria" in patch && patch.zonaHoraria !== zonaHoraria) setZonaHoraria(patch.zonaHoraria);
+    if ("idioma" in patch && patch.idioma !== idioma) setIdioma(patch.idioma); // cambia el idioma de toda la app
+  }
 
-  // Aviso del navegador si hay cambios sin guardar.
-  useEffect(() => {
-    if (!dirty) return undefined;
-    const warn = (e) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
-
-  async function handleSave() {
-    if (!dirty || saving) return;
-    setSaving(true);
-    // Primero lo que vive en el servidor (perfil): si falla, no se aplica nada y el borrador sigue ahí.
-    const patch = {};
-    if (notifs.email !== account.notifEmail) patch.notifEmail = notifs.email;
-    if (notifs.riesgo !== account.notifRisk) patch.notifRisk = notifs.riesgo;
-    if (notifs.resumenSemanal !== account.notifWeekly) patch.notifWeekly = notifs.resumenSemanal;
-    if (Object.keys(patch).length > 0) {
-      const { error } = await updateAccount(patch);
-      if (error) {
-        setSaving(false);
-        toast.error(t("No se pudieron guardar los ajustes. Intenta de nuevo."));
-        return;
-      }
+  /** Cambia un aviso: se ve al instante y se guarda en la cuenta; si falla, vuelve al valor anterior. */
+  async function applyNotif(patch) {
+    const previous = notifs;
+    setNotifs((n) => ({ ...n, ...patch }));
+    const dbPatch = {};
+    if ("email" in patch) dbPatch.notifEmail = patch.email;
+    if ("riesgo" in patch) dbPatch.notifRisk = patch.riesgo;
+    if ("resumenSemanal" in patch) dbPatch.notifWeekly = patch.resumenSemanal;
+    const { error } = await updateAccount(dbPatch);
+    if (error) {
+      setNotifs(previous);
+      toast.error(t("No se pudo guardar la preferencia. Intenta de nuevo."));
     }
-    setToastSoundEnabled(soundOn);
-    if (pref.theme !== theme) setTheme(pref.theme);
-    if (pref.accent !== accent) setAccent(pref.accent);
-    if (pref.formatoFecha !== formatoFecha) setFormatoFecha(pref.formatoFecha);
-    if (pref.zonaHoraria !== zonaHoraria) setZonaHoraria(pref.zonaHoraria);
-    if (pref.idioma !== idioma) setIdioma(pref.idioma); // cambia el idioma de toda la app (vuelve a montar la pantalla)
-    setSaving(false);
-    toast.success(t("Ajustes guardados."));
   }
 
-  function handleDiscard() {
-    setPref(savedPref);
-    setNotifs(savedNotifs);
-    setSoundOn(isToastSoundEnabled());
+  function applySound(value) {
+    setSoundOn(value);
+    setToastSoundEnabled(value);
   }
 
-  // "Restablecer" solo carga los valores por defecto en el borrador; se aplican al pulsar "Guardar cambios".
-  function handleReset() {
-    setPref({ theme: "system", accent: "brand", ...DEFAULT_REGION });
-    setNotifs({ email: true, riesgo: true, resumenSemanal: false });
-    setSoundOn(true);
-    toast.info(t("Valores por defecto cargados. Pulsa Guardar cambios para aplicarlos."));
+  // "Restablecer" vuelve a los valores por defecto y los guarda al instante.
+  async function handleReset() {
+    applyPref({ theme: "system", accent: "brand", ...DEFAULT_REGION });
+    applySound(true);
+    const defaults = { email: true, riesgo: true, resumenSemanal: false };
+    setNotifs(defaults);
+    const { error } = await updateAccount({ notifEmail: true, notifRisk: true, notifWeekly: false });
+    if (error) toast.error(t("No se pudieron restablecer las notificaciones."));
+    else toast.success(t("Ajustes restablecidos."));
   }
 
   return (
@@ -125,25 +111,9 @@ export default function AjustesPage() {
         hideSearch
         actions={
           <div className="flex items-center gap-2">
-            {dirty && (
-              <button
-                type="button"
-                onClick={handleDiscard}
-                disabled={saving}
-                className="rounded-full border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                {t("Descartar")}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={!dirty || saving}
-              className="flex items-center gap-1.5 rounded-full bg-accent-500 px-3.5 py-2 text-xs font-medium text-accent-contrast hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} strokeWidth={1.75} />}
-              {t("Guardar cambios")}
-            </button>
+            <span className="hidden text-xs text-gray-500 dark:text-gray-400 sm:inline">
+              {t("Los cambios se guardan automáticamente.")}
+            </span>
             <button
               type="button"
               onClick={handleReset}
@@ -170,7 +140,7 @@ export default function AjustesPage() {
               description={t("Ideal para exteriores")}
               variant="light"
               active={pref.theme === "light"}
-              onSelect={() => setPref((p) => ({ ...p, theme: "light" }))}
+              onSelect={() => applyPref({ theme: "light" })}
               accentColor={accentColor}
             />
             <ThemePreviewCard
@@ -178,7 +148,7 @@ export default function AjustesPage() {
               description={t("Menos fatiga visual")}
               variant="dark"
               active={pref.theme === "dark"}
-              onSelect={() => setPref((p) => ({ ...p, theme: "dark" }))}
+              onSelect={() => applyPref({ theme: "dark" })}
               accentColor={accentColor}
             />
             <ThemePreviewCard
@@ -186,7 +156,7 @@ export default function AjustesPage() {
               description={t("Sigue al dispositivo")}
               variant="split"
               active={pref.theme === "system"}
-              onSelect={() => setPref((p) => ({ ...p, theme: "system" }))}
+              onSelect={() => applyPref({ theme: "system" })}
               accentColor={accentColor}
             />
           </div>
@@ -207,7 +177,7 @@ export default function AjustesPage() {
                   key={a.id}
                   type="button"
                   aria-label={t((isDark && a.darkLabel) || a.label)}
-                  onClick={() => setPref((p) => ({ ...p, accent: a.id }))}
+                  onClick={() => applyPref({ accent: a.id })}
                   className="flex h-8 w-8 items-center justify-center rounded-full border-2 transition-transform hover:scale-105"
                   style={{
                     borderColor: pref.accent === a.id ? swatchOf(a) : "transparent",
@@ -233,27 +203,27 @@ export default function AjustesPage() {
             label={t("Alertas por correo")}
             description={t("Interruptor general: si lo apagas no recibirás ningún correo de CEBIX")}
             checked={notifs.email}
-            onChange={(v) => setNotifs((n) => ({ ...n, email: v }))}
+            onChange={(v) => applyNotif({ email: v })}
           />
           <Toggle
             label={t("Alertas de riesgo")}
             description={t("Cuando una parcela cambia a semáforo rojo o amarillo")}
             checked={notifs.riesgo}
             disabled={!notifs.email}
-            onChange={(v) => setNotifs((n) => ({ ...n, riesgo: v }))}
+            onChange={(v) => applyNotif({ riesgo: v })}
           />
           <Toggle
             label={t("Resumen semanal")}
             description={t("Reporte cada lunes con el estado general del portafolio")}
             checked={notifs.resumenSemanal}
             disabled={!notifs.email}
-            onChange={(v) => setNotifs((n) => ({ ...n, resumenSemanal: v }))}
+            onChange={(v) => applyNotif({ resumenSemanal: v })}
           />
           <Toggle
             label={t("Sonido de notificaciones")}
             description={t("Reproduce un sonido cuando aparece un aviso en la esquina inferior derecha (solo en este dispositivo)")}
             checked={soundOn}
-            onChange={(v) => setSoundOn(v)}
+            onChange={applySound}
           />
         </SettingsSection>
 
@@ -270,7 +240,7 @@ export default function AjustesPage() {
               </span>
               <select
                 value={pref.idioma}
-                onChange={(e) => setPref((p) => ({ ...p, idioma: e.target.value }))}
+                onChange={(e) => applyPref({ idioma: e.target.value })}
                 className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-accent-500 dark:focus:border-accent-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
               >
                 <option value="es-MX">Español (México)</option>
@@ -283,7 +253,7 @@ export default function AjustesPage() {
               </span>
               <select
                 value={pref.formatoFecha}
-                onChange={(e) => setPref((p) => ({ ...p, formatoFecha: e.target.value }))}
+                onChange={(e) => applyPref({ formatoFecha: e.target.value })}
                 className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-accent-500 dark:focus:border-accent-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
               >
                 <option value="dd/mm/aaaa">DD/MM/AAAA</option>
@@ -296,7 +266,7 @@ export default function AjustesPage() {
               </span>
               <select
                 value={pref.zonaHoraria}
-                onChange={(e) => setPref((p) => ({ ...p, zonaHoraria: e.target.value }))}
+                onChange={(e) => applyPref({ zonaHoraria: e.target.value })}
                 className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-accent-500 dark:focus:border-accent-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
               >
                 {TIME_ZONES.map((z) => (

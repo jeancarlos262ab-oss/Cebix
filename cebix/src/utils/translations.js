@@ -83,6 +83,7 @@ const EN = {
   "No se pudieron restablecer las notificaciones.": "Couldn't reset notifications.",
   "Ajustes restablecidos.": "Settings reset.",
   "Ajustes guardados.": "Settings saved.",
+  "Los cambios se guardan automáticamente.": "Changes are saved automatically.",
   "Guardar cambios": "Save changes",
   Descartar: "Discard",
   "No se pudieron guardar los ajustes. Intenta de nuevo.": "Could not save your settings. Try again.",

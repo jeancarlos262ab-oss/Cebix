@@ -1,12 +1,13 @@
 import { userMessage } from "../../utils/userMessages";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Save, UploadCloud, X } from "lucide-react";
+import { Loader2, UploadCloud } from "lucide-react";
 import { toast } from "../../services/toast";
 import { parseCSV } from "../../utils/csv";
 import { detectEstado } from "../../utils/polygon";
 import { predictFromGeometry } from "../../services/sateliteApi";
 import { isGeoFile, parseGeometryFiles } from "../../services/geoApi";
 import BatchSizeDialog from "./BatchSizeDialog";
+import StagedParcelsDialog from "./StagedParcelsDialog";
 import Dropzone from "../ui/Dropzone";
 
 const REQUIRED_FIELDS = ["name", "municipio", "region", "area", "lat", "lng", "ndvi", "precip", "gdd", "yieldEstimate"];
@@ -84,6 +85,7 @@ export default function UploadDropzone({ onParsed }) {
   // Parcelas leídas/calculadas pero SIN guardar: solo se guardan al pulsar "Guardar".
   const [staged, setStaged] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [stagedOpen, setStagedOpen] = useState(false); // ventana emergente con las parcelas sin guardar
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -98,13 +100,32 @@ export default function UploadDropzone({ onParsed }) {
     return () => window.removeEventListener("beforeunload", warn);
   }, [busy, staged.length]);
 
-  const stage = useCallback((records) => setStaged((prev) => [...prev, ...records]), []);
+  const stage = useCallback((records) => {
+    setStaged((prev) => [...prev, ...records]);
+    setStagedOpen(true); // al terminar de leer o calcular se abre sola para revisar y guardar
+  }, []);
+
+  /** Cambia el nombre de una parcela de la lista (todavía sin guardar). Guarda el original por si se deja vacío. */
+  const renameStaged = useCallback(
+    (index, name) =>
+      setStaged((prev) => prev.map((r, i) => (i === index ? { ...r, _origName: r._origName ?? r.name, name } : r))),
+    []
+  );
+  /** Al salir del campo: sin texto vuelve al nombre original; si no, quita espacios sobrantes. */
+  const commitStagedName = useCallback(
+    (index) =>
+      setStaged((prev) =>
+        prev.map((r, i) => (i === index ? { ...r, name: r.name.trim() || (r._origName ?? "Parcela sin nombre") } : r))
+      ),
+    []
+  );
 
   async function handleSaveStaged() {
     if (staged.length === 0 || saving) return;
     setSaving(true);
     try {
-      const result = await onParsed?.(staged);
+      // `_origName` es solo de esta lista; no se manda a guardar.
+      const result = await onParsed?.(staged.map(({ _origName, ...record }) => record));
       const failedRecords = result?.failedRecords ?? [];
       const failed = result?.failed ?? failedRecords.length;
       const saved = staged.length - failed;
@@ -301,42 +322,29 @@ export default function UploadDropzone({ onParsed }) {
         )}
       </Dropzone>
 
-      {staged.length > 0 && (
-        <div className="mt-3 rounded-xl border border-amber-500/60 bg-white p-3 dark:bg-gray-900">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs font-medium text-gray-800 dark:text-gray-100">
-              {plural(staged.length, "parcela sin guardar", "parcelas sin guardar")}
-              <span className="ml-1 font-normal text-gray-500 dark:text-gray-400">· no se guardan solas</span>
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setStaged([])}
-                disabled={saving || busy}
-                className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                <X size={12} /> Descartar
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveStaged}
-                disabled={saving || busy}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-medium text-accent-contrast hover:bg-accent-600 disabled:opacity-60"
-              >
-                {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} strokeWidth={1.75} />}
-                Guardar {staged.length}
-              </button>
-            </div>
-          </div>
-          <ul className="mt-2 max-h-32 space-y-0.5 overflow-y-auto text-xs text-gray-600 dark:text-gray-400">
-            {staged.map((f, i) => (
-              <li key={`${f.name}-${i}`} className="flex justify-between gap-3">
-                <span className="truncate">{f.name}</span>
-                <span className="shrink-0 tabular-nums">{Number.isFinite(Number(f.yieldEstimate)) ? `${Number(f.yieldEstimate).toFixed(2)} t/ha` : "—"}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {staged.length > 0 && !stagedOpen && (
+        <button
+          type="button"
+          onClick={() => setStagedOpen(true)}
+          className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 underline decoration-gray-300 underline-offset-2 hover:text-gray-900 dark:text-gray-300 dark:decoration-gray-600 dark:hover:text-white"
+        >
+          {plural(staged.length, "parcela sin guardar", "parcelas sin guardar")} · Revisar y guardar
+        </button>
+      )}
+
+      {staged.length > 0 && stagedOpen && (
+        <StagedParcelsDialog
+          staged={staged}
+          saving={saving}
+          onRename={renameStaged}
+          onCommitName={commitStagedName}
+          onSave={handleSaveStaged}
+          onDiscard={() => {
+            setStaged([]);
+            setStagedOpen(false);
+          }}
+          onClose={() => setStagedOpen(false)}
+        />
       )}
 
       {pendingBatch && (

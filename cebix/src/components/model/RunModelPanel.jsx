@@ -54,6 +54,7 @@ const formatSize = (bytes) =>
  */
 export default function RunModelPanel() {
   const [file, setFile] = useState(null);
+  const [runName, setRunName] = useState(""); // nombre con el que se identifica la corrida en el dashboard
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const { loadAnalysis, clearAnalysis, hasAnalysis, analysisMeta } = useParcels();
@@ -71,7 +72,10 @@ export default function RunModelPanel() {
   // Al elegir con el selector el navegador ya filtra por .csv; al arrastrar se valida aquí.
   function handleFiles(files) {
     const picked = files.find((f) => f.name.toLowerCase().endsWith(".csv"));
-    if (picked) setFile(picked);
+    if (picked) {
+      setFile(picked);
+      setRunName(picked.name);
+    }
   }
 
   async function runWith(f) {
@@ -90,7 +94,7 @@ export default function RunModelPanel() {
       ]).then(([d, text]) => [d, text]);
       setResults(data.predicciones);
       // Los resultados reales alimentan Resumen, Parcelas, Mapa, Predicciones y SHAP como borrador: no se guardan hasta pulsar el botón.
-      loadAnalysis(data.predicciones, csvText, f.name);
+      loadAnalysis(data.predicciones, csvText, runName.trim() || f.name);
       toast.success(
         `Modelo ejecutado: ${data.predicciones.length} parcela${data.predicciones.length === 1 ? "" : "s"} procesada${data.predicciones.length === 1 ? "" : "s"}. Pulsa "Guardar corrida" para conservarla.`
       );
@@ -111,6 +115,7 @@ export default function RunModelPanel() {
     try {
       const example = await fetchExampleFile();
       setFile(example);
+      setRunName(example.name);
       await runWith(example);
     } catch (err) {
       toast.error(friendlyError(err));
@@ -121,6 +126,7 @@ export default function RunModelPanel() {
     clearAnalysis();
     setResults(null);
     setFile(null);
+    setRunName("");
     toast.success("Resultados borrados. El dashboard quedó vacío.");
   }
 
@@ -204,6 +210,21 @@ export default function RunModelPanel() {
                 {file ? `${formatSize(file.size)} · haz clic para cambiarlo` : "o arrástralo aquí"}
               </span>
             </Dropzone>
+
+            {file && (
+              <label className="flex flex-col gap-1 text-xs text-gray-500 dark:text-gray-400 sm:flex-row sm:items-center sm:gap-3">
+                <span className="shrink-0">Nombre del archivo</span>
+                <input
+                  type="text"
+                  value={runName}
+                  maxLength={80}
+                  disabled={loading}
+                  onChange={(e) => setRunName(e.target.value)}
+                  onBlur={() => setRunName((v) => v.trim() || file.name)}
+                  className="min-w-0 flex-1 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-900 hover:bg-gray-100 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-accent-500 disabled:opacity-60 dark:bg-gray-900/60 dark:text-gray-100 dark:hover:bg-gray-900 dark:focus:bg-black"
+                />
+              </label>
+            )}
 
             <button
               type="submit"
