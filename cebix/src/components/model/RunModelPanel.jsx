@@ -39,22 +39,24 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // El CSV Básico oficial del reto (~34 MB) se reconoce por su encabezado. El backend lo procesa completo, así que
 // no hace falta leerlo ni parsearlo aquí.
-async function isOfficialBasico(f) {
+async function detectKind(f) {
   const head = await f.slice(0, 4096).text();
-  return head.includes("fecha_captura") && head.includes("porcentaje_nubosidad") && head.includes("sensor");
+  if (!(head.includes("fecha_captura") && head.includes("porcentaje_nubosidad") && head.includes("sensor"))) return "otro";
+  // El CSV PRO (Planet) trae MSAVI; el Básico (Sentinel-2 + Landsat), no.
+  return head.includes("msavi_promedio") ? "planet" : "basico";
 }
 
 const formatSize = (bytes) =>
   bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 /**
- * Ejecuta el modelo REAL (Random Forest; 10 variables abiertas, o 15 con Planet si se sube el CSV PRO) en el backend de
+ * Ejecuta el modelo REAL (Random Forest; 10 variables abiertas, o con Planet si se sube el CSV PRO) en el backend de
  * inferencia (ver /backend). Sube un CSV con las 10 features y muestra la predicción
  * calculada en ese momento -- no son resultados guardados.
  */
 export default function RunModelPanel() {
   const [file, setFile] = useState(null);
-  const [proFile, setProFile] = useState(null); // CSV PRO (Planet), opcional
+  const [kind, setKind] = useState(null); // "planet" (CSV PRO), "basico" o "otro": se detecta solo al elegir el archivo
   const [modelUsed, setModelUsed] = useState(null); // "planet" | "abierto" según lo que respondió el backend
   const [runName, setRunName] = useState(""); // nombre con el que se identifica la corrida en el dashboard
   const [loading, setLoading] = useState(false);
@@ -77,15 +79,15 @@ export default function RunModelPanel() {
     if (picked) {
       setFile(picked);
       setRunName(picked.name);
+      setKind(null);
+      detectKind(picked).then((k) => {
+        setKind(k);
+        if (k === "planet") toast.success("Se detectó el CSV PRO (Planet): el modelo se ejecutará con Planet.");
+      });
     }
   }
 
-  function handleProFiles(files) {
-    const picked = files.find((f) => f.name.toLowerCase().endsWith(".csv"));
-    if (picked) setProFile(picked);
-  }
-
-  async function runWith(f, pro = proFile) {
+  async function runWith(f) {
     if (!f) return;
     setLoading(true);
     setResults(null);
@@ -94,9 +96,10 @@ export default function RunModelPanel() {
     try {
       // La petición real y el mínimo de 5 s corren en paralelo: si el modelo termina antes,
       // se espera lo que falte; si tarda más, no se añade tiempo extra.
-      const official = await isOfficialBasico(f);
+      const k = await detectKind(f);
+      const official = k !== "otro";
       const [data, csvText] = await Promise.all([
-        predictCsv(f, official ? pro : null),
+        predictCsv(f),
         official ? Promise.resolve("") : f.text(),
         sleep(MIN_THINKING_MS),
       ]).then(([d, text]) => [d, text]);
@@ -125,7 +128,7 @@ export default function RunModelPanel() {
       const example = await fetchExampleFile();
       setFile(example);
       setRunName(example.name);
-      await runWith(example, null);
+      await runWith(example);
     } catch (err) {
       toast.error(friendlyError(err));
     }
@@ -135,7 +138,7 @@ export default function RunModelPanel() {
     clearAnalysis();
     setResults(null);
     setFile(null);
-    setProFile(null);
+    setKind(null);
     setModelUsed(null);
     setRunName("");
     toast.success("Resultados borrados. El dashboard quedó vacío.");
@@ -163,7 +166,7 @@ export default function RunModelPanel() {
         <Step
           n={1}
           title="Prepara tu archivo"
-          description="Sube solo el CSV Básico oficial del reto. También se acepta un CSV con features ya calculadas."
+          description="Sube el CSV Básico oficial del reto, o el CSV PRO (Planet) para correr el modelo con Planet. También se acepta un CSV con features ya calculadas."
         >
           {/* sm:mt-12 deja sitio arriba para el documento, que sobresale 40 px del contenedor. */}
           <div className="relative flex flex-col gap-4 rounded-2xl border border-gray-200 p-4 dark:border-gray-800 sm:mt-12 sm:flex-row sm:items-center sm:justify-between">
@@ -188,7 +191,8 @@ export default function RunModelPanel() {
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                 Con el CSV Básico oficial se estiman las 59 parcelas de predicción; el resto de archivos del dataset no
                 hace falta subirlos. Alternativa: un CSV con {altColumns.join(", ")}. Estado: {STATES.join(", ")}.
-                Opcionales: Municipio, area_ha, lat y lng (para el mapa y las tablas).
+                Opcionales: Municipio, area_ha, lat y lng (para el mapa y las tablas). El CSV PRO (Planet) se detecta
+                solo y no hace falta subir el Básico.
               </p>
             </div>
             <a
@@ -222,34 +226,11 @@ export default function RunModelPanel() {
               </span>
             </Dropzone>
 
-            <div>
-              <p className="mb-1.5 text-xs text-gray-500 dark:text-gray-400">
-                Opcional · Conjunto_datos_PRO_AgroCebada.csv (Planet). Con este archivo se usa el modelo con Planet; sin
-                él, el modelo de fuentes abiertas.
+            {kind === "planet" && file && (
+              <p className="rounded-lg bg-accent-50 px-3 py-2 text-xs text-accent-700 dark:bg-accent-500/15 dark:text-accent-400">
+                Se detectó el CSV PRO (Planet): el modelo se ejecutará con Planet.
               </p>
-              <Dropzone accept=".csv" active={Boolean(proFile)} onFiles={handleProFiles}>
-                {proFile ? (
-                  <FileSpreadsheet size={20} strokeWidth={1.5} className="text-gray-500 dark:text-gray-400" />
-                ) : (
-                  <UploadCloud size={20} strokeWidth={1.5} className="text-gray-400 dark:text-gray-500" />
-                )}
-                <span className="max-w-full truncate text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {proFile ? proFile.name : "Elegir CSV PRO (Planet)"}
-                </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {proFile ? `${formatSize(proFile.size)} · haz clic para cambiarlo` : "o arrástralo aquí"}
-                </span>
-              </Dropzone>
-              {proFile && (
-                <button
-                  type="button"
-                  onClick={() => setProFile(null)}
-                  className="mt-1.5 text-xs text-gray-500 underline hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  Quitar archivo PRO
-                </button>
-              )}
-            </div>
+            )}
 
             {file && (
               <label className="flex flex-col gap-1 text-xs text-gray-500 dark:text-gray-400 sm:flex-row sm:items-center sm:gap-3">
@@ -328,9 +309,9 @@ export default function RunModelPanel() {
             <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
               Modelo usado:{" "}
               <strong className="text-gray-800 dark:text-gray-200">
-                {modelUsed === "planet" ? "Random Forest con Planet (15 variables)" : "Random Forest de fuentes abiertas (10 variables)"}
+                {modelUsed === "planet" ? "Random Forest con Planet (lluvia + 12 variables Planet)" : "Random Forest de fuentes abiertas (10 variables)"}
               </strong>
-              {modelUsed === "planet" && " · Planet no mejoró la precisión en la validación; ver Validación y SHAP."}
+              {modelUsed === "planet" && " · Planet no mejoró la precisión en la validación; ver Resumen y validación."}
             </p>
           )}
           {results ? (

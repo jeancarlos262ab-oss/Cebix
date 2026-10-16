@@ -42,7 +42,8 @@ def is_official_basico(columns) -> bool:
 PLANET_INDICES = ["ndvi", "evi", "lai", "msavi"]
 PLANET_SIGNATURE = {"ID_POLIGONO", "fecha_captura", "sensor", "porcentaje_nubosidad"}
 PLANET_USECOLS = ["ID_POLIGONO", "fecha_captura", "sensor", "porcentaje_nubosidad", *[f"{i}_promedio" for i in PLANET_INDICES]]
-PLANET_FEATURES = [f"pro_{i}_{w}" for w in PHENO_WINDOWS for i in PLANET_INDICES] + ["pro_n_obs_ciclo"]
+PLANET_FEATURES = [f"pro_{i}_{w}" for w in PHENO_WINDOWS for i in PLANET_INDICES]
+# El modelo con Planet usa estas 12 + la lluvia abr–may (que sale de la tabla de referencia, no del CSV PRO).
 
 
 def is_planet_csv(columns) -> bool:
@@ -51,7 +52,7 @@ def is_planet_csv(columns) -> bool:
 
 
 def planet_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Una fila por parcela con las 13 variables Planet (12 índices por etapa + fechas válidas del ciclo)."""
+    """Una fila por parcela con las 12 variables Planet (NDVI, EVI, LAI y MSAVI en tres etapas) y el contexto de la parcela."""
     missing = [c for c in PLANET_USECOLS if c not in df.columns]
     if missing:
         raise ValueError("Al CSV PRO (Planet) le faltan columnas: " + ", ".join(missing))
@@ -69,7 +70,8 @@ def planet_features(df: pd.DataFrame) -> pd.DataFrame:
         sub = d[d["mes"].isin(months)]
         for i in PLANET_INDICES:
             out[f"pro_{i}_{w}"] = sub.groupby("ID_POLIGONO")[f"{i}_promedio"].median().reindex(out.index)
-    out["pro_n_obs_ciclo"] = d[d["mes"].between(4, 10)].groupby("ID_POLIGONO")["fecha"].nunique().reindex(out.index).fillna(0)
+    out = out.join(parcel_reference(), how="left")
+    out["Estado"] = out["Estado"].where(out["Estado"].notna(), None)
     return out.reset_index()
 
 

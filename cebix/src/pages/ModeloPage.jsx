@@ -95,7 +95,7 @@ function ResumenTab() {
                 <tr className="border-t border-gray-200 dark:border-gray-800">
                   <td className="py-2 pr-4">Con Planet</td>
                   <td className="py-2 pr-4">
-                    {planetModel.nFeatures} ({planetModel.nPlanet} de Planet)
+                    {planetModel.nFeatures} (lluvia + {planetModel.nPlanet} de Planet)
                   </td>
                   <td className="py-2 pr-4">{planetModel.rmse}</td>
                   <td className="py-2 pr-4">{planetModel.mae}</td>
@@ -105,9 +105,10 @@ function ResumenTab() {
             </table>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-            Planet no mejora la precisión: la diferencia entre ambos modelos es menor que la variación entre semillas.
-            Por eso el modelo de fuentes abiertas sigue siendo el predeterminado, y es el único que se puede calcular en
-            vivo para una parcela dibujada en el mapa. El modelo con Planet solo aplica a parcelas con el CSV PRO.
+            Planet no mejora la precisión: con Planet el error es algo mayor, y la lluvia sigue siendo la variable más
+            importante. El modelo con Planet no usa Sentinel-2 ni Landsat; toma la lluvia de la tabla de las 197
+            parcelas oficiales. El modelo de fuentes abiertas es el predeterminado y el único que se calcula en vivo
+            para una parcela dibujada en el mapa.
           </p>
         </Card>
       )}

@@ -243,8 +243,8 @@ function buildAnalysisParcel(pred, row = {}, index = 0) {
   const ic90 = [firstNum(pred.ic90_inferior) ?? yieldEstimate, firstNum(pred.ic90_superior) ?? yieldEstimate];
 
   // Mismos campos que se mostraban antes, ahora leídos del CSV de la corrida.
-  const ndvi = firstNum(meta.bas_ndvi_pico_ciclo, meta.ndvi, meta.bas_ndvi_emergencia_macollamiento) ?? 0;
-  const evi = firstNum(meta.bas_evi_encanado, meta.evi, meta.bas_evi_emergencia_macollamiento) ?? 0;
+  const ndvi = firstNum(meta.bas_ndvi_pico_ciclo, meta.ndvi, meta.bas_ndvi_emergencia_macollamiento, meta.pro_ndvi_espigado_llenado) ?? 0;
+  const evi = firstNum(meta.bas_evi_encanado, meta.evi, meta.bas_evi_emergencia_macollamiento, meta.pro_evi_encanado) ?? 0;
   const precip = firstNum(meta.precip_acum_ciclo_mm, meta.precip, meta.precip_acum_emergencia_macollamiento_mm) ?? 0;
   const gdd = firstNum(meta.gdd_acumulado_ciclo, meta.gdd) ?? 0;
   const area = firstNum(meta.area_ha, meta.AREA_HA);
