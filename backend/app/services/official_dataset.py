@@ -36,6 +36,43 @@ def is_official_basico(columns) -> bool:
     return SIGNATURE_COLUMNS.issubset(set(columns)) and any(c.endswith("_promedio") for c in columns)
 
 
+# ─────────────────────────────── Planet (CSV PRO, opcional) ───────────────────────────────
+# El CSV PRO trae observaciones Planet por parcela y fecha (NDVI, EVI, LAI, MSAVI). Se resumen igual que los índices
+# de Sentinel-2: mediana de los promedios por ventana fenológica, con el mismo filtro de nubosidad (<= 40 %).
+PLANET_INDICES = ["ndvi", "evi", "lai", "msavi"]
+PLANET_SIGNATURE = {"ID_POLIGONO", "fecha_captura", "sensor", "porcentaje_nubosidad"}
+PLANET_USECOLS = ["ID_POLIGONO", "fecha_captura", "sensor", "porcentaje_nubosidad", *[f"{i}_promedio" for i in PLANET_INDICES]]
+PLANET_FEATURES = [f"pro_{i}_{w}" for w in PHENO_WINDOWS for i in PLANET_INDICES] + ["pro_n_obs_ciclo"]
+
+
+def is_planet_csv(columns) -> bool:
+    cols = set(columns)
+    return PLANET_SIGNATURE.issubset(cols) and "msavi_promedio" in cols
+
+
+def planet_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Una fila por parcela con las 13 variables Planet (12 índices por etapa + fechas válidas del ciclo)."""
+    missing = [c for c in PLANET_USECOLS if c not in df.columns]
+    if missing:
+        raise ValueError("Al CSV PRO (Planet) le faltan columnas: " + ", ".join(missing))
+    d = df[PLANET_USECOLS].copy()
+    d["ID_POLIGONO"] = d["ID_POLIGONO"].astype(str).str.strip()
+    d["fecha"] = pd.to_datetime(d["fecha_captura"], format="%d/%m/%Y", errors="coerce")
+    d = d[d["fecha"].dt.year == YEAR]
+    if d.empty:
+        raise ValueError(f"El CSV PRO no trae observaciones Planet del ciclo {YEAR}.")
+    d = d[pd.to_numeric(d["porcentaje_nubosidad"], errors="coerce").fillna(0) <= CLOUD_MAX]
+    d["mes"] = d["fecha"].dt.month
+    out = pd.DataFrame(index=sorted(d["ID_POLIGONO"].unique()))
+    out.index.name = "ID_POLIGONO"
+    for w, months in _WINDOW_MONTHS.items():
+        sub = d[d["mes"].isin(months)]
+        for i in PLANET_INDICES:
+            out[f"pro_{i}_{w}"] = sub.groupby("ID_POLIGONO")[f"{i}_promedio"].median().reindex(out.index)
+    out["pro_n_obs_ciclo"] = d[d["mes"].between(4, 10)].groupby("ID_POLIGONO")["fecha"].nunique().reindex(out.index).fillna(0)
+    return out.reset_index()
+
+
 def parcel_reference() -> pd.DataFrame:
     global _ref_cache
     if _ref_cache is None:

@@ -55,7 +55,7 @@ function Kpi({ label, value, unit, accent = false, small = false }) {
 }
 
 function ResumenTab() {
-  const { modelSummary, algorithmComparison, validationSteps } = useModelInfo().info;
+  const { modelSummary, algorithmComparison, validationSteps, planetModel } = useModelInfo().info;
   return (
     <div className="space-y-6">
       {/* Indicadores: una sola tarjeta, separados por líneas finas */}
@@ -67,6 +67,50 @@ function ResumenTab() {
         <Kpi label="RMSE" value={modelSummary.rmse} unit="ton/ha" accent />
         <Kpi label="R²" value={modelSummary.r2} accent />
       </div>
+
+      {planetModel && (
+        <Card
+          title="Modelo con Planet"
+          description={`Se activa al subir también el CSV PRO. Mismas ${planetModel.trainingParcels} parcelas y misma validación (cada estado fuera una vez, con la selección de variables repetida en cada pliegue).`}
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs text-gray-500 dark:text-gray-400">
+                <tr>
+                  <th className="py-2 pr-4 font-medium">Modelo</th>
+                  <th className="py-2 pr-4 font-medium">Variables</th>
+                  <th className="py-2 pr-4 font-medium">RMSE (t/ha)</th>
+                  <th className="py-2 pr-4 font-medium">MAE (t/ha)</th>
+                  <th className="py-2 font-medium">R²</th>
+                </tr>
+              </thead>
+              <tbody className="tabular-nums text-gray-900 dark:text-gray-100">
+                <tr className="border-t border-gray-200 dark:border-gray-800">
+                  <td className="py-2 pr-4">Fuentes abiertas</td>
+                  <td className="py-2 pr-4">{planetModel.baseline.nFeatures}</td>
+                  <td className="py-2 pr-4">{planetModel.baseline.rmse}</td>
+                  <td className="py-2 pr-4">{planetModel.baseline.mae}</td>
+                  <td className="py-2">{planetModel.baseline.r2}</td>
+                </tr>
+                <tr className="border-t border-gray-200 dark:border-gray-800">
+                  <td className="py-2 pr-4">Con Planet</td>
+                  <td className="py-2 pr-4">
+                    {planetModel.nFeatures} ({planetModel.nPlanet} de Planet)
+                  </td>
+                  <td className="py-2 pr-4">{planetModel.rmse}</td>
+                  <td className="py-2 pr-4">{planetModel.mae}</td>
+                  <td className="py-2">{planetModel.r2}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+            Planet no mejora la precisión: la diferencia entre ambos modelos es menor que la variación entre semillas.
+            Por eso el modelo de fuentes abiertas sigue siendo el predeterminado, y es el único que se puede calcular en
+            vivo para una parcela dibujada en el mapa. El modelo con Planet solo aplica a parcelas con el CSV PRO.
+          </p>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <Card

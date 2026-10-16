@@ -152,7 +152,7 @@
   "dataSources": [
     {
       "name": "Sentinel-2 / Landsat",
-      "detail": "Dataset Básico (Sentinel-2 + Landsat, 2022-2025) del reto: NDVI, EVI, LAI, NDWI y otros índices por parcela y fecha. El dataset PRO (Planet, de pago) se excluyó del modelo final: no cambió el desempeño y no es reproducible con fuentes gratuitas.",
+      "detail": "Dataset Básico (Sentinel-2 + Landsat, 2022-2025) del reto: NDVI, EVI, LAI, NDWI y otros índices por parcela y fecha. Las observaciones Planet del dataset PRO (de pago) entran solo en el modelo opcional con Planet, al subir el CSV PRO; no mejoraron el desempeño y no se pueden calcular en vivo para parcelas nuevas.",
       "use": "Desarrollo"
     },
     {

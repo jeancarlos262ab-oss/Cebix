@@ -48,12 +48,14 @@ const formatSize = (bytes) =>
   bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 /**
- * Ejecuta el modelo REAL (Random Forest, top-10 SHAP, sin Planet) en el backend de
+ * Ejecuta el modelo REAL (Random Forest; 10 variables abiertas, o 15 con Planet si se sube el CSV PRO) en el backend de
  * inferencia (ver /backend). Sube un CSV con las 10 features y muestra la predicción
  * calculada en ese momento -- no son resultados guardados.
  */
 export default function RunModelPanel() {
   const [file, setFile] = useState(null);
+  const [proFile, setProFile] = useState(null); // CSV PRO (Planet), opcional
+  const [modelUsed, setModelUsed] = useState(null); // "planet" | "abierto" según lo que respondió el backend
   const [runName, setRunName] = useState(""); // nombre con el que se identifica la corrida en el dashboard
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
@@ -78,21 +80,28 @@ export default function RunModelPanel() {
     }
   }
 
-  async function runWith(f) {
+  function handleProFiles(files) {
+    const picked = files.find((f) => f.name.toLowerCase().endsWith(".csv"));
+    if (picked) setProFile(picked);
+  }
+
+  async function runWith(f, pro = proFile) {
     if (!f) return;
     setLoading(true);
     setResults(null);
+    setModelUsed(null);
 
     try {
       // La petición real y el mínimo de 5 s corren en paralelo: si el modelo termina antes,
       // se espera lo que falte; si tarda más, no se añade tiempo extra.
       const official = await isOfficialBasico(f);
       const [data, csvText] = await Promise.all([
-        predictCsv(f),
+        predictCsv(f, official ? pro : null),
         official ? Promise.resolve("") : f.text(),
         sleep(MIN_THINKING_MS),
       ]).then(([d, text]) => [d, text]);
       setResults(data.predicciones);
+      setModelUsed(data.modelo || "abierto");
       // Los resultados reales alimentan Resumen, Parcelas, Mapa, Predicciones y SHAP como borrador: no se guardan hasta pulsar el botón.
       loadAnalysis(data.predicciones, csvText, runName.trim() || f.name);
       toast.success(
@@ -116,7 +125,7 @@ export default function RunModelPanel() {
       const example = await fetchExampleFile();
       setFile(example);
       setRunName(example.name);
-      await runWith(example);
+      await runWith(example, null);
     } catch (err) {
       toast.error(friendlyError(err));
     }
@@ -126,6 +135,8 @@ export default function RunModelPanel() {
     clearAnalysis();
     setResults(null);
     setFile(null);
+    setProFile(null);
+    setModelUsed(null);
     setRunName("");
     toast.success("Resultados borrados. El dashboard quedó vacío.");
   }
@@ -211,6 +222,35 @@ export default function RunModelPanel() {
               </span>
             </Dropzone>
 
+            <div>
+              <p className="mb-1.5 text-xs text-gray-500 dark:text-gray-400">
+                Opcional · Conjunto_datos_PRO_AgroCebada.csv (Planet). Con este archivo se usa el modelo con Planet; sin
+                él, el modelo de fuentes abiertas.
+              </p>
+              <Dropzone accept=".csv" active={Boolean(proFile)} onFiles={handleProFiles}>
+                {proFile ? (
+                  <FileSpreadsheet size={20} strokeWidth={1.5} className="text-gray-500 dark:text-gray-400" />
+                ) : (
+                  <UploadCloud size={20} strokeWidth={1.5} className="text-gray-400 dark:text-gray-500" />
+                )}
+                <span className="max-w-full truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {proFile ? proFile.name : "Elegir CSV PRO (Planet)"}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {proFile ? `${formatSize(proFile.size)} · haz clic para cambiarlo` : "o arrástralo aquí"}
+                </span>
+              </Dropzone>
+              {proFile && (
+                <button
+                  type="button"
+                  onClick={() => setProFile(null)}
+                  className="mt-1.5 text-xs text-gray-500 underline hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  Quitar archivo PRO
+                </button>
+              )}
+            </div>
+
             {file && (
               <label className="flex flex-col gap-1 text-xs text-gray-500 dark:text-gray-400 sm:flex-row sm:items-center sm:gap-3">
                 <span className="shrink-0">Nombre del archivo</span>
@@ -283,6 +323,15 @@ export default function RunModelPanel() {
                 </button>
               </span>
             </div>
+          )}
+          {results && modelUsed && (
+            <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+              Modelo usado:{" "}
+              <strong className="text-gray-800 dark:text-gray-200">
+                {modelUsed === "planet" ? "Random Forest con Planet (15 variables)" : "Random Forest de fuentes abiertas (10 variables)"}
+              </strong>
+              {modelUsed === "planet" && " · Planet no mejoró la precisión en la validación; ver Validación y SHAP."}
+            </p>
           )}
           {results ? (
             <ResultsTable results={results} />

@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from app.config import EXAMPLE_CSV_PATH
-from app.services.model_service import get_artifact, get_model_meta
+from app.services.model_service import get_artifact, get_model_meta, get_planet_meta
 
 router = APIRouter(tags=["modelo"])
 
@@ -14,7 +14,11 @@ router = APIRouter(tags=["modelo"])
 @router.get("/model-info")
 def model_info():
     """Todo lo que describe al modelo (métricas, SHAP global, textos). El frontend no trae nada de esto fijo."""
-    return get_model_meta()
+    meta = dict(get_model_meta())
+    planet = get_planet_meta()
+    if planet:
+        meta["planetModel"] = planet
+    return meta
 
 
 @router.get("/features")

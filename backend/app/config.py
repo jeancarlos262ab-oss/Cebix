@@ -12,6 +12,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_PATH = os.environ.get("MODEL_PATH", str(BASE_DIR / "models" / "model_artifact.joblib"))
 META_PATH = os.environ.get("MODEL_META_PATH", str(BASE_DIR / "models" / "model_meta.json"))
+MODEL_PLANET_PATH = os.environ.get("MODEL_PLANET_PATH", str(BASE_DIR / "models" / "model_artifact_planet.joblib"))
+PLANET_META_PATH = os.environ.get("MODEL_PLANET_META_PATH", str(BASE_DIR / "models" / "model_planet_meta.json"))
 EXAMPLE_CSV_PATH = os.environ.get("EXAMPLE_CSV_PATH", str(BASE_DIR / "data" / "ejemplo_features_predict.csv"))
 
 # Tabla de referencia de las 197 parcelas oficiales (Estado, Municipio, área, lat/lng, CONJUNTO y lluvia abr–may 2025).

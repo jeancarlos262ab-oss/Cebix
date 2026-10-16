@@ -1,0 +1,100 @@
+{
+  "nFeatures": 15,
+  "nPlanet": 5,
+  "trainingParcels": 138,
+  "validation": "Leave-region-out con selección anidada",
+  "rmse": 0.642,
+  "mae": 0.497,
+  "r2": 0.426,
+  "baseline": {
+    "rmse": 0.639,
+    "mae": 0.487,
+    "r2": 0.431,
+    "nFeatures": 10
+  },
+  "rmseByRegion": {
+    "Tlaxcala": 0.45,
+    "Puebla": 0.721,
+    "Hidalgo": 0.627
+  },
+  "features": [
+    "Precipitación en emergencia-macollamiento",
+    "Densidad de observaciones válidas (Sentinel-2/Landsat)",
+    "NDTI en emergencia-macollamiento",
+    "LAI en espigado-llenado",
+    "STI en encañado",
+    "NDWI en espigado-llenado",
+    "EVI en encañado",
+    "NDTI en encañado",
+    "NDVI Planet en emergencia-macollamiento",
+    "NDVI en emergencia-macollamiento",
+    "MSAVI Planet en emergencia-macollamiento",
+    "EVI en emergencia-macollamiento",
+    "LAI Planet en emergencia-macollamiento",
+    "Fechas válidas de Planet en el ciclo",
+    "LAI Planet en espigado-llenado"
+  ],
+  "globalImportance": [
+    {
+      "feature": "Precipitación en emergencia-macollamiento",
+      "value": 0.644
+    },
+    {
+      "feature": "Densidad de observaciones válidas (Sentinel-2/Landsat)",
+      "value": 0.06
+    },
+    {
+      "feature": "LAI en espigado-llenado",
+      "value": 0.044
+    },
+    {
+      "feature": "NDTI en emergencia-macollamiento",
+      "value": 0.042
+    },
+    {
+      "feature": "NDWI en espigado-llenado",
+      "value": 0.032
+    },
+    {
+      "feature": "EVI en encañado",
+      "value": 0.032
+    },
+    {
+      "feature": "STI en encañado",
+      "value": 0.031
+    },
+    {
+      "feature": "NDTI en encañado",
+      "value": 0.015
+    },
+    {
+      "feature": "MSAVI Planet en emergencia-macollamiento",
+      "value": 0.015
+    },
+    {
+      "feature": "NDVI Planet en emergencia-macollamiento",
+      "value": 0.013
+    },
+    {
+      "feature": "NDVI en emergencia-macollamiento",
+      "value": 0.012
+    },
+    {
+      "feature": "Fechas válidas de Planet en el ciclo",
+      "value": 0.012
+    },
+    {
+      "feature": "LAI Planet en emergencia-macollamiento",
+      "value": 0.011
+    },
+    {
+      "feature": "EVI en emergencia-macollamiento",
+      "value": 0.008
+    },
+    {
+      "feature": "LAI Planet en espigado-llenado",
+      "value": 0.006
+    }
+  ],
+  "note": "Promedio de 5 semillas del Random Forest; la selección de variables se repite dentro de cada pliegue."
+}

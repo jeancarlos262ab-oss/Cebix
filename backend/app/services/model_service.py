@@ -9,22 +9,30 @@ import pandas as pd
 import shap
 from fastapi import HTTPException
 
-from app.config import META_PATH, MODEL_PATH, PASSTHROUGH_FIELDS
+from app.config import META_PATH, MODEL_PATH, MODEL_PLANET_PATH, PASSTHROUGH_FIELDS, PLANET_META_PATH
 
-_artifact = None
-_explainer = None
+_cache: dict = {}  # variante -> (artefacto, explainer)
 _meta_cache = None
+_PATHS = {"abierto": MODEL_PATH, "planet": MODEL_PLANET_PATH}
 
 
-def get_artifact():
-    """Carga el modelo UNA vez (perezosamente) y lo reutiliza en cada request."""
-    global _artifact, _explainer
-    if _artifact is None:
-        if not os.path.exists(MODEL_PATH):
-            raise HTTPException(status_code=500, detail=f"No se encontró el modelo en {MODEL_PATH}")
-        _artifact = joblib.load(MODEL_PATH)
-        _explainer = shap.TreeExplainer(_artifact["model"])
-    return _artifact, _explainer
+def get_artifact(variant: str = "abierto"):
+    """Carga cada modelo UNA vez (perezosamente) y lo reutiliza. variant: 'abierto' (solo fuentes libres) o 'planet'."""
+    if variant not in _cache:
+        path = _PATHS[variant]
+        if not os.path.exists(path):
+            raise HTTPException(status_code=500, detail=f"No se encontró el modelo ({variant}) en {path}")
+        art = joblib.load(path)
+        _cache[variant] = (art, shap.TreeExplainer(art["model"]))
+    return _cache[variant]
+
+
+def get_planet_meta():
+    """Resumen del modelo con Planet (métricas, variables, importancias); None si aún no se generó."""
+    if not os.path.exists(PLANET_META_PATH):
+        return None
+    with open(PLANET_META_PATH, encoding="utf-8") as f:
+        return json.load(f)
 
 
 def get_model_meta():
@@ -41,8 +49,8 @@ def get_model_meta():
     return _meta_cache
 
 
-def run_inference(rows_df, estados):
-    artifact, explainer = get_artifact()
+def run_inference(rows_df, estados, variant: str = "abierto"):
+    artifact, explainer = get_artifact(variant)
     feature_order = artifact["feature_order"]
 
     for col in feature_order:

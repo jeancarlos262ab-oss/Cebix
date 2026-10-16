@@ -57,10 +57,12 @@ export async function errorFromResponse(res) {
   return new ApiError(message, { status: res.status, url: res.url, raw: raw.slice(0, 4000) });
 }
 
-/** POST /predict-csv — ejecuta el modelo real sobre un File. Devuelve { n_parcelas, predicciones }. */
-export async function predictCsv(file) {
+/** POST /predict-csv — ejecuta el modelo real sobre un File (y, opcional, el CSV PRO de Planet). Devuelve { n_parcelas, modelo, predicciones }. */
+export async function predictCsv(file, proFile = null) {
   const formData = new FormData();
   formData.append("file", file);
+  // Opcional: el CSV PRO (Planet) activa el modelo con Planet en el backend.
+  if (proFile) formData.append("file_pro", proFile);
   const res = await fetch(`${API_URL}/predict-csv`, { method: "POST", body: formData });
   if (!res.ok) throw await errorFromResponse(res);
   return res.json();
