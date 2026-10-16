@@ -34,7 +34,7 @@ function shapefileProblem(files) {
   const shpStems = new Set(parts.filter((f) => fileExtension(f.name) === "shp").map((f) => stemOf(f.name)));
   if (shpStems.size > 0 || hasZip) return null;
   const names = parts.map((f) => f.name).join(", ");
-  return `Falta el archivo .shp (es el que trae la geometría). Recibí: ${names}. Selecciona el .shp junto con su .dbf, .prj, .shx y .cpg (o sube todo en un .zip).`;
+  return `Subiste ${names}, pero ese archivo no trae los polígonos (solo la tabla de datos). Sube el .shp (los demás archivos son opcionales) o el .zip del shapefile, que es un solo archivo.`;
 }
 
 export async function parseGeometryFiles(files, { signal } = {}) {

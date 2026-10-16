@@ -550,8 +550,8 @@ def parse_uploads(uploads: list[tuple[str, bytes]]) -> dict:
     if orphans and not shp_stems:
         raise GeoParseError(
             422,
-            f"Falta el archivo .shp: es el que contiene la geometría (recibí {', '.join(orphans)}). "
-            "Sube el .shp junto con su .dbf y .prj, o todo en un .zip.",
+            f"Subiste {', '.join(orphans)}, pero ese archivo no trae los polígonos (solo atributos o metadatos). "
+            "Sube el .shp (los demás archivos son opcionales) o el .zip del shapefile, que es un solo archivo.",
         )
     if len(shp_stems) == 1:
         (only,) = shp_stems
@@ -581,7 +581,7 @@ def parse_uploads(uploads: list[tuple[str, bytes]]) -> dict:
         have = sorted({k.rsplit(".", 1)[-1].lower() for k in files if "." in k})
         raise GeoParseError(
             415,
-            "Formato no compatible. Usa un shapefile (.shp con .dbf y .prj, o un .zip), un GeoJSON, un KML o un KMZ"
+            "Formato no compatible. Usa un shapefile (el .shp solo, o un .zip), un GeoJSON, un KML o un KMZ"
             + (f" (recibí: {', '.join('.' + e for e in have)})." if have else "."),
         )
     if not raw:

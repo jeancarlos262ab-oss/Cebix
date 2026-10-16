@@ -235,7 +235,7 @@ export default function UploadDropzone({ onParsed }) {
 
       const file = files.find((f) => /\.csv$/i.test(f.name) || f.type === "text/csv");
       if (!file) {
-        toast.error("Formato no compatible. Sube un CSV, un shapefile (.zip, o .shp con .dbf, .prj, .shx y .cpg), un GeoJSON o un KML/KMZ.");
+        toast.error("Formato no compatible. Sube un CSV, un shapefile (el .zip, o solo el .shp), un GeoJSON o un KML/KMZ.");
         return;
       }
 
@@ -296,7 +296,7 @@ export default function UploadDropzone({ onParsed }) {
                 o arrástralo aquí
               </p>
             )}
-            <p className="text-xs text-gray-400 dark:text-gray-500">Shapefile (.zip o .shp .dbf .prj .shx .cpg) · GeoJSON · KML/KMZ · CSV — máx. 20 MB</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Shapefile (.zip o solo el .shp) · GeoJSON · KML/KMZ · CSV — máx. 20 MB</p>
           </>
         )}
       </Dropzone>
