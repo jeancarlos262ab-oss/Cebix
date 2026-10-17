@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowUpRight, ExternalLink, X } from "lucide-react";
 import BigNumber from "./BigNumber";
+import RangeBadge, { useParcelWarnings } from "../../ui/RangeBadge";
 import { GLASS, RISK_META, riskColorOf } from "./tokens";
 
 const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "—");
@@ -16,6 +17,7 @@ function Stat({ label, value }) {
 
 /** Detalle de la parcela elegida: rendimiento, intervalo de confianza 90 %, factores SHAP y accesos. */
 export default function SelectedParcelCard({ parcel, scale, onClose, className = "" }) {
+  const warnings = useParcelWarnings(parcel);
   const [lo, hi] = parcel.ic90 ?? [parcel.yieldEstimate, parcel.yieldEstimate];
   const [min, max] = scale;
   const span = max - min || 1;
@@ -67,6 +69,13 @@ export default function SelectedParcelCard({ parcel, scale, onClose, className =
             <span className="tabular-nums text-white/45">{parcel.score}</span>
           </span>
         </div>
+
+        {warnings.length > 0 && (
+          <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-amber-400/15 px-2.5 py-2 text-[11px] leading-snug text-amber-100">
+            <RangeBadge warnings={warnings} tone="dark" className="mt-px" />
+            <span>{warnings[0]} Estimación menos confiable.</span>
+          </p>
+        )}
 
         <div className="mt-5">
           <div className="flex items-center justify-between text-[11px] text-white/45">

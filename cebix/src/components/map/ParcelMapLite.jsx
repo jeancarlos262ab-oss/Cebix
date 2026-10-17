@@ -11,6 +11,7 @@
  * No se renderiza directamente desde las páginas: lo selecciona
  * automáticamente ParcelMap.jsx según el dispositivo.
  */
+import RangeBadge from "../ui/RangeBadge";
 import { LEFT_FADE_LENGTH, softFadeGradient } from "./edgeFade";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
@@ -471,6 +472,7 @@ function ParcelMapLite({
                       <div className="mt-0.5 text-xs text-gray-400">
                         {parcel.municipio}, {parcel.region}
                       </div>
+                      <RangeBadge parcel={parcel} tone="dark" className="mt-1.5" />
                     </div>
 
                     <dl className="mt-3 grid grid-cols-2 gap-px border border-white/10 bg-white/10">

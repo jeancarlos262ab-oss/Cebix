@@ -290,6 +290,8 @@ function buildAnalysisParcel(pred, row = {}, index = 0) {
     isCustom: false,
     fromModelRun: true,
     shap: pred.shap ?? [],
+    fueraDeRango: Boolean(pred.fuera_de_rango),
+    avisos: Array.isArray(pred.avisos) ? pred.avisos : [],
   };
 }
 

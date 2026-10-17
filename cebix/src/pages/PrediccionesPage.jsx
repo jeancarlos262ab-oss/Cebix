@@ -1,3 +1,4 @@
+import { RangeNotice } from "../components/ui/RangeBadge";
 import { useMemo, useState } from "react";
 import { toast } from "../services/toast";
 import { ChevronDown, FileDown, Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
@@ -182,12 +183,14 @@ function PrediccionesPageContent() {
               </p>
             </header>
 
+            <RangeNotice parcel={parcel} />
+
             {/* Resumen */}
             <SummaryPanel
               yieldEstimate={parcel.yieldEstimate}
-              half={parcel.confidence}
-              low={Math.max(0, parcel.yieldEstimate - parcel.confidence)}
-              high={parcel.yieldEstimate + parcel.confidence}
+              half={parcel.ic90 ? (parcel.ic90[1] - parcel.ic90[0]) / 2 : parcel.confidence}
+              low={parcel.ic90 ? parcel.ic90[0] : Math.max(0, parcel.yieldEstimate - parcel.confidence)}
+              high={parcel.ic90 ? parcel.ic90[1] : parcel.yieldEstimate + parcel.confidence}
               score={parcel.score}
               rows={[
                 { label: "NDVI pico", value: parcel.ndvi.toFixed(2) },

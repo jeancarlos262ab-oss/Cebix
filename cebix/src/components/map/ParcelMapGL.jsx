@@ -24,6 +24,7 @@ import { getAccentHex } from "../../utils/accentColors";
 import { usePageActive } from "../../context/PageActiveContext";
 import { openInGoogleMaps } from "../../utils/googleMaps";
 import RiskTrafficLight from "./RiskTrafficLight";
+import RangeBadge from "../ui/RangeBadge";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { RISK_COLORS } from "../../utils/riskColors";
 
@@ -901,6 +902,7 @@ function ParcelMapGL({
                 <p>
                   <span className="font-medium">Elegibilidad:</span> {popupInfo.risk}
                 </p>
+                <RangeBadge parcel={popupInfo} tone="dark" />
               </div>
               <div className="mt-3 flex gap-1.5">
                 {allowGroundView && (

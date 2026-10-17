@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import BigNumber from "./BigNumber";
 import { riskColorOf } from "./tokens";
+import RangeBadge from "../../ui/RangeBadge";
 
 /** Tira horizontal de parcelas (de mayor a menor rendimiento). Tocar una la selecciona y centra el mapa en ella. */
 export default function ParcelStrip({ parcels, selectedId, onSelect, className = "" }) {
@@ -91,7 +92,10 @@ export default function ParcelStrip({ parcels, selectedId, onSelect, className =
                 </span>
                 <span className="flex items-end justify-between gap-2">
                   <BigNumber value={p.yieldEstimate} unit="t/ha" className="text-[26px]" unitClassName="text-[10px]" />
-                  <span className="mb-0.5 text-[10px] tabular-nums text-white/40">{p.score}/100</span>
+                  <span className="mb-0.5 flex items-center gap-1.5 text-[10px] tabular-nums text-white/40">
+                    <RangeBadge parcel={p} tone="dark" compact />
+                    {p.score}/100
+                  </span>
                 </span>
               </button>
             </li>

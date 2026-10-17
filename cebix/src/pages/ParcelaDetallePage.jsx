@@ -1,3 +1,4 @@
+import { RangeNotice } from "../components/ui/RangeBadge";
 import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "../services/toast";
@@ -46,6 +47,8 @@ function ParcelaDetallePageContent() {
     );
   }
 
+  // Mitad del intervalo al 90 %: el calibrado del modelo si lo hay; si no, el margen guardado.
+  const halfIc = parcel.ic90 ? (parcel.ic90[1] - parcel.ic90[0]) / 2 : parcel.confidence;
 
   return (
     <>
@@ -139,6 +142,7 @@ function ParcelaDetallePageContent() {
         <div className="grid grid-cols-1 items-start gap-10 xl:grid-cols-[minmax(0,1fr)_360px]">
           {/* Columna principal */}
           <div className="min-w-0 space-y-10">
+            <RangeNotice parcel={parcel} />
             <section className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
               <Label>Rendimiento estimado</Label>
               <p className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -147,10 +151,10 @@ function ParcelaDetallePageContent() {
                 </span>
                 <span className="text-sm text-gray-500 dark:text-gray-400">ton/ha</span>
                 <span className="ml-1 text-sm tabular-nums text-gray-500 dark:text-gray-400">
-                  ± {parcel.confidence.toFixed(1)} (90 % de confianza)
+                  ± {halfIc.toFixed(1)} (90 % de confianza)
                 </span>
               </p>
-              <RangeBar estimate={parcel.yieldEstimate} half={parcel.confidence} />
+              <RangeBar estimate={parcel.yieldEstimate} half={halfIc} />
             </section>
 
             <section className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">

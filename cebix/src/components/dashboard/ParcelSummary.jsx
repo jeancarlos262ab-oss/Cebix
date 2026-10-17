@@ -1,3 +1,4 @@
+import { parcelWarnings } from "../../utils/reliability";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Download } from "lucide-react";
@@ -171,12 +172,14 @@ export default function ParcelSummary() {
     // "Predicción" — promedios sobre las parcelas de la última corrida del modelo (Random Forest).
     const avgYield = parcels.reduce((s, p) => s + p.yieldEstimate, 0) / parcels.length;
     const avgScore = parcels.reduce((s, p) => s + p.score, 0) / parcels.length;
+    const outside = parcels.filter((p) => parcelWarnings(p, info?.dominio).length > 0).length;
     return [
       { label: "Rendimiento estimado (promedio)", value: `${avgYield.toFixed(1)} ton/ha` },
+      ...(outside > 0 ? [{ label: "Parcelas fuera de rango", value: `${outside} de ${parcels.length} (menos confiables)` }] : []),
       { label: "Margen de error (RMSE espacial)", value: rmse == null ? "—" : `± ${rmse.toFixed(2)} ton/ha` },
       { label: "Score de elegibilidad (promedio)", value: `${Math.round(avgScore)} / 100` },
     ];
-  }, [activeTab, parcels, importance, rmse]);
+  }, [activeTab, parcels, importance, rmse, info]);
 
   return (
     <div className="min-w-0 space-y-10">

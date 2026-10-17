@@ -1,3 +1,4 @@
+import { RangeNotice } from "../ui/RangeBadge";
 import { Link } from "react-router-dom";
 import { Check, Download, Loader2, RotateCcw, Save } from "lucide-react";
 import FeaturesTable from "./FeaturesTable";
@@ -54,6 +55,8 @@ export default function ParcelResult({ result, view, ran, stale, save, downloade
           </button>
         </div>
       </header>
+
+      <RangeNotice warnings={result.avisos ?? []} />
 
       <SummaryPanel
         yieldEstimate={result.yieldEstimate}

@@ -552,6 +552,7 @@ function NuevaParcelaTab() {
         ic90_inferior: result.ic90_inferior,
         ic90_superior: result.ic90_superior,
         advertencias: result.advertencias ?? [],
+        avisos_dominio: result.avisos ?? [], // fuera de rango (lluvia / estado) al calcular
         proveedor: result.proveedor ?? null,
         calculado_en: new Date().toISOString(),
       },

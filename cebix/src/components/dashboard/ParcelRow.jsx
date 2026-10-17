@@ -3,6 +3,7 @@ import { RISK_COLORS } from "../../utils/riskColors";
 import { useNavigate } from "react-router-dom";
 import { Pencil, ChevronRight } from "lucide-react";
 import CategoryTag from "../ui/CategoryTag";
+import RangeBadge from "../ui/RangeBadge";
 
 // Rango de la barra de NDVI (el dataset real va de ≈ 0.4 a ≈ 0.85).
 const NDVI_MIN = 0.4;
@@ -54,6 +55,7 @@ function ParcelRow({ parcel, onEdit }) {
             {typeof parcel.confidence === "number" && (
               <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">± {parcel.confidence.toFixed(2)}</p>
             )}
+            <RangeBadge parcel={parcel} className="mt-1" />
           </div>
         </div>
       </td>

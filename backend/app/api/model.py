@@ -8,7 +8,8 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse, Response
 
 from app.config import EXAMPLE_DATOS_PATH, EXAMPLE_PLANET_PATH
-from app.services.model_service import get_artifact, get_model_meta, get_planet_meta
+from app.config import DOMAIN_GEO_MARGIN_DEG, DOMAIN_PRECIP_MARGIN
+from app.services.model_service import get_artifact, get_domain, get_model_meta, get_planet_meta
 
 router = APIRouter(tags=["modelo"])
 
@@ -20,6 +21,16 @@ def model_info():
     planet = get_planet_meta()
     if planet:
         meta["planetModel"] = planet
+    d = get_domain()
+    if d:  # dominio de entrenamiento: el frontend avisa de parcelas "fuera de rango" aunque se hayan guardado antes
+        meta["dominio"] = {
+            "precip": list(d["precip"]),
+            "lat": list(d["lat"]),
+            "lng": list(d["lng"]),
+            "estados": sorted(d["estados"]),
+            "margenPrecip": DOMAIN_PRECIP_MARGIN,
+            "margenGrados": DOMAIN_GEO_MARGIN_DEG,
+        }
     return meta
 
 
