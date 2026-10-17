@@ -1,3 +1,4 @@
+import { usePredictionMode } from "../services/predictionMode";
 import { useMemo, useState } from "react";
 import { BarChart3, CalendarRange, ChevronDown, ImageIcon, Layers, Sigma } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
@@ -239,7 +240,10 @@ function WindowBreakdown({ rows }) {
 function ValidacionSHAPPageContent() {
   const { parcels } = useParcels();
   const { info } = useModelInfo();
-  const { globalImportance, modelSummary, guidingQuestions } = info;
+  const { modelSummary, guidingQuestions } = info;
+  // La importancia global es la del modo elegido (lluvia o 10 variables); si el backend no trae modos, la de siempre.
+  const [predMode] = usePredictionMode();
+  const globalImportance = info.modelModes?.[predMode]?.importance?.length ? info.modelModes[predMode].importance : info.globalImportance;
   const [filter, setFilter] = useState("todas");
   const globalDirection = useMemo(
     () => Object.fromEntries(globalImportance.map((r) => [r.feature, r.direction])),
@@ -406,7 +410,7 @@ function ValidacionSHAPPageContent() {
                 className="h-full"
                 icon={BarChart3}
                 title="Importancia global de variables"
-                description={`Media de |SHAP| sobre las ${modelSummary.shapParcels} parcelas (entrenamiento y evaluación). Las 3 primeras variables concentran el ${rankedRows[2].cumulative}% de la importancia.`}
+                description={`Media de |SHAP| sobre las ${modelSummary.shapParcels} parcelas (entrenamiento y evaluación). ${rankedRows.length > 1 ? `Las ${Math.min(3, rankedRows.length)} primeras variables concentran el ${rankedRows[Math.min(3, rankedRows.length) - 1].cumulative}% de la importancia.` : "El modelo usa una sola variable."}`}
                 action={
                   <div className="flex flex-wrap items-center justify-end gap-2" role="group" aria-label="Filtrar por efecto">
                     {FILTERS.map((f) => {
