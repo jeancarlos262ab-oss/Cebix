@@ -9,6 +9,7 @@
  * muestra el error tal cual. Las cifras que ves salen siempre de imágenes satelitales reales
  * y del modelo entrenado.
  */
+import { getPredictionMode } from "./predictionMode";
 import { API_URL, ApiError, errorFromResponse, friendlyError } from "./modelApi";
 
 /**
@@ -24,7 +25,7 @@ export async function predictFromGeometry(payload, { signal } = {}) {
     res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ modo: getPredictionMode(), ...payload }),
       signal,
     });
   } catch (err) {

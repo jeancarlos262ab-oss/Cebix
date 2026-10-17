@@ -11,7 +11,7 @@ import { useState } from "react";
  *   multiple?: boolean,
  *   disabled?: boolean,
  *   busy?: boolean,
- *   active?: boolean,            // hay un archivo ya elegido (resalta el borde)
+ *   active?: boolean,            // hay un archivo ya elegido (el mismo borde punteado, en color de acento)
  *   className?: string,
  *   children: React.ReactNode | ((state: { dragging: boolean }) => React.ReactNode),
  * }} props
@@ -32,9 +32,9 @@ export default function Dropzone({
   const state = blocked
     ? "cursor-progress opacity-70"
     : dragging
-    ? "border-accent-500 bg-gray-50 dark:bg-gray-900"
+    ? "border-accent-500"
     : active
-    ? "border-gray-400 bg-gray-50 dark:border-gray-600 dark:bg-gray-900/60"
+    ? "border-accent-500"
     : "border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900";
 
   return (
@@ -50,7 +50,7 @@ export default function Dropzone({
         if (!blocked) onFiles(Array.from(e.dataTransfer.files ?? []));
       }}
       className={[
-        "flex cursor-pointer flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed px-6 py-8 text-center transition-colors focus-within:ring-2 focus-within:ring-accent-500 *:pointer-events-none",
+        "flex cursor-pointer flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed px-6 py-8 text-center transition-colors focus-within:border-accent-500 *:pointer-events-none",
         state,
         className,
       ].join(" ")}

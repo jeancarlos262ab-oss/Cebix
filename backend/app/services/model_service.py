@@ -9,11 +9,21 @@ import pandas as pd
 import shap
 from fastapi import HTTPException
 
-from app.config import META_PATH, MODEL_PATH, MODEL_PLANET_PATH, PASSTHROUGH_FIELDS, PLANET_META_PATH
+from app.config import META_PATH, MODEL_10VAR_PATH, MODEL_PATH, MODEL_PLANET_PATH, PASSTHROUGH_FIELDS, PLANET_META_PATH
 
 _cache: dict = {}  # variante -> (artefacto, explainer)
 _meta_cache = None
-_PATHS = {"abierto": MODEL_PATH, "planet": MODEL_PLANET_PATH}
+_PATHS = {"abierto": MODEL_PATH, "10var": MODEL_10VAR_PATH, "planet": MODEL_PLANET_PATH}
+# Modos que elige la persona en el front -> artefacto. "lluvia" es el modelo de producción; "10var" es el Plan B.
+MODOS = {"lluvia": "abierto", "10var": "10var"}
+
+
+def variant_from_modo(modo: str | None) -> str:
+    """Traduce el parámetro `modo` de la API ('lluvia' por defecto o '10var') al artefacto; 422 si no existe."""
+    m = (modo or "lluvia").strip().lower()
+    if m not in MODOS:
+        raise HTTPException(status_code=422, detail="modo debe ser 'lluvia' o '10var'.")
+    return MODOS[m]
 
 
 def get_artifact(variant: str = "abierto"):
@@ -42,7 +52,7 @@ def get_model_meta():
         if not os.path.exists(META_PATH):
             raise HTTPException(
                 status_code=500,
-                detail="Falta model_meta.json. Genéralo con: python ml/03_modelo/build_model_meta.py",
+                detail="Falta model_meta.json. Genéralo con: python ml/03_modelo/entrenar_y_validar.py",
             )
         with open(META_PATH, encoding="utf-8") as f:
             _meta_cache = json.load(f)
@@ -57,20 +67,42 @@ def run_inference(rows_df, estados, variant: str = "abierto"):
         if col not in rows_df.columns:
             rows_df[col] = np.nan  # el imputer entrenado rellena con la mediana de train
 
+    # Variables sin las que NO se predice: rellenarlas con la mediana de entrenamiento daría una cifra que parece una
+    # estimación y no lo es (el modelo se basa en la lluvia). Mejor un error claro.
+    required = artifact.get("required_features") or []
+    if required:
+        faltan = rows_df[required].isna().any(axis=1)
+        if faltan.any():
+            ids = rows_df.loc[faltan, "ID_POLIGONO"].astype(str).tolist() if "ID_POLIGONO" in rows_df.columns else []
+            muestra = ", ".join(ids[:5]) + (f" y {len(ids) - 5} más" if len(ids) > 5 else "")
+            raise HTTPException(
+                status_code=422,
+                detail="Falta la lluvia de abril–mayo (precip_acum_emergencia_macollamiento_mm), la variable del modelo"
+                + (f", en: {muestra}." if ids else ".")
+                + " No se estima sin ella.",
+            )
+
     X_raw = rows_df[feature_order]
+    # Variables (distintas de las obligatorias) que no vinieron y se rellenan con la mediana de entrenamiento.
+    imputed_cols = X_raw.isna()
     X_imp = artifact["imputer"].transform(X_raw)
     X_scaled = artifact["scaler"].transform(X_imp)
     X_scaled_df = pd.DataFrame(X_scaled, columns=feature_order)
 
     point_pred = artifact["model"].predict(X_scaled_df)
 
-    rng = np.random.default_rng(42)
-    residuals = artifact["residuals_oof"]
-    lowers, uppers = [], []
-    for p in point_pred:
-        boots = p + rng.choice(residuals, size=300, replace=True)
-        lowers.append(float(np.quantile(boots, 0.05)))
-        uppers.append(float(np.quantile(boots, 0.95)))
+    # IC 90 %: percentiles 5 y 95 de los residuos fuera de muestra sumados a la predicción. Se usan los residuos del
+    # estado de la parcela (recogen su sesgo y su dispersión) y, si el artefacto no los trae o el estado no está, los
+    # de todas las parcelas. Es determinista: una parcela da el mismo intervalo sin importar el orden ni el tamaño del archivo.
+    residuals = np.asarray(artifact["residuals_oof"], dtype=float)
+    by_state = artifact.get("residuals_by_state") or {}
+    q_global = np.quantile(residuals, [0.05, 0.95])
+    q_state = {}
+    for st, r in by_state.items():
+        r = np.asarray(r, dtype=float)
+        q_state[st] = np.quantile(r, [0.05, 0.95]) if len(r) >= 20 else q_global
+    lowers = [float(p + q_state.get(estados[i], q_global)[0]) for i, p in enumerate(point_pred)]
+    uppers = [float(p + q_state.get(estados[i], q_global)[1]) for i, p in enumerate(point_pred)]
 
     shap_values = explainer(X_scaled_df)
 
@@ -88,7 +120,10 @@ def run_inference(rows_df, estados, variant: str = "abierto"):
             }
             for j in order
         ]
+        faltantes = [artifact["feature_labels"].get(c, c) for c in feature_order if imputed_cols.iloc[i][c]]
         results.append({
+            "modo": "10var" if variant == "10var" else "lluvia",
+            "variables_imputadas": faltantes,
             "yieldEstimate": round(float(point_pred[i]), 2),
             "ic90_inferior": round(lowers[i], 2),
             "ic90_superior": round(uppers[i], 2),

@@ -136,7 +136,7 @@ El dashboard (`src/services/modelApi.js`) ya consume esta API: ejecuta el modelo
 
 ## Archivos de parcelas (`POST /parse-geometry`)
 
-Multipart con uno o varios archivos en el campo `files` (máx. 20 MB en total). Formatos: shapefile (un `.zip`, o `.shp` + `.dbf` + `.prj`
+Multipart con uno o varios archivos en el campo `files`. Formatos: shapefile (un `.zip`, o `.shp` + `.dbf` + `.prj`
 sueltos; `.shx` y `.cpg` opcionales), GeoJSON, KML y KMZ. Reproyecta a EPSG:4326 con el `.prj` (si no hay `.prj`, solo acepta coordenadas que ya sean
 lat/lng), separa los MultiPolygon, ignora altitud y huecos, simplifica contornos de más de 500 vértices y valida cada polígono con las mismas reglas
 que `/predict-from-geometry` (área 0.05–5000 ha, sin cruces). Cada polígono trae `error` si no se podría calcular.

@@ -1,0 +1,83 @@
+{
+  "primary": {
+    "rmse": 0.535,
+    "rmse_sd": 0.023,
+    "mae": 0.379,
+    "r2": 0.601
+  },
+  "newState": {
+    "rmse": 0.617,
+    "rmse_sd": 0.0,
+    "mae": 0.47,
+    "r2": 0.471
+  },
+  "stateMeanBaseline": {
+    "rmse": 0.731,
+    "rmse_sd": 0.019,
+    "mae": 0.531,
+    "r2": 0.257
+  },
+  "previous10Variables": {
+    "rmse": 0.62,
+    "rmse_sd": 0.022,
+    "mae": 0.46,
+    "r2": 0.465
+  },
+  "previous10VariablesOptimistic": {
+    "rmse": 0.523,
+    "rmse_sd": 0.03,
+    "mae": 0.379,
+    "r2": 0.618
+  },
+  "previous10VariablesNewState": {
+    "rmse": 0.766,
+    "rmse_sd": 0.0,
+    "mae": 0.622,
+    "r2": 0.185
+  },
+  "withinStateR2": 0.197,
+  "ic90Coverage": 0.897,
+  "ic90CoverageByState": {
+    "Hidalgo": 0.898,
+    "Puebla": 0.897,
+    "Tlaxcala": 0.898
+  },
+  "biasByState": {
+    "Hidalgo": -0.097,
+    "Puebla": 0.051,
+    "Tlaxcala": -0.078
+  },
+  "selectionStabilityPrevious10": {
+    "precip_acum_emergencia_macollamiento_mm": 1.0,
+    "bas_n_obs_ciclo": 0.8,
+    "bas_lai_espigado_llenado": 0.5,
+    "bas_ndti_emergencia_macollamiento": 0.67,
+    "bas_sti_encanado": 0.53,
+    "bas_ndvi_emergencia_macollamiento": 0.4,
+    "bas_ndwi_espigado_llenado": 0.33,
+    "bas_ndti_encanado": 0.1,
+    "bas_evi_emergencia_macollamiento": 0.43,
+    "bas_evi_encanado": 0.23
+  },
+  "blocks": 12,
+  "folds": 5,
+  "repetitions": 6,
+  "planet": {
+    "rmse": 0.546,
+    "rmse_sd": 0.027,
+    "mae": 0.385,
+    "r2": 0.585
+  },
+  "planetShallow": {
+    "rmse": 0.547,
+    "rmse_sd": 0.028,
+    "mae": 0.38,
+    "r2": 0.583
+  },
+  "planetNewState": {
+    "rmse": 0.649,
+    "rmse_sd": 0.0,
+    "mae": 0.498,
+    "r2": 0.414
+  }
+}

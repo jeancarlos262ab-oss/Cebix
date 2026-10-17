@@ -1,137 +1,129 @@
 # Reto AgroCebada FIRA 2026 — Pipeline y modelo (carpeta `ml/` de CEBIX)
 
+Actualizado con el dataset oficial completo (incluye los `.tif` de lluvia, temperatura y terreno). Todo se regenera con
+dos comandos y todas las cifras que muestra el dashboard salen de esa corrida.
+
 ## Mapa
 
 ```
-ml/README.md                       <- este archivo
-ml/GUIA_GOOGLE_EARTH_ENGINE.md     <- tarea para el compañero (features en vivo, gratis)
-ml/01_pipeline_features/           dataset crudo -> tabla de features (una fila por parcela)
-ml/02_datos_procesados/            features_train / features_predict / features_completo (CSV)
-ml/03_modelo/                      entrenamiento, validación espacial, SHAP (3 rondas)
-                                   + build_model_meta.py (genera backend/model_meta.json)
-ml/04_entrega_final/               make_submission.py -> CSV que se manda a FIRA
-ml/build_example_csv.py            genera backend/data/ejemplo_features_predict.csv (con lat/lng)
-backend/                           API FastAPI que ejecuta el modelo EN VIVO (+ export_model.py)
-src/                               frontend: consume la API, sin datos del modelo fijos
+ml/01_pipeline_features/build_features.py   dataset oficial -> tabla de features (una fila por parcela, con lat/lng)
+ml/02_datos_procesados/                     features_completo / _train / _predict (CSV)
+ml/03_modelo/entrenar_y_validar.py          ÚNICO script de modelo: valida, entrena, exporta artefactos y metadatos
+ml/03_modelo/resultados_FINAL/              CSV/JSON de la última corrida (comparación, búsqueda, variables extra, predicciones)
+ml/04_entrega_final/make_submission.py      CSV que se manda a FIRA (valida las 59 parcelas)
+ml/build_example_csv.py                     genera backend/data/ejemplo_features_predict.csv
+ml/historico/                               scripts y resultados de rondas anteriores (NO usar, ver "Qué cambió")
+backend/                                    API FastAPI que ejecuta los modelos en vivo
 ```
-
-## Resultado final del modelo
-
-**Random Forest, 10 features, sin Planet — RMSE 0.642 t/ha, MAE 0.489, R² 0.426**
-(validación espacial leave-region-out sobre las 138 parcelas de entrenamiento: en cada
-iteración se deja fuera un estado completo — Hidalgo, Puebla o Tlaxcala).
-
-RMSE por estado excluido: Tlaxcala 0.435 · Hidalgo 0.619 · Puebla 0.725.
-
-### Cómo se llegó (narrativa para el reporte técnico)
-
-| Ronda | Qué se hizo | Mejor modelo | RMSE | R² |
-|---|---|---|---|---|
-| 1 | Baseline con las 97 features | Random Forest | 0.740 | 0.240 |
-| 2 | Selección por SHAP (top-15, incluía 3 de Planet) | Random Forest | 0.645 | 0.422 |
-| 3 (**FINAL**) | Selección por SHAP **sin Planet ni índices no reproducibles** (top-10 de 68) | Random Forest | **0.642** | **0.426** |
-
-1. Con 97 features y 138 parcelas había sobreajuste. Rankear por SHAP y quedarse con un
-   subconjunto casi duplicó el R² (0.24 -> 0.42), validado siempre con la misma
-   leave-region-out.
-2. **Decisión de presupuesto cero:** se excluyó todo lo que no se puede reproducir con
-   fuentes gratuitas (Planet, que es de pago; FAPAR, VI6T, MRA y NDDI/ENDDI, difíciles o
-   no reproducibles exactos). El resultado fue igual o ligeramente mejor, y ahora las 10
-   variables se pueden recalcular en vivo con Google Earth Engine.
-
-### Las 10 variables finales
-
-precipitación en emergencia-macollamiento · densidad de observaciones (nº de escenas) ·
-LAI espigado-llenado · NDTI emergencia-macollamiento · STI encañado · NDVI
-emergencia-macollamiento · NDWI espigado-llenado · NDTI encañado · EVI
-emergencia-macollamiento · EVI encañado.
-
-Respuesta a las **preguntas guía de FIRA** (dan bonus): la variable con más peso es, por
-mucho, la precipitación temprana (emergencia-macollamiento; SHAP ≈ 0.65 vs ≈ 0.05 de la
-siguiente); entre los índices, LAI (espigado-llenado) va primero (≈0.054), seguido de NDTI, NDWI, EVI y STI con pesos similares (≈0.03–0.04); la
-ventana más informativa es emergencia-macollamiento (4 de 10 variables).
 
 ## Cómo correr todo
 
 ```bash
-# 1) Features (necesita el dataset de FIRA descomprimido)
-pip install -r 01_pipeline_features/requirements.txt
-python 01_pipeline_features/build_features.py --data-dir /ruta/DATASET_RETO_AGRO_2026 --out-dir ./output
+pip install -r 01_pipeline_features/requirements.txt xgboost lightgbm shap scikit-learn==1.8.0
 
-# 2) Modelo (las 3 rondas; la 3 es la final)
-pip install xgboost lightgbm shap scikit-learn
-python 03_modelo/train_model.py --train output/features_train.csv --predict output/features_predict.csv --out-dir ./modelo
-python 03_modelo/select_features.py --train output/features_train.csv --predict output/features_predict.csv --out-dir ./modelo_v2
-python 03_modelo/select_features_sin_planet.py --train output/features_train.csv --predict output/features_predict.csv --out-dir ./modelo_sin_planet
+# 1) Features (el dataset oficial descomprimido: shapefile, CSV Básico/PRO, CHIRPS, temperatura, topografía)
+python 01_pipeline_features/build_features.py --data-dir /ruta/DATASET_RETO_AGRO_2026 --out-dir 02_datos_procesados
 
-# 3) CSV de entrega a FIRA (usa las predicciones de la ronda 3)
-python 04_entrega_final/make_submission.py \
-    --predictions modelo_sin_planet/predicciones_finales.csv \
-    --features-predict output/features_predict.csv --team NOMBRE_DE_TU_EQUIPO
+# 2) Modelos + validación + metadatos (≈4 min). Escribe backend/models/*.joblib y *_meta.json
+python 03_modelo/entrenar_y_validar.py
+
+# 3) Entrega a FIRA
+python 04_entrega_final/make_submission.py --predictions 03_modelo/resultados_FINAL/predicciones_finales.csv \
+    --features-predict 02_datos_procesados/features_predict.csv --team NOMBRE_DE_TU_EQUIPO
 ```
 
-Los scripts de `03_modelo/` importan entre sí (`train_model.py`): déjalos en la misma
-carpeta. Ya vienen los resultados de las 3 rondas en `03_modelo/resultados_*`.
+Verificado: el pipeline reproduce **exacto** (diferencia 0) los `features_*.csv` anteriores con el dataset oficial, la lluvia coincide con
+la tabla de referencia del backend (`parcelas_oficiales.csv`, diferencia < 1e-5) y los centroides lat/lng coinciden exacto.
+
+## Resultado (validación honesta)
+
+**Modelo en producción: Random Forest poco profundo (profundidad 2) sobre una sola variable, la lluvia CHIRPS acumulada en
+emergencia-macollamiento (abril–mayo).** Se llegó por evidencia: con validación honesta ninguna combinación de índices
+satelitales, temperatura, terreno o lluvia de otras etapas le gana a la lluvia sola; añadir las 10 variables que se usaban antes
+la iguala en el mejor caso y la empeora cuando la elección de variables se hace dentro de la validación.
+
+| Medida | RMSE t/ha | R² |
+|---|---|---|
+| **Modelo en producción**, bloques espaciales (cifra reportada) | **0.54** | **0.60** |
+| Referencia ingenua: promedio del estado | 0.73 | 0.26 |
+| Modelo anterior (10 variables elegidas dentro de cada partición) | 0.62 | 0.47 |
+| Modelo anterior con las 10 variables fijas (optimista: la elección vio todos los datos) | 0.52 | 0.62 |
+| Estado nuevo (se deja un estado completo fuera): producción | 0.62 | 0.47 |
+| Estado nuevo: modelo anterior de 10 variables | 0.77 | 0.19 |
+| Lluvia + 12 variables Planet, bloques espaciales (no se usa) | 0.55 | 0.59 |
+
+Error por estado (margen de error y semáforo): Tlaxcala 0.40, Hidalgo 0.54, Puebla 0.59 t/ha. El IC del 90 % usa los residuos
+fuera de muestra de cada estado y cubrió 90 % (89.7–89.8 % por estado). Sesgo medio por estado (real − predicho): Hidalgo −0.10,
+Puebla +0.05, Tlaxcala −0.08 t/ha. R² intra-estado: 0.20 (contra el promedio real de cada estado).
+
+### Qué cambió respecto a la versión anterior (y por qué las cifras no son comparables)
+
+1. **Validación.** Antes: dejar un estado completo fuera (leave-region-out). Ahora: bloques espaciales (k-means sobre lat/lng,
+   12 bloques, 5 folds, 6 repeticiones); el estado nuevo queda como prueba de estrés. Las 59 parcelas a predecir son una muestra
+   al azar de los mismos 3 estados (15/29/15, igual que el entrenamiento). Un k-fold al azar infla el resultado porque el vecino
+   más cercano de cada parcela está a ~0.4 km.
+2. **Selección de variables sin fuga.** Antes las 10 variables se elegían con SHAP sobre las 138 parcelas y luego se validaba
+   con esas mismas parcelas. Rehecha dentro de cada partición, el RMSE pasa de 0.52 a 0.62; solo la lluvia se elige en el 100 %
+   de las particiones y el resto es inestable (10–80 %).
+3. **Modelo.** De 10 variables a la lluvia temprana (arriba). En particiones nuevas, la lluvia con Random Forest de profundidad 2
+   fue la mejor entre ocho alternativas tanto en bloques (0.53) como en estado nuevo (0.62); XGBoost, LightGBM y los lineales
+   con la misma variable quedaron peor.
+4. **Intervalos calibrados por estado** con los residuos de esta validación. El backend ya no usa sorteos al azar (la misma
+   parcela da siempre el mismo intervalo) y **no predice si falta la lluvia** (antes rellenaba con la mediana de entrenamiento).
+5. **Planet.** No mejora a la lluvia sola, así que un CSV PRO se ejecuta con el mismo modelo y sus índices quedan como contexto.
+   Con el CSV Básico y el PRO una misma parcela da el mismo resultado.
+6. **Semáforo** (en el frontend): probabilidad de alcanzar el rendimiento de referencia con el rendimiento estimado y el error
+   por estado, sin el NDVI ni pesos fijos.
+
+## Lo que hay que decir con honestidad en el reporte técnico
+
+- **El modelo es de lluvia.** Los índices satelitales se calculan y se muestran como contexto de la parcela, pero con 138 parcelas
+  no demostraron mejorar la predicción (tabla `resultados_FINAL/variables_extra.csv`: NDVI de pico, LAI, elevación, pendiente,
+  temperatura, lluvia de otras etapas y coordenadas no mejoran; varias empeoran).
+- **La lluvia (CHIRPS ~5 km) distingue zonas, no parcelas vecinas**, y va ligada al estado: Tlaxcala llueve más (~214 mm contra
+  ~127–138) y rinde menos (~3.0 contra 3.8–4.5 t/ha). Dentro de un estado el modelo explica poco (R² intra-estado 0.20).
+- **Solo hay evidencia en Hidalgo, Puebla y Tlaxcala**: en un estado sin parcelas de entrenamiento el RMSE es 0.62.
+- Hay sesgo por estado en la validación; el intervalo por estado lo recoge.
+- R² ≈ 0.60 con 138 parcelas: referencia de riesgo relativo, no una cifra exacta de cosecha.
+- La elección del modelo se hizo con estas mismas 138 parcelas (pocas alternativas y una sola variable, así que el optimismo
+  residual es pequeño, pero no es cero).
+
+## Supuestos y decisiones metodológicas
+
+- **Ventanas fenológicas fijas** (el dataset no trae fechas de siembra/cosecha): emergencia-macollamiento abr–may, encañado
+  jun–jul, espigado-llenado ago–sep. Editables en `PHENO_WINDOWS` de `build_features.py`; conviene respaldarlas con SIAP/INIFAP.
+- Nubosidad: se descartan observaciones con > 40 %. Agregación por ventana: **mediana**.
+- Clima: muestreo zonal con `all_touched=True` (parcelas 0.35–64 ha contra píxeles de ~5 km). GDD aproximado con temperatura mensual.
+- Índices: las ecuaciones de Sentinel-2 del backend (NDVI, EVI, SAVI, LAI) coinciden con `Ecuaciones_indices_AgroCebada_FIRA_2026`.
+  Planet entrega sus índices ya calculados; sus valores no son equivalentes a los de Sentinel-2 (otra resolución y sensor),
+  por eso hay un modelo aparte y no se mezclan.
+- Planet (de pago), FAPAR, VI6T, MRA y NDDI/ENDDI no entran a ningún modelo en producción (Planet se evaluó y no mejora; los otros no son reproducibles en vivo con fuentes gratuitas).
+- Agricultura de temporal confirmada por FIRA (sin riego): el clima es el driver central.
 
 ## Entrega a FIRA (checklist)
 
-- [ ] Subir a la plataforma del reto: reporte técnico (estructura y límites de palabras
-      de las bases), app/dashboard con enlace, código fuente + documentación, video ≤ 5 min.
-- [ ] Enviar a **innovacion@fira.gob.mx** el CSV `nombre_del_equipo_prediccion.csv`
-      (generado con `make_submission.py`, que valida las 59 parcelas).
+- [ ] Subir a la plataforma del reto: reporte técnico, app/dashboard con enlace, código fuente + documentación, video ≤ 5 min.
+- [ ] Enviar a **innovacion@fira.gob.mx** el CSV `nombre_del_equipo_prediccion.csv` (lo genera `make_submission.py`).
 - [ ] Si se usó IA: indicar dónde y **anexar los prompts** (lo exigen las bases).
 - [ ] Fecha límite: **19 de octubre de 2026, 23:59**.
 
-## Supuesto más importante — declararlo en el reporte
-
-El dataset no trae fechas de siembra/cosecha. Se asumieron ventanas fenológicas fijas en
-el ciclo abril–octubre 2025: emergencia-macollamiento (abr–may), encañado (jun–jul),
-espigado-llenado (ago–sep). Editable en `PHENO_WINDOWS` de `build_features.py`; conviene
-respaldarlo con literatura/boletines agronómicos (SIAP, INIFAP).
-
-## Decisiones metodológicas (mencionarlas en Metodología)
-
-- Nubosidad: se descartan observaciones con > 40% (umbral sugerido por FIRA).
-- Agregación por ventana: **mediana** de las observaciones (robusta a nubes residuales).
-- Clima: muestreo zonal con `all_touched=True` (parcelas 0.35–64 ha vs píxeles ~5 km).
-- GDD aproximado con temperatura mensual (`max(0, Tmedia − 4°C) × 30`); ya no entra al
-  modelo final pero sí a la tabla de features.
-- Intervalo de confianza 90% por bootstrap de residuales out-of-fold.
-- Agricultura de temporal confirmada por FIRA (sin riego) -> el clima es el driver central.
-- NDDI/ENDDI usan NDVI/NDWI remuestreados a 8 bits (nota del PDF de FIRA): no son el
-  mismo NDVI de `ndvi_promedio`. Además LAI de Sentinel-2 (log vía SAVI) y de Planet
-  (lineal) son definiciones distintas.
-
-## Limitaciones a declarar honestamente (el jurado las puede detectar)
-
-1. **La precipitación en emergencia-macollamiento domina el modelo y está parcialmente
-   confundida con el estado**: Tlaxcala llueve más (≈212 mm vs ≈126–137 mm) y rinde menos
-   (≈3.0 vs 3.8–4.5 t/ha), y CHIRPS (~5 km) no distingue bien entre parcelas cercanas. La
-   validación leave-region-out mitiga (el modelo sí generaliza al estado excluido, R²≈0.43)
-   pero no elimina el efecto. Mejora futura: clima de mayor resolución o estaciones.
-2. **`bas_n_obs_ciclo` (nº de escenas válidas) no es una variable agronómica**, es de
-   calidad/densidad del dato satelital. Se revisó que no codifique el estado (medias
-   similares entre estados), pero hay que explicarla como lo que es.
-3. **R² ≈ 0.43 con 138 parcelas**: es una referencia de riesgo relativo, no una cifra
-   exacta de cosecha. Decirlo así de claro suma credibilidad.
-
-## Ejecución en vivo
-
-- `backend/`: **backend real**. Carga el modelo y lo ejecuta en cada request (`/predict-csv`,
-  `/predict`). Probado end-to-end: al mandarle el CSV de las 59 parcelas de evaluación, las
-  predicciones coinciden **exacto (0 diferencias)** con las calculadas offline. Esto responde a
-  "aplicación que permita ejecutar el modelo predictivo" de las bases.
-- El frontend ya no trae datos precalculados: métricas y SHAP global vienen de `GET /model-info`
-  (generado por `03_modelo/build_model_meta.py` a partir de los resultados reales), y las
-  predicciones de `POST /predict-csv`.
-- **Pendiente (tarea del compañero):** `GUIA_GOOGLE_EARTH_ENGINE.md` — calcular las 10
-  features en vivo para una geometría nueva, para poder predecir parcelas fuera del
-  dataset. Todo con fuentes gratuitas.
-
-## Regenerar los artefactos del backend
+## Regenerar otros artefactos del backend
 
 ```bash
-python backend/export_model.py                       # model_artifact.joblib
-python ml/03_modelo/build_model_meta.py              # model_meta.json
-python ml/build_example_csv.py --shapefile /ruta/Parcelas_Reto_AGC_CONJUNTO.shp   # CSV de ejemplo
+python ml/build_example_csv.py --shapefile /ruta/Parcelas_Reto_AGC_CONJUNTO.shp   # ejemplo_features_predict.csv
 ```
+`backend/data/parcelas_oficiales.csv` (lluvia abr–may y contexto de las 197 parcelas) sale de `features_completo.csv`
+(columnas `precip_acum_emergencia_macollamiento_mm`, `lat`, `lng`, `Estado`, `Municipio`, `area_ha`, `CONJUNTO`).
+
+## Modos de predicción (lluvia / 10 variables)
+
+`entrenar_y_validar.py` exporta dos artefactos y la API los elige con el parámetro `modo` (el front lo guarda y lo envía):
+
+| Modo | Artefacto | Variables | RMSE (bloques espaciales) | R² |
+|---|---|---|---|---|
+| `lluvia` (por defecto) | `model_artifact.joblib` | lluvia abril–mayo | 0.535 | 0.60 |
+| `10var` (Plan B) | `model_artifact_10var.joblib` | lluvia + 9 índices Sentinel-2/Landsat | 0.620 | 0.47 |
+
+- El intervalo del 90 % y el RMSE por estado de cada modo salen de su propia validación fuera de muestra. En el Plan B se usa la validación con selección de variables dentro de cada partición (la cifra honesta), no la de variables fijas (0.523, optimista).
+- El Plan B exige la lluvia; si faltan índices satelitales los rellena con la mediana de entrenamiento y la respuesta lista `variables_imputadas`.
+- El CSV PRO (Planet) no trae las 10 variables: con `modo=10var` responde 422 con un mensaje claro.

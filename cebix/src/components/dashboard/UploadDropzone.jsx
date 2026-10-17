@@ -9,10 +9,11 @@ import { isGeoFile, parseGeometryFiles } from "../../services/geoApi";
 import BatchSizeDialog from "./BatchSizeDialog";
 import StagedParcelsDialog from "./StagedParcelsDialog";
 import Dropzone from "../ui/Dropzone";
+import { detectKind } from "../../utils/csvKind";
+import { Z90, scoreFromInputs } from "../../context/ParcelsContext";
 
 const REQUIRED_FIELDS = ["name", "municipio", "region", "area", "lat", "lng", "ndvi", "precip", "gdd", "yieldEstimate"];
 
-const MAX_UPLOAD_MB = 20;
 const GEO_YEAR = 2025; // ciclo con el que se entrenó el modelo
 
 const finite = (v) => (v !== null && v !== undefined && Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -35,6 +36,8 @@ function geometryResultToFields(poly, estado, data) {
     gdd: 0,
     yieldEstimate: data.yieldEstimate,
     confidence: Number.isFinite(half) ? half : undefined,
+    // Mismo criterio que el resto de la app (probabilidad de alcanzar el rendimiento de referencia); σ = mitad del IC 90 % / 1.645.
+    ...(Number.isFinite(half) && { score: scoreFromInputs({ yieldEstimate: data.yieldEstimate, confidence: half / Z90 }) }),
   };
 }
 
@@ -76,9 +79,14 @@ function validateFields(fields) {
 }
 
 /**
- * @param {{onParsed?: (fields: object[]) => Promise<{failed?: number, message?: string}|void>|void}} props
+ * @param {{
+ *   onParsed?: (fields: object[]) => Promise<{failed?: number, message?: string}|void>|void,
+ *   onModelCsv?: (file: File, kind: "planet"|"basico"|"otro") => Promise<void>
+ * }} props
+ * `onModelCsv`: si se pasa, los CSV oficiales (Básico / PRO) se mandan al modelo, igual que en la pestaña
+ * Modelo, en lugar de leerse como filas de parcelas. También es el último recurso con un CSV de variables.
  */
-export default function UploadDropzone({ onParsed }) {
+export default function UploadDropzone({ onParsed, onModelCsv }) {
   const [busy, setBusy] = useState(false);
   const abortRef = useRef(null);
   const [pendingBatch, setPendingBatch] = useState(null); // { total, omitted, fileName, resolve }
@@ -237,15 +245,30 @@ export default function UploadDropzone({ onParsed }) {
     [askBatchSize, stage]
   );
 
+  /** Ejecuta el modelo con el CSV (lo hace el padre). `fallbackMessage` sustituye al error si no era un CSV del modelo. */
+  const runModel = useCallback(
+    async (file, kind, fallbackMessage) => {
+      setBusy(true);
+      const id = toast.loading(
+        kind === "planet"
+          ? "Archivo de Planet detectado: ejecutando el modelo…"
+          : "Ejecutando el modelo con tu archivo…"
+      );
+      try {
+        await onModelCsv(file, kind);
+        toast.success('Modelo ejecutado. Pulsa "Guardar corrida" para conservar los resultados.', { id });
+      } catch (err) {
+        toast.error(fallbackMessage ?? userMessage(err, "No se pudo ejecutar el modelo con el archivo."), { id, duration: 12000 });
+      } finally {
+        setBusy(false);
+      }
+    },
+    [onModelCsv]
+  );
+
   const processFiles = useCallback(
     async (files) => {
       if (busy || files.length === 0) return;
-
-      const total = files.reduce((sum, f) => sum + f.size, 0);
-      if (total > MAX_UPLOAD_MB * 1024 * 1024) {
-        toast.error(`Los archivos pesan ${(total / 1048576).toFixed(1)} MB y el máximo es ${MAX_UPLOAD_MB} MB.`);
-        return;
-      }
 
       // Shapefile (.zip o .shp + .dbf + .prj), GeoJSON, KML y KMZ: se procesan en el backend.
       const geoFiles = files.filter(isGeoFile);
@@ -258,6 +281,15 @@ export default function UploadDropzone({ onParsed }) {
       if (!file) {
         toast.error("Formato no compatible. Sube un CSV, un shapefile (el .zip, o solo el .shp), un GeoJSON o un KML/KMZ.");
         return;
+      }
+
+      // CSV oficial (Básico o PRO): se ejecuta el modelo con él, como en la pestaña Modelo.
+      if (onModelCsv) {
+        const kind = await detectKind(file);
+        if (kind !== "otro") {
+          await runModel(file, kind);
+          return;
+        }
       }
 
       try {
@@ -280,6 +312,9 @@ export default function UploadDropzone({ onParsed }) {
           toast.success(`${plural(validRows.length, "fila lista", "filas listas")} desde ${file.name}. Pulsa "Guardar" para agregarlas.`);
         } else if (validRows.length > 0) {
           toast.warning(`${validRows.length} fila(s) listas para guardar; ${invalidCount} fila(s) omitidas por datos faltantes o inválidos (se requieren: ${REQUIRED_FIELDS.join(", ")}).`);
+        } else if (onModelCsv) {
+          // No es una tabla de parcelas: puede ser un CSV de variables para el modelo.
+          await runModel(file, "otro", `Ninguna fila es válida. Columnas requeridas: ${REQUIRED_FIELDS.join(", ")}.`);
         } else {
           toast.error(`Ninguna fila es válida. Columnas requeridas: ${REQUIRED_FIELDS.join(", ")}.`);
         }
@@ -287,7 +322,7 @@ export default function UploadDropzone({ onParsed }) {
         toast.error(userMessage(err, "No se pudo leer el archivo. Revisa que sea un CSV válido."));
       }
     },
-    [busy, processGeometry, stage]
+    [busy, processGeometry, stage, onModelCsv, runModel]
   );
 
   return (
@@ -317,7 +352,7 @@ export default function UploadDropzone({ onParsed }) {
                 o arrástralo aquí
               </p>
             )}
-            <p className="text-xs text-gray-400 dark:text-gray-500">Shapefile (.zip o solo el .shp) · GeoJSON · KML/KMZ · CSV — máx. 20 MB</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Shapefile (.zip o solo el .shp) · GeoJSON · KML/KMZ · CSV</p>
           </>
         )}
       </Dropzone>

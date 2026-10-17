@@ -1,0 +1,7 @@
+model,rmse,mae,r2,type
+Random Forest,0.535,0.379,0.601,ensamble
+LightGBM,0.564,0.401,0.552,boosting
+XGBoost,0.596,0.418,0.502,boosting
+Ridge,0.715,0.57,0.282,baseline
+Lasso,0.722,0.585,0.27,baseline
+ElasticNet,0.722,0.585,0.27,baseline

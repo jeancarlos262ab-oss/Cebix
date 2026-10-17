@@ -406,7 +406,7 @@ function ValidacionSHAPPageContent() {
                 className="h-full"
                 icon={BarChart3}
                 title="Importancia global de variables"
-                description={`Media de |SHAP| sobre las ${modelSummary.shapParcels} parcelas del reto (entrenamiento y evaluación). Las 3 primeras variables concentran el ${rankedRows[2].cumulative}% de la importancia.`}
+                description={`Media de |SHAP| sobre las ${modelSummary.shapParcels} parcelas (entrenamiento y evaluación). Las 3 primeras variables concentran el ${rankedRows[2].cumulative}% de la importancia.`}
                 action={
                   <div className="flex flex-wrap items-center justify-end gap-2" role="group" aria-label="Filtrar por efecto">
                     {FILTERS.map((f) => {

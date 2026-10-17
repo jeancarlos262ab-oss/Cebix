@@ -37,18 +37,30 @@ const EMPTY_STORE = { uid: null, analysis: null, submissions: {}, dirty: false }
 const LEGACY_KEYS = [SUBMISSIONS_KEY, ANALYSIS_KEY];
 const clearLegacyKeys = () => LEGACY_KEYS.forEach((key) => appStorage.remove(key));
 
-/** Deriva score / riesgo / semáforo a partir del rendimiento estimado y su margen de error,
- * usando el mismo criterio que ya usa el dataset (score >= 70 elegible, 45-69 revisión, <45 alto riesgo). */
-export function scoreFromInputs({ yieldEstimate, confidence, ndvi }) {
-  // Heurística explícita y trazable (no es el Random Forest de producción, que
-  // requiere features satelitales completas): combina rendimiento normalizado
-  // sobre 6 ton/ha, vigor NDVI y estabilidad (menor margen de error = más
-  // confianza), con proporciones fijas de negocio (no vienen del modelo).
-  const yieldScore = Math.max(0, Math.min(1, yieldEstimate / 6)) * 55;
-  const ndviScore = Math.max(0, Math.min(1, (ndvi - 0.3) / 0.5)) * 30;
-  const stabilityPenalty = Math.max(0, Math.min(1, confidence / 1.5)) * 15;
-  const raw = yieldScore + ndviScore - stabilityPenalty + 15;
-  return Math.round(Math.max(0, Math.min(100, raw)));
+/** Rendimiento de referencia (t/ha) para el semáforo: una parcela es "elegible" si es probable que lo alcance.
+ * Es la única decisión de negocio del cálculo; cámbiala aquí si FIRA define otro mínimo. */
+export const MIN_YIELD_TON_HA = 3.5;
+/** Un intervalo de confianza de 90 % mide ±1.645 desviaciones típicas. */
+export const Z90 = 1.645;
+
+// Función de distribución normal estándar (aproximación de Abramowitz-Stegun 7.1.26, error < 1.5e-7).
+function normalCdf(z) {
+  const t = 1 / (1 + 0.3275911 * Math.abs(z) / Math.SQRT2);
+  const poly = t * (0.254829592 + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
+  const erf = 1 - poly * Math.exp(-(z * z) / 2);
+  return 0.5 * (1 + (z >= 0 ? erf : -erf));
+}
+
+/** Score de elegibilidad (0-100) = probabilidad (%) de que el rendimiento real sea >= MIN_YIELD_TON_HA.
+ * Sale solo de lo que mide el modelo: el rendimiento estimado y su error típico en t/ha (`confidence`, el RMSE
+ * del estado, validado dejando un estado fuera). Sin NDVI ni pesos fijos, y es igual con el CSV Básico o el PRO.
+ * Cortes: >= 70 elegible, 45-69 revisión, < 45 alto riesgo. */
+export function scoreFromInputs({ yieldEstimate, confidence }) {
+  const y = Number(yieldEstimate);
+  if (!Number.isFinite(y)) return 0;
+  const sigma = Number(confidence);
+  const p = sigma > 0 ? normalCdf((y - MIN_YIELD_TON_HA) / sigma) : y >= MIN_YIELD_TON_HA ? 1 : 0;
+  return Math.round(Math.max(0, Math.min(1, p)) * 100);
 }
 
 export function classifyRisk(score) {
@@ -187,7 +199,7 @@ function buildParcelRecord(fields, existingParcels, importance = []) {
   const score =
     fields.score !== undefined && fields.score !== "" && !Number.isNaN(Number(fields.score))
       ? Math.round(Number(fields.score))
-      : scoreFromInputs({ yieldEstimate, confidence, ndvi });
+      : scoreFromInputs({ yieldEstimate, confidence });
   const { risk, riskColor } = classifyRisk(score);
 
   return {
@@ -242,14 +254,15 @@ function buildAnalysisParcel(pred, row = {}, index = 0) {
   const confidence = firstNum(pred.confidence) ?? 0;
   const ic90 = [firstNum(pred.ic90_inferior) ?? yieldEstimate, firstNum(pred.ic90_superior) ?? yieldEstimate];
 
-  // Mismos campos que se mostraban antes, ahora leídos del CSV de la corrida.
-  const ndvi = firstNum(meta.bas_ndvi_pico_ciclo, meta.ndvi, meta.bas_ndvi_emergencia_macollamiento, meta.pro_ndvi_espigado_llenado) ?? 0;
+  // NDVI de pico del ciclo (mismo cálculo en Básico y PRO, lo manda el backend): así el semáforo no depende de qué
+  // archivo se subió. Mismos campos que se mostraban antes, ahora leídos del CSV de la corrida.
+  const ndvi = firstNum(meta.ndvi_pico_ciclo, meta.bas_ndvi_pico_ciclo, meta.ndvi, meta.bas_ndvi_emergencia_macollamiento, meta.pro_ndvi_espigado_llenado) ?? 0;
   const evi = firstNum(meta.bas_evi_encanado, meta.evi, meta.bas_evi_emergencia_macollamiento, meta.pro_evi_encanado) ?? 0;
   const precip = firstNum(meta.precip_acum_ciclo_mm, meta.precip, meta.precip_acum_emergencia_macollamiento_mm) ?? 0;
   const gdd = firstNum(meta.gdd_acumulado_ciclo, meta.gdd) ?? 0;
   const area = firstNum(meta.area_ha, meta.AREA_HA);
 
-  const score = scoreFromInputs({ yieldEstimate, confidence, ndvi });
+  const score = scoreFromInputs({ yieldEstimate, confidence });
   const { risk, riskColor } = classifyRisk(score);
   const tail = /^AGC_(\d+)$/i.exec(polygonId);
 

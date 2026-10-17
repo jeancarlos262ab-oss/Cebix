@@ -19,12 +19,12 @@ import { Link } from "react-router-dom";
 import LiquidOrbLoader from "./LiquidOrbLoader";
 import Dropzone from "../ui/Dropzone";
 import DocumentPeek from "../ui/DocumentPeek";
+import ModeSelector from "./ModeSelector";
 import { useModelInfo } from "../../context/ModelInfoContext";
 import { useParcels } from "../../context/ParcelsContext";
-import { EXAMPLE_CSV_URL, fetchExampleFile, friendlyError, predictCsv } from "../../services/modelApi";
+import { EXAMPLE_TODOS_URL, fetchExampleFile, friendlyError, predictCsv } from "../../services/modelApi";
 import { formatNumber } from "../../utils/intl";
-
-const STATES = ["Hidalgo", "Puebla", "Tlaxcala"];
+import { detectKind } from "../../utils/csvKind";
 
 // Tiempo mínimo que el orbe "piensa", aunque el backend responda antes.
 const MIN_THINKING_MS = 5000;
@@ -37,15 +37,6 @@ const SCROLL_MAX_MS = 1100;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// El CSV Básico oficial del reto (~34 MB) se reconoce por su encabezado. El backend lo procesa completo, así que
-// no hace falta leerlo ni parsearlo aquí.
-async function detectKind(f) {
-  const head = await f.slice(0, 4096).text();
-  if (!(head.includes("fecha_captura") && head.includes("porcentaje_nubosidad") && head.includes("sensor"))) return "otro";
-  // El CSV PRO (Planet) trae MSAVI; el Básico (Sentinel-2 + Landsat), no.
-  return head.includes("msavi_promedio") ? "planet" : "basico";
-}
-
 const formatSize = (bytes) =>
   bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
@@ -57,22 +48,13 @@ const formatSize = (bytes) =>
 export default function RunModelPanel() {
   const [file, setFile] = useState(null);
   const [kind, setKind] = useState(null); // "planet" (CSV PRO), "basico" o "otro": se detecta solo al elegir el archivo
+  const [modeUsed, setModeUsed] = useState(null); // "lluvia" | "10var": modo con el que se ejecutó
   const [modelUsed, setModelUsed] = useState(null); // "planet" | "abierto" según lo que respondió el backend
   const [runName, setRunName] = useState(""); // nombre con el que se identifica la corrida en el dashboard
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const { loadAnalysis, clearAnalysis, hasAnalysis, analysisMeta } = useParcels();
   const { info } = useModelInfo();
-  const requiredColumns = [
-    "Conjunto_datos_BASICO_AgroCebada2026.csv (oficial, sin modificar)",
-  ];
-  const altColumns = [
-    "ID_POLIGONO",
-    "Estado",
-    info ? `${info.modelSummary.nFeatures} features del modelo` : "Features del modelo",
-    "lat / lng (para el mapa)",
-  ];
-
   // Al elegir con el selector el navegador ya filtra por .csv; al arrastrar se valida aquí.
   function handleFiles(files) {
     const picked = files.find((f) => f.name.toLowerCase().endsWith(".csv"));
@@ -82,7 +64,7 @@ export default function RunModelPanel() {
       setKind(null);
       detectKind(picked).then((k) => {
         setKind(k);
-        if (k === "planet") toast.success("Se detectó el CSV PRO (Planet): el modelo se ejecutará con Planet.");
+        if (k === "planet") toast.success("Archivo de Planet detectado: se ejecuta el modelo de lluvia, porque con Planet la precisión no mejora. Los índices de Planet quedan como contexto.");
       });
     }
   }
@@ -92,6 +74,7 @@ export default function RunModelPanel() {
     setLoading(true);
     setResults(null);
     setModelUsed(null);
+    setModeUsed(null);
 
     try {
       // La petición real y el mínimo de 5 s corren en paralelo: si el modelo termina antes,
@@ -105,10 +88,11 @@ export default function RunModelPanel() {
       ]).then(([d, text]) => [d, text]);
       setResults(data.predicciones);
       setModelUsed(data.modelo || "abierto");
+      setModeUsed(data.modo || "lluvia");
       // Los resultados reales alimentan Resumen, Parcelas, Mapa, Predicciones y SHAP como borrador: no se guardan hasta pulsar el botón.
       loadAnalysis(data.predicciones, csvText, runName.trim() || f.name);
       toast.success(
-        `Modelo ejecutado: ${data.predicciones.length} parcela${data.predicciones.length === 1 ? "" : "s"} procesada${data.predicciones.length === 1 ? "" : "s"}. Pulsa "Guardar corrida" para conservarla.`
+        `Modelo (${data.modo === "10var" ? "10 variables" : "solo lluvia"}) ejecutado: ${data.predicciones.length} parcela${data.predicciones.length === 1 ? "" : "s"} procesada${data.predicciones.length === 1 ? "" : "s"}. Pulsa "Guardar corrida" para conservarla.`
       );
     } catch (err) {
       toast.error(friendlyError(err));
@@ -140,6 +124,7 @@ export default function RunModelPanel() {
     setFile(null);
     setKind(null);
     setModelUsed(null);
+    setModeUsed(null);
     setRunName("");
     toast.success("Resultados borrados. El dashboard quedó vacío.");
   }
@@ -166,7 +151,7 @@ export default function RunModelPanel() {
         <Step
           n={1}
           title="Prepara tu archivo"
-          description="Sube el CSV Básico oficial del reto, o el CSV PRO (Planet) para correr el modelo con Planet. También se acepta un CSV con features ya calculadas."
+          description="Sube tu archivo de datos (Básico o PRO). El modelo estima el rendimiento con la lluvia de abril–mayo de cada parcela."
         >
           {/* sm:mt-12 deja sitio arriba para el documento, que sobresale 40 px del contenedor. */}
           <div className="relative flex flex-col gap-4 rounded-2xl border border-gray-200 p-4 dark:border-gray-800 sm:mt-12 sm:flex-row sm:items-center sm:justify-between">
@@ -178,30 +163,18 @@ export default function RunModelPanel() {
             </div>
             <div aria-hidden="true" className="hidden w-28 shrink-0 sm:block" />
             <div className="relative z-10 min-w-0 sm:flex-1">
-              <div className="flex flex-wrap gap-1.5">
-                {requiredColumns.map((c) => (
-                  <span
-                    key={c}
-                    className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  >
-                    {c}
-                  </span>
-                ))}
-              </div>
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Con el CSV Básico oficial se estiman las 59 parcelas de predicción; el resto de archivos del dataset no
-                hace falta subirlos. Alternativa: un CSV con {altColumns.join(", ")}. Estado: {STATES.join(", ")}.
-                Opcionales: Municipio, area_ha, lat y lng (para el mapa y las tablas). El CSV PRO (Planet) se detecta
-                solo y no hace falta subir el Básico.
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Archivo de datos (CSV)</p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Estima el rendimiento de las parcelas del archivo. También sirve tu propio CSV con una fila por parcela.
               </p>
             </div>
             <a
-              href={EXAMPLE_CSV_URL}
+              href={EXAMPLE_TODOS_URL}
               download
               className="relative z-10 inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               <Download size={16} strokeWidth={1.75} className="text-gray-400" />
-              Descargar CSV de ejemplo
+              Descargar archivos de ejemplo
             </a>
           </div>
         </Step>
@@ -209,7 +182,7 @@ export default function RunModelPanel() {
         <Step
           n={2}
           title="Sube y ejecuta"
-          description="Se corre el Random Forest entrenado en ese momento; no son resultados guardados."
+          description="El modelo se ejecuta en este momento con tu archivo; no son resultados guardados."
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             <Dropzone accept=".csv" active={Boolean(file)} onFiles={handleFiles}>
@@ -226,9 +199,14 @@ export default function RunModelPanel() {
               </span>
             </Dropzone>
 
+            <ModeSelector
+              disable10={kind === "planet"}
+              disable10Reason="El archivo PRO (Planet) no trae los índices Sentinel-2/Landsat que usa este modo."
+            />
+
             {kind === "planet" && file && (
               <p className="rounded-lg bg-accent-50 px-3 py-2 text-xs text-accent-700 dark:bg-accent-500/15 dark:text-accent-400">
-                Se detectó el CSV PRO (Planet): el modelo se ejecutará con Planet.
+                Archivo de Planet detectado: se ejecuta el modelo de lluvia (con Planet la precisión no mejora); sus índices quedan como contexto.
               </p>
             )}
 
@@ -274,7 +252,7 @@ export default function RunModelPanel() {
           last
           description={
             loading
-              ? "Se está corriendo el Random Forest sobre tu CSV…"
+              ? "Se está calculando el rendimiento de tus parcelas…"
               : results
               ? `${results.length} parcelas procesadas en vivo por el modelo.`
               : "Aquí aparecerán las predicciones cuando ejecutes el modelo."
@@ -309,9 +287,9 @@ export default function RunModelPanel() {
             <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
               Modelo usado:{" "}
               <strong className="text-gray-800 dark:text-gray-200">
-                {modelUsed === "planet" ? "Random Forest con Planet (lluvia + 12 variables Planet)" : "Random Forest de fuentes abiertas (10 variables)"}
+                {modeUsed === "10var" ? "10 variables (Plan B)" : "solo lluvia temprana (CHIRPS)"}
               </strong>
-              {modelUsed === "planet" && " · Planet no mejoró la precisión en la validación; ver Resumen y validación."}
+              {modeUsed === "10var" && " · Error típico mayor que con solo lluvia; ver Modelo → Resumen."}
             </p>
           )}
           {results ? (

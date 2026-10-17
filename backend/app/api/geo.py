@@ -4,7 +4,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 
 from app.services import geo_service
-from app.services.geo_service import MAX_UPLOAD_BYTES, GeoParseError
+from app.services.geo_service import GeoParseError
 
 router = APIRouter(tags=["geoprocesamiento"])
 
@@ -19,12 +19,8 @@ async def parse_geometry(files: list[UploadFile] = File(...)):
     inválida), con el mismo motivo que daría /predict-from-geometry.
     """
     uploads: list[tuple[str, bytes]] = []
-    total = 0
     for f in files:
-        data = await f.read(MAX_UPLOAD_BYTES + 1)
-        total += len(data)
-        if total > MAX_UPLOAD_BYTES:
-            raise HTTPException(status_code=413, detail=f"Los archivos superan el máximo de {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.")
+        data = await f.read()  # sin límite de tamaño
         uploads.append((f.filename or "archivo", data))
     try:
         return await run_in_threadpool(geo_service.parse_uploads, uploads)

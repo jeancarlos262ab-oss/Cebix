@@ -15,7 +15,7 @@ const FIELD =
 async function readOfficial(file) {
   const rows = parseCSV(await file.text());
   if (!rows.length) throw new Error("El CSV está vacío.");
-  if (!("ID_POLIGONO" in rows[0])) throw new Error("El CSV necesita una columna ID_POLIGONO.");
+  if (!("ID_POLIGONO" in rows[0])) throw new Error("Al archivo le falta la columna con el identificador de la parcela (ID_POLIGONO).");
   const missing = SAT_FEATURES.map((f) => f.key).filter((k) => !(k in rows[0]));
   if (missing.length) throw new Error(`Faltan columnas en el CSV: ${missing.join(", ")}.`);
 
@@ -192,8 +192,8 @@ export default function ValidationRunner({ onRows }) {
           <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{official ? csvName : "Valores oficiales (CSV)"}</span>
           <span className="text-xs text-gray-500 dark:text-gray-400">
             {official
-              ? `${official.size} parcelas con las 10 variables · toca para cambiar`
-              : "features_completo.csv: ID_POLIGONO y las 10 variables del modelo"}
+              ? `${official.size} parcelas con las 10 variables satelitales · toca para cambiar`
+              : "Identificador de cada parcela y sus 10 variables satelitales"}
           </span>
         </Dropzone>
 
@@ -211,7 +211,7 @@ export default function ValidationRunner({ onRows }) {
           <span className="text-xs text-gray-500 dark:text-gray-400">
             {polys
               ? `${polys.size} contornos válidos · toca para cambiar`
-              : "Shapefile (.zip o solo el .shp), GeoJSON o KML con el mismo ID_POLIGONO"}
+              : "Shapefile (.zip o solo el .shp), GeoJSON o KML, con el mismo identificador de parcela"}
           </span>
         </Dropzone>
       </div>

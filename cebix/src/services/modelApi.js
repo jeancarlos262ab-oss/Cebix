@@ -3,10 +3,12 @@
  * modelo en el dashboard: predicciones, métricas, importancia SHAP y archivo de ejemplo.
  * No hay datos del modelo escritos en el código del frontend.
  */
+import { getPredictionMode } from "./predictionMode";
 import { MSG_CONNECTION, MSG_GENERIC, MSG_SERVICE, isTechnical } from "../utils/userMessages";
 
 export const API_URL = (import.meta.env.VITE_MODEL_API_URL || "http://localhost:8000").replace(/\/$/, "");
 export const EXAMPLE_CSV_URL = `${API_URL}/example-csv`;
+export const EXAMPLE_TODOS_URL = `${API_URL}/example-csv?tipo=todos`;
 
 /** Error de la API con los datos reales de la respuesta (código HTTP, URL y cuerpo crudo). */
 export class ApiError extends Error {
@@ -57,11 +59,11 @@ export async function errorFromResponse(res) {
   return new ApiError(message, { status: res.status, url: res.url, raw: raw.slice(0, 4000) });
 }
 
-/** POST /predict-csv — ejecuta el modelo real sobre un File. Devuelve { n_parcelas, modelo, predicciones }. */
-export async function predictCsv(file) {
+/** POST /predict-csv — ejecuta el modelo real sobre un File. `modo`: "lluvia" (por defecto) o "10var" (Plan B). Devuelve { n_parcelas, modelo, modo, predicciones }. */
+export async function predictCsv(file, modo = getPredictionMode()) {
   const formData = new FormData();
   formData.append("file", file); // el backend detecta solo si es el CSV Básico, el PRO (Planet) o uno de features
-  const res = await fetch(`${API_URL}/predict-csv`, { method: "POST", body: formData });
+  const res = await fetch(`${API_URL}/predict-csv?modo=${encodeURIComponent(modo)}`, { method: "POST", body: formData });
   if (!res.ok) throw await errorFromResponse(res);
   return res.json();
 }
@@ -78,7 +80,7 @@ export async function fetchExampleFile() {
   const res = await fetch(EXAMPLE_CSV_URL);
   if (!res.ok) throw new Error("No se pudo cargar el archivo de ejemplo. Inténtalo de nuevo.");
   const blob = await res.blob();
-  return new File([blob], "ejemplo_features_predict.csv", { type: "text/csv" });
+  return new File([blob], "datos_ejemplo.csv", { type: "text/csv" });
 }
 
 export function friendlyError(err) {

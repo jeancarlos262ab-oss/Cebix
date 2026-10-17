@@ -3,7 +3,7 @@ Reto AgroCebada 2026 — Pipeline de construcción de features
 =============================================================
 
 Qué hace este script:
-  1. Carga las 197 parcelas (shapefile) y el rendimiento real (70% train / 30% predicción).
+  1. Carga las 197 parcelas (shapefile, con su centroide lat/lng) y el rendimiento real (70% train / 30% predicción).
   2. Procesa el dataset BÁSICO (Sentinel-2 + Landsat, 2022-2025) y el dataset PRO (Planet, 2025):
      - Filtra observaciones con >40% de nubosidad.
      - Agrega los índices espectrales por parcela en 3 ventanas fenológicas del ciclo
@@ -79,7 +79,12 @@ def load_parcels(shp_path):
     gdf = gpd.read_file(shp_path)
     gdf = gdf.rename(columns={"ID_POLIGON": "ID_POLIGONO", "área_ha": "area_ha_shp"})
     gdf["ID_POLIGONO"] = gdf["ID_POLIGONO"].str.strip()
-    return gdf[["ID_POLIGONO", "Cultivo", "Municipio", "Estado", "CONJUNTO", "area_ha_shp", "geometry"]]
+    # Centroide (lng/lat, EPSG:4326): lo usan el mapa del dashboard y la validación espacial por bloques.
+    # Se calcula en un CRS proyectado (UTM 14N) para que el centroide no se deforme.
+    cen = gdf.to_crs(32614).geometry.centroid.to_crs(4326)
+    gdf["lat"] = cen.y.round(5)
+    gdf["lng"] = cen.x.round(5)
+    return gdf[["ID_POLIGONO", "Cultivo", "Municipio", "Estado", "CONJUNTO", "area_ha_shp", "lat", "lng", "geometry"]]
 
 
 def load_target(csv_path):

@@ -28,7 +28,6 @@ import zipfile
 
 from app.services.features.common import MAX_VERTICES, SatelliteError, WARN_AREA_HA, area_warning, validate_geometry
 
-MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # lo mismo que anuncia el frontend (máx. 20 MB)
 MAX_UNZIPPED_BYTES = 120 * 1024 * 1024  # protección contra zip bombs
 MAX_ZIP_ENTRIES = 300
 MAX_POLYGONS = 500

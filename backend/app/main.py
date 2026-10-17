@@ -1,5 +1,5 @@
 """
-CEBIX — Backend de inferencia en vivo (Reto AgroCebada 2026)
+CEBIX — Backend de inferencia en vivo
 =============================================================
 
 Backend real: carga el modelo entrenado (Random Forest, top-10 features) UNA vez y cada
@@ -33,7 +33,7 @@ from app.api import geo, health, model, overpass, predict, satellite
 from app.config import ALLOWED_ORIGIN_REGEX, ALLOWED_ORIGINS
 
 app = FastAPI(
-    title="CEBIX — API de inferencia (Reto AgroCebada 2026)",
+    title="CEBIX — API de inferencia",
     description="Ejecuta en vivo el modelo real de rendimiento de cebada (Random Forest, top-10 features SHAP).",
     version="1.0.0",
 )

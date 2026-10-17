@@ -104,7 +104,7 @@ function PrediccionesPageContent() {
     ? "Registrada manualmente en CEBIX"
     : parcel.isTrainingSet
       ? "Entrenamiento — rendimiento real observado"
-      : "Predicción — validación espacial leave-region-out";
+      : "Predicción — validada por bloques espaciales";
 
   return (
     <>

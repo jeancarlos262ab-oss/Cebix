@@ -20,7 +20,7 @@ const SOURCE_ICON = {
   "Sentinel-2 / Landsat": Satellite,
   "CHIRPS + CHIRTS-ERA5": CloudRain,
   "INEGI - CEM 4.0": Mountain,
-  "Reto AgroCebada 2026 (FIRA)": Sprout,
+  "Rendimiento observado (FIRA)": Sprout,
 };
 
 /** Tarjeta estándar de la app: encabezado con título/descripción, línea divisoria y cuerpo. */
@@ -70,8 +70,8 @@ function ResumenTab() {
 
       {planetModel && (
         <Card
-          title="Modelo con Planet"
-          description={`Se activa al subir también el CSV PRO. Mismas ${planetModel.trainingParcels} parcelas y misma validación (cada estado fuera una vez, con la selección de variables repetida en cada pliegue).`}
+          title="Evaluación con Planet (no se usa)"
+          description={`Se probó un modelo con los datos de Planet. Mismas ${planetModel.trainingParcels} parcelas de entrenamiento y misma validación por bloques espaciales (se deja fuera cada grupo de parcelas cercanas).`}
         >
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -86,7 +86,7 @@ function ResumenTab() {
               </thead>
               <tbody className="tabular-nums text-gray-900 dark:text-gray-100">
                 <tr className="border-t border-gray-200 dark:border-gray-800">
-                  <td className="py-2 pr-4">Fuentes abiertas</td>
+                  <td className="py-2 pr-4">Modelo actual (lluvia)</td>
                   <td className="py-2 pr-4">{planetModel.baseline.nFeatures}</td>
                   <td className="py-2 pr-4">{planetModel.baseline.rmse}</td>
                   <td className="py-2 pr-4">{planetModel.baseline.mae}</td>
@@ -95,7 +95,7 @@ function ResumenTab() {
                 <tr className="border-t border-gray-200 dark:border-gray-800">
                   <td className="py-2 pr-4">Con Planet</td>
                   <td className="py-2 pr-4">
-                    {planetModel.nFeatures} (lluvia + {planetModel.nPlanet} de Planet)
+                    {planetModel.nFeatures} (lluvia y {planetModel.nPlanet} de Planet)
                   </td>
                   <td className="py-2 pr-4">{planetModel.rmse}</td>
                   <td className="py-2 pr-4">{planetModel.mae}</td>
@@ -105,10 +105,10 @@ function ResumenTab() {
             </table>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-            Planet no mejora la precisión: con Planet el error es algo mayor, y la lluvia sigue siendo la variable más
-            importante. El modelo con Planet no usa Sentinel-2 ni Landsat; toma la lluvia de la tabla de las 197
-            parcelas oficiales. El modelo de fuentes abiertas es el predeterminado y el único que se calcula en vivo
-            para una parcela dibujada en el mapa.
+            {planetModel.rmse < planetModel.baseline.rmse
+              ? `Con Planet el error baja ${(planetModel.baseline.rmse - planetModel.rmse).toFixed(2)} t/ha.`
+              : "Con Planet la precisión no mejora, por eso no se usa."}{" "}
+            Un archivo de Planet se ejecuta con el modelo de lluvia y sus índices se muestran como contexto de la parcela.
           </p>
         </Card>
       )}

@@ -154,7 +154,7 @@ export async function generateCreditReportPDF(parcel, { modelSummary = null } = 
   const lat = num(parcel.lat);
   const lng = num(parcel.lng);
   const area = String(parcel.area ?? "").trim() || "—";
-  const origin = parcel.isCustom ? "Registro manual en CEBIX" : "Corrida del modelo / dataset Reto AgroCebada 2026";
+  const origin = parcel.isCustom ? "Registro manual en CEBIX" : "Corrida del modelo";
   const coords = lat !== null && lng !== null ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : "Sin coordenadas";
 
   const label = (t, x, y, opts) => {
@@ -186,7 +186,7 @@ export async function generateCreditReportPDF(parcel, { modelSummary = null } = 
   label("PROYECTO", R, y, { align: "right" });
   strong(formatDate(new Date()), R - 105, y + 14, { align: "right" });
   font("bold", 9, INK);
-  txt("AgroCebada 2026", R, y + 14, { align: "right" });
+  txt("CEBIX", R, y + 14, { align: "right" });
 
   /* ---------- Tabla 1: resultado y variables del ciclo ---------- */
   y += 78;
@@ -338,7 +338,7 @@ export async function generateCreditReportPDF(parcel, { modelSummary = null } = 
   );
 
   font("normal", 6.5, INK);
-  txt(`CEBIX  ·  Reto AgroCebada 2026  ·  Generado el ${formatDateTime(new Date())}`, M, PH - 14);
+  txt(`CEBIX  ·  Generado el ${formatDateTime(new Date())}`, M, PH - 14);
   txt(clean(parcel.name ?? ""), R, PH - 14, { align: "right", maxWidth: 220 });
 
   const safeId = String(parcel.polygonId || parcel.id || "parcela").replace(/[^\w.-]+/g, "_");

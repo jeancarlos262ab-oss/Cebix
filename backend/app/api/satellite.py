@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from app.schemas import GeometryRequest
 from app.services import satellite_service
 from app.services.features.common import SatelliteError
-from app.services.model_service import get_artifact, run_inference
+from app.services.model_service import get_artifact, run_inference, variant_from_modo
 
 router = APIRouter(tags=["satélite"])
 
@@ -34,12 +34,15 @@ def predict_from_geometry(payload: GeometryRequest):
 
     features = extracted["features"]
     df = pd.DataFrame([features]).astype(float)  # None -> NaN: el imputer entrenado los rellena
-    result = run_inference(df, [payload.Estado])[0]
+    variant = variant_from_modo(payload.modo)
+    result = run_inference(df, [payload.Estado], variant)[0]
 
     advertencias = list(extracted["advertencias"])
     if payload.anio != 2025:
         advertencias.append(f"El modelo se entrenó con el ciclo 2025; para {payload.anio} extrapola (clima distinto).")
-    artifact, _ = get_artifact()
+    artifact, _ = get_artifact(variant)
+    if result["variables_imputadas"]:
+        advertencias.append("Sin dato satelital (nubes o pocas imágenes) y rellenadas con la mediana de entrenamiento: " + ", ".join(result["variables_imputadas"]) + ".")
     if payload.Estado not in artifact["rmse_by_region"]:
         advertencias.append(f"'{payload.Estado}' no es un estado de entrenamiento: se usó el margen de confianza global.")
 

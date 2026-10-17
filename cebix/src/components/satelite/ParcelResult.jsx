@@ -47,7 +47,7 @@ export default function ParcelResult({ result, view, ran, stale, save, downloade
             </button>
           )}
           <button type="button" onClick={() => onDownload(downloaded)} className={BTN}>
-            <Download size={13} strokeWidth={1.75} /> Descargar variables (JSON)
+            <Download size={13} strokeWidth={1.75} /> Descargar variables
           </button>
           <button type="button" onClick={onReset} className={BTN}>
             <RotateCcw size={13} strokeWidth={1.75} /> Nueva parcela

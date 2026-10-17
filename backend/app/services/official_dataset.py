@@ -55,13 +55,13 @@ def planet_features(df: pd.DataFrame) -> pd.DataFrame:
     """Una fila por parcela con las 12 variables Planet (NDVI, EVI, LAI y MSAVI en tres etapas) y el contexto de la parcela."""
     missing = [c for c in PLANET_USECOLS if c not in df.columns]
     if missing:
-        raise ValueError("Al CSV PRO (Planet) le faltan columnas: " + ", ".join(missing))
+        raise ValueError("Al archivo de Planet le faltan columnas: " + ", ".join(missing))
     d = df[PLANET_USECOLS].copy()
     d["ID_POLIGONO"] = d["ID_POLIGONO"].astype(str).str.strip()
     d["fecha"] = pd.to_datetime(d["fecha_captura"], format="%d/%m/%Y", errors="coerce")
     d = d[d["fecha"].dt.year == YEAR]
     if d.empty:
-        raise ValueError(f"El CSV PRO no trae observaciones Planet del ciclo {YEAR}.")
+        raise ValueError(f"El archivo de Planet no trae observaciones del ciclo {YEAR}.")
     d = d[pd.to_numeric(d["porcentaje_nubosidad"], errors="coerce").fillna(0) <= CLOUD_MAX]
     d["mes"] = d["fecha"].dt.month
     out = pd.DataFrame(index=sorted(d["ID_POLIGONO"].unique()))
@@ -86,14 +86,14 @@ def features_from_basico(df: pd.DataFrame) -> pd.DataFrame:
     """DataFrame con una fila por parcela: ID_POLIGONO, contexto y las 10 features del modelo."""
     missing = [c for c in USECOLS if c not in df.columns]
     if missing:
-        raise ValueError("Al CSV Básico le faltan columnas: " + ", ".join(missing))
+        raise ValueError("Al archivo le faltan columnas: " + ", ".join(missing))
 
     d = df[USECOLS].copy()
     d["ID_POLIGONO"] = d["ID_POLIGONO"].astype(str).str.strip()
     d["fecha"] = pd.to_datetime(d["fecha_captura"], format="%d/%m/%Y", errors="coerce")
     d = d[d["fecha"].dt.year == YEAR]
     if d.empty:
-        raise ValueError(f"El CSV no trae observaciones del ciclo {YEAR}.")
+        raise ValueError(f"El archivo no trae observaciones del ciclo {YEAR}.")
 
     cloud = pd.to_numeric(d["porcentaje_nubosidad"], errors="coerce")
     d = d[cloud.fillna(0) <= CLOUD_MAX]  # Landsat sin dato de nubes entra (así se calculó el entrenamiento)

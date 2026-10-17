@@ -23,8 +23,9 @@ import RunProgress from "../components/satelite/RunProgress";
 import ParcelResult from "../components/satelite/ParcelResult";
 import ValidationTable from "../components/satelite/ValidationTable";
 import ValidationRunner from "../components/satelite/ValidationRunner";
-import { classifyRisk, scoreFromInputs, useParcels } from "../context/ParcelsContext";
+import { Z90, classifyRisk, scoreFromInputs, useParcels } from "../context/ParcelsContext";
 import { predictFromGeometry } from "../services/sateliteApi";
+import ModeSelector from "../components/model/ModeSelector";
 import { parseGeometryFiles } from "../services/geoApi";
 import { ESTADOS, MAX_AREA_HA, SAT_QUESTIONS, TRAINED_YEAR, WARN_AREA_HA, YEARS } from "../data/satelite";
 import {
@@ -568,7 +569,7 @@ function NuevaParcelaTab() {
     setSavedFor(ran);
     if (res.warning === "satelite-column") {
       toast.warning(`'${ran.name}' guardada, pero sin el detalle del cálculo.`, {
-        description: "Falta la columna 'satelite' en la tabla parcels_custom. Ejecuta supabase/parcels_custom_satelite.sql y vuelve a guardar.",
+        description: "No se pudo guardar el detalle del cálculo satelital. Avisa al administrador de la aplicación.",
         duration: 12000,
       });
       return;
@@ -602,8 +603,7 @@ function NuevaParcelaTab() {
     const half = (result.ic90_superior - result.ic90_inferior) / 2;
     const score = scoreFromInputs({
       yieldEstimate: result.yieldEstimate,
-      confidence: half,
-      ndvi: f.bas_ndvi_emergencia_macollamiento ?? 0,
+      confidence: half / Z90, // el score usa el error típico (σ); el IC 90 % es ±1.645 σ
     });
     return { features: f, half, score, risk: classifyRisk(score) };
   }, [result]);
@@ -730,6 +730,7 @@ function NuevaParcelaTab() {
           </PanelSection>
 
           <PanelSection n={3} state={s3} running={running} title="Predicción">
+            {!running && <ModeSelector stacked className="mb-3" />}
             {running ? (
               <button type="button" onClick={cancel} className={`${BTN} w-full gap-2 px-4 py-2.5 text-sm font-medium`}>
                 <Square size={14} /> Cancelar cálculo
@@ -905,7 +906,7 @@ function ValidacionTab({ rows, setRows }) {
     <div className="space-y-8">
       <SectionHeader
         title="¿Qué tan fiel es el cálculo en vivo?"
-        description="Se corre la misma extracción sobre parcelas del dataset oficial y se compara contra features_completo.csv. Índices y lluvia deben quedar dentro de ±15 %; el conteo de escenas puede diferir más."
+        description="Se repite el cálculo satelital sobre parcelas de referencia y se compara con los valores oficiales. Los índices y la lluvia deben quedar dentro de ±15 %; el número de imágenes puede diferir más."
       />
 
       <ValidationRunner onRows={setRows} />

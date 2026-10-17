@@ -6,7 +6,8 @@ import DocumentPeek from "./DocumentPeek";
 import UploadDropzone from "../dashboard/UploadDropzone";
 import useParcelActions from "../../hooks/useParcelActions";
 import { useParcels } from "../../context/ParcelsContext";
-import { EXAMPLE_CSV_URL } from "../../services/modelApi";
+import ModeSelector from "../model/ModeSelector";
+import { EXAMPLE_TODOS_URL, predictCsv } from "../../services/modelApi";
 
 const ROW =
   "group flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60";
@@ -44,7 +45,15 @@ function OptionRow({ icon: Icon, title, description, highlight = false, ...props
  */
 export function EmptyAnalysis({ title, subtitle, onAdd, skeleton = "dashboard" }) {
   const { importParcels } = useParcelActions();
-  const { customParcelsLoading } = useParcels();
+  const { customParcelsLoading, loadAnalysis } = useParcels();
+
+  // Igual que en Modelo: el CSV (Básico, PRO o de variables) se manda al backend, que elige el modelo,
+  // y el resultado queda como borrador de corrida hasta pulsar "Guardar corrida".
+  const runModelCsv = async (file, kind) => {
+    const data = await predictCsv(file);
+    const csvText = kind === "otro" ? await file.text() : "";
+    loadAnalysis(data.predicciones, csvText, file.name);
+  };
 
   // Todavía se están trayendo tus datos de Supabase (p. ej. al entrar desde otra computadora):
   // no se muestra "sin datos" para no dar a entender que la cuenta está vacía.
@@ -85,10 +94,11 @@ export function EmptyAnalysis({ title, subtitle, onAdd, skeleton = "dashboard" }
             <div className="h-full rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Importar parcelas</h3>
               <p className="mt-1 mb-4 text-xs text-gray-500 dark:text-gray-400">
-                Con un shapefile, GeoJSON o KML se calcula cada parcela con imágenes de satélite. Con un CSV se usan las
-                variables que ya traiga el archivo.
+                Con un shapefile, GeoJSON o KML se calcula cada parcela con imágenes de satélite. Con el CSV Básico o PRO se ejecuta el
+                modelo con la lluvia de cada parcela; con otro CSV se usan las variables que ya traiga.
               </p>
-              <UploadDropzone onParsed={importParcels} />
+              <ModeSelector className="mb-4" />
+              <UploadDropzone onParsed={importParcels} onModelCsv={runModelCsv} />
             </div>
           </section>
 
@@ -107,16 +117,16 @@ export function EmptyAnalysis({ title, subtitle, onAdd, skeleton = "dashboard" }
               </p>
               <OptionRow
                 icon={Download}
-                title="Descargar archivo de ejemplo"
-                description="Formato de las variables del modelo."
-                href={EXAMPLE_CSV_URL}
+                title="Descargar archivos de ejemplo"
+                description="Datos y Planet, listos para subir."
+                href={EXAMPLE_TODOS_URL}
                 download
                 highlight
               />
               <OptionRow
                 icon={FileSpreadsheet}
-                title="Ejecutar el modelo con un CSV"
-                description="Calcula predicciones a partir de las variables."
+                title="Ejecutar el modelo con un archivo"
+                description="Calcula las predicciones de tus parcelas."
                 to="/modelo?tab=ejecutar"
               />
               {onAdd ? (

@@ -12,11 +12,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_PATH = os.environ.get("MODEL_PATH", str(BASE_DIR / "models" / "model_artifact.joblib"))
 META_PATH = os.environ.get("MODEL_META_PATH", str(BASE_DIR / "models" / "model_meta.json"))
+MODEL_10VAR_PATH = os.environ.get("MODEL_10VAR_PATH", str(BASE_DIR / "models" / "model_artifact_10var.joblib"))
 MODEL_PLANET_PATH = os.environ.get("MODEL_PLANET_PATH", str(BASE_DIR / "models" / "model_artifact_planet.joblib"))
 PLANET_META_PATH = os.environ.get("MODEL_PLANET_META_PATH", str(BASE_DIR / "models" / "model_planet_meta.json"))
 EXAMPLE_CSV_PATH = os.environ.get("EXAMPLE_CSV_PATH", str(BASE_DIR / "data" / "ejemplo_features_predict.csv"))
 
 # Tabla de referencia de las 197 parcelas oficiales (Estado, Municipio, área, lat/lng, CONJUNTO y lluvia abr–may 2025).
+# Archivos de ejemplo para descargar o probar: mismo formato que los de carga (59 parcelas, ciclo 2025).
+EXAMPLE_DATOS_PATH = os.environ.get("EXAMPLE_DATOS_PATH", str(BASE_DIR / "data" / "ejemplo_basico.csv"))
+EXAMPLE_PLANET_PATH = os.environ.get("EXAMPLE_PLANET_PATH", str(BASE_DIR / "data" / "ejemplo_planet.csv"))
 PARCELAS_OFICIALES_PATH = os.environ.get("PARCELAS_OFICIALES_PATH", str(BASE_DIR / "data" / "parcelas_oficiales.csv"))
 
 # CORS: en Render se define ALLOWED_ORIGINS con el dominio del frontend en Vercel

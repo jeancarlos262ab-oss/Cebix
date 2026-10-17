@@ -1,0 +1,9 @@
+variant,group,nFeatures,r2,rmse,deltaR2,verdict
+Lluvia temprana (modelo actual),,1,0.601,0.535,0.0,Referencia
++ Las 10 variables anteriores,Satélite y lluvia,10,0.6,0.535,-0.001,Sin mejora
++ NDVI de pico del ciclo,Satélite,2,0.584,0.546,-0.017,Sin mejora
++ LAI en espigado-llenado,Satélite,2,0.593,0.54,-0.008,Sin mejora
++ Elevación y pendiente,Topografía,3,0.582,0.548,-0.019,Sin mejora
+"+ Temperatura (Tmax, Tmin, GDD)",Clima,4,0.558,0.563,-0.043,Empeora
++ Lluvia de encañado y espigado,Clima,3,0.567,0.557,-0.034,Empeora
++ Coordenadas (lat/lng),Ubicación,3,0.471,0.617,-0.13,Empeora

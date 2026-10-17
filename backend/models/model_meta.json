@@ -1,169 +1,106 @@
 {
   "modelSummary": {
-    "selected": "Random Forest (top-10 features SHAP, sin Planet)",
+    "selected": "Random Forest (lluvia temprana)",
     "modelName": "Random Forest",
-    "nFeatures": 10,
+    "nFeatures": 1,
     "trainingParcels": 138,
     "evaluationParcels": 59,
     "shapParcels": 197,
-    "validation": "Validación espacial por bloques (leave-region-out)",
-    "rmse": 0.642,
-    "mae": 0.489,
-    "r2": 0.426
+    "validation": "Validación por bloques espaciales de parcelas cercanas",
+    "rmse": 0.535,
+    "mae": 0.379,
+    "r2": 0.601
   },
   "algorithmComparison": [
     {
       "model": "Random Forest",
-      "rmse": 0.642,
-      "mae": 0.489,
-      "r2": 0.426,
+      "rmse": 0.535,
+      "mae": 0.379,
+      "r2": 0.601,
       "type": "ensamble"
     },
     {
-      "model": "XGBoost",
-      "rmse": 0.766,
-      "mae": 0.625,
-      "r2": 0.185,
+      "model": "LightGBM",
+      "rmse": 0.564,
+      "mae": 0.401,
+      "r2": 0.552,
       "type": "boosting"
     },
     {
-      "model": "Lasso",
-      "rmse": 0.775,
-      "mae": 0.642,
-      "r2": 0.164,
-      "type": "baseline"
-    },
-    {
-      "model": "ElasticNet",
-      "rmse": 0.782,
-      "mae": 0.654,
-      "r2": 0.15,
-      "type": "baseline"
-    },
-    {
-      "model": "LightGBM",
-      "rmse": 0.817,
-      "mae": 0.655,
-      "r2": 0.073,
+      "model": "XGBoost",
+      "rmse": 0.596,
+      "mae": 0.418,
+      "r2": 0.502,
       "type": "boosting"
     },
     {
       "model": "Ridge",
-      "rmse": 0.821,
-      "mae": 0.691,
-      "r2": 0.062,
+      "rmse": 0.715,
+      "mae": 0.57,
+      "r2": 0.282,
+      "type": "baseline"
+    },
+    {
+      "model": "Lasso",
+      "rmse": 0.722,
+      "mae": 0.585,
+      "r2": 0.27,
+      "type": "baseline"
+    },
+    {
+      "model": "ElasticNet",
+      "rmse": 0.722,
+      "mae": 0.585,
+      "r2": 0.27,
       "type": "baseline"
     }
   ],
   "rmseByRegion": [
     {
       "region": "Tlaxcala",
-      "rmse": 0.435
+      "rmse": 0.395
     },
     {
       "region": "Hidalgo",
-      "rmse": 0.619
+      "rmse": 0.539
     },
     {
       "region": "Puebla",
-      "rmse": 0.725
+      "rmse": 0.585
     }
   ],
   "globalImportance": [
     {
       "key": "precip_acum_emergencia_macollamiento_mm",
       "feature": "Precipitación en emergencia-macollamiento",
-      "value": 0.652,
-      "direction": "positivo"
-    },
-    {
-      "key": "bas_lai_espigado_llenado",
-      "feature": "LAI en espigado-llenado",
-      "value": 0.054,
-      "direction": "positivo"
-    },
-    {
-      "key": "bas_n_obs_ciclo",
-      "feature": "Densidad de observaciones válidas (Sentinel-2/Landsat)",
-      "value": 0.049,
+      "value": 0.649,
       "direction": "negativo"
-    },
-    {
-      "key": "bas_ndti_emergencia_macollamiento",
-      "feature": "NDTI en emergencia-macollamiento",
-      "value": 0.038,
-      "direction": "negativo"
-    },
-    {
-      "key": "bas_ndwi_espigado_llenado",
-      "feature": "NDWI en espigado-llenado",
-      "value": 0.031,
-      "direction": "negativo"
-    },
-    {
-      "key": "bas_sti_encanado",
-      "feature": "STI en encañado",
-      "value": 0.029,
-      "direction": "positivo"
-    },
-    {
-      "key": "bas_evi_encanado",
-      "feature": "EVI en encañado",
-      "value": 0.029,
-      "direction": "negativo"
-    },
-    {
-      "key": "bas_evi_emergencia_macollamiento",
-      "feature": "EVI en emergencia-macollamiento",
-      "value": 0.021,
-      "direction": "negativo"
-    },
-    {
-      "key": "bas_ndvi_emergencia_macollamiento",
-      "feature": "NDVI en emergencia-macollamiento",
-      "value": 0.02,
-      "direction": "negativo"
-    },
-    {
-      "key": "bas_ndti_encanado",
-      "feature": "NDTI en encañado",
-      "value": 0.017,
-      "direction": "positivo"
     }
   ],
   "featureGroups": [
     {
-      "group": "Variables seleccionadas por SHAP (top 10 de 68, sin Planet ni índices no reproducibles)",
+      "group": "Variable del modelo",
       "color": "ndvi",
       "features": [
-        "Precipitación en emergencia-macollamiento",
-        "Densidad de observaciones válidas (Sentinel-2/Landsat)",
-        "LAI en espigado-llenado",
-        "NDTI en emergencia-macollamiento",
-        "STI en encañado",
-        "NDVI en emergencia-macollamiento",
-        "NDWI en espigado-llenado",
-        "NDTI en encañado",
-        "EVI en emergencia-macollamiento",
-        "EVI en encañado"
+        "Precipitación en emergencia-macollamiento"
       ]
     }
   ],
   "dataSources": [
     {
+      "name": "CHIRPS",
+      "detail": "Precipitación mensual acumulada (~5 km) para Hidalgo, Puebla y Tlaxcala. De aquí sale la única variable del modelo: la lluvia de abril–mayo.",
+      "use": "Predicción"
+    },
+    {
       "name": "Sentinel-2 / Landsat",
-      "detail": "Dataset Básico (Sentinel-2 + Landsat, 2022-2025) del reto: NDVI, EVI, LAI, NDWI y otros índices por parcela y fecha. Las observaciones Planet del dataset PRO (de pago) entran solo en el modelo opcional con Planet, al subir el CSV PRO; no mejoraron el desempeño y no se pueden calcular en vivo para parcelas nuevas.",
-      "use": "Desarrollo"
+      "detail": "Dataset Básico del reto (2022-2025): NDVI, EVI, LAI, NDWI y otros índices. Se calculan y muestran como contexto de la parcela; en la validación no mejoraron la predicción.",
+      "use": "Contexto"
     },
     {
-      "name": "CHIRPS + CHIRTS-ERA5",
-      "detail": "Precipitación mensual acumulada y temperatura mínima/máxima media, en raster para Hidalgo, Puebla y Tlaxcala.",
-      "use": "Desarrollo"
-    },
-    {
-      "name": "INEGI - CEM 4.0",
-      "detail": "Elevación y pendiente del terreno, resolución 120 m.",
-      "use": "Desarrollo"
+      "name": "CHIRTS-ERA5 e INEGI CEM 4.0",
+      "detail": "Temperatura mínima/máxima, elevación y pendiente. Se probaron y no mejoraron el modelo.",
+      "use": "Evaluación"
     },
     {
       "name": "Reto AgroCebada 2026 (FIRA)",
@@ -173,197 +110,399 @@
   ],
   "validationSteps": [
     {
-      "title": "Bloques por estado",
-      "detail": "Las 138 parcelas de entrenamiento se agrupan en 3 bloques espaciales: Hidalgo, Puebla y Tlaxcala."
+      "title": "Bloques espaciales",
+      "detail": "Las 138 parcelas se agrupan por cercanía en 12 bloques; en cada vuelta se deja fuera un bloque completo, así ninguna parcela se evalúa con vecinas en el entrenamiento. Se repite 6 veces con bloques distintos."
     },
     {
-      "title": "Leave-region-out",
-      "detail": "En cada iteración se deja fuera un estado completo y se entrena solo con los otros dos, para simular qué tan bien predice el modelo sobre una región que nunca vio."
+      "title": "Comparación con una referencia simple",
+      "detail": "Predecir el promedio del estado da RMSE 0.73 t/ha; el modelo da 0.54. La diferencia (0.20 t/ha) es lo que aporta la lluvia dentro de cada estado."
     },
     {
-      "title": "Selección de features por SHAP",
-      "detail": "De 68 features candidatas (solo índices reproducibles con fuentes gratuitas), se probaron subconjuntos rankeados por importancia SHAP; el top-10 dio el mejor RMSE bajo la misma validación espacial (0.740 con las 97 features -> 0.642), evidencia de que el modelo con todas las features sobreajustaba."
+      "title": "Selección sin fuga de información",
+      "detail": "Al elegir variables, la elección se rehace dentro de cada partición. Con las 10 variables anteriores así elegidas el RMSE es 0.62; elegirlas con todos los datos daría 0.52, una cifra inflada."
     },
     {
-      "title": "Métrica por bloque",
-      "detail": "RMSE por estado excluido: Tlaxcala 0.43 t/ha, Hidalgo 0.62 t/ha, Puebla 0.72 t/ha. El promedio global (0.64 t/ha) es el que se reporta como RMSE del modelo."
+      "title": "Prueba de estado nuevo",
+      "detail": "Si se deja un estado completo fuera, el RMSE es 0.62 t/ha (R² 0.47). Indica cuánto se degrada en una región sin parcelas de entrenamiento."
+    },
+    {
+      "title": "Margen de error por estado",
+      "detail": "RMSE por estado: Tlaxcala 0.40 t/ha, Hidalgo 0.54 t/ha, Puebla 0.58 t/ha. El intervalo del 90 % se arma con los errores fuera de muestra de cada estado y en la validación cubrió 90 % de las parcelas."
     }
   ],
   "guidingQuestions": [
     {
       "question": "¿Qué variables satelitales y climáticas explican mejor el rendimiento?",
-      "answer": "Según SHAP, Precipitación en emergencia-macollamiento, LAI en espigado-llenado, Densidad de observaciones válidas (Sentinel-2/Landsat), NDTI en emergencia-macollamiento y NDWI en espigado-llenado concentran la mayor contribución. Precipitación en emergencia-macollamiento aporta el 69% de la importancia total; está parcialmente confundida con el estado por la resolución de CHIRPS (~5 km) — ver limitación en Metodología."
+      "answer": "La lluvia acumulada en emergencia-macollamiento (abril–mayo). Usada sola da RMSE 0.54 t/ha, contra 0.73 de predecir el promedio del estado. Ninguna combinación de índices satelitales (NDVI, EVI, LAI, NDWI…), temperatura o terreno mejoró ese resultado con validación honesta; agregarlos lo empeoró (RMSE 0.62 con 10 variables)."
     },
     {
       "question": "¿En qué etapa del ciclo es más crítico monitorear la parcela?",
-      "answer": "Emergencia-macollamiento: 4 de las 10 variables seleccionadas por SHAP corresponden a esta ventana (frente a Encañado con 3 o Espigado-llenado con 2)."
+      "answer": "Emergencia-macollamiento (abril–mayo): es la ventana de la lluvia que determina la predicción. La lluvia de encañado y espigado-llenado no aportó."
     },
     {
       "question": "¿Cómo se traduce la predicción en una decisión de crédito replicable?",
-      "answer": "Cada parcela recibe un rendimiento esperado con un margen de error igual al RMSE de validación espacial de su estado, y un score 0-100 que alimenta un semáforo de elegibilidad."
+      "answer": "Cada parcela recibe un rendimiento esperado con un margen de error igual al RMSE fuera de muestra de su estado, y un score 0-100 que es la probabilidad de alcanzar el rendimiento de referencia. El score alimenta un semáforo de elegibilidad."
     },
     {
       "question": "¿Qué tan confiable es el modelo hoy?",
-      "answer": "Bajo validación espacial estricta (dejar un estado completo fuera), el modelo elegido alcanza R²=0.43 y RMSE=0.64 t/ha tras seleccionar las 10 features más relevantes (sin usar Planet); antes de seleccionar features, R² era 0.24. Sigue siendo una referencia de riesgo relativo, no una cifra exacta de cosecha."
+      "answer": "Con validación por bloques espaciales el RMSE es 0.54 t/ha y el R² 0.60; el intervalo del 90 % cubrió 90 %. Para un estado sin parcelas de entrenamiento el RMSE sube a 0.62. Es una referencia de riesgo, no una cifra exacta de cosecha."
     }
   ],
   "buildProcess": {
     "pipeline": [
       {
-        "title": "Datos del reto",
-        "detail": "197 parcelas, imágenes Sentinel-2 y Landsat 2022-2025, lluvia CHIRPS, temperatura y terreno."
+        "title": "Datos de origen",
+        "detail": "197 parcelas, lluvia CHIRPS, imágenes Sentinel-2 y Landsat 2022-2025, temperatura y terreno."
       },
       {
         "title": "Ventanas del ciclo",
-        "detail": "Cada índice se resume por etapa del cultivo: emergencia-macollamiento, encañado y espigado-llenado."
+        "detail": "Cada variable se resume por etapa del cultivo: emergencia-macollamiento, encañado y espigado-llenado."
       },
       {
-        "title": "Selección de variables",
-        "detail": "Se conservan solo las que más aportan, medido con SHAP y validado por estado."
+        "title": "Evaluación de variables",
+        "detail": "Se probaron índices satelitales, temperatura, terreno y lluvia de otras etapas con la misma validación."
       },
       {
         "title": "Validación espacial",
-        "detail": "Cada estado se deja fuera una vez para medir qué tan bien predice una región que no vio."
+        "detail": "Se dejan fuera bloques de parcelas cercanas para medir cómo predice en lugares que no vio."
       },
       {
         "title": "Predicción en vivo",
-        "detail": "Para una parcela dibujada se calculan las 10 variables desde imágenes satelitales y se ejecuta el modelo."
+        "detail": "Para una parcela dibujada se calcula la lluvia de abril–mayo con CHIRPS y se ejecuta el modelo."
       }
     ],
     "stages": [
       {
         "title": "Todas las variables",
         "nFeatures": 97,
-        "rmse": 0.74,
-        "r2": 0.24,
-        "detail": "Punto de partida: los índices satelitales por ventana del ciclo, el clima y el terreno. Con 138 parcelas y 97 variables el modelo sobreajustaba."
+        "rmse": 0.614,
+        "r2": 0.476,
+        "detail": "Punto de partida: índices satelitales por etapa del ciclo (incluida Planet), clima y terreno. Con 138 parcelas el modelo se dispersa."
       },
       {
-        "title": "Selección por importancia SHAP",
-        "nFeatures": 15,
-        "rmse": 0.645,
-        "r2": 0.422,
-        "detail": "Se ordenaron las variables por su aporte (SHAP) y se conservaron las 15 principales. El R² casi se duplicó, pero entraron variables de Planet, que es de pago."
-      },
-      {
-        "title": "Solo fuentes abiertas",
+        "title": "10 variables elegidas",
         "nFeatures": 10,
-        "rmse": 0.642,
-        "r2": 0.426,
-        "detail": "Se quitó todo lo que no se puede recalcular con datos gratuitos y se volvió a seleccionar. Quedó igual de preciso, y ahora las 10 variables se calculan en vivo para cualquier parcela."
+        "rmse": 0.62,
+        "r2": 0.465,
+        "detail": "Las 10 que más aportan, elegidas dentro de cada partición para no inflar el resultado. Casi igual que usar todas: la elección cambia de una partición a otra."
+      },
+      {
+        "title": "Solo la lluvia temprana",
+        "nFeatures": 1,
+        "rmse": 0.535,
+        "r2": 0.601,
+        "detail": "Una sola variable y un modelo poco profundo. Es el más preciso y el más estable en la validación, así que es el que se ejecuta."
       }
     ],
     "featureCountSearch": [
       {
-        "nFeatures": 10,
-        "r2": 0.426,
-        "rmse": 0.642
+        "nFeatures": 1,
+        "rmse": 0.535,
+        "r2": 0.601
       },
       {
-        "nFeatures": 15,
-        "r2": 0.419,
-        "rmse": 0.646
+        "nFeatures": 2,
+        "rmse": 0.598,
+        "r2": 0.502
+      },
+      {
+        "nFeatures": 3,
+        "rmse": 0.617,
+        "r2": 0.47
+      },
+      {
+        "nFeatures": 5,
+        "rmse": 0.625,
+        "r2": 0.457
+      },
+      {
+        "nFeatures": 10,
+        "rmse": 0.625,
+        "r2": 0.456
       },
       {
         "nFeatures": 20,
-        "r2": 0.412,
-        "rmse": 0.65
+        "rmse": 0.635,
+        "r2": 0.44
       },
       {
-        "nFeatures": 25,
-        "r2": 0.419,
-        "rmse": 0.646
-      },
-      {
-        "nFeatures": 30,
-        "r2": 0.417,
-        "rmse": 0.648
-      },
-      {
-        "nFeatures": 40,
-        "r2": 0.411,
-        "rmse": 0.651
-      },
-      {
-        "nFeatures": 50,
-        "r2": 0.346,
-        "rmse": 0.686
+        "nFeatures": 68,
+        "rmse": 0.633,
+        "r2": 0.442
       }
     ],
     "extraVariables": [
       {
-        "variant": "Variables actuales",
+        "variant": "Lluvia temprana (modelo actual)",
         "group": "",
-        "nFeatures": 10,
-        "r2": 0.431,
-        "rmse": 0.639,
+        "nFeatures": 1,
+        "r2": 0.601,
+        "rmse": 0.535,
         "deltaR2": 0.0,
         "verdict": "Referencia"
       },
       {
-        "variant": "+ Pendiente",
-        "group": "Topografía",
-        "nFeatures": 11,
-        "r2": 0.421,
-        "rmse": 0.645,
-        "deltaR2": -0.01,
+        "variant": "+ Las 10 variables anteriores",
+        "group": "Satélite y lluvia",
+        "nFeatures": 10,
+        "r2": 0.6,
+        "rmse": 0.535,
+        "deltaR2": -0.001,
         "verdict": "Sin mejora"
       },
       {
-        "variant": "+ Elevación",
-        "group": "Topografía",
-        "nFeatures": 11,
-        "r2": 0.431,
-        "rmse": 0.639,
-        "deltaR2": 0.0,
+        "variant": "+ NDVI de pico del ciclo",
+        "group": "Satélite",
+        "nFeatures": 2,
+        "r2": 0.584,
+        "rmse": 0.546,
+        "deltaR2": -0.017,
         "verdict": "Sin mejora"
       },
       {
-        "variant": "+ Pendiente y elevación",
-        "group": "Topografía",
-        "nFeatures": 12,
-        "r2": 0.422,
-        "rmse": 0.645,
-        "deltaR2": -0.009,
+        "variant": "+ LAI en espigado-llenado",
+        "group": "Satélite",
+        "nFeatures": 2,
+        "r2": 0.593,
+        "rmse": 0.54,
+        "deltaR2": -0.008,
         "verdict": "Sin mejora"
       },
       {
-        "variant": "+ Temperatura",
-        "group": "Temperatura (Tmax, Tmin, GDD)",
-        "nFeatures": 13,
-        "r2": 0.373,
-        "rmse": 0.672,
-        "deltaR2": -0.059,
+        "variant": "+ Elevación y pendiente",
+        "group": "Topografía",
+        "nFeatures": 3,
+        "r2": 0.582,
+        "rmse": 0.548,
+        "deltaR2": -0.019,
+        "verdict": "Sin mejora"
+      },
+      {
+        "variant": "+ Temperatura (Tmax, Tmin, GDD)",
+        "group": "Clima",
+        "nFeatures": 4,
+        "r2": 0.558,
+        "rmse": 0.563,
+        "deltaR2": -0.043,
         "verdict": "Empeora"
       },
       {
-        "variant": "+ Topografía y temperatura",
-        "group": "Ambas",
-        "nFeatures": 15,
-        "r2": 0.367,
-        "rmse": 0.675,
-        "deltaR2": -0.065,
+        "variant": "+ Lluvia de encañado y espigado",
+        "group": "Clima",
+        "nFeatures": 3,
+        "r2": 0.567,
+        "rmse": 0.557,
+        "deltaR2": -0.034,
+        "verdict": "Empeora"
+      },
+      {
+        "variant": "+ Coordenadas (lat/lng)",
+        "group": "Ubicación",
+        "nFeatures": 3,
+        "r2": 0.471,
+        "rmse": 0.617,
+        "deltaR2": -0.13,
         "verdict": "Empeora"
       }
     ],
-    "extraVariablesNote": "Probadas con la misma validación por estado y promediando 10 semillas del Random Forest. La variación entre semillas es de ±0.02 de R².",
+    "extraVariablesNote": "Mismas particiones y 6 repeticiones. Una variación de R² menor a ±0.02 es ruido con 138 parcelas.",
     "limitations": [
       {
-        "title": "La lluvia temprana domina el modelo",
-        "detail": "La precipitación en emergencia-macollamiento explica la mayor parte de la predicción y va ligada al estado: en Tlaxcala llueve más y se rinde menos. CHIRPS tiene una resolución de unos 5 km y no distingue bien entre parcelas cercanas."
+        "title": "El modelo se basa en la lluvia",
+        "detail": "La precipitación en emergencia-macollamiento es la única variable. Va ligada al estado (en Tlaxcala llueve más y se rinde menos) y CHIRPS tiene unos 5 km de resolución, así que distingue zonas, no parcelas vecinas. Dentro de un mismo estado el modelo explica poca variación adicional (R² intra-estado 0.20, medido contra el promedio real de cada estado)."
       },
       {
-        "title": "Una variable mide la calidad del dato",
-        "detail": "La densidad de observaciones válidas cuenta cuántas escenas limpias hay en el ciclo; no es una variable agronómica. Se revisó que no codifique el estado, pero hay que leerla como lo que es."
+        "title": "Los índices satelitales no mejoraron la predicción",
+        "detail": "Con 138 parcelas, ninguna combinación de índices de Sentinel-2/Landsat o Planet superó a la lluvia sola. Se muestran como contexto de la parcela, no como parte de la estimación."
+      },
+      {
+        "title": "Solo se validó en Hidalgo, Puebla y Tlaxcala",
+        "detail": "Fuera de esos estados no hay evidencia: al dejar un estado completo fuera el RMSE es 0.62 t/ha."
       },
       {
         "title": "Es una referencia de riesgo, no una cosecha exacta",
-        "detail": "Con 138 parcelas de entrenamiento el R² es de alrededor de 0.43. Sirve para comparar parcelas entre sí y orientar decisiones de crédito, no para fijar una cifra de cosecha."
+        "detail": "Con 138 parcelas de entrenamiento el R² es de alrededor de 0.60. Sirve para comparar parcelas y orientar decisiones de crédito, no para fijar una cifra de cosecha."
+      },
+      {
+        "title": "Sesgo por estado",
+        "detail": "En la validación el modelo sobreestima Hidalgo y Tlaxcala y subestima Puebla (sesgo medio Hidalgo -0.10, Puebla +0.05, Tlaxcala -0.08 t/ha, error real menos predicho). El intervalo por estado lo recoge."
       },
       {
         "title": "Ventanas del ciclo supuestas",
-        "detail": "El dataset no trae fechas de siembra ni de cosecha, así que las etapas del cultivo se fijaron en el ciclo abril-octubre. Conviene contrastarlas con boletines agronómicos."
+        "detail": "El dataset no trae fechas de siembra ni de cosecha, así que las etapas se fijaron en el ciclo abril-octubre. Conviene contrastarlas con boletines agronómicos."
       }
     ]
+  },
+  "validationDetail": {
+    "primary": {
+      "rmse": 0.535,
+      "rmse_sd": 0.023,
+      "mae": 0.379,
+      "r2": 0.601
+    },
+    "newState": {
+      "rmse": 0.617,
+      "rmse_sd": 0.0,
+      "mae": 0.47,
+      "r2": 0.471
+    },
+    "stateMeanBaseline": {
+      "rmse": 0.731,
+      "rmse_sd": 0.019,
+      "mae": 0.531,
+      "r2": 0.257
+    },
+    "previous10Variables": {
+      "rmse": 0.62,
+      "rmse_sd": 0.022,
+      "mae": 0.46,
+      "r2": 0.465
+    },
+    "previous10VariablesOptimistic": {
+      "rmse": 0.523,
+      "rmse_sd": 0.03,
+      "mae": 0.379,
+      "r2": 0.618
+    },
+    "previous10VariablesNewState": {
+      "rmse": 0.766,
+      "rmse_sd": 0.0,
+      "mae": 0.622,
+      "r2": 0.185
+    },
+    "withinStateR2": 0.197,
+    "ic90Coverage": 0.897,
+    "ic90CoverageByState": {
+      "Hidalgo": 0.898,
+      "Puebla": 0.897,
+      "Tlaxcala": 0.898
+    },
+    "biasByState": {
+      "Hidalgo": -0.097,
+      "Puebla": 0.051,
+      "Tlaxcala": -0.078
+    },
+    "selectionStabilityPrevious10": {
+      "precip_acum_emergencia_macollamiento_mm": 1.0,
+      "bas_n_obs_ciclo": 0.8,
+      "bas_lai_espigado_llenado": 0.5,
+      "bas_ndti_emergencia_macollamiento": 0.67,
+      "bas_sti_encanado": 0.53,
+      "bas_ndvi_emergencia_macollamiento": 0.4,
+      "bas_ndwi_espigado_llenado": 0.33,
+      "bas_ndti_encanado": 0.1,
+      "bas_evi_emergencia_macollamiento": 0.43,
+      "bas_evi_encanado": 0.23
+    },
+    "blocks": 12,
+    "folds": 5,
+    "repetitions": 6
+  },
+  "modelModes": {
+    "default": "lluvia",
+    "lluvia": {
+      "label": "Solo lluvia",
+      "nFeatures": 1,
+      "recommended": true,
+      "rmse": 0.535,
+      "mae": 0.379,
+      "r2": 0.601,
+      "newStateRmse": 0.617,
+      "newStateR2": 0.471,
+      "rmseByRegion": {
+        "Hidalgo": 0.539,
+        "Puebla": 0.585,
+        "Tlaxcala": 0.395
+      },
+      "ic90Coverage": 0.897,
+      "needs": "Solo la lluvia de abril–mayo (CHIRPS).",
+      "importance": [
+        {
+          "key": "precip_acum_emergencia_macollamiento_mm",
+          "feature": "Precipitación en emergencia-macollamiento",
+          "value": 0.649,
+          "direction": "negativo"
+        }
+      ]
+    },
+    "10var": {
+      "label": "10 variables (Plan B)",
+      "nFeatures": 10,
+      "recommended": false,
+      "rmse": 0.62,
+      "mae": 0.46,
+      "r2": 0.465,
+      "newStateRmse": 0.766,
+      "newStateR2": 0.185,
+      "rmseByRegion": {
+        "Hidalgo": 0.706,
+        "Puebla": 0.617,
+        "Tlaxcala": 0.514
+      },
+      "ic90Coverage": 0.896,
+      "needs": "La lluvia de abril–mayo y los índices Sentinel-2/Landsat de la parcela (LAI, NDVI, NDTI, STI, NDWI, EVI, nº de observaciones). Si falta alguno se rellena con la mediana de entrenamiento y se avisa.",
+      "importance": [
+        {
+          "key": "precip_acum_emergencia_macollamiento_mm",
+          "feature": "Precipitación en emergencia-macollamiento",
+          "value": 0.652,
+          "direction": "positivo"
+        },
+        {
+          "key": "bas_lai_espigado_llenado",
+          "feature": "LAI en espigado-llenado",
+          "value": 0.054,
+          "direction": "positivo"
+        },
+        {
+          "key": "bas_n_obs_ciclo",
+          "feature": "Densidad de observaciones válidas (Sentinel-2/Landsat)",
+          "value": 0.049,
+          "direction": "negativo"
+        },
+        {
+          "key": "bas_ndti_emergencia_macollamiento",
+          "feature": "NDTI en emergencia-macollamiento",
+          "value": 0.038,
+          "direction": "negativo"
+        },
+        {
+          "key": "bas_ndwi_espigado_llenado",
+          "feature": "NDWI en espigado-llenado",
+          "value": 0.031,
+          "direction": "negativo"
+        },
+        {
+          "key": "bas_sti_encanado",
+          "feature": "STI en encañado",
+          "value": 0.029,
+          "direction": "positivo"
+        },
+        {
+          "key": "bas_evi_encanado",
+          "feature": "EVI en encañado",
+          "value": 0.029,
+          "direction": "negativo"
+        },
+        {
+          "key": "bas_evi_emergencia_macollamiento",
+          "feature": "EVI en emergencia-macollamiento",
+          "value": 0.021,
+          "direction": "negativo"
+        },
+        {
+          "key": "bas_ndvi_emergencia_macollamiento",
+          "feature": "NDVI en emergencia-macollamiento",
+          "value": 0.02,
+          "direction": "negativo"
+        },
+        {
+          "key": "bas_ndti_encanado",
+          "feature": "NDTI en encañado",
+          "value": 0.017,
+          "direction": "positivo"
+        }
+      ]
+    }
   }
 }

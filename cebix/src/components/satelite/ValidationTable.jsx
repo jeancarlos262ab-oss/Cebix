@@ -94,7 +94,7 @@ export default function ValidationTable({ rows, onClear, onDownload }) {
               onClick={onDownload}
               className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
-              <Download size={13} strokeWidth={1.75} className="text-gray-400" /> JSON
+              <Download size={13} strokeWidth={1.75} className="text-gray-400" /> Descargar
             </button>
             <button
               type="button"

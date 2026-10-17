@@ -61,6 +61,6 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--shapefile", required=True)
     p.add_argument("--features-predict", default=os.path.join(HERE, "02_datos_procesados", "features_predict.csv"))
-    p.add_argument("--artifact", default=os.path.join(HERE, "..", "backend", "model_artifact.joblib"))
+    p.add_argument("--artifact", default=os.path.join(HERE, "..", "backend", "models", "model_artifact.joblib"))
     p.add_argument("--out", default=os.path.join(HERE, "..", "backend", "data", "ejemplo_features_predict.csv"))
     main(p.parse_args())
