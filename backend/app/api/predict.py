@@ -109,7 +109,7 @@ def _predict_official_basico(content: bytes, conjunto: str, variant: str = "abie
         r["modelo"] = "abierto"
 
     def context(i):
-        extra = {k: _clean(feats[k].iloc[i]) for k in [*FEATURE_KEYS, "ndvi_pico_ciclo"]}
+        extra = {k: _clean(feats[k].iloc[i]) for k in [*FEATURE_KEYS, "ndvi_pico_ciclo"] if k in feats.columns}
         return {**row_context(feats, i), **extra}
 
     return {
@@ -164,7 +164,7 @@ def _predict_official_pro(content: bytes, conjunto: str, variant: str = "abierto
         r["modelo"] = "abierto"
 
     def context(i):
-        extra = {k: _clean(feats[k].iloc[i]) for k in [*official.PLANET_FEATURES, "ndvi_pico_ciclo"]}
+        extra = {k: _clean(feats[k].iloc[i]) for k in [*official.PLANET_FEATURES, "ndvi_pico_ciclo"] if k in feats.columns}
         return {**row_context(feats, i), **extra}
 
     return {

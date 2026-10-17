@@ -4,7 +4,7 @@
  * No hay datos del modelo escritos en el código del frontend.
  */
 import { getPredictionMode } from "./predictionMode";
-import { MSG_CONNECTION, MSG_GENERIC, MSG_SERVICE, isTechnical } from "../utils/userMessages";
+import { MSG_CONNECTION, MSG_GENERIC, MSG_SERVICE, SHOW_REAL_ERRORS, isTechnical, realError } from "../utils/userMessages";
 
 export const API_URL = (import.meta.env.VITE_MODEL_API_URL || "http://localhost:8000").replace(/\/$/, "");
 export const EXAMPLE_CSV_URL = `${API_URL}/example-csv`;
@@ -56,6 +56,7 @@ export async function errorFromResponse(res) {
   else if (detail && !isTechnical(detail)) message = detail;
   else message = MSG_GENERIC;
   console.error(`[api] ${res.status} ${res.url}`, raw.slice(0, 500));
+  if (SHOW_REAL_ERRORS) message = `HTTP ${res.status} ${res.url} → ${detail || raw.slice(0, 400) || "(sin cuerpo)"}`;
   return new ApiError(message, { status: res.status, url: res.url, raw: raw.slice(0, 4000) });
 }
 
@@ -84,10 +85,15 @@ export async function fetchExampleFile() {
 }
 
 export function friendlyError(err) {
+  if (SHOW_REAL_ERRORS) {
+    console.error("[api] error real", err);
+    const hint = err instanceof TypeError ? ` (sin respuesta del servidor ${API_URL}: apagado, caído, URL equivocada o bloqueo CORS; mira la pestaña Red/Console del navegador)` : "";
+    return realError(err) + hint;
+  }
   // Los navegadores usan un TypeError genérico cuando la petición ni siquiera llega a respuesta.
   if (err instanceof TypeError) {
     console.error("[api] sin respuesta del servidor", API_URL, err);
-    return MSG_CONNECTION;
+    return `${MSG_CONNECTION} (Servidor: ${API_URL}. Si es tu equipo, confirma que el backend esté encendido; si es Render, que haya terminado de desplegar.)`;
   }
   return err.message || MSG_GENERIC;
 }

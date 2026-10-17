@@ -1,4 +1,4 @@
-import { userMessage } from "../../utils/userMessages";
+import { SHOW_REAL_ERRORS, realError, userMessage } from "../../utils/userMessages";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, UploadCloud } from "lucide-react";
 import { toast } from "../../services/toast";
@@ -258,7 +258,10 @@ export default function UploadDropzone({ onParsed, onModelCsv }) {
         await onModelCsv(file, kind);
         toast.success('Modelo ejecutado. Pulsa "Guardar corrida" para conservar los resultados.', { id });
       } catch (err) {
-        toast.error(fallbackMessage ?? userMessage(err, "No se pudo ejecutar el modelo con el archivo."), { id, duration: 12000 });
+        toast.error(
+          (fallbackMessage ?? userMessage(err, "No se pudo ejecutar el modelo con el archivo.")) + (SHOW_REAL_ERRORS && fallbackMessage ? ` [${realError(err)}]` : ""),
+          { id, duration: 12000 }
+        );
       } finally {
         setBusy(false);
       }

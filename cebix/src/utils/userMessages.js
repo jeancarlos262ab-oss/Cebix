@@ -3,6 +3,22 @@
  * detalles técnicos (servidor, base de datos, scripts SQL, códigos HTTP, CORS, URLs...): esos detalles se
  * quedan en la consola del navegador y aquí se convierten en una frase que cualquiera entienda.
  */
+/**
+ * DEPURACIÓN: con `true` los avisos muestran el error real (tipo, código HTTP, URL y respuesta del servidor) en lugar
+ * de los mensajes amables. Para volver a los mensajes de siempre, ponlo en `false`.
+ */
+export const SHOW_REAL_ERRORS = true;
+
+/** Descripción técnica completa de un error (solo se usa con SHOW_REAL_ERRORS). */
+export function realError(err) {
+  if (typeof err === "string") return err;
+  const parts = [`${err?.name ?? "Error"}: ${err?.message ?? String(err)}`];
+  if (err?.status) parts.push(`HTTP ${err.status}`);
+  if (err?.url) parts.push(`URL: ${err.url}`);
+  if (err?.raw) parts.push(`Respuesta: ${String(err.raw).slice(0, 600)}`);
+  return parts.join(" | ");
+}
+
 export const MSG_CONNECTION = "No pudimos conectarnos. Revisa tu conexión a internet e inténtalo de nuevo.";
 export const MSG_SERVICE = "El servicio no está disponible por el momento. Inténtalo de nuevo en unos minutos.";
 export const MSG_GENERIC = "Algo salió mal. Inténtalo de nuevo.";
@@ -25,6 +41,7 @@ const isConnectionError = (err) =>
 export function userMessage(err, fallback) {
   const text = typeof err === "string" ? err : String(err?.message ?? "");
   if (err && typeof err !== "string") console.error("[error]", err);
+  if (SHOW_REAL_ERRORS) return realError(err);
   if (isConnectionError(err)) return MSG_CONNECTION;
   if (Number(err?.status) >= 500) return MSG_SERVICE;
   if (!text.trim() || isTechnical(text)) return fallback ?? MSG_GENERIC;

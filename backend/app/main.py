@@ -26,7 +26,10 @@ Correr localmente (desde backend/):
     uvicorn app.main:app --reload --port 8000
 """
 
-from fastapi import FastAPI
+import logging
+
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import geo, health, model, overpass, predict, satellite
@@ -48,3 +51,16 @@ app.add_middleware(
 
 for r in (health.router, model.router, predict.router, satellite.router, geo.router, overpass.router):
     app.include_router(r)
+
+
+@app.exception_handler(Exception)
+async def unhandled_error(request: Request, exc: Exception):
+    """Un 500 sin manejar sale por fuera del CORSMiddleware (sin Access-Control-Allow-Origin) y el navegador lo
+    reporta como "blocked by CORS policy". Aquí se devuelve JSON con las cabeceras CORS para ver el error real."""
+    logging.getLogger("cebix").exception("Error no controlado en %s", request.url.path)
+    headers = {}
+    origin = request.headers.get("origin")
+    if origin and ("*" in ALLOWED_ORIGINS or origin.rstrip("/") in ALLOWED_ORIGINS):
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Vary"] = "Origin"
+    return JSONResponse({"detail": f"Error interno: {type(exc).__name__}: {exc}"}, status_code=500, headers=headers)
