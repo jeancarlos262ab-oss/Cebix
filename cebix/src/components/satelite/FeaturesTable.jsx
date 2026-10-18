@@ -1,4 +1,4 @@
-import { SAT_FEATURES, SOURCES } from "../../data/satelite";
+import { SAT_FEATURES, SOURCES, featuresForMode } from "../../data/satelite";
 import { WindowChip } from "./SourceChip";
 import { formatNumber } from "../../utils/intl";
 
@@ -7,7 +7,10 @@ const fmt = (value, digits) =>
     ? "—"
     : formatNumber(value, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
-export default function FeaturesTable({ features }) {
+// `modo` define qué variables se calcularon (solo lluvia: 1; ciclo completo: 3; 10 variables: 10).
+// Sin modo (registros antiguos) se muestran las que traen valor.
+export default function FeaturesTable({ features, modo = null }) {
+  const rows = featuresForMode(modo) ?? SAT_FEATURES.filter((f) => features?.[f.key] != null);
   return (
     <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-800">
       <table className="w-full min-w-[640px] text-left text-sm">
@@ -20,7 +23,7 @@ export default function FeaturesTable({ features }) {
           </tr>
         </thead>
         <tbody>
-          {SAT_FEATURES.filter((f) => !f.modeOnly || features?.[f.key] != null).map((f) => (
+          {rows.map((f) => (
             <tr key={f.key} className="border-b border-gray-100 last:border-0 dark:border-gray-800/70">
               <td className="px-4 py-3">
                 <p className="text-gray-900 dark:text-gray-100">{f.label}</p>

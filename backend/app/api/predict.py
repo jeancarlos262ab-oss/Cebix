@@ -11,7 +11,7 @@ from app.services.model_service import _clean, modo_from_variant, row_context, r
 router = APIRouter(tags=["predicción"])
 
 @router.post("/predict")
-def predict(payload: PredictRequest, modo: str = Query("lluvia", description="'lluvia' (por defecto), '10var' (Plan B) o 'ciclo' (lluvia de las 3 etapas abr–oct).")):
+def predict(payload: PredictRequest, modo: str = Query("lluvia", description="'lluvia' (por defecto), '10var' (Plan B), 'ciclo' (lluvia de las 3 etapas abr–oct) o '10var_ciclo' (10 variables con la lluvia de las 3 etapas).")):
     if not payload.parcelas:
         raise HTTPException(status_code=400, detail="Manda al menos una parcela en 'parcelas'.")
 
@@ -37,7 +37,7 @@ async def predict_csv(
         "PREDICCION",
         description="Solo para el CSV Básico oficial: PREDICCION (las 59 parcelas a estimar), ENTRENAMIENTO o TODAS.",
     ),
-    modo: str = Query("lluvia", description="'lluvia' (solo la lluvia de abril–mayo, por defecto), '10var' (Plan B: 10 variables) o 'ciclo' (lluvia de las 3 etapas, abril–octubre)."),
+    modo: str = Query("lluvia", description="'lluvia' (solo la lluvia de abril–mayo, por defecto), '10var' (Plan B: 10 variables), 'ciclo' (lluvia de las 3 etapas, abril–octubre) o '10var_ciclo' (10 variables con la lluvia de las 3 etapas)."),
 ):
     
     content = await file.read()
@@ -120,7 +120,7 @@ def _predict_official_basico(content: bytes, conjunto: str, variant: str = "abie
 
 def _predict_official_pro(content: bytes, conjunto: str, variant: str = "abierto"):
     
-    if variant == "10var":
+    if variant in ("10var", "10var_ciclo"):
         raise HTTPException(
             status_code=422,
             detail="Las 10 variables son índices de Sentinel-2/Landsat y el CSV PRO (Planet) no los trae. "

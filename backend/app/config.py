@@ -6,6 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 MODEL_PATH = os.environ.get("MODEL_PATH", str(BASE_DIR / "models" / "model_artifact.joblib"))
 META_PATH = os.environ.get("MODEL_META_PATH", str(BASE_DIR / "models" / "model_meta.json"))
 MODEL_10VAR_PATH = os.environ.get("MODEL_10VAR_PATH", str(BASE_DIR / "models" / "model_artifact_10var.joblib"))
+MODEL_10VAR_CICLO_PATH = os.environ.get("MODEL_10VAR_CICLO_PATH", str(BASE_DIR / "models" / "model_artifact_10var_ciclo.joblib"))
 MODEL_CICLO_PATH = os.environ.get("MODEL_CICLO_PATH", str(BASE_DIR / "models" / "model_artifact_ciclo.joblib"))
 MODEL_PLANET_PATH = os.environ.get("MODEL_PLANET_PATH", str(BASE_DIR / "models" / "model_artifact_planet.joblib"))
 PLANET_META_PATH = os.environ.get("MODEL_PLANET_META_PATH", str(BASE_DIR / "models" / "model_planet_meta.json"))

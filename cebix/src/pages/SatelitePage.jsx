@@ -170,6 +170,8 @@ function Facts() {
           ? "Solo la lluvia de CHIRPS dentro del polígono."
           : mode === "ciclo"
           ? "La lluvia de CHIRPS de las tres etapas (abril a septiembre) dentro del polígono. Tarda más que solo lluvia."
+          : mode === "10var_ciclo"
+          ? "Los índices por ventana fenológica y la lluvia de las tres etapas (abril a septiembre). Es el modo más lento."
           : "10 variables por ventana fenológica. Tarda entre 30 y 90 s.",
     },
     { label: "Resultado", text: "Rendimiento estimado, intervalo al 90 % y peso SHAP de cada variable." },
@@ -529,7 +531,8 @@ function NuevaParcelaTab() {
     }
   }
 
-  async function saveResult() {
+  async function saveResult(opts) {
+    const asNew = opts?.asNew === true;
     if (!result || !view || !ran || saving || stale || urbanBlocked) return;
     const f = view.features;
     const fields = {
@@ -565,7 +568,8 @@ function NuevaParcelaTab() {
     };
     setSaving(true);
     
-    const res = savedId && isCustomParcel(savedId) ? await updateParcel(savedId, fields) : await addParcel(fields);
+    const replacing = !asNew && Boolean(savedId && isCustomParcel(savedId));
+    const res = replacing ? await updateParcel(savedId, fields) : await addParcel(fields);
     setSaving(false);
     if (res?.error || !res?.data) {
       console.error("No se pudo guardar la parcela", res?.error);
@@ -581,10 +585,12 @@ function NuevaParcelaTab() {
       });
       return;
     }
-    toast.success(`'${ran.name}' guardada en tus parcelas con todo lo calculado.`);
+    toast.success(replacing ? `'${ran.name}' actualizada: se reemplazaron los datos guardados anteriormente.` : `'${ran.name}' guardada en tus parcelas con todo lo calculado.`);
   }
 
   const isSaved = Boolean(savedId && savedFor === ran);
+  
+  const replacesSaved = Boolean(savedId && !isSaved && isCustomParcel(savedId));
   
   const unsaved = phase === "done" && Boolean(result) && !isSaved;
   useEffect(() => {
@@ -626,12 +632,16 @@ function NuevaParcelaTab() {
       ? "Se lee la lluvia real de CHIRPS dentro del polígono."
       : predMode === "ciclo"
       ? "Se lee la lluvia real de CHIRPS de las tres etapas dentro del polígono."
+      : predMode === "10var_ciclo"
+      ? "Se leen imágenes reales de 10 variables y la lluvia de las tres etapas (el modo más lento)."
       : "Se leen imágenes reales de 10 variables (30 a 90 s).";
   const READ_SHORT =
     predMode === "lluvia"
       ? "Se lee la lluvia real de CHIRPS dentro del polígono."
       : predMode === "ciclo"
       ? "Se lee la lluvia real de CHIRPS de las tres etapas dentro del polígono."
+      : predMode === "10var_ciclo"
+      ? "Se leen imágenes reales de 10 variables y la lluvia de las tres etapas. Es el modo más lento."
       : "Se leen imágenes reales de 10 variables. Tarda entre 30 y 90 s.";
 
   const drawHint =
@@ -767,6 +777,11 @@ function NuevaParcelaTab() {
                 {result ? "Recalcular índices satelitales" : "Calcular índices satelitales"}
               </button>
             )}
+            {!running && result && replacesSaved && (
+              <p className="mt-2 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+                Esta parcela ya está guardada. Recalcular no la modifica: solo cambia si pulsas &quot;Reemplazar parcela guardada&quot; después del cálculo.
+              </p>
+            )}
             {!running && phase === "done" && result && ran && (
               <div className="mt-3">
                 {isSaved ? (
@@ -786,12 +801,26 @@ function NuevaParcelaTab() {
                     className="flex w-full items-center justify-center gap-2 rounded-md border border-accent-500 px-3 py-2 text-xs font-medium text-accent-700 transition-colors hover:bg-accent-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:text-accent-400 dark:hover:bg-accent-500/10 dark:focus-visible:ring-offset-black"
                   >
                     {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} strokeWidth={1.75} />}
-                    {saving ? "Guardando…" : "Guardar parcela"}
+                    {saving ? "Guardando…" : replacesSaved ? "Reemplazar parcela guardada" : "Guardar parcela"}
+                  </button>
+                )}
+                {replacesSaved && (
+                  <button
+                    type="button"
+                    onClick={() => saveResult({ asNew: true })}
+                    disabled={saving || stale || urbanBlocked}
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-medium text-gray-600 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-300"
+                  >
+                    Guardar como parcela nueva
                   </button>
                 )}
                 {!isSaved && (
                   <p className="mt-2 text-xs leading-relaxed text-gray-400 dark:text-gray-500">
-                    {stale ? "Recalcula antes de guardar: el contorno cambió." : "El cálculo no se guarda solo. Pulsa 'Guardar parcela' para conservarlo en tus parcelas."}
+                    {stale
+                      ? "Recalcula antes de guardar: el contorno cambió."
+                      : replacesSaved
+                      ? "Ya guardaste esta parcela. 'Reemplazar' sobrescribe sus datos guardados con este cálculo; 'Guardar como parcela nueva' conserva la anterior y crea otra (cambia el nombre para distinguirlas)."
+                      : "El cálculo no se guarda solo. Pulsa 'Guardar parcela' para conservarlo en tus parcelas."}
                   </p>
                 )}
               </div>
@@ -910,7 +939,7 @@ function NuevaParcelaTab() {
               view={view}
               ran={ran}
               stale={stale}
-              save={{ saving, savedId: savedFor === ran ? savedId : null, onSave: saveResult }}
+              save={{ saving, savedId: savedFor === ran ? savedId : null, replaces: replacesSaved, onSave: () => saveResult(), onSaveNew: () => saveResult({ asNew: true }) }}
               downloaded={{ ID_POLIGONO: ran.name, Estado: ran.estado, anio: ran.anio, geometry: ran.geometry, features: view.features }}
               onDownload={(payload) => downloadBlob(`${ran.name}_features_${ran.anio}.json`, JSON.stringify(payload, null, 2))}
               onReset={clearAll}

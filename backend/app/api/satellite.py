@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from app.schemas import GeometryRequest
 from app.services import satellite_service
 from app.services.features.common import SatelliteError
-from app.services.model_service import get_artifact, run_inference, variant_from_modo
+from app.services.model_service import VARIANTES_CICLO, get_artifact, run_inference, variant_from_modo
 
 router = APIRouter(tags=["satélite"])
 
@@ -25,7 +25,7 @@ def predict_from_geometry(payload: GeometryRequest):
     df = pd.DataFrame([features]).astype(float)  
     variant = variant_from_modo(payload.modo)
     advertencias = list(extracted["advertencias"])
-    if variant == "ciclo":
+    if variant in VARIANTES_CICLO:
         try:
             extra = satellite_service.extract_ciclo(payload.geometry, payload.anio)
         except SatelliteError as e:

@@ -14,6 +14,7 @@ import {
   saveSubmissions,
 } from "../services/userDataApi";
 import { toast } from "../services/toast";
+import { featuresForMode, isCicloMode } from "../data/satelite";
 
 const SUBMISSIONS_KEY = "cebix-committee-submissions";
 const ANALYSIS_KEY = "cebix-analysis-v1";
@@ -216,6 +217,15 @@ const firstNum = (...vals) => {
   return null;
 };
 
+// Variables del modelo (según el modo) presentes en la fila del CSV / respuesta, para mostrarlas y para el PDF.
+function pickFeatures(meta, modo) {
+  const list = featuresForMode(modo);
+  if (!list) return null;
+  const out = {};
+  for (const f of list) out[f.key] = numOrNull(meta[f.key]);
+  return Object.values(out).some((v) => v !== null) ? out : null;
+}
+
 function buildAnalysisParcel(pred, row = {}, index = 0) {
   const meta = { ...row, ...pred }; 
   const polygonId = String(pred.ID_POLIGONO);
@@ -261,7 +271,8 @@ function buildAnalysisParcel(pred, row = {}, index = 0) {
     fromModelRun: true,
     shap: pred.shap ?? [],
     modo: pred.modo ?? null,
-    precipEtapas: pred.modo === "ciclo" ? { enc: firstNum(meta.precip_acum_encanado_mm), esp: firstNum(meta.precip_acum_espigado_llenado_mm) } : null,
+    features: pickFeatures(meta, pred.modo),
+    precipEtapas: isCicloMode(pred.modo) ? { enc: firstNum(meta.precip_acum_encanado_mm), esp: firstNum(meta.precip_acum_espigado_llenado_mm) } : null,
     fueraDeRango: Boolean(pred.fuera_de_rango),
     avisos: Array.isArray(pred.avisos) ? pred.avisos : [],
   };
@@ -656,6 +667,12 @@ export function ParcelsProvider({ children }) {
       regionSummary,
       hasAnalysis: analysisParcels.length > 0,
       analysisMeta: analysis ? { fileName: analysis.fileName, runAt: analysis.runAt, count: analysisParcels.length } : null,
+      // Corrida ya guardada (la que reemplazaría un borrador sin guardar); null si no hay borrador o no había ninguna.
+      savedAnalysisMeta: (() => {
+        if (!analysisDirty || !uid) return null;
+        const saved = appStorage.getJSON(scopedKey(ANALYSIS_KEY, uid), null);
+        return saved?.parcels?.length ? { fileName: saved.fileName, runAt: saved.runAt, count: saved.parcels.length } : null;
+      })(),
       loadAnalysis,
       clearAnalysis,
       analysisDirty,
@@ -693,6 +710,7 @@ export function ParcelsProvider({ children }) {
       loadCustomParcels,
       submissions,
       submitToCommittee,
+      uid,
     ]
   );
 

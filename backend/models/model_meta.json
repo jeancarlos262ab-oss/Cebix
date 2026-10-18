@@ -540,6 +540,97 @@
           "direction": "negativo"
         }
       ]
+    },
+    "10var_ciclo": {
+      "label": "10 variables + ciclo completo",
+      "nFeatures": 12,
+      "recommended": false,
+      "rmse": 0.61,
+      "mae": 0.454,
+      "r2": 0.483,
+      "newStateRmse": 0.771,
+      "newStateR2": 0.173,
+      "rmseByRegion": {
+        "Hidalgo": 0.705,
+        "Puebla": 0.601,
+        "Tlaxcala": 0.502
+      },
+      "ic90Coverage": 0.896,
+      "needs": "La lluvia CHIRPS de las tres etapas del ciclo abril–octubre y los índices Sentinel-2/Landsat de la parcela (LAI, NDVI, NDTI, STI, NDWI, EVI, nº de observaciones). Si falta algún índice se rellena con la mediana de entrenamiento y se avisa.",
+      "importance": [
+        {
+          "key": "precip_acum_emergencia_macollamiento_mm",
+          "feature": "Precipitación en emergencia-macollamiento (abr–may)",
+          "value": 0.652,
+          "direction": "positivo"
+        },
+        {
+          "key": "bas_lai_espigado_llenado",
+          "feature": "LAI en espigado-llenado",
+          "value": 0.054,
+          "direction": "positivo"
+        },
+        {
+          "key": "bas_n_obs_ciclo",
+          "feature": "Densidad de observaciones válidas (Sentinel-2/Landsat)",
+          "value": 0.049,
+          "direction": "negativo"
+        },
+        {
+          "key": "bas_ndti_emergencia_macollamiento",
+          "feature": "NDTI en emergencia-macollamiento",
+          "value": 0.038,
+          "direction": "negativo"
+        },
+        {
+          "key": "bas_ndwi_espigado_llenado",
+          "feature": "NDWI en espigado-llenado",
+          "value": 0.032,
+          "direction": "negativo"
+        },
+        {
+          "key": "bas_sti_encanado",
+          "feature": "STI en encañado",
+          "value": 0.029,
+          "direction": "positivo"
+        },
+        {
+          "key": "bas_evi_encanado",
+          "feature": "EVI en encañado",
+          "value": 0.029,
+          "direction": "negativo"
+        },
+        {
+          "key": "bas_evi_emergencia_macollamiento",
+          "feature": "EVI en emergencia-macollamiento",
+          "value": 0.021,
+          "direction": "negativo"
+        },
+        {
+          "key": "bas_ndvi_emergencia_macollamiento",
+          "feature": "NDVI en emergencia-macollamiento",
+          "value": 0.02,
+          "direction": "negativo"
+        },
+        {
+          "key": "bas_ndti_encanado",
+          "feature": "NDTI en encañado",
+          "value": 0.018,
+          "direction": "positivo"
+        },
+        {
+          "key": "precip_acum_espigado_llenado_mm",
+          "feature": "Precipitación en espigado-llenado (ago–sep)",
+          "value": 0.004,
+          "direction": "negativo"
+        },
+        {
+          "key": "precip_acum_encanado_mm",
+          "feature": "Precipitación en encañado (jun–jul)",
+          "value": 0.002,
+          "direction": "negativo"
+        }
+      ]
     }
   },
   "limitaciones": [

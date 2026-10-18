@@ -14,6 +14,7 @@ export const SOURCES = {
 export const SAT_FEATURES = [
   {
     key: "precip_acum_emergencia_macollamiento_mm",
+    short: "Lluvia abr-may",
     label: "Precipitación en emergencia-macollamiento",
     unit: "mm",
     source: "chirps",
@@ -23,6 +24,7 @@ export const SAT_FEATURES = [
   },
   {
     key: "precip_acum_encanado_mm",
+    short: "Lluvia jun-jul",
     label: "Precipitación en encañado",
     unit: "mm",
     source: "chirps",
@@ -33,6 +35,7 @@ export const SAT_FEATURES = [
   },
   {
     key: "precip_acum_espigado_llenado_mm",
+    short: "Lluvia ago-sep",
     label: "Precipitación en espigado-llenado",
     unit: "mm",
     source: "chirps",
@@ -43,6 +46,7 @@ export const SAT_FEATURES = [
   },
   {
     key: "bas_n_obs_ciclo",
+    short: "N.º de escenas",
     label: "Densidad de observaciones válidas (Sentinel-2/Landsat)",
     unit: "fechas",
     source: "scenes",
@@ -53,6 +57,7 @@ export const SAT_FEATURES = [
   },
   {
     key: "bas_lai_espigado_llenado",
+    short: "LAI espig.",
     label: "LAI en espigado-llenado",
     unit: "m²/m²",
     source: "s2",
@@ -62,6 +67,7 @@ export const SAT_FEATURES = [
   },
   {
     key: "bas_ndti_emergencia_macollamiento",
+    short: "NDTI emerg.",
     label: "NDTI en emergencia-macollamiento",
     unit: "índice",
     source: "s2",
@@ -71,6 +77,7 @@ export const SAT_FEATURES = [
   },
   {
     key: "bas_sti_encanado",
+    short: "STI encañ.",
     label: "STI en encañado",
     unit: "índice",
     source: "s2",
@@ -80,6 +87,7 @@ export const SAT_FEATURES = [
   },
   {
     key: "bas_ndvi_emergencia_macollamiento",
+    short: "NDVI emerg.",
     label: "NDVI en emergencia-macollamiento",
     unit: "índice",
     source: "s2",
@@ -89,6 +97,7 @@ export const SAT_FEATURES = [
   },
   {
     key: "bas_ndwi_espigado_llenado",
+    short: "NDWI espig.",
     label: "NDWI en espigado-llenado",
     unit: "índice",
     source: "s2",
@@ -98,6 +107,7 @@ export const SAT_FEATURES = [
   },
   {
     key: "bas_ndti_encanado",
+    short: "NDTI encañ.",
     label: "NDTI en encañado",
     unit: "índice",
     source: "s2",
@@ -107,6 +117,7 @@ export const SAT_FEATURES = [
   },
   {
     key: "bas_evi_emergencia_macollamiento",
+    short: "EVI emerg.",
     label: "EVI en emergencia-macollamiento",
     unit: "índice",
     source: "s2",
@@ -116,6 +127,7 @@ export const SAT_FEATURES = [
   },
   {
     key: "bas_evi_encanado",
+    short: "EVI encañ.",
     label: "EVI en encañado",
     unit: "índice",
     source: "s2",
@@ -124,6 +136,18 @@ export const SAT_FEATURES = [
     digits: 3,
   },
 ];
+
+// Variables que realmente usa cada modo: "lluvia" y "ciclo" solo leen CHIRPS (lluvia);
+// "10var" usa la lluvia de abril-mayo + los 9 índices Sentinel-2/Landsat. Sin modo (registros
+// antiguos) devuelve null y quien llama decide qué mostrar.
+// "10var_ciclo" = los 9 índices Sentinel-2/Landsat + la lluvia de las 3 etapas del ciclo.
+export const isRainMode = (modo) => modo === "lluvia" || modo === "ciclo";
+// Modos que usan la lluvia de las 3 etapas (abril–septiembre) en vez de solo abril–mayo.
+export const isCicloMode = (modo) => modo === "ciclo" || modo === "10var_ciclo";
+export function featuresForMode(modo) {
+  if (modo !== "lluvia" && modo !== "10var" && modo !== "ciclo" && modo !== "10var_ciclo") return null;
+  return SAT_FEATURES.filter((f) => (!f.modeOnly || (f.modeOnly === "ciclo" && isCicloMode(modo))) && (!isRainMode(modo) || f.source === "chirps"));
+}
 
 export const TRAINED_YEAR = 2025;
 

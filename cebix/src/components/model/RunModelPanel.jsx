@@ -64,6 +64,7 @@ export default function RunModelPanel() {
 
   async function runWith(f) {
     if (!f) return;
+    const hadAnalysis = hasAnalysis;
     setLoading(true);
     setResults(null);
     setModelUsed(null);
@@ -85,7 +86,7 @@ export default function RunModelPanel() {
       
       loadAnalysis(data.predicciones, csvText, runName.trim() || f.name);
       toast.success(
-        `Modelo (${data.modo === "10var" ? "10 variables" : data.modo === "ciclo" ? "ciclo completo" : "solo lluvia"}) ejecutado: ${data.predicciones.length} parcela${data.predicciones.length === 1 ? "" : "s"} procesada${data.predicciones.length === 1 ? "" : "s"}. Pulsa "Guardar corrida" para conservarla.`
+        `Modelo (${data.modo === "10var" ? "10 variables" : data.modo === "ciclo" ? "ciclo completo" : data.modo === "10var_ciclo" ? "10 variables + ciclo completo" : "solo lluvia"}) ejecutado: ${data.predicciones.length} parcela${data.predicciones.length === 1 ? "" : "s"} procesada${data.predicciones.length === 1 ? "" : "s"}. Pulsa "Guardar corrida" para conservarla${hadAnalysis ? "; reemplazará la corrida guardada anterior" : ""}.`
       );
     } catch (err) {
       toast.error(friendlyError(err));
@@ -259,9 +260,9 @@ export default function RunModelPanel() {
             <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
               Modelo usado:{" "}
               <strong className="text-gray-800 dark:text-gray-200">
-                {modeUsed === "10var" ? "10 variables" : modeUsed === "ciclo" ? "ciclo completo, lluvia de 3 etapas (CHIRPS)" : "solo lluvia temprana (CHIRPS)"}
+                {modeUsed === "10var" ? "10 variables" : modeUsed === "ciclo" ? "ciclo completo, lluvia de 3 etapas (CHIRPS)" : modeUsed === "10var_ciclo" ? "10 variables + ciclo completo (lluvia de 3 etapas e índices Sentinel-2/Landsat)" : "solo lluvia temprana (CHIRPS)"}
               </strong>
-              {(modeUsed === "10var" || modeUsed === "ciclo") && " · Error típico mayor que con solo lluvia; ver Modelo → Resumen."}
+              {(modeUsed === "10var" || modeUsed === "ciclo" || modeUsed === "10var_ciclo") && " · Desviación mayor que con solo lluvia; ver Modelo → Resumen."}
             </p>
           )}
           {results && <ReliabilityNotice results={results} />}
@@ -297,7 +298,7 @@ const GUIDE_ITEMS = [
 
 const FALLBACK_LIMITS = [
   "Un solo ciclo de entrenamiento (2025) y una sola variable: la lluvia de abril–mayo.",
-  "Error típico de ±0.54 t/ha: sirve para comparar y priorizar parcelas, no para fijar una cifra exacta.",
+  "Desviación de ±0.54 t/ha: sirve para comparar y priorizar parcelas, no para fijar una cifra exacta.",
 ];
 
 function ReliabilityNotice({ results }) {

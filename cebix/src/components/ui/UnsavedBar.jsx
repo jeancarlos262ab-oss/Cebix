@@ -5,7 +5,7 @@ import { toast } from "../../services/toast";
 import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_DANGER, MODAL_BTN_PRIMARY } from "./Modal";
 
 export default function UnsavedBar() {
-  const { analysisDirty, analysisMeta, saveAnalysisDraft, discardAnalysisDraft } = useParcels();
+  const { analysisDirty, analysisMeta, savedAnalysisMeta, saveAnalysisDraft, discardAnalysisDraft } = useParcels();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -88,9 +88,21 @@ export default function UnsavedBar() {
     >
       <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
         {confirmDiscard
-          ? `Se descartará ${parcelsText} de esta corrida y el dashboard volverá a la última corrida guardada.`
+          ? savedAnalysisMeta
+            ? `Se descartará ${parcelsText} de esta corrida y el dashboard volverá a la corrida guardada ('${savedAnalysisMeta.fileName || "la última corrida"}').`
+            : `Se descartará ${parcelsText} de esta corrida y el dashboard quedará vacío.`
           : `La corrida trae ${parcelsText} procesada${count === 1 ? "" : "s"} por el modelo. Ya puedes verlas en el dashboard; pulsa Guardar corrida para conservarlas.`}
       </p>
+      {!confirmDiscard && savedAnalysisMeta && (
+        <p
+          role="note"
+          className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900 dark:bg-amber-500/10 dark:text-amber-200"
+        >
+          <strong>Ya hay una corrida guardada</strong> (&quot;{savedAnalysisMeta.fileName || "la última corrida"}&quot;, {savedAnalysisMeta.count} parcela{savedAnalysisMeta.count === 1 ? "" : "s"}).
+          Al pulsar <strong>Guardar corrida</strong>, los resultados nuevos la reemplazan (solo se conserva una corrida por cuenta).
+          Si no quieres reemplazarla, pulsa <strong>Descartar</strong> y volverá la anterior.
+        </p>
+      )}
     </Modal>
   );
 }

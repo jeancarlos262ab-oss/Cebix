@@ -6,6 +6,7 @@ import DownloadedPolygon from "./DownloadedPolygon";
 import Semaphore from "../ui/Semaphore";
 import { Contributions, Label, SummaryPanel } from "../results/ReportParts";
 import { formatHa } from "../../utils/polygon";
+import { MODE_DESC, MODE_LABEL } from "../../utils/reportMode";
 
 const BTN =
   "inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800";
@@ -35,10 +36,17 @@ export default function ParcelResult({ result, view, ran, stale, save, downloade
               </Link>
             </>
           ) : (
-            <button type="button" onClick={save?.onSave} disabled={stale || save?.saving} className={BTN_PRIMARY}>
-              {save?.saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} strokeWidth={1.75} />}
-              {save?.saving ? "Guardando…" : "Guardar parcela"}
-            </button>
+            <>
+              <button type="button" onClick={save?.onSave} disabled={stale || save?.saving} className={BTN_PRIMARY}>
+                {save?.saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} strokeWidth={1.75} />}
+                {save?.saving ? "Guardando…" : save?.replaces ? "Reemplazar parcela guardada" : "Guardar parcela"}
+              </button>
+              {save?.replaces && (
+                <button type="button" onClick={save?.onSaveNew} disabled={stale || save?.saving} className={BTN}>
+                  Guardar como nueva
+                </button>
+              )}
+            </>
           )}
           <button type="button" onClick={() => onDownload(downloaded)} className={BTN}>
             <Download size={13} strokeWidth={1.75} /> Descargar variables
@@ -79,11 +87,14 @@ export default function ParcelResult({ result, view, ran, stale, save, downloade
 
       {}
       <section>
-        <Label>Variables calculadas desde satélite</Label>
+        <Label>{result.modo === "10var" ? "Las 10 variables calculadas desde satélite" : result.modo === "10var_ciclo" ? "Las 10 variables con la lluvia de las 3 etapas, calculadas desde satélite" : "Variables calculadas desde satélite"}</Label>
         <p className="mb-3 mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-          Para cada escena se promedia el índice dentro del polígono y, entre las escenas de la ventana, se toma la mediana.
+          {result.modo ? `Modo ${MODE_LABEL[result.modo]}: ${MODE_DESC[result.modo]}. ` : ""}
+          {result.modo === "lluvia" || result.modo === "ciclo"
+            ? "La lluvia se suma día por día dentro del polígono (CHIRPS); este modo no usa índices de vegetación."
+            : "Para cada escena se promedia el índice dentro del polígono y, entre las escenas de la ventana, se toma la mediana."}
         </p>
-        <FeaturesTable features={view.features} />
+        <FeaturesTable features={view.features} modo={result.modo ?? null} />
       </section>
     </div>
   );

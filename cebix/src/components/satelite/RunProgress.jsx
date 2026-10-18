@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
-import { SAT_FEATURES, WINDOWS } from "../../data/satelite";
+import { WINDOWS, featuresForMode, isRainMode } from "../../data/satelite";
 import { STEP_MS } from "../../services/sateliteApi";
 import { getPredictionMode } from "../../services/predictionMode";
 import { SourceChip } from "./SourceChip";
@@ -34,8 +34,8 @@ function Status({ state }) {
 export default function RunProgress({ predicting: responded = false, year, points = [] }) {
   
   const [mode] = useState(() => getPredictionMode());
-  const onlyRain = mode === "lluvia" || mode === "ciclo";
-  const features = SAT_FEATURES.filter((f) => (!f.modeOnly || f.modeOnly === mode) && (!onlyRain || f.source === "chirps"));
+  const onlyRain = isRainMode(mode);
+  const features = featuresForMode(mode);
   const total = features.length;
   
   const [frozenPoints] = useState(points);

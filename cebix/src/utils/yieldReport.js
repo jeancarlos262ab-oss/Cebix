@@ -71,6 +71,7 @@ const fix = (v, d = 2, suffix = "") => {
 
 const clean = (v) =>
   String(v ?? "—")
+    .replace(/²/g, "2")
     .replace(/[≥]/g, ">=")
     .replace(/[≤]/g, "<=")
     .replace(/[‘’]/g, "'")
@@ -81,7 +82,7 @@ function riskRgb(parcel) {
   return hex ? hexToRgb(hex) : MUTED;
 }
 
-import { MODE_CAVEAT, MODE_DESC, MODE_LABEL, modeModelNote, reportMode, stageRain } from "./reportMode";
+import { MODE_CAVEAT, MODE_DESC, MODE_LABEL, modeModelNote, reportFeatures, reportMode, stageRain } from "./reportMode";
 
 export async function generateYieldReportPDF(parcel, { modelSummary = null, modelModes = null } = {}) {
   if (!parcel) throw new Error("No hay parcela para generar el reporte.");
@@ -195,16 +196,25 @@ export async function generateYieldReportPDF(parcel, { modelSummary = null, mode
   const ic = Array.isArray(parcel.ic90) ? parcel.ic90.map(num) : [];
   const hasIc = ic.length === 2 && ic[0] !== null && ic[1] !== null;
   const modo = reportMode(parcel);
+  const satRows = reportFeatures(parcel, modo);
   const rows = [
     ...(modo ? [["Modo de cálculo", MODE_DESC[modo], MODE_LABEL[modo], ""]] : []),
     ["IC 90%", "Intervalo de confianza del rendimiento", hasIc ? `${ic[0].toFixed(2)} – ${ic[1].toFixed(2)}` : `± ${fix(parcel.confidence)}`, "ton/ha"],
-    ...(modo === "lluvia"
+    ...(satRows
+      ? satRows.map((r) => [r.short, `${r.label} · ${r.detail}`, fix(r.value, r.digits), r.unit])
+      : modo === "lluvia"
       ? [["Precipitación", "Lluvia abril-mayo (variable del modelo)", fix(parcel.precip, 0), "mm"]]
-      : modo === "ciclo"
+      : modo === "ciclo" || modo === "10var_ciclo"
       ? [
           ["Lluvia abr-may", "Emergencia-macollamiento (CHIRPS)", fix(parcel.precip, 0), "mm"],
           ["Lluvia jun-jul", "Encañado (CHIRPS)", fix(stageRain(parcel)?.enc, 0), "mm"],
           ["Lluvia ago-sep", "Espigado-llenado (CHIRPS)", fix(stageRain(parcel)?.esp, 0), "mm"],
+        ]
+      : modo === "10var"
+      ? [
+          ["Precipitación", "Lluvia abril-mayo (CHIRPS)", fix(parcel.precip, 0), "mm"],
+          ["NDVI", "Vigor del cultivo (Sentinel-2)", fix(parcel.ndvi, 3), "índice"],
+          ["EVI", "Índice de vegetación mejorado (Sentinel-2)", fix(parcel.evi, 3), "índice"],
         ]
       : [
           ["NDVI", "Vigor del cultivo, pico del ciclo", fix(parcel.ndvi, 3), "índice"],
@@ -213,13 +223,16 @@ export async function generateYieldReportPDF(parcel, { modelSummary = null, mode
           ["GDD", "Grados-día de crecimiento", fix(parcel.gdd, 0), "°C·día"],
         ]),
   ];
-  const RH = 19;
+  // Con las 10 variables la tabla es más larga: filas más compactas para que el SHAP quepa.
+  const RH = rows.length > 8 ? 15 : 19;
   rows.forEach(([a, b, c, d]) => {
     font("normal", 8, INK);
-    txt(a, COL.concept, y + 13);
-    txt(b, COL.desc, y + 13);
-    txt(c, COL.value, y + 13);
-    txt(d, COL.unit, y + 13);
+    txt(a, COL.concept, y + RH - 6);
+    font("normal", rows.length > 8 ? 6.5 : 8, INK);
+    txt(wrap(b, COL.value - COL.desc - 8)[0], COL.desc, y + RH - 6);
+    font("normal", 8, INK);
+    txt(c, COL.value, y + RH - 6);
+    txt(d, COL.unit, y + RH - 6);
     y += RH;
     hline(y);
   });

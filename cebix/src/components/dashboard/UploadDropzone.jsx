@@ -5,6 +5,7 @@ import { toast } from "../../services/toast";
 import { parseCSV } from "../../utils/csv";
 import { detectEstado } from "../../utils/polygon";
 import { predictFromGeometry } from "../../services/sateliteApi";
+import { isCicloMode } from "../../data/satelite";
 import { isGeoFile, parseGeometryFiles } from "../../services/geoApi";
 import BatchSizeDialog from "./BatchSizeDialog";
 import StagedParcelsDialog from "./StagedParcelsDialog";
@@ -38,7 +39,9 @@ function geometryResultToFields(poly, estado, data) {
       ? {
           version: 1,
           modo: data.modo,
-          ...(data.modo === "ciclo" && { etapas: { enc: f.precip_acum_encanado_mm ?? null, esp: f.precip_acum_espigado_llenado_mm ?? null } }),
+          anio: GEO_YEAR,
+          features: f,
+          ...(isCicloMode(data.modo) && { etapas: { enc: f.precip_acum_encanado_mm ?? null, esp: f.precip_acum_espigado_llenado_mm ?? null } }),
         }
       : null,
     yieldEstimate: data.yieldEstimate,

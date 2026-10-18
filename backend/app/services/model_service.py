@@ -12,6 +12,7 @@ from app.config import (
     DOMAIN_PRECIP_MARGIN,
     IC_INFLATION,
     META_PATH,
+    MODEL_10VAR_CICLO_PATH,
     MODEL_10VAR_PATH,
     MODEL_CICLO_PATH,
     MODEL_PATH,
@@ -23,19 +24,22 @@ from app.config import (
 
 _cache: dict = {}  
 _meta_cache = None
-_PATHS = {"abierto": MODEL_PATH, "10var": MODEL_10VAR_PATH, "ciclo": MODEL_CICLO_PATH, "planet": MODEL_PLANET_PATH}
+_PATHS = {"abierto": MODEL_PATH, "10var": MODEL_10VAR_PATH, "ciclo": MODEL_CICLO_PATH, "10var_ciclo": MODEL_10VAR_CICLO_PATH, "planet": MODEL_PLANET_PATH}
 
-MODOS = {"lluvia": "abierto", "10var": "10var", "ciclo": "ciclo"}
+MODOS = {"lluvia": "abierto", "10var": "10var", "ciclo": "ciclo", "10var_ciclo": "10var_ciclo"}
+
+# Variantes que usan la lluvia de las 3 etapas del ciclo (abr–oct) en vez de solo abril–mayo.
+VARIANTES_CICLO = ("ciclo", "10var_ciclo")
 
 def modo_from_variant(variant: str) -> str:
     """Nombre público del modo que devuelve la API (lo guarda el frontend con cada parcela)."""
-    return variant if variant in ("10var", "ciclo") else "lluvia"
+    return variant if variant in ("10var", "ciclo", "10var_ciclo") else "lluvia"
 
 def variant_from_modo(modo: str | None) -> str:
     
     m = (modo or "lluvia").strip().lower()
     if m not in MODOS:
-        raise HTTPException(status_code=422, detail="modo debe ser 'lluvia', '10var' o 'ciclo'.")
+        raise HTTPException(status_code=422, detail="modo debe ser 'lluvia', '10var', 'ciclo' o '10var_ciclo'.")
     return MODOS[m]
 
 def get_artifact(variant: str = "abierto"):
@@ -196,7 +200,7 @@ def run_inference(rows_df, estados, variant: str = "abierto"):
             for j in order
         ]
         faltantes = [artifact["feature_labels"].get(c, c) for c in feature_order if imputed_cols.iloc[i][c]]
-        row = {c: pd.to_numeric(rows_df.iloc[i].get(c), errors="coerce") for c in (_PRECIP, *(_PRECIP_EXTRA if variant == "ciclo" else ()), "lat", "lng") if c in rows_df.columns}
+        row = {c: pd.to_numeric(rows_df.iloc[i].get(c), errors="coerce") for c in (_PRECIP, *(_PRECIP_EXTRA if variant in VARIANTES_CICLO else ()), "lat", "lng") if c in rows_df.columns}
         avisos = domain_warnings(row, estado)
         results.append({
             "fuera_de_rango": bool(avisos),
