@@ -12,6 +12,8 @@ import { useModelInfo } from "../context/ModelInfoContext";
 import { generateYieldReportPDF } from "../utils/yieldReport";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
 import { formatNumber } from "../utils/intl";
+import { isCicloMode } from "../data/satelite";
+import { stageRain } from "../utils/reportMode";
 
 const chartQuestions = [
   {
@@ -192,7 +194,13 @@ function PrediccionesPageContent() {
               score={parcel.score}
               rows={[
                 { label: "NDVI pico", value: parcel.ndvi.toFixed(2) },
-                { label: "Precipitación del ciclo", value: `${parcel.precip} mm` },
+                ...(isCicloMode(parcel.modo)
+                  ? [
+                      { label: "Lluvia abr–may", value: `${parcel.precip} mm` },
+                      { label: "Lluvia jun–jul", value: stageRain(parcel)?.enc != null ? `${Math.round(stageRain(parcel).enc)} mm` : "—" },
+                      { label: "Lluvia ago–sep", value: stageRain(parcel)?.esp != null ? `${Math.round(stageRain(parcel).esp)} mm` : "—" },
+                    ]
+                  : [{ label: "Lluvia abr–may", value: `${parcel.precip} mm` }]),
               ]}
             />
 

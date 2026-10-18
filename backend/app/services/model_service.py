@@ -190,7 +190,7 @@ def run_inference(rows_df, estados, variant: str = "abierto"):
         estado = estados[i]
         confidence = artifact["rmse_by_region"].get(estado, artifact["overall_rmse"])
         local_shap = shap_values.values[i]
-        order = np.argsort(-np.abs(local_shap))[:4]
+        order = np.argsort(-np.abs(local_shap))  # todas las variables del modelo, de mayor a menor impacto
         shap_out = [
             {
                 "feature": artifact["feature_labels"].get(feature_order[j], feature_order[j]),
