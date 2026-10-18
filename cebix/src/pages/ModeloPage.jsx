@@ -15,15 +15,13 @@ const TABS = [
   { key: "proceso", label: "Proceso" },
 ];
 
-// Un ícono por fuente, para reconocerlas de un vistazo.
 const SOURCE_ICON = {
   "Sentinel-2 / Landsat": Satellite,
   "CHIRPS + CHIRTS-ERA5": CloudRain,
   "INEGI - CEM 4.0": Mountain,
-  "Rendimiento observado (FIRA)": Sprout,
+  "Reto AgroCebada 2026": Sprout,
 };
 
-/** Tarjeta estándar de la app: encabezado con título/descripción, línea divisoria y cuerpo. */
 function Card({ title, description, children, className = "", bodyClassName = "p-5" }) {
   return (
     <section className={`flex flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 ${className}`}>
@@ -58,7 +56,7 @@ function ResumenTab() {
   const { modelSummary, algorithmComparison, validationSteps, planetModel } = useModelInfo().info;
   return (
     <div className="space-y-6">
-      {/* Indicadores: una sola tarjeta, separados por líneas finas */}
+      {}
       <div className="grid grid-cols-2 divide-x divide-y divide-gray-200 overflow-hidden rounded-2xl border border-gray-200 dark:divide-gray-800 dark:border-gray-800 lg:grid-cols-[1.7fr_1fr_1fr_1fr] lg:divide-y-0">
         <div className="col-span-2 border-b border-gray-200 dark:border-gray-800 lg:col-span-1 lg:border-b-0">
           <Kpi label="Modelo seleccionado" value={modelSummary.selected} small />
@@ -218,7 +216,6 @@ const VERDICT_STYLE = {
   Empeora: "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-400",
 };
 
-/** Cómo se construyó el modelo: etapas, cuántas variables conviene usar, qué más se probó y qué límites tiene. */
 function ProcesoTab() {
   const { buildProcess: p, modelSummary } = useModelInfo().info;
   if (!p) {

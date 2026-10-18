@@ -1,11 +1,5 @@
 import { memo } from "react";
-/**
- * Switch on/off accesible, con el patrón "default" de Tailwind
- * (input checkbox oculto + peer + pseudo-elemento after: para la bolita),
- * así el track y la bolita siempre quedan alineados sin desbordarse.
- *
- * @param {{checked: boolean, onChange: (v: boolean) => void, label?: string, description?: string}} props
- */
+
 function Toggle({ checked, onChange, label, description, disabled = false }) {
   return (
     <label className={`flex items-center justify-between gap-4 py-4 ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}>

@@ -1,31 +1,3 @@
-"""
-CEBIX — Backend de inferencia en vivo
-=============================================================
-
-Backend real: carga el modelo entrenado (Random Forest, top-10 features) UNA vez y cada
-request lo EJECUTA de verdad; no hay resultados precalculados.
-
-Estructura:
-    app/main.py            crea la app (CORS + routers)
-    app/config.py          rutas y variables de entorno
-    app/schemas.py         modelos de entrada (Pydantic)
-    app/api/               endpoints agrupados por tema
-    app/services/          lógica: modelo/inferencia, features satelitales y lectura de archivos geográficos
-
-Endpoints:
-    GET  /health, /                       estado del servicio
-    GET  /features, /model-info           descripción del modelo
-    GET  /example-csv                     CSV de ejemplo
-    POST /predict, /predict-csv           predicción sobre features ya calculadas
-    GET  /satellite-status                proveedor satelital activo
-    POST /predict-from-geometry           polígono GeoJSON + año -> features en vivo + predicción
-    POST /overpass                        proxy de Overpass/OSM (verificación de zonas urbanas, sin CORS)
-    POST /parse-geometry                  SHP (.zip o .shp+.dbf+.prj) / GeoJSON / KML / KMZ -> polígonos lng/lat
-
-Correr localmente (desde backend/):
-    uvicorn app.main:app --reload --port 8000
-"""
-
 import logging
 
 from fastapi import FastAPI, Request
@@ -52,11 +24,9 @@ app.add_middleware(
 for r in (health.router, model.router, predict.router, satellite.router, geo.router, overpass.router):
     app.include_router(r)
 
-
 @app.exception_handler(Exception)
 async def unhandled_error(request: Request, exc: Exception):
-    """Un 500 sin manejar sale por fuera del CORSMiddleware (sin Access-Control-Allow-Origin) y el navegador lo
-    reporta como "blocked by CORS policy". Aquí se devuelve JSON con las cabeceras CORS para ver el error real."""
+    
     logging.getLogger("cebix").exception("Error no controlado en %s", request.url.path)
     headers = {}
     origin = request.headers.get("origin")

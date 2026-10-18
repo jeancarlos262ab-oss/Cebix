@@ -1,12 +1,11 @@
 import { GLASS, RISK_META } from "./tokens";
 
 const ORDER = ["green", "yellow", "red"];
-const LABELS = { green: "Elegible", yellow: "Revisión manual", red: "Alto riesgo" };
+const LABELS = { green: "Rendimiento alto", yellow: "Rendimiento medio", red: "Rendimiento bajo" };
 
-/** Leyenda de elegibilidad (antes el semáforo del mapa) con el diseño de cristal del resto de paneles. */
 export default function RiskLegend({ className = "" }) {
   return (
-    <section aria-label="Leyenda de elegibilidad" className={`rounded-lg px-4 py-3 ${GLASS} ${className}`}>
+    <section aria-label="Leyenda de rendimiento" className={`rounded-lg px-4 py-3 ${GLASS} ${className}`}>
       <ul className="flex items-center justify-between gap-3">
         {ORDER.map((key) => (
           <li key={key} className="flex items-center gap-2 text-xs text-white/80">

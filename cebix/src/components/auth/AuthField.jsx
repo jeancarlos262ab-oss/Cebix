@@ -2,18 +2,6 @@ import { useId } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import "./auth.css";
 
-/**
- * Campo de formulario de Login/Signup. Un solo color (cebada): el icono es
- * neutro y se oscurece al enfocar; el foco lo marca solo el borde en tinta
- * (sin anillo ni brillo). Ver auth.css.
- *
- * @param {{
- *   label: string,
- *   icon?: React.ElementType,
- *   rightElement?: React.ReactNode,
- *   hint?: string,
- * } & React.InputHTMLAttributes<HTMLInputElement>} props
- */
 export default function AuthField({ label, icon: Icon, rightElement, hint, className = "", id, ...inputProps }) {
   const autoId = useId();
   const inputId = id ?? autoId;
@@ -50,7 +38,6 @@ export default function AuthField({ label, icon: Icon, rightElement, hint, class
   );
 }
 
-/** Botón de mostrar/ocultar contraseña para el `rightElement` de AuthField. */
 export function PasswordToggle({ shown, onToggle }) {
   return (
     <button

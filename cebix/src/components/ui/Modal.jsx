@@ -1,31 +1,8 @@
 import { useEffect, useId } from "react";
 import { X } from "lucide-react";
 
-/**
- * Base de todas las ventanas emergentes de la app. Mismo color y borde que el sidebar
- * (blanco / negro, borde fino), con encabezado y pie separados por una línea.
- *
- * @param {{
- *   title: string,
- *   description?: string,          // texto breve bajo el título, en el encabezado
- *   onClose: () => void,
- *   busy?: boolean,                // mientras es true no se cierra con Esc, con el fondo ni con la X
- *   size?: "sm" | "md" | "lg",     // todas son anchas en escritorio; en móvil ocupan el ancho disponible
- *   asideSide?: "left" | "right",  // lado de la columna lateral (por defecto izquierda)
- *   asideFlush?: boolean,          // la columna lateral sin relleno ni fondo (para que un mapa la ocupe completa)
- *   splitScroll?: boolean,         // en escritorio cada columna se desplaza por separado
- *   aside?: React.ReactNode,       // columna izquierda (contexto/ayuda); en móvil queda arriba del contenido
- *   as?: "div" | "form",           // "form": el pie queda dentro del formulario (el submit funciona)
- *   onSubmit?: (e: React.FormEvent) => void,
- *   role?: "dialog" | "alertdialog",
- *   zClass?: string,
- *   footer?: React.ReactNode,
- *   children?: React.ReactNode,
- * }} props
- */
 const SIZES = { sm: "max-w-3xl", md: "max-w-4xl", lg: "max-w-5xl" };
 
-/** Rejilla de dos columnas para el cuerpo (una sola columna en móvil). */
 export const MODAL_COLS = "grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2";
 
 export default function Modal({
@@ -117,17 +94,15 @@ export default function Modal({
   );
 }
 
-// Botones y campos compartidos por las ventanas emergentes.
 const BTN = "inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 disabled:cursor-not-allowed disabled:opacity-50";
 
 export const MODAL_BTN_CANCEL = `${BTN} border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-900`;
 export const MODAL_BTN_PRIMARY = `${BTN} bg-accent-500 text-accent-contrast hover:bg-accent-600`;
 export const MODAL_BTN_DANGER = `${BTN} bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500`;
-/** Botón secundario pequeño (acciones dentro del cuerpo). */
+
 export const MODAL_BTN_SMALL =
   "inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900";
 
-/** Clases de un campo de texto; con `error` el borde va en rojo. */
 export function modalInput(error) {
   return [
     "w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-hidden focus:ring-1 dark:bg-black dark:text-gray-100 dark:placeholder:text-gray-500",
@@ -137,7 +112,6 @@ export function modalInput(error) {
   ].join(" ");
 }
 
-/** Etiqueta de un campo, con el mensaje de error a la derecha. */
 export function ModalField({ label, error, className = "", children }) {
   return (
     <label className={`block ${className}`}>

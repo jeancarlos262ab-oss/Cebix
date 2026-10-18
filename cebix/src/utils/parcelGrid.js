@@ -1,19 +1,5 @@
-/**
- * Malla de relleno que se adapta a la forma de la parcela (efecto "perspectiva").
- *
- * La parcela se trata como un parche con cuatro bordes y se rellena con una malla interpolada entre
- * ellos (parche de Coons). En un triángulo, uno de los cuatro bordes se reduce a un punto: las líneas
- * convergen hacia ese vértice y las demás corren paralelas al lado opuesto. En un cuadrilátero la malla
- * se deforma según los lados; en polígonos de más lados, los vértices se reparten en cuatro tramos.
- * Las líneas se recortan al contorno, así que nunca se salen de la parcela.
- *
- * Todo se calcula en un plano local (lng escalada por cos(lat)); la interpolación es afín-invariante,
- * así que el resultado no depende de esa escala.
- */
-
 const EPS = 1e-9;
 
-/** Punto a una fracción `u` (0–1) de la longitud de una cadena de puntos. */
 function chainAt(chain, u) {
   if (chain.length === 1) return chain[0];
   const lens = [0];
@@ -33,7 +19,6 @@ function chainAt(chain, u) {
   ];
 }
 
-/** Vértices desde el índice `a` hasta el `b` (avanzando y dando la vuelta si hace falta). */
 function loopChain(P, a, b) {
   const out = [P[a]];
   let i = a;
@@ -54,7 +39,6 @@ function pointInPolygon([x, y], P) {
   return inside;
 }
 
-/** Parámetros t (0–1) donde el segmento a→b cruza algún lado del polígono. */
 function crossings(a, b, P) {
   const ts = [];
   const rx = b[0] - a[0];
@@ -73,7 +57,6 @@ function crossings(a, b, P) {
   return ts;
 }
 
-/** Recorta una polilínea al interior del polígono; devuelve varios tramos continuos. */
 function clipToPolygon(line, P) {
   const runs = [];
   let cur = null;
@@ -104,11 +87,10 @@ function clipToPolygon(line, P) {
   return runs;
 }
 
-/** Elige los cuatro bordes (bot, right, topRev, leftRev) según el número de vértices. */
 function boundaries(P) {
   const n = P.length;
   if (n === 3) {
-    // El vértice opuesto al lado más largo es el punto de fuga; el lado más largo queda como base.
+    
     let best = 0;
     let bestLen = -1;
     for (let i = 0; i < 3; i++) {
@@ -124,7 +106,7 @@ function boundaries(P) {
     return { bot: [A, B], right: [B, C], topRev: [C], leftRev: [C, A] };
   }
 
-  // Cuatro esquinas que reparten el perímetro en cuartos (con 4 vértices son los propios vértices).
+  
   const cum = [0];
   for (let i = 1; i <= n; i++) {
     cum.push(cum[i - 1] + Math.hypot(P[i % n][0] - P[i - 1][0], P[i % n][1] - P[i - 1][1]));
@@ -148,16 +130,11 @@ function boundaries(P) {
   };
 }
 
-/**
- * @param {[number, number][]} points  vértices [lat, lng] de la parcela (≥ 3, sin repetir el primero)
- * @param {{divisions?: number, samples?: number}} [opts]
- * @returns {[number, number][][]} polilíneas [lat, lng] de la malla, ya recortadas a la parcela
- */
 export function parcelGridLines(points, { divisions = 12, samples = 32 } = {}) {
   if (!points || points.length < 3) return [];
   const lat0 = points.reduce((s, p) => s + p[0], 0) / points.length;
   const k = Math.cos((lat0 * Math.PI) / 180) || 1;
-  const P = points.map(([lat, lng]) => [lng * k, lat]); // [x, y]
+  const P = points.map(([lat, lng]) => [lng * k, lat]); 
 
   const { bot, right, topRev, leftRev } = boundaries(P);
   const Bot = (s) => chainAt(bot, s);
@@ -169,7 +146,7 @@ export function parcelGridLines(points, { divisions = 12, samples = 32 } = {}) {
   const P11 = Top(1);
   const P01 = Top(0);
 
-  // Parche de Coons: dos interpolaciones entre bordes opuestos menos la bilineal de las esquinas.
+  
   const surface = (s, t) => {
     const b = Bot(s);
     const tp = Top(s);
@@ -185,8 +162,8 @@ export function parcelGridLines(points, { divisions = 12, samples = 32 } = {}) {
   const lines = [];
   for (let i = 1; i < divisions; i++) {
     const f = i / divisions;
-    const alongT = Array.from({ length: samples + 1 }, (_, j) => surface(f, j / samples)); // s constante
-    const alongS = Array.from({ length: samples + 1 }, (_, j) => surface(j / samples, f)); // t constante
+    const alongT = Array.from({ length: samples + 1 }, (_, j) => surface(f, j / samples)); 
+    const alongS = Array.from({ length: samples + 1 }, (_, j) => surface(j / samples, f)); 
     lines.push(...clipToPolygon(alongT, P), ...clipToPolygon(alongS, P));
   }
   return lines.map((run) => run.map(([x, y]) => [y, x / k]));

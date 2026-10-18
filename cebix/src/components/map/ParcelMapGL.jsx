@@ -1,13 +1,3 @@
-/**
- * ParcelMapGL — motor de mapas "completo" (MapLibre GL / WebGL).
- *
- * Este es el mapa original, pensado para equipos con GPU decente. NO se usa
- * directamente desde las páginas: se renderiza a través de ParcelMap.jsx,
- * que decide automáticamente si cargar este motor o el motor ligero
- * (ParcelMapLite.jsx, basado en Leaflet) según los recursos del dispositivo.
- * No se debe borrar ni reemplazar este archivo: sigue siendo el mapa para
- * laptops/PCs potentes.
- */
 import { LEFT_FADE_LENGTH, softFadeGradient } from "./edgeFade";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Map, { Layer, Marker, Popup, Source } from "react-map-gl/maplibre";
@@ -30,18 +20,6 @@ import { RISK_COLORS } from "../../utils/riskColors";
 
 const RISK_HEX = RISK_COLORS;
 
-/**
- * Mapas base disponibles en el motor GL.
- * Los 4 usan tiles rasterizados de Esri (World_Imagery, World_Topo_Map,
- * Canvas/World_Light_Gray_Base, Canvas/World_Dark_Gray_Base) — ninguno
- * requiere API key. Antes "Claro"/"Oscuro" usaban estilos vectoriales de
- * CartoDB, pero CARTO empezó a exigir API key en 2026, así que se
- * reemplazaron por el equivalente de Esri.
- *
- * "Claro"/"Oscuro" ya NO se eligen a mano: el mapa base sigue el tema
- * general de la app (definido en Ajustes). Sólo "Satelital" y "Terreno"
- * quedan como opciones manuales en la barra.
- */
 const BASEMAPS = {
   satellite: {
     label: "Satelital",
@@ -56,7 +34,7 @@ const BASEMAPS = {
             "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
           ],
           tileSize: 256,
-          maxzoom: 17, // sobre-zoom cuando Esri no tiene tiles más cercanos
+          maxzoom: 17, 
           attribution: "Tiles &copy; Esri &mdash; Esri, Maxar, Earthstar Geographics",
         },
       },
@@ -67,8 +45,8 @@ const BASEMAPS = {
           source: "esri-imagery",
           minzoom: 0,
           maxzoom: 22,
-          // Sin fundido entre teselas: durante el fundido la tesela nueva se mezcla con la
-          // vecina/padre y deja una línea clara en cada borde (la "cuadrícula" del mapa).
+          
+          
           paint: { "raster-fade-duration": 0, "raster-opacity": 1 },
         },
       ],
@@ -87,7 +65,7 @@ const BASEMAPS = {
             "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
           ],
           tileSize: 256,
-          maxzoom: 16, // sobre-zoom cuando Esri no tiene tiles más cercanos
+          maxzoom: 16, 
           attribution: "Tiles &copy; Esri",
         },
       },
@@ -98,8 +76,8 @@ const BASEMAPS = {
           source: "esri-topo",
           minzoom: 0,
           maxzoom: 22,
-          // Sin fundido entre teselas: durante el fundido la tesela nueva se mezcla con la
-          // vecina/padre y deja una línea clara en cada borde (la "cuadrícula" del mapa).
+          
+          
           paint: { "raster-fade-duration": 0, "raster-opacity": 1 },
         },
       ],
@@ -117,7 +95,7 @@ const BASEMAPS = {
             "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
           ],
           tileSize: 256,
-          maxzoom: 16, // sobre-zoom cuando Esri no tiene tiles más cercanos
+          maxzoom: 16, 
           attribution: "Tiles &copy; Esri &mdash; Esri, HERE, Garmin",
         },
       },
@@ -128,8 +106,8 @@ const BASEMAPS = {
           source: "esri-gray-light",
           minzoom: 0,
           maxzoom: 22,
-          // Sin fundido entre teselas: durante el fundido la tesela nueva se mezcla con la
-          // vecina/padre y deja una línea clara en cada borde (la "cuadrícula" del mapa).
+          
+          
           paint: { "raster-fade-duration": 0, "raster-opacity": 1 },
         },
       ],
@@ -147,7 +125,7 @@ const BASEMAPS = {
             "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
           ],
           tileSize: 256,
-          maxzoom: 16, // sobre-zoom cuando Esri no tiene tiles más cercanos
+          maxzoom: 16, 
           attribution: "Tiles &copy; Esri &mdash; Esri, HERE, Garmin",
         },
       },
@@ -158,8 +136,8 @@ const BASEMAPS = {
           source: "esri-gray-dark",
           minzoom: 0,
           maxzoom: 22,
-          // Sin fundido entre teselas: durante el fundido la tesela nueva se mezcla con la
-          // vecina/padre y deja una línea clara en cada borde (la "cuadrícula" del mapa).
+          
+          
           paint: { "raster-fade-duration": 0, "raster-opacity": 1 },
         },
       ],
@@ -167,7 +145,6 @@ const BASEMAPS = {
   },
 };
 
-/** Botones manuales en la barra de basemaps. "Mapa" resuelve a claro/oscuro según el tema. */
 const BASEMAP_BUTTONS = [
   { key: "satellite", label: "Satelital", icon: SatelliteIcon },
   { key: "terreno", label: "Terreno", icon: Mountain },
@@ -178,7 +155,7 @@ const BASEMAP_BUTTONS = [
 export { BASEMAPS };
 
 const LAYERS = [
-  { key: "risk", label: "Semáforo de elegibilidad", icon: Gauge },
+  { key: "risk", label: "Semáforo de rendimiento", icon: Gauge },
   { key: "ndvi", label: "Vigor NDVI", icon: Leaf },
 ];
 
@@ -191,7 +168,6 @@ const NDVI_LEGEND = [
 
 const GROUND_LEVEL_ZOOM = 18;
 
-/** Vuelo suave: más largo cuanto más zoom hay que recorrer, con arranque y llegada suaves y sin alejarse primero. */
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 function smoothFlight(map, targetZoom) {
   const dz = Math.abs(targetZoom - map.getZoom());
@@ -202,9 +178,6 @@ function smoothFlight(map, targetZoom) {
   };
 }
 
-/**
- * Calcula el color de NDVI según el rango.
- */
 function ndviToColor(ndvi) {
   if (ndvi >= 0.68) return "#3B7A4E";
   if (ndvi >= 0.55) return "#7CC192";
@@ -212,9 +185,6 @@ function ndviToColor(ndvi) {
   return "#C0362E";
 }
 
-/**
- * Convierte parcelas a GeoJSON FeatureCollection.
- */
 function parcelsToGeoJSON(parcels, colorMode = "risk") {
   if (!parcels || parcels.length === 0) {
     return {
@@ -257,9 +227,6 @@ function parcelsToGeoJSON(parcels, colorMode = "risk") {
   };
 }
 
-/**
- * Botón individual de la barra lateral.
- */
 const ToolbarIconButton = memo(function ToolbarIconButton({ icon: Icon, label, active, onClick }) {
   return (
     <button
@@ -280,9 +247,6 @@ const ToolbarIconButton = memo(function ToolbarIconButton({ icon: Icon, label, a
   );
 });
 
-/**
- * Barra vertical de controles del mapa.
- */
 function MapControls({
   viewOnly = false,
   layer,
@@ -333,12 +297,9 @@ function MapControls({
   );
 }
 
-/**
- * Leyenda flotante que muestra los colores y significados.
- */
 const MapLegend = memo(function MapLegend({ layer }) {
   const items = NDVI_LEGEND;
-  // Semáforo: flota directo sobre el mapa, sin contenedor ni título.
+  
   if (layer !== "ndvi") return <RiskTrafficLight />;
   return (
     <div className="rounded-lg border border-white/15 bg-black/90 px-3.5 py-3 text-gray-100">
@@ -354,39 +315,6 @@ const MapLegend = memo(function MapLegend({ layer }) {
   );
 });
 
-/**
- * Componente de mapa de parcelas optimizado para rendimiento.
- *
- * Características:
- * - Renderizado de parcelas como capas GeoJSON (WebGL)
- * - Modo 2D estricto (sin pitch ni rotación)
- * - Animaciones adaptativas según hardware
- * - Detección automática de dispositivos con bajos recursos
- * - Interfaz profesional e institucional
- *
- * @param {{
- *   parcels: Array,
- *   selectedId?: number,
- *   onSelect?: (parcel) => void,
- *   height?: number | string,
- *   center?: [number, number],
- *   zoom?: number,
- *   allowGroundView?: boolean,
- *   showLayerControl?: boolean,
- *   showLegend?: boolean,   // leyenda arriba a la derecha (por defecto igual que showLayerControl)
- *   showBoundariesByDefault?: boolean,
- *   showPopup?: boolean,   // false = no abre el popup al tocar una parcela (la página muestra su propio detalle)
- *   viewOnly?: boolean,   // solo visualizar el lugar: sin capas de riesgo/NDVI y con pin en vez de círculo
- *   rounded?: boolean,    // true = esquinas redondeadas (los mapas nunca llevan borde)
- *   edgeFade?: boolean,   // desvanece el mapa hacia el fondo de la app solo en el borde izquierdo (lg+), con el color del tema; para el mapa satelital junto al sidebar
- *   controlsLeftClassName?: string,   // offset izquierdo de la barra de capas (por defecto "left-3")
- *   controlsTopClassName?: string,   // clase de Tailwind para el offset superior de la barra de capas (por defecto "top-3"); útil cuando algo del layout de la página, como un título, ya ocupa esa esquina.
- *   basemapKeys?: string[],   // botones de mapa base a mostrar (por defecto: satelital, terreno y mapa según tema)
- *   zoomClassName?: string,   // clases extra para reubicar la barra de zoom
- *   controlsOrientation?: "vertical" | "horizontal",   // dirección de la barra de zoom (por defecto "vertical")
- *   basemap?: "satellite" | "terreno",   // mapa base inicial; si se omite, sigue el tema de la app
- * }} props
- */
 function ParcelMapGL({
   parcels,
   selectedId,
@@ -413,8 +341,8 @@ function ParcelMapGL({
   const mapRef = useRef(null);
   const containerRef = useRef(null);
 
-  // Recuperación (mismo criterio que el globo de la parcela satelital): si el mapa no carga, falla o el
-  // navegador le quita el contexto WebGL, se vuelve a crear solo en vez de pedir recargar la página.
+  
+  
   const pageActive = usePageActive();
   const [mapKey, setMapKey] = useState(0);
   const [sized, setSized] = useState(false);
@@ -424,8 +352,8 @@ function ParcelMapGL({
   const pendingRecover = useRef(false);
   const activeRef = useRef(pageActive);
   activeRef.current = pageActive;
-  const viewRef = useRef(null); // última vista, para conservarla al recrear
-  const [, setOverlayNudge] = useState(0); // fuerza re-render de <Source>/<Layer> si faltan en el mapa
+  const viewRef = useRef(null); 
+  const [, setOverlayNudge] = useState(0); 
   const nudgesRef = useRef(0);
   const expectRef = useRef({ boundaries: false, parcels: false });
 
@@ -439,7 +367,7 @@ function ParcelMapGL({
       }
       clearTimeout(retryTimer.current);
       retryTimer.current = setTimeout(() => {
-        // En una pantalla oculta no se recrea (le quitaría el contexto a la que sí se ve).
+        
         if (!activeRef.current) pendingRecover.current = true;
         else {
           loadedRef.current = false;
@@ -451,7 +379,7 @@ function ParcelMapGL({
   );
   useEffect(() => () => clearTimeout(retryTimer.current), []);
 
-  // El mapa se crea solo cuando el contenedor ya tiene tamaño: nacido oculto (0×0 px) no pinta las capas.
+  
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return undefined;
@@ -470,8 +398,8 @@ function ParcelMapGL({
     return () => ro.disconnect();
   }, []);
 
-  // El lienzo sigue al contenedor (pantalla completa, panel que cambia de tamaño...): sin esto se queda con
-  // el tamaño que tenía antes.
+  
+  
   useEffect(() => {
     const el = containerRef.current;
     if (!el || !sized) return undefined;
@@ -480,7 +408,7 @@ function ParcelMapGL({
     return () => ro.disconnect();
   }, [sized]);
 
-  // Si el estilo no termina de cargar a tiempo, se recrea.
+  
   useEffect(() => {
     if (!sized) return undefined;
     const id = setTimeout(() => {
@@ -489,7 +417,7 @@ function ParcelMapGL({
     return () => clearTimeout(id);
   }, [sized, mapKey, recover]);
 
-  // Al volver a mostrarse la pantalla: se re-mide, y si quedó pendiente una recuperación, se hace ahora.
+  
   useEffect(() => {
     if (!pageActive) return;
     if (pendingRecover.current) {
@@ -501,8 +429,8 @@ function ParcelMapGL({
     mapRef.current?.getMap()?.resize();
   }, [pageActive]);
 
-  // "Listo" en cuanto el estilo carga (no se espera al evento `load`, que además aguarda todas las teselas y
-  // no llega si la red está lenta o sin conexión). Se ejecuta una sola vez por mapa.
+  
+  
   const handleLoad = useCallback(
     (e) => {
       const map = e.target;
@@ -517,10 +445,10 @@ function ParcelMapGL({
       };
       canvas.addEventListener("webglcontextlost", onLost);
 
-      // Vigilante: <Source>/<Layer> de react-map-gl solo se añaden durante un render disparado por `styledata`.
-      // Si ese render se pierde (o el worker de GeoJSON no arrancó), contornos y puntos quedan sin pintar.
-      // En cada `idle` se comprueba que existan y estén cargados; si no, se reintenta y, como último recurso,
-      // se recrea el mapa.
+      
+      
+      
+      
       const verify = () => {
         const { boundaries, parcels: wantParcels } = expectRef.current;
         const missing =
@@ -548,14 +476,14 @@ function ParcelMapGL({
   );
   const [popupInfo, setPopupInfo] = useState(null);
   const previouslyClickedRef = useRef(null);
-  // Parcela seleccionada: se dibuja con otra figura (rombo) en vez del círculo.
+  
   const [markedId, setMarkedId] = useState(null);
 
   const isLowEnd = useMemo(() => detectLowEndDevice(), []);
   const { resolvedTheme, accent } = useTheme();
   const accentHex = getAccentHex(accent, resolvedTheme);
-  // null = el basemap sigue el tema general de la app (claro/oscuro);
-  // "satellite" | "terreno" = el usuario fijó uno manualmente en la barra.
+  
+  
   const [userBasemap, setUserBasemap] = useState(
     initialBasemap === "satellite" || initialBasemap === "terreno" ? initialBasemap : null
   );
@@ -568,7 +496,7 @@ function ParcelMapGL({
   }, []);
 
   const initialViewState = useMemo(() => {
-    if (viewRef.current) return viewRef.current; // al recrear, vuelve a donde estaba
+    if (viewRef.current) return viewRef.current; 
     let lat, lng;
     if (Array.isArray(center)) {
       [lat, lng] = center;
@@ -621,13 +549,13 @@ function ParcelMapGL({
 
   useEffect(() => {
     if (selectedId === undefined || selectedId === null) {
-      // Se cerró el detalle: quita el resaltado de la parcela que estaba seleccionada.
+      
       const map = mapRef.current?.getMap();
       if (map && previouslyClickedRef.current !== null) {
         try {
           map.setFeatureState({ source: "parcels", id: previouslyClickedRef.current }, { clicked: false });
         } catch {
-          /* la fuente aún no existe: no hay nada que limpiar */
+          
         }
         previouslyClickedRef.current = null;
       }
@@ -639,7 +567,7 @@ function ParcelMapGL({
       if (parcel) {
         const map = mapRef.current?.getMap();
         if (map) {
-          // Limpiar estado anterior
+          
           if (previouslyClickedRef.current !== null && previouslyClickedRef.current !== selectedId) {
             map.setFeatureState(
               { source: "parcels", id: previouslyClickedRef.current },
@@ -647,7 +575,7 @@ function ParcelMapGL({
             );
           }
 
-          // Establecer nuevo estado
+          
           map.setFeatureState({ source: "parcels", id: selectedId }, { clicked: true });
           previouslyClickedRef.current = selectedId;
           setMarkedId(selectedId);
@@ -732,15 +660,15 @@ function ParcelMapGL({
     if (map) map.getCanvas().style.cursor = "";
   }, []);
 
-  // Estilo de la capa de parcelas
+  
   const parcelLayerStyle = {
     id: "parcels-layer",
     type: "circle",
     paint: {
       "circle-color": ["get", "color"],
 
-      // El radio crece con el zoom: de lejos los puntos son pequeños (no se amontonan en manchas
-      // enormes) y al acercarse llegan a su tamaño normal de forma gradual.
+      
+      
       "circle-radius": [
         "interpolate",
         ["linear"],
@@ -764,13 +692,13 @@ function ParcelMapGL({
         ["case", ["boolean", ["feature-state", "clicked"], false], 3, 2],
       ],
 
-      // El círculo del punto seleccionado se oculta: lo reemplaza el rombo (<Marker> de abajo).
+      
       "circle-opacity": ["case", ["boolean", ["feature-state", "clicked"], false], 0, 0.9],
       "circle-stroke-opacity": ["case", ["boolean", ["feature-state", "clicked"], false], 0, 1],
     },
   };
 
-  // Estilo de límites estatales
+  
   const boundaryLineLayer = {
     id: "state-boundaries-line",
     type: "line",
@@ -813,7 +741,7 @@ function ParcelMapGL({
         fadeDuration={0}
         interactiveLayerIds={viewOnly ? [] : ["parcels-layer"]}
         onError={(e) => {
-          // Sin WebGL (o contexto no disponible): avisa para que ParcelMap cambie a Leaflet.
+          
           const message = String(e?.error?.message ?? e?.originalEvent?.message ?? e?.message ?? "");
           if (/webgl/i.test(message)) recover("error de WebGL");
         }}
@@ -821,7 +749,7 @@ function ParcelMapGL({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Controles personalizados del mapa */}
+        {}
         <CustomMapControls
           mapRef={mapRef}
           initialCenter={center}
@@ -900,7 +828,7 @@ function ParcelMapGL({
                   <span className="font-medium">NDVI:</span> {popupInfo.ndvi.toFixed(2)}
                 </p>
                 <p>
-                  <span className="font-medium">Elegibilidad:</span> {popupInfo.risk}
+                  <span className="font-medium">Nivel:</span> {popupInfo.risk}
                 </p>
                 <RangeBadge parcel={popupInfo} tone="dark" />
               </div>

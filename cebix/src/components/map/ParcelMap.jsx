@@ -1,12 +1,3 @@
-/**
- * ParcelMap — selector automático de motor de mapas.
- *
- * Decide según el equipo cuál motor cargar (sin intervención del usuario):
- *   - ParcelMapGL.jsx   → MapLibre GL (WebGL), si el equipo acepta WebGL.
- *   - ParcelMapLite.jsx → Leaflet, si no hay WebGL (o si MapLibre falla al iniciar).
- *
- * Las páginas siguen importando "../components/map/ParcelMap" sin cambios.
- */
 import { lazy, memo, Suspense, useCallback, useState } from "react";
 import { BlockSkeleton } from "../ui/PageSkeleton";
 import { reportGLFailure, resolveMapEngine } from "../../utils/mapDevice";
@@ -24,10 +15,10 @@ function MapLoadingFallback({ height, rounded }) {
 }
 
 function ParcelMap(props) {
-  // resolveMapEngine() es un singleton: se decide una vez y se reutiliza en
-  // todas las pantallas con mapa.
-  // Si MapLibre GL no logra iniciar (WebGL no disponible, contexto perdido...), se cambia
-  // automáticamente al mapa Leaflet.
+  
+  
+  
+  
   const [, setGlFailed] = useState(false);
   const handleWebGLError = useCallback(() => {
     reportGLFailure();
@@ -39,8 +30,8 @@ function ParcelMap(props) {
   const engineProps = engine === "lite" ? props : { ...props, onWebGLError: handleWebGLError };
 
   return (
-    // Si height es un porcentaje ("100%"), el contenedor también debe tenerlo
-    // para que el mapa llene el alto disponible de su padre.
+    
+    
     <div
       className="relative w-full"
       style={typeof props.height === "string" ? { height: props.height } : undefined}

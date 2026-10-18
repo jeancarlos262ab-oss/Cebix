@@ -1,24 +1,10 @@
-/**
- * Cielo estrellado para MapLibre GL: una capa personalizada (custom layer) con shaders WebGL propios.
- * Equivale al cielo de Canvas 2D de globeStars.js, pero vive dentro del mismo contexto WebGL del mapa.
- *
- *  - Se añade DEBAJO de todas las capas (`map.addLayer(layer, "bg")`): el globo la tapa y solo se ve el
- *    espacio alrededor del planeta.
- *  - Estrellas = un solo buffer de puntos (gl.POINTS) calculado una vez; la mancha difusa = un cuadrilátero
- *    de pantalla completa cuyo shader la dibuja de forma procedural (franja inclinada + ruido suave).
- *  - El cielo gira con el planeta: se rota con el centro del mapa (lng, lat) y se proyecta con una
- *    acimutal equidistante centrada en el eje de la cámara, igual que globeStars.js.
- *  - No tiene animación propia: solo se pinta cuando el mapa se repinta (en reposo no gasta nada).
- */
-
-/** Ajustes rápidos (mismo significado que SKY en globeStars.js). */
 const SKY_GL = {
-  stars: 3000, // estrellas de campo (pocas y tenues, como en Google Earth)
-  grains: 1500, // estrellas diminutas, algo más densas a lo largo de la mancha (solo si haze)
-  haze: true, // mancha tenue y difusa que cruza las estrellas, estilo Google Earth (false = solo estrellas)
-  reach: 1.5, // ángulo (rad) desde el eje de la cámara que llega a la esquina del lienzo
-  zoom: 0.03, // cuánto se acerca el cielo con el zoom (0 = nada)
-  hazeStrength: 0.5, // intensidad de la mancha (0–1)
+  stars: 3000, 
+  grains: 1500, 
+  haze: true, 
+  reach: 1.5, 
+  zoom: 0.03, 
+  hazeStrength: 0.5, 
 };
 
 const TINTS = [
@@ -27,7 +13,6 @@ const TINTS = [
   [1, 0.84, 0.66],
 ];
 
-/** Generador pseudoaleatorio con semilla: el cielo es siempre el mismo. */
 function mulberry32(seed) {
   let a = seed | 0;
   return () => {
@@ -38,21 +23,18 @@ function mulberry32(seed) {
   };
 }
 
-// Normal del plano de la mancha (vector unitario): la misma inclinación para las estrellas diminutas
-// (CPU) y para el brillo difuso (shader).
 const BAND_N = (() => {
   const v = [0.34, 0.86, 0.38];
   const l = Math.hypot(...v);
   return v.map((c) => c / l);
 })();
 
-/** Datos de las estrellas: [x, y, z, tamaño(px), r, g, b, brillo] por estrella. */
 function buildStars({ stars, grains }) {
   const rnd = mulberry32(7421);
   const out = [];
   const push = (x, y, z, size, tint, bright) => out.push(x, y, z, size, tint[0], tint[1], tint[2], bright);
 
-  // Estrellas de campo repartidas por toda la esfera.
+  
   for (let i = 0; i < stars; i++) {
     const y = 2 * rnd() - 1;
     const rr = Math.sqrt(1 - y * y);
@@ -64,9 +46,9 @@ function buildStars({ stars, grains }) {
     else push(rr * Math.sin(phi), y, rr * Math.cos(phi), 3.8 + 1.6 * rnd(), tint, 0.9 + 0.1 * rnd());
   }
 
-  // Granos diminutos concentrados a lo largo de la banda (círculo máximo perpendicular a BAND_N).
+  
   const [nx, ny, nz] = BAND_N;
-  // Dos ejes ortogonales sobre el plano de la banda.
+  
   let ax = ny * 1 - nz * 0;
   let ay = nz * 0 - nx * 1;
   let az = 0;
@@ -79,9 +61,9 @@ function buildStars({ stars, grains }) {
   const bz = nx * ay - ny * ax;
   for (let i = 0; i < grains; i++) {
     const t = 2 * Math.PI * rnd();
-    const g = (rnd() + rnd() + rnd() - 1.5) / 1.5; // casi gaussiano
-    const off = g * 0.12; // anchura de la mancha (rad)
-    // punto sobre el círculo máximo, desplazado hacia la normal
+    const g = (rnd() + rnd() + rnd() - 1.5) / 1.5; 
+    const off = g * 0.12; 
+    
     let x = Math.cos(t) * ax + Math.sin(t) * bx + off * nx;
     let y = Math.cos(t) * ay + Math.sin(t) * by + off * ny;
     let z = Math.cos(t) * az + Math.sin(t) * bz + off * nz;
@@ -93,8 +75,6 @@ function buildStars({ stars, grains }) {
   }
   return new Float32Array(out);
 }
-
-/* ───────────── shaders ───────────── */
 
 const STAR_VS = `
 precision highp float;
@@ -218,7 +198,6 @@ function program(gl, vs, fs) {
   return p;
 }
 
-/** Matriz de vista (column-major) a partir del centro del mapa: Rx(lat) · Ry(-lng). */
 function viewMatrix(lngDeg, latDeg, out) {
   const l = (lngDeg * Math.PI) / 180;
   const p = (latDeg * Math.PI) / 180;
@@ -226,7 +205,7 @@ function viewMatrix(lngDeg, latDeg, out) {
   const s = Math.sin(l);
   const cp = Math.cos(p);
   const sp = Math.sin(p);
-  // filas
+  
   const m00 = c, m01 = 0, m02 = -s;
   const m10 = -sp * s, m11 = cp, m12 = -sp * c;
   const m20 = cp * s, m21 = sp, m22 = cp * c;
@@ -236,11 +215,6 @@ function viewMatrix(lngDeg, latDeg, out) {
   return out;
 }
 
-/**
- * Crea la capa personalizada. Uso:
- *   map.addLayer(createStarsLayer(), "bg");
- * @param {object} [opts] sobrescribe SKY_GL
- */
 export function createStarsLayer(opts = {}) {
   const cfg = { ...SKY_GL, ...opts };
   const mat = new Float32Array(9);
@@ -304,12 +278,12 @@ export function createStarsLayer(opts = {}) {
       const c = map.getCenter();
       viewMatrix(c.lng, c.lat, mat);
       const maxAng = cfg.reach + 0.4;
-      const zoomScale = 1 + cfg.zoom * 5 * Math.min(Math.max(map.getZoom(), 0) / 19, 1); // máx. ≈ +15 %
+      const zoomScale = 1 + cfg.zoom * 5 * Math.min(Math.max(map.getZoom(), 0) / 19, 1); 
       const k = (0.5 * Math.hypot(w, h) * zoomScale) / cfg.reach;
 
-      // MapLibre pinta antes el fondo/globo opaco (escribe profundidad) y después las capas
-      // personalizadas: el cielo se dibuja en el fondo del buffer de profundidad y sin escribirla,
-      // así solo aparece donde no hay planeta.
+      
+      
+      
       ctx.enable(ctx.DEPTH_TEST);
       ctx.depthFunc(ctx.LEQUAL);
       ctx.depthMask(false);
@@ -317,7 +291,7 @@ export function createStarsLayer(opts = {}) {
       ctx.enable(ctx.BLEND);
       ctx.blendFunc(ctx.ONE, ctx.ONE_MINUS_SRC_ALPHA);
 
-      // 1) Mancha difusa (pantalla completa).
+      
       if (skyProg) {
         ctx.useProgram(skyProg);
         ctx.bindBuffer(ctx.ARRAY_BUFFER, quadBuf);
@@ -333,7 +307,7 @@ export function createStarsLayer(opts = {}) {
         ctx.disableVertexAttribArray(skyLoc.aPos);
       }
 
-      // 2) Estrellas.
+      
       ctx.useProgram(starProg);
       ctx.bindBuffer(ctx.ARRAY_BUFFER, starBuf);
       const stride = 8 * 4;

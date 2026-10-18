@@ -17,11 +17,6 @@ function ChartTooltip({ active, payload, label, unit }) {
   );
 }
 
-/**
- * Barras grises del valor máximo detrás de las barras del valor promedio, en color de acento, por categoría.
- *
- * @param {{data: {label: string, max: number, mean: number}[], unit?: string}} props
- */
 function MiniBarChart({ data, unit = "ton/ha" }) {
   return (
     <div className="h-40 w-full">

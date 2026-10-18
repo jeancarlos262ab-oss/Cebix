@@ -1,15 +1,3 @@
-"""
-Prueba del cálculo de lluvia CHIRPS (abril-mayo) con los cambios de stac.py.
-
-Colócalo en  E:\Proyecto Cebix\backend\scripts\  y ejecútalo desde la carpeta backend:
-
-    python scripts/probar_chirps_2025.py
-    python scripts/probar_chirps_2025.py 2025            # otro año
-    python scripts/probar_chirps_2025.py 2025 -98.2 19.0 # otro punto (lon lat)
-
-Paso 1: prueba el archivo que antes daba 403 (30 de mayo) con reintentos.
-Paso 2: corre el cálculo completo de lluvia abr-may con una parcela de ejemplo.
-"""
 import os
 import sys
 import time
@@ -20,7 +8,6 @@ year = int(sys.argv[1]) if len(sys.argv) > 1 else 2025
 lon = float(sys.argv[2]) if len(sys.argv) > 2 else -98.2
 lat = float(sys.argv[3]) if len(sys.argv) > 3 else 19.0
 
-# Parcela de ejemplo: cuadrito de ~1 km alrededor del punto (cámbialo por una parcela tuya si quieres).
 d = 0.005
 geom = {
     "type": "Polygon",
@@ -38,7 +25,7 @@ for i in range(5):
             print(f"  intento {i}: OK ({s.width}x{s.height})")
             ok = True
             break
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:  
         print(f"  intento {i}: FALLA {str(e)[:110]}")
         time.sleep(2**i)
 print("  ->", "responde (el 403 era un límite de peticiones)" if ok else "403 permanente: se usará otra versión de CHIRPS para ese día")

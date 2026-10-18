@@ -1,10 +1,3 @@
-/**
- * Cliente del hilo de la esfera (ver globeWorker.js). Una sola petición en vuelo a la vez:
- * GlobeMap pinta el cielo mientras el hilo calcula la esfera y compone ambos al recibir el cuadro.
- *
- * Si el navegador no soporta Worker + OffscreenCanvas, o el hilo falla / no responde, se avisa con
- * onFail y GlobeMap sigue con el render en el hilo principal (idéntico resultado, solo más lento).
- */
 const WATCHDOG_MS = 4000;
 
 export class SphereWorkerClient {
@@ -17,10 +10,8 @@ export class SphereWorkerClient {
     );
   }
 
-  /**
-   * @param {{onFrame:(m:{seq:number,bitmap:ImageBitmap,kind:string,ms:number})=>void, onFail:(why:string)=>void,
-   *          createWorker?:()=>Worker}} opts
-   */
+  
+
   constructor({ onFrame, onFail, createWorker }) {
     this.onFrame = onFrame;
     this.onFail = onFail;
@@ -56,13 +47,13 @@ export class SphereWorkerClient {
     this.onFail(why);
   }
 
-  /** Envía la textura (copia; la original sigue siendo válida en el hilo principal). */
+  
   setTexture(tex) {
     if (this.dead) return;
     this.worker.postMessage({ type: "tex", tex: tex ? { levels: tex.levels, top: tex.top, bottom: tex.bottom } : null });
   }
 
-  /** @param {{cw:number,ch:number,cx:number,cy:number,R:number,lon0:number,lat0:number,fast:boolean}} p */
+  
   draw(p) {
     if (this.dead || this.busy) return false;
     this.busy = true;

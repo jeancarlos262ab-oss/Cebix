@@ -1,27 +1,10 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { usePageActive } from "../../context/PageActiveContext";
 
-/**
- * LiquidOrbLoader — Lámpara de lava que "piensa"
- *
- * Esfera con fondo circular (sin borde) con cera líquida de un solo color (el acento) y efecto
- * metaball (filtro SVG). El movimiento NO es un loop de CSS: cada gota sigue su
- * propio ciclo y, al terminar cada ciclo, sortea de nuevo cuánto tarda, hasta
- * dónde sube, hacia qué lado se desplaza, cuánto se estira y si espera abajo
- * antes de volver a subir. La piscina y el casquete se mueven con
- * ruido suave (ondas con frecuencias no múltiplos entre sí). Resultado: la
- * animación nunca se repite igual.
- *
- * `running` solo cambia la velocidad global, de forma gradual (sin saltos).
- *
- * API: <LiquidOrbLoader size running label />
- */
+const IDLE_RATE = 0.75; 
+const RUN_RATE = 4.6; 
+const RATE_SMOOTHING = 0.45; 
 
-const IDLE_RATE = 0.75; // velocidad en espera
-const RUN_RATE = 4.6; // velocidad pensando
-const RATE_SMOOTHING = 0.45; // segundos que tarda en acelerar / frenar
-
-// Gotas: posición horizontal base (% del ancho) y diámetro (fracción del orb).
 const BLOBS = [
   { left: 24, d: 0.3 },
   { left: 52, d: 0.22 },
@@ -36,7 +19,6 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const smooth = (t) => t * t * (3 - 2 * t);
 
-// Ruido suave: suma de tres senos con frecuencias inconmensurables y fases al azar.
 function makeNoise() {
   const base = rand(0.12, 0.22);
   const f = [base, base * 1.618, base * 2.414];
@@ -48,9 +30,8 @@ function makeNoise() {
     3;
 }
 
-// Sortea un ciclo nuevo para una gota (continúa desde la x donde terminó el anterior).
 function newCycle(blob, xs, firstTime) {
-  const shortRise = Math.random() < 0.22; // a veces sube poco y se arrepiente
+  const shortRise = Math.random() < 0.22; 
   const minX = -blob.left / 100 + 0.02;
   const maxX = 1 - blob.left / 100 - blob.d - 0.02;
   return {
@@ -78,15 +59,15 @@ export default function LiquidOrbLoader({ size = 320, running = false, label }) 
   const runningRef = useRef(running);
   runningRef.current = running;
 
-  // Solo anima si su pantalla está visible Y el orbe está dentro del viewport.
-  // Sin esto el bucle (con filtro SVG) seguía corriendo en segundo plano y
-  // volvía pesado el scroll de TODAS las pantallas.
+  
+  
+  
   const pageActive = usePageActive();
   const [inView, setInView] = useState(true);
   const enabled = pageActive && inView;
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
-  const controlRef = useRef(null); // { start, stop } del bucle
+  const controlRef = useRef(null); 
 
   useEffect(() => {
     const root = rootRef.current;
@@ -107,7 +88,7 @@ export default function LiquidOrbLoader({ size = 320, running = false, label }) 
 
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-    // Estado inicial aleatorio (distinto en cada montaje).
+    
     const state = BLOBS.map((b) => {
       const minX = -b.left / 100 + 0.02;
       const maxX = 1 - b.left / 100 - b.d - 0.02;
@@ -117,11 +98,11 @@ export default function LiquidOrbLoader({ size = 320, running = false, label }) 
     const capNoise = [makeNoise(), makeNoise(), makeNoise()];
 
     let rate = runningRef.current ? RUN_RATE : IDLE_RATE;
-    let clock = rand(0, 1000); // tiempo "virtual" para los ruidos
+    let clock = rand(0, 1000); 
     let last = performance.now();
     let raf = 0;
 
-    // Tamaño en caché: leer offsetWidth en cada frame forzaba un layout.
+    
     let S = root.offsetWidth || size;
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => { S = root.offsetWidth || size; }) : null;
     ro?.observe(root);
@@ -134,7 +115,7 @@ export default function LiquidOrbLoader({ size = 320, running = false, label }) 
         const c = state[i];
         const waiting = c.dwell > 0;
         const t = waiting ? 0 : c.t;
-        const h = (1 - Math.cos(t * TAU)) / 2; // 0 → 1 → 0
+        const h = (1 - Math.cos(t * TAU)) / 2; 
         const y = b.y0 + (b.y1 - b.y0) * h * c.peak;
         const x =
           c.xs + (c.xe - c.xs) * smooth(t) + c.sway * Math.sin(t * TAU) +
@@ -157,7 +138,7 @@ export default function LiquidOrbLoader({ size = 320, running = false, label }) 
     };
 
     if (reduced) {
-      // Sin movimiento: una pose estática.
+      
       state.forEach((c) => (c.t = 0.5));
       paint();
       return () => ro?.disconnect();
@@ -167,7 +148,7 @@ export default function LiquidOrbLoader({ size = 320, running = false, label }) 
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
 
-      // Velocidad global: se acerca gradualmente al objetivo.
+      
       const target = runningRef.current ? RUN_RATE : IDLE_RATE;
       rate += (target - rate) * (1 - Math.exp(-dt / RATE_SMOOTHING));
 
@@ -208,7 +189,7 @@ export default function LiquidOrbLoader({ size = 320, running = false, label }) 
 
   return (
     <div className="flex w-full flex-col items-center gap-5">
-      {/* Filtro metaball: desenfoca y "endurece" el alfa para que las gotas se fundan */}
+      {}
       <svg width="0" height="0" className="absolute" aria-hidden="true" focusable="false">
         <defs>
           <filter id={gooId} x="-10%" y="-10%" width="120%" height="120%">
@@ -234,7 +215,7 @@ export default function LiquidOrbLoader({ size = 320, running = false, label }) 
         aria-label={label || (running ? "Ejecutando modelo" : "En espera")}
       >
         <div className="lava__glass bg-gray-100 dark:bg-gray-900">
-          {/* Cera: capa con filtro gooey */}
+          {}
           <div className="lava__wax" style={{ filter: `url(#${gooId})` }}>
             <span ref={poolRef} className="lava__pool" />
             <span ref={capRef} className="lava__cap" />

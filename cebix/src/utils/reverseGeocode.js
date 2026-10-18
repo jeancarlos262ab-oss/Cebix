@@ -1,8 +1,3 @@
-/**
- * Municipio y estado de un punto (lat/lng) con Nominatim (OpenStreetMap), gratis y sin llave.
- * Funciona en cualquier lugar (no solo en Hidalgo / Tlaxcala / Puebla).
- * Devuelve { municipio, estado } (cada uno puede ser null). Lanza AbortError si se cancela.
- */
 const cache = new Map();
 
 function sleep(ms, signal) {
@@ -23,8 +18,8 @@ export async function reverseLocation(lat, lng, { signal } = {}) {
   const key = `${lat.toFixed(3)},${lng.toFixed(3)}`;
   if (cache.has(key)) return cache.get(key);
 
-  // Pequeña espera: si el usuario mueve el pin varias veces seguidas solo se consulta la última
-  // (y se respeta el límite de ~1 consulta por segundo de Nominatim).
+  
+  
   await sleep(450, signal);
 
   const url =

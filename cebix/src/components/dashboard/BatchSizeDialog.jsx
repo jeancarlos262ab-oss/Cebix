@@ -2,9 +2,8 @@ import { useState } from "react";
 import { Clock } from "lucide-react";
 import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_PRIMARY, modalInput } from "../ui/Modal";
 
-// Cada parcela se calcula con imágenes satelitales y el backend procesa una a la vez.
 const SECONDS_PER_PARCEL = [30, 90];
-const LONG_RUN_SECONDS = 20 * 60; // a partir de aquí se avisa que hay que dejar la pestaña abierta
+const LONG_RUN_SECONDS = 20 * 60; 
 
 function formatDuration(seconds) {
   if (seconds < 90) return `${Math.round(seconds)} s`;
@@ -15,11 +14,6 @@ function formatDuration(seconds) {
   return m ? `${h} h ${m} min` : `${h} h`;
 }
 
-/**
- * Pregunta cuántas parcelas calcular cuando un archivo trae muchas, avisando cuánto tardará.
- *
- * @param {{ total: number, omitted?: number, fileName?: string, onConfirm: (count: number) => void, onClose: () => void }} props
- */
 export default function BatchSizeDialog({ total, omitted = 0, fileName, onConfirm, onClose }) {
   const [count, setCount] = useState(Math.min(10, total));
 

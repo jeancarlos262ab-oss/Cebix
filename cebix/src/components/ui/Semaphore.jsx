@@ -5,8 +5,6 @@ import greenLight from "../../assets/green.webp";
 
 import { RISK_COLORS } from "../../utils/riskColors";
 
-// Convierte un hex "#RRGGBB" a "r, g, b" para poder armar rgba() y
-// construir degradados que se pierdan a transparente.
 function hexToRgb(hex) {
   const clean = hex.replace("#", "");
   const r = parseInt(clean.substring(0, 2), 16);
@@ -15,9 +13,6 @@ function hexToRgb(hex) {
   return `${r}, ${g}, ${b}`;
 }
 
-// Degradado de izquierda a derecha que va del color del nivel a
-// transparente, para pintar solo el recuadro de ese nivel y perderse
-// con el fondo de la tarjeta (sin tocar el resto del contenedor).
 function rowGradient(hex, alpha) {
   const rgb = hexToRgb(hex);
   return `linear-gradient(to right, rgba(${rgb}, ${alpha}) 0%, rgba(${rgb}, 0) 100%)`;
@@ -28,51 +23,37 @@ const LEVELS = [
     key: "red",
     color: RISK_COLORS.red,
     image: redLight,
-    label: "Alto riesgo",
+    label: "Rendimiento bajo",
     range: "0 – 44",
     min: 0,
     max: 44,
-    description: "Perfil con indicadores agronómicos y financieros débiles. No se recomienda avanzar sin garantías adicionales.",
+    description: "Es poco probable que la parcela alcance el rendimiento de referencia (3.5 t/ha). Conviene revisar el manejo y las condiciones del ciclo.",
     test: (s) => s < 45,
   },
   {
     key: "yellow",
     color: RISK_COLORS.yellow,
     image: yellowLight,
-    label: "Revisión manual",
+    label: "Rendimiento medio",
     range: "45 – 69",
     min: 45,
     max: 69,
-    description: "Zona intermedia: requiere validación de un analista antes de aprobar o rechazar la solicitud.",
+    description: "Zona intermedia: puede o no alcanzar el rendimiento de referencia. Conviene darle seguimiento durante el ciclo.",
     test: (s) => s < 70,
   },
   {
     key: "green",
     color: RISK_COLORS.green,
     image: greenLight,
-    label: "Elegible",
+    label: "Rendimiento alto",
     range: "70 – 100",
     min: 70,
     max: 100,
-    description: "Perfil sólido: cumple los umbrales mínimos de rendimiento y riesgo para ser elegible directamente.",
+    description: "Es probable que la parcela alcance o supere el rendimiento de referencia.",
     test: () => true,
   },
 ];
 
-/**
- * Semáforo de elegibilidad financiera: muestra la imagen (red.png,
- * yellow.png o green.png) correspondiente al score, con el mismo
- * espaciado de sombra que ParcelEmblem usa para cebada.png. Incluye el
- * desglose de rangos por nivel y una barra de progreso del score.
- *
- * `sober`: variante sin degradados ni colores chillones (usada en Predicciones y Parcela satelital):
- * la imagen sigue sobresaliendo igual, pero la barra y el desglose son planos y de línea fina.
- *
- * `horizontal` (solo con `sober`): contenedor a todo el ancho; imagen y score a la izquierda, barra a la derecha
- * y los tres niveles en columnas. Solo lo usa Parcela satelital.
- *
- * @param {{score: number, sober?: boolean, horizontal?: boolean}} props
- */
 function Semaphore({ score, sober = false, horizontal = false }) {
   const active = LEVELS.find((level) => level.test(score)) ?? LEVELS[2];
   const clamped = Math.max(0, Math.min(100, score));
@@ -96,7 +77,7 @@ function Semaphore({ score, sober = false, horizontal = false }) {
               />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">Score de elegibilidad</p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">Índice de rendimiento</p>
               <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">{score} / 100</p>
               <p className="mt-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
                 <span className="h-2 w-2" style={{ backgroundColor: active.color }} aria-hidden="true" />
@@ -167,7 +148,7 @@ function Semaphore({ score, sober = false, horizontal = false }) {
             />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">Score de elegibilidad</p>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">Índice de rendimiento</p>
             <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">{score} / 100</p>
             <p className="mt-1 inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
               <span className="h-2 w-2" style={{ backgroundColor: active.color }} aria-hidden="true" />
@@ -236,7 +217,7 @@ function Semaphore({ score, sober = false, horizontal = false }) {
           />
         </div>
         <div>
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Score de elegibilidad</p>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Índice de rendimiento</p>
           <p className="font-display text-2xl font-bold text-gray-900 dark:text-gray-100">{score} / 100</p>
           <p className="mt-0.5 text-sm font-semibold" style={{ color: active.color }}>
             {active.label}
@@ -244,9 +225,9 @@ function Semaphore({ score, sober = false, horizontal = false }) {
         </div>
       </div>
 
-      {/* Barra de progreso: la línea completa muestra los tres rangos con
-          su propio color (rojo, amarillo, verde) y un indicador marca el
-          score actual sobre ella. */}
+      {
+
+}
       <div className="mt-5">
         <div className="relative h-2 w-full overflow-hidden rounded-full">
           <div className="flex h-full w-full">
@@ -257,7 +238,7 @@ function Semaphore({ score, sober = false, horizontal = false }) {
               />
             ))}
           </div>
-          {/* Indicador: un palo vertical justo en la posición del score, no un círculo debajo */}
+          {}
           <div
             className="absolute top-1/2 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white ring-2 ring-gray-900 dark:ring-white"
             style={{ left: `${clamped}%`, height: "14px" }}
@@ -265,9 +246,9 @@ function Semaphore({ score, sober = false, horizontal = false }) {
         </div>
       </div>
 
-      {/* Desglose de los tres niveles: solo el recuadro activo lleva el
-          degradado de izquierda a derecha (color -> transparente); los
-          demás quedan sin fondo y con el punto apagado. */}
+      {
+
+}
       <div className="-mx-4 mt-3">
         {LEVELS.map((level) => {
           const isActive = level.key === active.key;

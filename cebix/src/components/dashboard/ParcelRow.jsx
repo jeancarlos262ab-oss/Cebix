@@ -5,17 +5,11 @@ import { Pencil, ChevronRight } from "lucide-react";
 import CategoryTag from "../ui/CategoryTag";
 import RangeBadge from "../ui/RangeBadge";
 
-// Rango de la barra de NDVI (el dataset real va de ≈ 0.4 a ≈ 0.85).
 const NDVI_MIN = 0.4;
 const NDVI_MAX = 0.85;
 
-// Mismos tonos del semáforo de elegibilidad (Semaphore.jsx), reutilizados
-// aquí para la barra de score de cada fila.
 const RISK_HEX = { ...RISK_COLORS, gray: "#9CA3AF" };
 
-/**
- * @param {{parcel: import("../../context/ParcelsContext").buildAnalysisParcel, onEdit?: (parcel: object) => void}} props
- */
 function ParcelRow({ parcel, onEdit }) {
   const navigate = useNavigate();
   const scorePct = Math.max(0, Math.min(100, parcel.score));

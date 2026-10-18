@@ -11,9 +11,6 @@ import RequireModelInfo from "../components/ui/RequireModelInfo";
 import { Card, DIVIDE, Heading, HeroPhoto, LINE, Reveal } from "../components/ui/PageKit";
 import heroImage from "../assets/shap/imagen-1.webp";
 
-/* ───────────── Imágenes ─────────────
- * Cada recuadro busca src/assets/shap/imagen-N.webp. Si el archivo existe se muestra solo;
- * si no, se ve un recuadro que dice qué foto poner (igual que en Acerca). La 1 es la foto de esquina. */
 const FILES = import.meta.glob("../assets/shap/imagen-*.webp", { eager: true, import: "default" });
 const imageFor = (n) => Object.entries(FILES).find(([path]) => new RegExp(`/imagen-${n}\\.[a-z]+$`).test(path))?.[1];
 
@@ -44,10 +41,6 @@ function ShapImage({ n, className = "", position = "center" }) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Constantes y utilidades                                             */
-/* ------------------------------------------------------------------ */
-
 const EFFECT_COLOR = {
   positivo: "var(--chart-positive)",
   negativo: "var(--chart-negative)",
@@ -66,7 +59,6 @@ const FILTERS = [
   { key: "negativo", label: "Restan" },
 ];
 
-// Ventanas fenológicas del ciclo (se deducen del nombre de la variable).
 const WINDOWS = [
   { key: "emergencia", label: "Emergencia-macollamiento", note: "abr-may" },
   { key: "encanado", label: "Encañado", note: "jun-jul" },
@@ -84,9 +76,6 @@ function windowOf(feature) {
   return "datos";
 }
 
-// Celdas de valor pegadas, igual que las métricas de Predicciones: un marco redondeado con líneas divisorias
-// finas. El -mb-px/-mr-px esconde el borde sobrante de la última fila y columna. El icono grande sale de la
-// esquina, así que cada celda recorta lo que se desborda.
 function JoinedCells({ className = "", bare = false, children }) {
   return (
     <div className={bare ? "overflow-hidden" : "overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800"}>
@@ -117,11 +106,6 @@ function pearson(xs, ys) {
 
 const netShap = (p) => (p.shap ?? []).reduce((s, d) => s + d.impact, 0);
 
-/* ------------------------------------------------------------------ */
-/* Piezas de UI (mismo lenguaje sobrio que Predicciones)               */
-/* ------------------------------------------------------------------ */
-
-/** Fila etiqueta/valor de las fichas. */
 function DetailRow({ label, children }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-3">
@@ -131,7 +115,6 @@ function DetailRow({ label, children }) {
   );
 }
 
-/** Métrica del resumen: etiqueta fina, cifra y nota. Sin iconos ni colores. */
 function SummaryStat({ label, value, hint }) {
   return (
     <div className={CELL}>
@@ -142,14 +125,13 @@ function SummaryStat({ label, value, hint }) {
           {hint && <p className="mt-1.5 text-xs leading-snug text-gray-500 dark:text-gray-400">{hint}</p>}
         </>
       ) : (
-        // Sin cifra: el texto (p. ej. el nombre de una variable) ocupa el lugar principal.
+        
         <p className="mt-3 text-sm font-medium leading-snug text-gray-900 dark:text-gray-100">{hint}</p>
       )}
     </div>
   );
 }
 
-// Columnas compartidas por el encabezado y las filas de importancia global.
 const IMPORTANCE_COLS =
   "grid grid-cols-[minmax(0,1fr)_minmax(5rem,30%)_3.5rem] items-center gap-x-4 sm:grid-cols-[minmax(0,1fr)_minmax(6rem,30%)_3.5rem_7rem]";
 
@@ -233,15 +215,11 @@ function WindowBreakdown({ rows }) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Página                                                              */
-/* ------------------------------------------------------------------ */
-
 function ValidacionSHAPPageContent() {
   const { parcels } = useParcels();
   const { info } = useModelInfo();
   const { modelSummary, guidingQuestions } = info;
-  // La importancia global es la del modo elegido (lluvia o 10 variables); si el backend no trae modos, la de siempre.
+  
   const [predMode] = usePredictionMode();
   const globalImportance = info.modelModes?.[predMode]?.importance?.length ? info.modelModes[predMode].importance : info.globalImportance;
   const [filter, setFilter] = useState("todas");
@@ -250,7 +228,7 @@ function ValidacionSHAPPageContent() {
     [globalImportance],
   );
 
-  /* Importancia global ------------------------------------------------ */
+  
   const total = globalImportance.reduce((s, r) => s + r.value, 0) || 1;
   const maxValue = Math.max(...globalImportance.map((d) => Math.abs(d.value)));
   const topFeature = globalImportance[0];
@@ -280,7 +258,7 @@ function ValidacionSHAPPageContent() {
   }, [total, globalImportance]);
   const topWindow = WINDOWS.find((w) => w.key === windowShares.key);
 
-  /* Coherencia entre SHAP local y semáforo (calculada con las parcelas actuales) */
+  
   const checks = useMemo(() => {
     const withShap = parcels.filter((p) => p.shap?.length);
     const eligible = withShap.filter((p) => p.score >= 70);
@@ -302,7 +280,7 @@ function ValidacionSHAPPageContent() {
     };
   }, [parcels, topFeature.feature]);
 
-  /* Explicación local ------------------------------------------------- */
+  
   const selectable = useMemo(() => parcels.filter((p) => p.shap?.length), [parcels]);
   const [selectedId, setSelectedId] = useState(null);
   const selected = selectable.find((p) => p.id === selectedId) ?? selectable[0];
@@ -313,7 +291,7 @@ function ValidacionSHAPPageContent() {
   );
   const localNet = selected ? netShap(selected) : 0;
 
-  // Variables de esta parcela cuya dirección difiere del efecto promedio global.
+  
   const divergent = localDrivers.filter((d) => {
     const g = globalDirection[d.feature];
     return g && g !== (d.impact >= 0 ? "positivo" : "negativo");
@@ -321,7 +299,7 @@ function ValidacionSHAPPageContent() {
 
   return (
     <div className="relative isolate overflow-x-clip">
-      {/* Foto pegada a la esquina superior derecha, detrás del encabezado (igual que Cebada y FIRA) */}
+      {}
       <HeroPhoto src={heroImage} position="50% 45%" />
 
       <TopBar
@@ -332,7 +310,7 @@ function ValidacionSHAPPageContent() {
       />
 
       <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        {/* Introducción: texto sobre la foto y datos en una fila sin caja */}
+        {}
         <Reveal className="pb-6 pt-10 lg:pt-16">
           <div className="max-w-xl">
             <Heading title="Qué mueve la predicción" large bebas>
@@ -340,7 +318,7 @@ function ValidacionSHAPPageContent() {
               peso a lo que debe, que lo haga en la dirección esperada y que el semáforo sea coherente con ello.
             </Heading>
           </div>
-          {/* Cifras grandes con la etiqueta debajo, separadas por una línea fina (sin caja ni iconos) */}
+          {}
           <dl className="mt-10 grid max-w-5xl gap-y-6 sm:grid-cols-3 sm:divide-x sm:divide-gray-200 sm:dark:divide-gray-800">
             {[
               {
@@ -357,8 +335,8 @@ function ValidacionSHAPPageContent() {
                 label: "Coherencia con el semáforo",
                 big: checks.eligible ? `${pct(checks.eligiblePositive, checks.eligible)}%` : "—",
                 note: checks.eligible
-                  ? `${checks.eligiblePositive} de ${checks.eligible} parcelas elegibles`
-                  : "Aún no hay parcelas elegibles para comparar",
+                  ? `${checks.eligiblePositive} de ${checks.eligible} parcelas de rendimiento alto`
+                  : "Aún no hay parcelas de rendimiento alto para comparar",
               },
             ].map((f) => (
               <div key={f.label} className="min-w-0 sm:px-8 sm:first:pl-0 sm:last:pr-0">
@@ -370,12 +348,12 @@ function ValidacionSHAPPageContent() {
           </dl>
         </Reveal>
 
-        {/* Franja de foto a todo el ancho */}
+        {}
         <Reveal>
           <ShapImage n={2} position="50% 55%" className={`h-44 rounded-xl border sm:h-56 lg:h-64 ${LINE}`} />
         </Reveal>
 
-        {/* Resumen: a todo el ancho */}
+        {}
         <Reveal>
               <Card icon={Sigma} title="Resumen de la validación">
                 <JoinedCells bare className="grid-cols-2 lg:grid-cols-4">
@@ -392,7 +370,7 @@ function ValidacionSHAPPageContent() {
                   <SummaryStat
                     label="Coherencia con el semáforo"
                     value={`${pct(checks.eligiblePositive, checks.eligible)}%`}
-                    hint={`${checks.eligiblePositive} de ${checks.eligible} parcelas elegibles con SHAP neto positivo`}
+                    hint={`${checks.eligiblePositive} de ${checks.eligible} parcelas de rendimiento alto con SHAP neto positivo`}
                   />
                   <SummaryStat
                     label="Correlación SHAP – rendimiento"
@@ -403,7 +381,7 @@ function ValidacionSHAPPageContent() {
               </Card>
             </Reveal>
 
-        {/* Fila 1: importancia global (ancha) y, a su lado, consistencia + ventanas */}
+        {}
         <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-stretch">
           <Reveal className="min-w-0 h-full">
               <Card
@@ -476,13 +454,13 @@ function ValidacionSHAPPageContent() {
                   <p className="font-display text-3xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                     {checks.eligiblePositive}
                     <span className="ml-1.5 text-base font-normal text-gray-400 dark:text-gray-500">
-                      de {checks.eligible} elegibles
+                      de {checks.eligible} de rendimiento alto
                     </span>
                   </p>
                   <div
                     className="relative mt-4 h-4"
                     role="img"
-                    aria-label={`${checks.eligiblePositive} de ${checks.eligible} parcelas elegibles con contribución SHAP neta positiva`}
+                    aria-label={`${checks.eligiblePositive} de ${checks.eligible} parcelas de rendimiento alto con contribución SHAP neta positiva`}
                   >
                     <span className="absolute inset-x-0 top-1/2 h-px bg-gray-200 dark:bg-gray-800" />
                     <span
@@ -491,13 +469,13 @@ function ValidacionSHAPPageContent() {
                     />
                   </div>
                   <p className="mt-4 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-                    En {checks.eligiblePositive} de las {checks.eligible} parcelas con score ≥ 70 la suma de sus
+                    En {checks.eligiblePositive} de las {checks.eligible} parcelas con índice de rendimiento ≥ 70 la suma de sus
                     principales contribuciones SHAP empuja el rendimiento hacia arriba, como se espera de una parcela
-                    elegible.
+                    de rendimiento alto.
                     {checks.eligible - checks.eligiblePositive > 0 && (
                       <>
                         {" "}
-                        Las {checks.eligible - checks.eligiblePositive} restantes son elegibles aun con un SHAP neto
+                        Las {checks.eligible - checks.eligiblePositive} restantes son de rendimiento alto aun con un SHAP neto
                         negativo, así que conviene revisarlas manualmente.
                       </>
                     )}
@@ -520,7 +498,7 @@ function ValidacionSHAPPageContent() {
           </div>
         </div>
 
-        {/* Dos fotos que acompañan la lectura de la validación */}
+        {}
         <Reveal>
           <div className="grid gap-6 sm:grid-cols-2">
             <ShapImage n={3} position="50% 50%" className={`h-48 rounded-xl border sm:h-56 ${LINE}`} />
@@ -528,7 +506,7 @@ function ValidacionSHAPPageContent() {
           </div>
         </Reveal>
 
-        {/* Fila 2: datos de la validación (angosta) y explicación por parcela (ancha) */}
+        {}
         <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-stretch">
           <Reveal className="min-w-0 h-full">
               <Card className="h-full" title="Datos de la validación">
@@ -563,7 +541,7 @@ function ValidacionSHAPPageContent() {
                       <div className="relative max-w-md">
                         <select
                           value={selected.id}
-                          // Los ids de las parcelas agregadas son UUID (texto): no se convierten a número.
+                          
                           onChange={(e) =>
                             setSelectedId(selectable.find((p) => String(p.id) === e.target.value)?.id ?? null)
                           }

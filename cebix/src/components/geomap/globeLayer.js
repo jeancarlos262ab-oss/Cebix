@@ -1,27 +1,13 @@
-/**
- * Capa de la esfera: decide qué hay que recalcular en cada cuadro y dibuja el
- * resultado en el lienzo. Sin dependencias de React ni del DOM (el lienzo
- * auxiliar y el ImageData se inyectan), así que la lógica se prueba en Node.
- *
- *  - Zoom que cambia (rueda, botones, vuelos): mientras la escala siga dentro de
- *    [ZOOM_LO, ZOOM_HI] de la geometría vigente, solo se re-escala con drawImage
- *    el último cuadro (o se vuelve a muestrear si además cambió el giro).
- *  - Zoom que se asienta (fast = false): se reconstruye la geometría a la escala exacta.
- *  - Giro lateral / inercia: no se recalcula ninguna tabla, solo el desplazamiento.
- *  - Cambio de inclinación: se recalcula la tabla de filas/columnas (lo hace SphereRaster).
- *  - Si el muestreo pasa de FRAME_MS por cuadro, baja el número de píxeles de la esfera.
- */
 import { SphereRaster } from "./globeFast.js";
 import { renderSphere } from "./globeRender.js";
 
-// Píxeles que se calculan para la esfera (se escalan al tamaño de pantalla con drawImage).
-const BUDGET_MOVING = 90000; // mientras se arrastra / vuela (antes: 60000)
-const BUDGET_IDLE = 300000; // en reposo
+const BUDGET_MOVING = 90000; 
+const BUDGET_IDLE = 300000; 
 const ZOOM_LO = 0.8;
 const ZOOM_HI = 1.25;
-const FRAME_MS = 13; // si el cuadro completo (cielo + esfera + trazos) pasa de esto, baja la resolución
+const FRAME_MS = 13; 
 const Q_MIN = 0.3;
-const SLACK = 1 / ZOOM_LO; // margen del raster para poder alejar sin dejar huecos
+const SLACK = 1 / ZOOM_LO; 
 const ADAPT_EVERY = 6;
 
 const defaultCanvas = (w, h) => {
@@ -58,7 +44,7 @@ export class SphereLayer {
   setTexture(tex) {
     if (tex === this.tex) return;
     this.tex = tex;
-    this.refTex = tex?.merc ?? null; // solo existe en desarrollo (para comparar con la referencia)
+    this.refTex = tex?.merc ?? null; 
     this.raster.setTexture(tex);
     this.rasterOk = false;
   }
@@ -75,7 +61,7 @@ export class SphereLayer {
     if (a.length > 600) a.shift();
   }
 
-  /** Resumen de tiempos por tipo de cuadro (ms): n, media, p95, máximo. */
+  
   report() {
     const out = {};
     for (const [kind, a] of Object.entries(this.samples)) {
@@ -95,7 +81,7 @@ export class SphereLayer {
     for (const k of Object.keys(this.samples)) this.samples[k] = [];
   }
 
-  /** Mide el muestreo de los cuadros "en movimiento" y ajusta la resolución con histéresis. */
+  
   _adapt(ms) {
     this.ema = this.ema ? this.ema * 0.7 + ms * 0.3 : ms;
     if (++this.adaptCount < ADAPT_EVERY) return;
@@ -111,21 +97,14 @@ export class SphereLayer {
     }
   }
 
-  /**
-   * GlobeMap informa aquí cuánto tardó el cuadro COMPLETO (cielo + esfera + contornos). Si el equipo no
-   * llega, baja la resolución de la esfera en movimiento; si sobra margen, la sube. Los cuadros que
-   * reconstruyen la geometría o solo re-escalan no cuentan (no son representativos).
-   */
+  
+
   reportFrame(ms, fast) {
     if (fast && (this.lastKind === "tilt" || this.lastKind === "lateral")) this._adapt(ms);
   }
 
-  /**
-   * @param {CanvasRenderingContext2D} ctx
-   * @param {{cw:number,ch:number,cx:number,cy:number,R:number,lon0:number,lat0:number,fast:boolean,reference?:boolean}} p
-   *        R, cx, cy y cw/ch en píxeles del lienzo; lon0/lat0 en radianes.
-   * @returns {{kind:'geom'|'tilt'|'lateral'|'scale'|'ref'|'none', ms:number}}
-   */
+  
+
   draw(ctx, p) {
     const { cw, ch, cx, cy, R, lon0, lat0, fast } = p;
     const reference = !!(p.reference && this.refTex);
@@ -142,7 +121,7 @@ export class SphereLayer {
     const t0 = this.now();
     let rebuilt = false;
     if (!reuse) {
-      // Ventana del lienzo que cubre la esfera, con margen para poder alejar sin huecos.
+      
       const hx = Math.min(R, cw * 0.5 * SLACK);
       const hy = Math.min(R, ch * 0.5 * SLACK);
       const x0 = Math.floor(cx - hx);
@@ -157,7 +136,7 @@ export class SphereLayer {
       const k = Math.min(1, Math.sqrt(budget / (vw * vh)));
       const bw = Math.max(2, Math.ceil(vw * k));
       const bh = Math.max(2, Math.ceil(vh * k));
-      // Búfer redondeado a 32 para no realocar en cada reconstrucción.
+      
       const aw = Math.ceil(bw / 32) * 32;
       const ah = Math.ceil(bh / 32) * 32;
       const old = this.geo;

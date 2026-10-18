@@ -1,6 +1,5 @@
 import { GLASS } from "./tokens";
 
-/** Filtro por región en píldoras. `options`: [{ key, label, count }]. */
 export default function RegionPills({ options, value, onChange }) {
   return (
     <div

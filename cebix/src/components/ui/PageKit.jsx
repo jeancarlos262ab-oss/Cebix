@@ -1,17 +1,10 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
-/**
- * Piezas visuales compartidas por las pantallas "editoriales" (Cebada y FIRA, Validación SHAP): tarjeta con
- * encabezado, título de sección, dato con icono, aparición suave y foto de esquina difuminada.
- */
-
-/* ───────────── Piezas (mismo lenguaje que Modelo y Predicciones) ───────────── */
 export const LINE = "border-gray-200 dark:border-gray-800";
 export const DIVIDE = "divide-gray-200 dark:divide-gray-800";
 export const CHIP = "flex shrink-0 text-accent-600 dark:text-accent-400";
 
-/* Cada bloque entra con el mismo fundido corto que usan Predicciones y Auth; solo la primera vez que aparece. */
 export function Reveal({ children, className = "" }) {
   const reduce = useReducedMotion();
   return (
@@ -27,7 +20,6 @@ export function Reveal({ children, className = "" }) {
   );
 }
 
-/** Tarjeta estándar de la app: contorno, encabezado con título/descripción, línea divisoria y cuerpo libre. */
 export function Card({ icon: Icon, title, description, action, children, className = "" }) {
   return (
     <section className={`overflow-hidden rounded-2xl border ${LINE} ${className}`}>
@@ -61,7 +53,6 @@ export function Heading({ icon: Icon, eyebrow, title, large = false, bebas = fal
   );
 }
 
-/* Dato suelto (sin caja): icono de acento, etiqueta fina y valor. Se lee igual en tema claro y oscuro. */
 export function Fact({ icon: Icon, label, wrap = false, children }) {
   return (
     <div className="flex items-center gap-3">
@@ -74,11 +65,6 @@ export function Fact({ icon: Icon, label, wrap = false, children }) {
   );
 }
 
-
-/* La foto principal se funde con el fondo de la página hacia la izquierda y hacia abajo. Usa solo transparencia,
- * así funciona igual en claro y en oscuro. */
-/* Los degradados usan muchas paradas con curva suave (sin un punto donde empiece de golpe), para que no se note
- * dónde comienza el difuminado. */
 const FADE_LEFT = "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.03) 8%, rgba(0,0,0,0.12) 18%, rgba(0,0,0,0.28) 30%, rgba(0,0,0,0.5) 43%, rgba(0,0,0,0.74) 57%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.98) 85%, #000 100%)";
 const FADE_DOWN = "linear-gradient(to bottom, #000 0%, rgba(0,0,0,0.98) 15%, rgba(0,0,0,0.9) 28%, rgba(0,0,0,0.74) 40%, rgba(0,0,0,0.5) 53%, rgba(0,0,0,0.28) 66%, rgba(0,0,0,0.12) 78%, rgba(0,0,0,0.03) 90%, transparent 100%)";
 export const HERO_MASK = {
@@ -88,12 +74,6 @@ export const HERO_MASK = {
   WebkitMaskComposite: "source-in",
 };
 
-
-
-/* Tamaño de la foto de esquina, IGUAL en todas las pantallas que la usan (Cebada y FIRA, Validación SHAP):
- *  - alto: 420 px desde xl; en pantallas menores queda el alto fijo de la clase (h-80);
- *  - ancho (desde lg): empieza a la mitad de una columna de contenido de 896 px (max-w-4xl) y llega al borde derecho.
- * Escribe directo en el DOM (sin useState) para no volver a renderizar la página al cambiar el tamaño. */
 const HERO_H = 420;
 const HERO_CONTENT = 896;
 const HERO_PAD = 32;
@@ -127,7 +107,6 @@ export function useHeroSize(heroRef) {
   }, [heroRef]);
 }
 
-/** Foto de esquina superior derecha, detrás del encabezado, difuminada hacia la izquierda y hacia abajo. */
 export const HeroPhoto = memo(function HeroPhoto({ src, alt = "", position = "center" }) {
   const ref = useRef(null);
   const boxRef = useRef(null);

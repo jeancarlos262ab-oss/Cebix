@@ -1,11 +1,5 @@
-/**
- * Estadísticas del dashboard calculadas sobre las parcelas de la corrida actual del modelo
- * (lo que devolvió la API). Nada de esto es un valor fijo: si cambian las parcelas, cambia el resultado.
- */
-
 const mean = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 
-/** Rendimiento estimado promedio y máximo por estado. */
 export function yieldByRegion(parcels) {
   const groups = new Map();
   for (const p of parcels) {
@@ -24,7 +18,6 @@ export function yieldByRegion(parcels) {
     .sort((a, b) => b.mean - a.mean);
 }
 
-/** Histograma del rendimiento estimado: cuántas parcelas caen en cada rango de `step` ton/ha. */
 export function yieldHistogram(parcels, step = 0.5) {
   const values = parcels.map((p) => p.yieldEstimate).filter(Number.isFinite);
   if (!values.length) return [];
@@ -41,7 +34,6 @@ export function yieldHistogram(parcels, step = 0.5) {
   return bins;
 }
 
-/** Mínimo, máximo y rango del rendimiento estimado. */
 export function yieldRange(parcels) {
   const values = parcels.map((p) => p.yieldEstimate).filter(Number.isFinite);
   if (!values.length) return null;

@@ -2,7 +2,6 @@ import { memo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PAGE_SIZE_OPTIONS } from "../../hooks/usePagination";
 
-/** 1 … 4 5 6 … 20: siempre primera y última página, y la actual con sus vecinas. */
 function getPageItems(current, count) {
   if (count <= 7) return Array.from({ length: count }, (_, i) => i + 1);
   const items = [1];
@@ -22,18 +21,8 @@ const IDLE_BTN =
 const ACTIVE_BTN = "border-gray-900 bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900";
 const DISABLED_BTN = "cursor-not-allowed opacity-40 hover:bg-white dark:hover:bg-black";
 
-/**
- * Barra de paginación: rango mostrado, tamaño de página y navegación.
- *
- * @param {{
- *   page: number, pageCount: number, pageSize: number, total: number,
- *   onPageChange: (page: number) => void,
- *   onPageSizeChange?: (size: number) => void,
- *   className?: string,
- * }} props
- */
 function Pagination({ page, pageCount, pageSize, total, onPageChange, onPageSizeChange, className = "" }) {
-  // Con muy pocos elementos no hay nada que paginar.
+  
   if (total <= PAGE_SIZE_OPTIONS[0]) return null;
 
   const from = (page - 1) * pageSize + 1;
@@ -81,7 +70,7 @@ function Pagination({ page, pageCount, pageSize, total, onPageChange, onPageSize
           <ChevronLeft size={16} strokeWidth={1.75} className="text-gray-500 dark:text-gray-400" />
         </button>
 
-        {/* En pantallas chicas los números no caben: solo "3 / 20". */}
+        {}
         <span className="px-2 text-sm text-gray-500 dark:text-gray-400 sm:hidden">
           {page} / {pageCount}
         </span>

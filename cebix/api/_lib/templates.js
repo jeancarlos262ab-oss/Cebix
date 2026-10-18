@@ -1,7 +1,7 @@
 import { appUrl, unsubscribeUrl } from "./unsub.js";
 
 const COLORS = { red: "#B8493B", yellow: "#C08A2E", green: "#4C9A63" };
-const LABEL = { red: "Alto riesgo", yellow: "Revisión", green: "Elegible" };
+const LABEL = { red: "Rendimiento bajo", yellow: "Rendimiento medio", green: "Rendimiento alto" };
 
 export const esc = (v) =>
   String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -37,7 +37,7 @@ export function riskAlertEmail(uid, changes) {
     .map(
       (c) => `<tr>
 <td style="padding:10px 0;border-top:1px solid #e5e7eb;font-size:14px"><strong>${esc(c.name)}</strong><br><span style="color:#6b7280;font-size:12px">${esc(c.region || "")}</span></td>
-<td style="padding:10px 0;border-top:1px solid #e5e7eb;font-size:13px;text-align:right;white-space:nowrap">${dot(c.from)}${LABEL[c.from] || "—"} → ${dot(c.to)}<strong>${LABEL[c.to]}</strong>${Number.isFinite(c.score) ? `<br><span style="color:#6b7280;font-size:12px">Score ${Math.round(c.score)} / 100</span>` : ""}</td></tr>`,
+<td style="padding:10px 0;border-top:1px solid #e5e7eb;font-size:13px;text-align:right;white-space:nowrap">${dot(c.from)}${LABEL[c.from] || "—"} → ${dot(c.to)}<strong>${LABEL[c.to]}</strong>${Number.isFinite(c.score) ? `<br><span style="color:#6b7280;font-size:12px">Índice ${Math.round(c.score)} / 100</span>` : ""}</td></tr>`,
     )
     .join("");
   const more = changes.length > MAX ? `<p style="font-size:13px;color:#6b7280">y ${changes.length - MAX} parcela(s) más.</p>` : "";
@@ -46,7 +46,7 @@ export function riskAlertEmail(uid, changes) {
       ? `La parcela ${changes[0].name} cambió a ${LABEL[changes[0].to].toLowerCase()}`
       : `${changes.length} parcelas cambiaron de semáforo`;
   const body = `<p style="margin:0 0 14px;font-size:14px;line-height:1.5">${
-    reds ? `${reds} pasaron a <strong style="color:${COLORS.red}">alto riesgo</strong>. ` : ""
+    reds ? `${reds} pasaron a <strong style="color:${COLORS.red}">rendimiento bajo</strong>. ` : ""
   }Revisa estos cambios en tu portafolio:</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>${more}`;
   const text = `${title}\n\n${shown.map((c) => `- ${c.name}: ${LABEL[c.from] || "—"} → ${LABEL[c.to]}`).join("\n")}\n\n${appUrl()}/parcelas`;
@@ -73,6 +73,6 @@ export function weeklyEmail(uid, s) {
     Number.isFinite(s.avgYield) ? `, con un rendimiento estimado promedio de <strong>${s.avgYield.toFixed(1)} ton/ha</strong>` : ""
   }.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${line("green")}${line("yellow")}${line("red")}</table>${worst}`;
-  const text = `Resumen semanal CEBIX\n\n${s.total} parcelas · Elegible ${s.green} · Revisión ${s.yellow} · Alto riesgo ${s.red}\n\n${appUrl()}/parcelas`;
+  const text = `Resumen semanal CEBIX\n\n${s.total} parcelas · Rendimiento alto ${s.green} · medio ${s.yellow} · bajo ${s.red}\n\n${appUrl()}/parcelas`;
   return { subject: "CEBIX · Resumen semanal de tu portafolio", html: layout({ title: "Resumen semanal", body, uid, type: "weekly" }), text };
 }

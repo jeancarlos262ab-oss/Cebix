@@ -2,18 +2,6 @@ import { useState } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_DANGER } from "./Modal";
 
-/**
- * Diálogo de confirmación para acciones que no se pueden deshacer.
- *
- * @param {{
- *   title: string,
- *   description?: string,
- *   confirmLabel?: string,
- *   onConfirm: () => Promise<{error?: Error|null}|void>|void,
- *   onClose: () => void,
- * }} props
- * `onConfirm` puede devolver `{ error }`: si hay error, el diálogo se queda abierto y lo muestra.
- */
 export default function ConfirmDialog({ title, description, confirmLabel = "Eliminar", onConfirm, onClose }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);

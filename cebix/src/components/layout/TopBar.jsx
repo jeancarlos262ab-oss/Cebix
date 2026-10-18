@@ -3,9 +3,6 @@ import GlobalSearch from "./GlobalSearch";
 import { useSidebar } from "../../context/SidebarContext";
 import { usePreferences } from "../../context/PreferencesContext";
 
-/**
- * @param {{title: string, subtitle?: string, actions?: React.ReactNode, hideSearch?: boolean}} props
- */
 export default function TopBar({ title, subtitle, actions, hideSearch = false }) {
   const { toggle } = useSidebar();
   const { t } = usePreferences();
@@ -29,7 +26,7 @@ export default function TopBar({ title, subtitle, actions, hideSearch = false })
         </div>
       </div>
 
-      {/* En móvil ocupa todo el ancho (el buscador queda a ancho completo); desde sm vuelve a su tamaño. */}
+      {}
       <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
         {actions}
         {!hideSearch && <GlobalSearch />}

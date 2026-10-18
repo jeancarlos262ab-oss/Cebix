@@ -18,7 +18,7 @@ import { formatMonthYear, getLocale } from "../utils/intl";
 
 function monthsAgo(iso) {
   const english = getLocale().startsWith("en");
-  if (!iso) return english ? "3 months ago" : "hace 3 meses"; // valor por defecto del dataset semilla
+  if (!iso) return english ? "3 months ago" : "hace 3 meses"; 
   const diffMs = Date.now() - new Date(iso).getTime();
   const days = Math.floor(diffMs / 86_400_000);
   if (days < 1) return english ? "today" : "hoy";
@@ -43,8 +43,8 @@ export default function PerfilPage() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
 
-  // Precarga y decodifica la foto grande en segundo plano: al tocarla ya está en memoria y el
-  // visor abre al instante en vez de mostrar un spinner y trabarse decodificando.
+  
+  
   useEffect(() => {
     if (!fullPhoto) return undefined;
     const img = new Image();
@@ -67,7 +67,7 @@ export default function PerfilPage() {
       <TopBar title="Mi perfil" subtitle="Tu información de cuenta en CEBIX" hideSearch />
 
       <div className="mt-8 max-w-4xl px-4 sm:mt-10 sm:px-6 lg:px-8">
-        {/* Identidad */}
+        {}
         <SettingsSection icon={User} title="Identidad" description="Cómo te ven los demás dentro de CEBIX">
           <div className="flex flex-col items-center gap-6 py-6 text-center">
             {account.avatar ? (
@@ -132,8 +132,8 @@ export default function PerfilPage() {
             </button>
           </div>
 
-          {/* Stats: mismas líneas divisorias que el resto de la pantalla, sin
-              tarjetas — solo se separan con una raya vertical entre columnas. */}
+          {
+}
           <div className="grid grid-cols-3 divide-x divide-gray-200 py-5 text-center dark:divide-gray-800">
             {stats.map(({ label, value }) => (
               <div key={label} className="px-2 sm:px-4">
@@ -144,7 +144,7 @@ export default function PerfilPage() {
           </div>
         </SettingsSection>
 
-        {/* Seguridad de la cuenta */}
+        {}
         <SettingsSection icon={ShieldCheck} title="Seguridad" description="Protege el acceso a tu cuenta">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-4">
             <span>

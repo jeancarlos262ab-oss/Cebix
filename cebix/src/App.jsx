@@ -19,9 +19,6 @@ import { prefetchMapEngine } from "./utils/mapLoaders";
 import { PageActiveContext } from "./context/PageActiveContext";
 import { FullScreenSkeleton, RouteSkeleton, pageKeyFromPath } from "./components/ui/PageSkeleton";
 
-// Cada página se separa en su propio chunk: el navegador solo descarga (y
-// cachea) el código de la pantalla que se visita, en vez de todo el bundle
-// de una sola vez.
 const pageLoaders = {
   dashboard: () => import("./pages/DashboardPage"),
   parcelas: () => import("./pages/ParcelasPage"),
@@ -54,23 +51,17 @@ const loadSignup = () => import("./pages/SignupPage");
 const LoginPage = lazy(loadLogin);
 const SignupPage = lazy(loadSignup);
 
-// Esqueleto con la forma de la pantalla que se está abriendo (según la ruta), no un círculo genérico.
 function RouteFallback({ pathname }) {
   const page = pageKeyFromPath(pathname ?? (typeof window !== "undefined" ? window.location.pathname : ""));
   return <RouteSkeleton page={page ?? "dashboard"} />;
 }
 
-// Fallback de la raíz: aún no hay layout. En login/registro no se dibuja nada de la app (tienen su propio marco).
 function RootFallback() {
   const path = typeof window !== "undefined" ? window.location.pathname : "";
   if (/^\/(login|signup)\/?$/.test(path)) return <div className="h-screen w-full bg-white dark:bg-black" />;
   return <FullScreenSkeleton page={pageKeyFromPath(path) ?? "dashboard"} />;
 }
 
-// Con la sesión iniciada, descarga el resto de pantallas cuando el navegador
-// está ocioso (una a una, sin competir con la pantalla actual). Así al navegar
-// el chunk ya está en caché y el cambio es instantáneo. El mapa (MapLibre,
-// el más pesado) queda al final.
 function usePrefetchPages() {
   useEffect(() => {
     const queue = [
@@ -85,7 +76,7 @@ function usePrefetchPages() {
       pageLoaders.acerca,
       pageLoaders.satelite,
       pageLoaders.mapa,
-      prefetchMapEngine, // motor de mapa (MapLibre/Leaflet): evita una segunda espera al abrir un mapa
+      prefetchMapEngine, 
     ];
     const idle = window.requestIdleCallback ?? ((cb) => window.setTimeout(cb, 600));
     const cancel = window.cancelIdleCallback ?? window.clearTimeout;
@@ -111,23 +102,14 @@ function usePrefetchPages() {
   }, []);
 }
 
-
-// ── Keep-alive de pantallas ─────────────────────────────────────────────────
-// Cada pantalla visitada se queda MONTADA (solo se oculta con display:none).
-// Al volver se muestra exactamente como se dejó: estado local, filtros,
-// pestañas, formularios, mapa (zoom/capas/selección) y scroll.
-// Se vacía sola al cerrar sesión (AuthenticatedLayout se desmonta).
-
-// pathname → clave de caché. Las rutas que solo redirigen (/ejecutar-modelo,
-// "*") devuelven null y no se cachean.
 function pageKey(pathname) {
   const path = pathname.replace(/\/+$/, "") || "/";
   if (["/", "/parcelas", "/parcelas/historial", "/modelo", "/mapa", "/predicciones", "/satelite", "/shap", "/acerca", "/ajustes", "/perfil"].includes(path)) {
     return path;
   }
-  // (/parcelas/historial es una ruta fija: se evalúa antes que el detalle por id.)
-  // Todas las parcelas comparten un solo slot de detalle (evita acumular un
-  // mapa por cada parcela abierta).
+  
+  
+  
   if (/^\/parcelas\/[^/]+$/.test(path)) return "/parcelas/:id";
   return null;
 }
@@ -138,18 +120,18 @@ const KeepAliveOutlet = memo(function KeepAliveOutlet() {
   const navigationType = useContext(LocationContext).navigationType;
   const key = pageKey(location.pathname);
 
-  // Singleton compartido: una sola instancia por pantalla para toda la app.
+  
   const registry = getPageRegistry();
   const entriesRef = { current: registry.entries };
   const scrollRef = { current: registry.scroll };
   const searchRef = { current: registry.search };
   const activeKeyRef = registry.active;
 
-  // La pantalla activa siempre guarda su versión más reciente; las demás
-  // conservan la última que tuvieron (React no las vuelve a renderizar).
+  
+  
   if (key) entriesRef.current.set(key, { outlet, location, navigationType });
 
-  // Guarda el scroll de la pantalla activa (el <main> es compartido).
+  
   useEffect(() => {
     const el = document.getElementById("app-scroll");
     if (!el) return;
@@ -162,48 +144,40 @@ const KeepAliveOutlet = memo(function KeepAliveOutlet() {
 
   useLayoutEffect(() => {
     if (!key) return;
-    // Al llegar de otra pantalla se restaura su scroll ANTES de pintar.
+    
     if (activeKeyRef.key !== key) {
       activeKeyRef.key = key;
       const el = document.getElementById("app-scroll");
       if (el) el.scrollTop = scrollRef.current.get(key) ?? 0;
     }
-    // El Sidebar usa esto para volver a /modelo?tab=... tal como estaba.
+    
     searchRef.current.set(key, location.search);
   });
 
   return (
     <>
       {[...entriesRef.current].map(([k, entry]) => (
-        // En rutas de redirección (key null) se deja visible la pantalla
-        // anterior para no parpadear en blanco.
+        
+        
         <PageSlot key={k} active={k === (key ?? activeKeyRef.key)} entry={entry} />
       ))}
-      {/* Rutas de redirección (no cacheadas). */}
+      {}
       {!key && outlet}
     </>
   );
 });
 
-// La pantalla activa usa `display: contents` (el wrapper no existe visualmente,
-// el layout es idéntico al de antes). Las ocultas NO usan display:none: eso les
-// quitaba su tamaño y al volver mapas y gráficas se redimensionaban y
-// parpadeaban. Se quedan con el mismo tamaño que el <main>, apiladas encima e
-// invisibles (visibility:hidden), así que al mostrarse no cambia nada.
-// La ubicación se "congela" en las ocultas: useSearchParams/useParams de una
-// pantalla en segundo plano no cambian cuando navegas a otra.
 const HIDDEN_STYLE = {
   position: "absolute",
   inset: 0,
   overflow: "hidden",
   visibility: "hidden",
   pointerEvents: "none",
-  // El navegador omite por completo layout y pintado de la pantalla oculta
-  // (conservando su estado): no resta fluidez al scroll ni a las animaciones.
+  
+  
   contentVisibility: "hidden",
 };
 
-// memo: las pantallas ocultas conservan el mismo `entry`, así que no se tocan cuando cambia otra cosa del layout.
 const PageSlot = memo(function PageSlot({ active, entry }) {
   const frozen = useRef(null);
   if (active || !frozen.current) {
@@ -211,8 +185,8 @@ const PageSlot = memo(function PageSlot({ active, entry }) {
   }
   return (
     <div style={active ? { display: "contents" } : HIDDEN_STYLE} aria-hidden={active ? undefined : true}>
-      {/* Suspense por pantalla: al cargar por primera vez una página, las
-          demás (ya montadas) no se tocan. */}
+      {
+}
       <Suspense fallback={<RouteFallback pathname={entry.location.pathname} />}>
         <PageActiveContext.Provider value={active}>
           <LocationContext.Provider value={frozen.current}>{entry.outlet}</LocationContext.Provider>
@@ -224,16 +198,16 @@ const PageSlot = memo(function PageSlot({ active, entry }) {
 
 function AuthenticatedLayout() {
   usePrefetchPages();
-  // En el mapa satelital el mapa ocupa TODA la pantalla (también detrás del
-  // sidebar, que flota encima) y el degradado de la esquina lo monta la propia página entre sus capas. Solo cuando hay
-  // parcelas: sin ellas se muestra "Aún no hay resultados del modelo", que se centra
-  // en el área de contenido como el resto de pantallas (sidebar normal, no flotante).
+  
+  
+  
+  
   const { parcels } = useParcels();
   const pathname = useLocation().pathname;
   const onMap = pathname.replace(/\/+$/, "") === "/mapa" && parcels.length > 0;
 
-  // El <main> cambia de tamaño al entrar/salir del mapa: se avisa a los mapas
-  // (MapLibre y Leaflet escuchan el resize de la ventana) para que se ajusten.
+  
+  
   useEffect(() => {
     const id = window.requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
     return () => window.cancelAnimationFrame(id);
@@ -242,8 +216,8 @@ function AuthenticatedLayout() {
   return (
     <SidebarProvider>
       <div className="relative isolate flex h-screen w-full overflow-hidden supports-[height:100dvh]:h-dvh bg-white dark:bg-black">
-        {/* Degradado fijo de la esquina superior izquierda: va detrás del panel y de todas las pantallas.
-            En el mapa lo monta la propia página (MapaSatelitalPage) entre sus capas, con este mismo componente. */}
+        {
+}
         <CornerGlow className={`-z-10 ${onMap ? "hidden" : ""}`} />
         <Sidebar floating={onMap} />
 
@@ -251,8 +225,8 @@ function AuthenticatedLayout() {
           id="app-scroll"
           className={`min-w-0 overflow-y-auto ${onMap ? "absolute inset-0" : "relative flex-1"}`}
         >
-          {/* Suspense propio: al abrir una pantalla por primera vez solo cambia el
-              contenido; el sidebar ya no desaparece detrás del spinner global. */}
+          {
+}
           <Suspense fallback={<RouteFallback pathname={pathname} />}>
             <KeepAliveOutlet />
           </Suspense>
@@ -264,8 +238,8 @@ function AuthenticatedLayout() {
 }
 
 export default function App() {
-  // Login y Signup comparten marco: precargamos ambas para que el cambio de
-  // pestaña sea instantáneo y no deje un hueco mientras baja el chunk.
+  
+  
   useEffect(() => {
     loadLogin();
     loadSignup();

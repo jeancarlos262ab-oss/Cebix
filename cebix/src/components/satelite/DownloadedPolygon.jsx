@@ -2,18 +2,18 @@ import { useMemo, useState } from "react";
 import { Label, Row } from "../results/ReportParts";
 import { areaHa, formatHa, perimeterM } from "../../utils/polygon";
 
-/**
- * Visualización APARTE del polígono tal como quedó en los datos descargados (el JSON de 'Descargar
- * variables'): se dibuja leyendo `data.geometry`, no el dibujo del mapa. Fondo satelital estático (Esri
- * export, en lat/lng lineales) con el contorno encima en SVG, para que coincidan sin reproyectar.
- *
- * data = { ID_POLIGONO, Estado, anio, geometry: GeoJSON Polygon }
- */
-const SIZE = 640; // lado mayor de la imagen pedida (px)
-const PAD = 0.18; // margen alrededor del polígono
+const PAD = 0.18; 
+const MAX_Z = 17; 
+const TILE = 256;
+const TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile";
+
+const worldPx = (lng, lat, z) => {
+  const n = TILE * 2 ** z;
+  const r = (lat * Math.PI) / 180;
+  return [((lng + 180) / 360) * n, ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * n];
+};
 
 export default function DownloadedPolygon({ data }) {
-  const [imgOk, setImgOk] = useState(true);
   const [showJson, setShowJson] = useState(false);
 
   const g = useMemo(() => {
@@ -23,27 +23,30 @@ export default function DownloadedPolygon({ data }) {
     const lats = ring.map((c) => c[1]);
     const [w, e, s, n] = [Math.min(...lngs), Math.max(...lngs), Math.min(...lats), Math.max(...lats)];
     const cosLat = Math.cos((((s + n) / 2) * Math.PI) / 180);
-    // Mismo alto y ancho en metros: se iguala el lado mayor con margen y se centra el polígono.
+    
     const spanM = Math.max((e - w) * cosLat, n - s, 1e-6) * (1 + PAD * 2);
     const dLng = spanM / cosLat;
     const dLat = spanM;
     const cx = (w + e) / 2;
     const cy = (s + n) / 2;
-    const bbox = [cx - dLng / 2, cy - dLat / 2, cx + dLng / 2, cy + dLat / 2];
-    const px = ([lng, lat]) => [((lng - bbox[0]) / dLng) * SIZE, ((bbox[3] - lat) / dLat) * SIZE];
-    const pts = ring.slice(0, -1); // sin el vértice repetido que cierra el anillo
+    const [west, east, south, north] = [cx - dLng / 2, cx + dLng / 2, cy - dLat / 2, cy + dLat / 2];
+    
+    const z = Math.max(1, Math.min(MAX_Z, Math.floor(Math.log2((640 * 360) / (TILE * dLng)))));
+    const [x0, y1] = worldPx(west, south, z);
+    const [x1, y0] = worldPx(east, north, z);
+    const tiles = [];
+    for (let ty = Math.floor(y0 / TILE); ty <= Math.floor(y1 / TILE); ty++)
+      for (let tx = Math.floor(x0 / TILE); tx <= Math.floor(x1 / TILE); tx++)
+        tiles.push({ key: `${tx}-${ty}`, x: tx * TILE, y: ty * TILE, href: `${TILE_URL}/${z}/${ty}/${tx}` });
+    const pts = ring.slice(0, -1); 
     const latlng = pts.map(([lng, lat]) => [lat, lng]);
-    const params = new URLSearchParams({
-      bbox: bbox.join(","),
-      bboxSR: "4326",
-      imageSR: "4326",
-      size: `${SIZE},${SIZE}`,
-      format: "png24",
-      f: "image",
-    });
+    const px = ([lng, lat]) => worldPx(lng, lat, z);
+    const k = (x1 - x0) / 640; 
     return {
-      src: `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?${params}`,
-      path: ring.map((c) => px(c).map((v) => v.toFixed(1)).join(",")).join(" "),
+      view: `${x0} ${y0} ${x1 - x0} ${y1 - y0}`,
+      tiles,
+      k,
+      path: ring.map((c) => px(c).map((v) => v.toFixed(2)).join(",")).join(" "),
       verts: pts.map(px),
       count: pts.length,
       ha: areaHa(latlng),
@@ -61,20 +64,14 @@ export default function DownloadedPolygon({ data }) {
         Se dibuja a partir de la geometría que lleva el archivo JSON descargado, no del mapa de arriba.
       </p>
       <div className="grid overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-        <div className="relative aspect-square w-full bg-gray-100 dark:bg-gray-900 md:aspect-auto md:min-h-[320px]">
-          {imgOk && (
-            <img
-              src={g.src}
-              alt="Imagen satelital bajo el polígono descargado"
-              className="absolute inset-0 h-full w-full object-cover"
-              draggable={false}
-              onError={() => setImgOk(false)}
-            />
-          )}
-          <svg viewBox={`0 0 ${SIZE} ${SIZE}`} preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full" role="img" aria-label="Contorno descargado">
-            <polygon points={g.path} fill="none" stroke="#fff" strokeWidth="2.5" strokeLinejoin="miter" />
+        <div className="relative aspect-square w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
+          <svg viewBox={g.view} preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full" role="img" aria-label="Contorno descargado sobre imagen satelital">
+            {g.tiles.map((t) => (
+              <image key={t.key} href={t.href} x={t.x} y={t.y} width={TILE} height={TILE} draggable={false} />
+            ))}
+            <polygon points={g.path} fill="none" stroke="#fff" strokeWidth="2.5" strokeLinejoin="miter" vectorEffect="non-scaling-stroke" />
             {g.verts.map(([x, y], i) => (
-              <circle key={i} cx={x} cy={y} r="4" fill="#fff" stroke="rgba(0,0,0,.45)" strokeWidth="1.5" />
+              <circle key={i} cx={x} cy={y} r={4 * g.k} fill="#fff" stroke="rgba(0,0,0,.45)" strokeWidth={1.5 * g.k} />
             ))}
           </svg>
           <p className="absolute bottom-0 left-0 bg-black/60 px-1.5 py-0.5 text-[10px] text-gray-300">Imagen: Esri, Maxar, Earthstar Geographics</p>

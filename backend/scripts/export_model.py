@@ -1,12 +1,3 @@
-"""
-Serializa el modelo final (Random Forest, top-10 features) + imputer + scaler +
-metadata (RMSE por región, features, labels) en un solo archivo .joblib que el
-backend de inferencia (backend/main.py) carga al arrancar.
-
-Uso:
-    python scripts/export_model.py --train ../ml/02_datos_procesados/features_train.csv --out models/model_artifact.joblib
-    # después: python ../ml/03_modelo/build_model_meta.py   (regenera models/model_meta.json)
-"""
 import argparse
 import os
 import sys
@@ -15,15 +6,14 @@ import joblib
 import numpy as np
 from sklearn.metrics import mean_squared_error
 
-# train_model.py puede estar junto a este archivo, en ../03_modelo (paquete original) o en la raíz del repo.
-_HERE = os.path.dirname(os.path.abspath(__file__))          # backend/scripts
-_BACKEND = os.path.dirname(_HERE)                              # backend
-_REPO = os.path.dirname(_BACKEND)                              # raíz del repo (donde vive ml/)
+_HERE = os.path.dirname(os.path.abspath(__file__))          
+_BACKEND = os.path.dirname(_HERE)                              
+_REPO = os.path.dirname(_BACKEND)                              
 for _p in (_HERE, os.path.join(_REPO, "ml", "03_modelo"), os.path.join(_BACKEND, "ml", "03_modelo"), os.path.join(_REPO, "03_modelo"), _REPO):
     if os.path.exists(os.path.join(_p, "train_model.py")):
         sys.path.insert(0, _p)
         break
-from train_model import load_data, build_xy, get_models, leave_region_out_cv  # noqa: E402
+from train_model import load_data, build_xy, get_models, leave_region_out_cv  
 
 BEST_MODEL_NAME = "Random Forest"
 SELECTED_FEATURES = [
@@ -51,7 +41,6 @@ FEATURE_LABELS = {
     "bas_evi_encanado": "EVI en encañado",
 }
 
-
 def main(train_path, out_path):
     train_df, _predict_df_unused, _all_cols = load_data(train_path, train_path)
 
@@ -76,13 +65,12 @@ def main(train_path, out_path):
         "feature_labels": FEATURE_LABELS,
         "rmse_by_region": rmse_by_region,
         "overall_rmse": overall_rmse,
-        "residuals_oof": residuals,  # para bootstrap de intervalos de confianza
+        "residuals_oof": residuals,  
         "model_name": BEST_MODEL_NAME,
     }
     joblib.dump(artifact, out_path)
     print(f"Modelo exportado a {out_path}")
     print(f"RMSE global: {overall_rmse:.3f} | RMSE por región: {rmse_by_region}")
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

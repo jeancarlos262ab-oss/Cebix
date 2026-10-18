@@ -1,39 +1,16 @@
-"""
-Piezas comunes del cálculo de features satelitales (las usa `stac.py` y `geo_service.py`)
-========================================================================================
-
-Contiene lo que no depende de la fuente de imágenes:
-  * ventanas fenológicas y las 10 features que espera el modelo,
-  * errores con su código HTTP,
-  * validación y normalización del polígono (GeoJSON lng/lat) y del año.
-
-Superficie: más de MAX_AREA_HA se rechaza (el servicio no alcanza a procesar zonas tan grandes) y más
-de WARN_AREA_HA solo se advierte, porque el promedio de una zona extensa mezcla cultivos y coberturas
-distintas y la predicción deja de representar a una parcela.
-
-Variables de entorno:
-  SAT_MAX_AREA_HA     superficie máxima aceptada (ha), 5000 por defecto. El frontend usa el mismo valor
-                      (MAX_AREA_HA en src/data/satelite.js): si lo cambias aquí, cámbialo allá.
-  AREA_WARN_HA        superficie (ha) a partir de la cual se advierte, 1000 por defecto
-  SAT_QUEUE_TIMEOUT_S cuánto espera una petición su turno, 5 por defecto
-"""
-
 from __future__ import annotations
 
 import math
 import os
 from datetime import date
 
-# ─────────────────────────────── Configuración ───────────────────────────────
-
 PHENO_WINDOWS = {
-    # nombre: (inicio MM-DD, fin EXCLUSIVO MM-DD). filterDate excluye el día final.
-    "emergencia_macollamiento": ("04-01", "06-01"),  # 1 abr – 31 may
-    "encanado": ("06-01", "08-01"),                  # 1 jun – 31 jul
-    "espigado_llenado": ("08-01", "10-01"),          # 1 ago – 30 sep
+    
+    "emergencia_macollamiento": ("04-01", "06-01"),  
+    "encanado": ("06-01", "08-01"),                  
+    "espigado_llenado": ("08-01", "10-01"),          
 }
 
-# feature del modelo -> (ventana, banda de índice)
 S2_FEATURES = {
     "bas_lai_espigado_llenado": ("espigado_llenado", "lai"),
     "bas_ndti_emergencia_macollamiento": ("emergencia_macollamiento", "ndti"),
@@ -51,22 +28,18 @@ FEATURE_KEYS = [
     *S2_FEATURES.keys(),
 ]
 
-CLOUD_MAX = 40          # % de nubes, mismo umbral que build_features.py
-FIRST_YEAR = 2018       # Sentinel-2 SR global arranca a finales de 2018
+CLOUD_MAX = 40          
+FIRST_YEAR = 2018       
 MAX_VERTICES = 500
-MIN_AREA_HA = 0.05      # por debajo no hay ni 5 píxeles de 10 m
+MIN_AREA_HA = 0.05      
 MAX_AREA_HA = float(os.environ.get("SAT_MAX_AREA_HA", "5000"))
-WARN_AREA_HA = float(os.environ.get("AREA_WARN_HA", "1000"))  # solo advierte
+WARN_AREA_HA = float(os.environ.get("AREA_WARN_HA", "1000"))  
 QUEUE_TIMEOUT_S = float(os.environ.get("SAT_QUEUE_TIMEOUT_S", "5"))
-# Si faltan más de estas features el resultado no es confiable y se rechaza.
+
 MAX_MISSING = 3
 
-
-# ─────────────────────────────── Errores ───────────────────────────────
-
-
 class SatelliteError(Exception):
-    """Base. `status` es el código HTTP que debe responder el endpoint."""
+    
 
     status = 502
 
@@ -74,30 +47,22 @@ class SatelliteError(Exception):
         super().__init__(message)
         self.message = message
 
-
 class SatelliteNotConfigured(SatelliteError):
     status = 503
-
 
 class GeometryError(SatelliteError):
     status = 422
 
-
 class SatelliteBusy(SatelliteError):
     status = 429
-
 
 class SatelliteNoData(SatelliteError):
     status = 422
 
-
-# ─────────────────────────────── Geometría (sin dependencias) ───────────────────────────────
-
 _R = 6371008.8
 
-
 def _ring_area_ha(ring: list[list[float]]) -> float:
-    """Área geodésica aproximada (ha) de un anillo [[lng, lat], ...] (abierto o cerrado)."""
+    
     pts = ring[:-1] if ring[0] == ring[-1] else ring
     total = 0.0
     n = len(pts)
@@ -107,15 +72,12 @@ def _ring_area_ha(ring: list[list[float]]) -> float:
         total += math.radians(lng2 - lng1) * (2 + math.sin(math.radians(lat1)) + math.sin(math.radians(lat2)))
     return abs(total * _R * _R / 2) / 10_000
 
-
 def _orient(p, q, r) -> float:
     return (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1])
-
 
 def _segments_cross(a, b, c, d) -> bool:
     o1, o2, o3, o4 = _orient(a, b, c), _orient(a, b, d), _orient(c, d, a), _orient(c, d, b)
     return o1 * o2 < 0 and o3 * o4 < 0
-
 
 def _self_intersects(pts: list[list[float]]) -> bool:
     n = len(pts)
@@ -127,12 +89,8 @@ def _self_intersects(pts: list[list[float]]) -> bool:
                 return True
     return False
 
-
 def validate_geometry(geometry: dict) -> tuple[dict, float]:
-    """
-    Valida el GeoJSON y lo normaliza a un Polygon de un solo anillo, cerrado.
-    Devuelve (geometría, hectáreas). Lanza GeometryError con un mensaje legible.
-    """
+    
     if not isinstance(geometry, dict) or geometry.get("type") != "Polygon":
         raise GeometryError("La geometría debe ser un GeoJSON de tipo Polygon.")
     coords = geometry.get("coordinates")
@@ -170,9 +128,8 @@ def validate_geometry(geometry: dict) -> tuple[dict, float]:
         )
     return {"type": "Polygon", "coordinates": [ring]}, ha
 
-
 def area_warning(ha: float | None) -> str | None:
-    """Aviso (no error) cuando la superficie, aún dentro del máximo, mezcla coberturas distintas."""
+    
     if ha is None or ha <= WARN_AREA_HA:
         return None
     return (
@@ -181,16 +138,11 @@ def area_warning(ha: float | None) -> str | None:
         "una parcela. Es preferible calcular cada parcela por separado."
     )
 
-
-# Conteo de fechas con escena (bas_n_obs_ciclo) en las 138 parcelas de entrenamiento (media y desviación del scaler del modelo).
 N_OBS_TRAIN_MEAN = 54.17
 N_OBS_TRAIN_STD = 8.65
 
-
 def n_obs_warning(n_obs: float | None) -> str | None:
-    """Aviso solo si el conteo sale del rango que vio el modelo (media ± 3 desviaciones, ≈ 28–80 fechas).
-    Un conteo alto no indica una ubicación equivocada: es típico en el traslape de dos órbitas de Sentinel-2
-    o dos trayectorias de Landsat, donde la misma parcela se observa más veces."""
+    
     if n_obs is None:
         return None
     lo = round(N_OBS_TRAIN_MEAN - 3 * N_OBS_TRAIN_STD)
@@ -207,7 +159,6 @@ def n_obs_warning(n_obs: float | None) -> str | None:
         f"El conteo de escenas ({int(n_obs)}) es {side} que el de las parcelas de entrenamiento (≈{lo}–{hi}, típico ≈54). "
         f"{cause} No es un error de ubicación; para el modelo equivale al extremo del rango que vio en el entrenamiento."
     )
-
 
 def validate_year(year: int) -> int:
     last = date.today().year

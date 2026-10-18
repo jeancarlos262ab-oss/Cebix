@@ -1,9 +1,3 @@
-/**
- * Tarjeta contenedora estándar para cada bloque de Ajustes y Perfil: encabezado con título y
- * descripción, línea divisoria y filas separadas por líneas finas (cada hijo directo es una fila).
- *
- * @param {{icon?: React.ElementType, title: string, description?: string, children: React.ReactNode}} props
- */
 export default function SettingsSection({ icon: Icon, title, description, children }) {
   return (
     <section className="mb-6 overflow-hidden rounded-2xl border border-gray-200 last:mb-0 dark:border-gray-800">

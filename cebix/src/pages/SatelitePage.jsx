@@ -26,6 +26,7 @@ import ValidationRunner from "../components/satelite/ValidationRunner";
 import { Z90, classifyRisk, scoreFromInputs, useParcels } from "../context/ParcelsContext";
 import { predictFromGeometry } from "../services/sateliteApi";
 import ModeSelector from "../components/model/ModeSelector";
+import { usePredictionMode } from "../services/predictionMode";
 import { parseGeometryFiles } from "../services/geoApi";
 import { ESTADOS, MAX_AREA_HA, SAT_QUESTIONS, TRAINED_YEAR, WARN_AREA_HA, YEARS } from "../data/satelite";
 import {
@@ -41,8 +42,6 @@ import {
 import { formatDistance } from "../utils/geo";
 import { checkPointUrban, checkUrban } from "../utils/urbanCheck";
 
-// Validación REAL: salida de backend/scripts/validate_satelite.py guardada como src/data/sateliteValidation.json.
-// Si el archivo no existe, la pestaña lo dice; nunca muestra cifras de ejemplo.
 const REAL_VALIDATION = Object.values(import.meta.glob("../data/sateliteValidation.json", { eager: true, import: "default" }))[0];
 
 const TABS = [
@@ -51,10 +50,10 @@ const TABS = [
 ];
 
 const FIELD =
-  "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-accent-500 focus:outline-hidden focus:ring-1 focus:ring-accent-500 disabled:opacity-50 dark:border-gray-700 dark:bg-black dark:text-gray-200";
+  "w-full rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-[13px] text-gray-800 focus:border-accent-500 focus:outline-hidden focus:ring-1 focus:ring-accent-500 disabled:opacity-50 dark:border-gray-700 dark:bg-black dark:text-gray-200";
 
 const BTN =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800";
+  "inline-flex items-center justify-center gap-1.5 rounded-md border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800";
 
 function SectionHeader({ title, description }) {
   return (
@@ -70,7 +69,7 @@ function SectionHeader({ title, description }) {
 function Field({ label, hint, children }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">{label}</span>
+      <span className="mb-1 block text-[11px] font-medium text-gray-500 dark:text-gray-400">{label}</span>
       {children}
       {hint && <span className="mt-1 block text-xs text-gray-400 dark:text-gray-500">{hint}</span>}
     </label>
@@ -80,10 +79,10 @@ function Field({ label, hint, children }) {
 function SelectField({ value, onChange, disabled, children }) {
   return (
     <div className="relative">
-      <select value={value} onChange={onChange} disabled={disabled} className={`${FIELD} appearance-none pr-9`}>
+      <select value={value} onChange={onChange} disabled={disabled} className={`${FIELD} appearance-none pr-8`}>
         {children}
       </select>
-      <ChevronDown size={15} className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+      <ChevronDown size={15} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
     </div>
   );
 }
@@ -116,12 +115,11 @@ function Notice({ tone = "warn", children, action = null, loading = false }) {
   );
 }
 
-/** Círculo numerado de un paso: "done" (check, acento suave) | "active" (acento sólido) | "pending" (gris). */
 function StepDot({ n, state, running = false }) {
   return (
     <span
       aria-hidden="true"
-      className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums transition-colors duration-200 ${
+      className={`flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold tabular-nums transition-colors duration-200 ${
         state === "done"
           ? "bg-accent-50 text-accent-700 dark:bg-accent-500/15 dark:text-accent-400"
           : state === "active"
@@ -129,18 +127,17 @@ function StepDot({ n, state, running = false }) {
             : "bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500"
       }`}
     >
-      {state === "done" ? <Check size={12} strokeWidth={2.5} /> : state === "active" && running ? <Loader2 size={12} className="animate-spin" /> : n}
+      {state === "done" ? <Check size={11} strokeWidth={2.5} /> : state === "active" && running ? <Loader2 size={11} className="animate-spin" /> : n}
     </span>
   );
 }
 
-/** Sección numerada del panel de trabajo: el número pasa a ✓ cuando el paso queda resuelto. */
 function PanelSection({ n, state, title, running = false, children }) {
   return (
-    <section className="px-5 py-5">
-      <header className="mb-4 flex items-center gap-3">
+    <section className="min-w-0 px-4 py-4">
+      <header className="mb-2.5 flex items-center gap-2.5">
         <StepDot n={n} state={state} running={running} />
-        <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+        <h2 className="font-display text-[13px] font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
       </header>
       {children}
     </section>
@@ -149,10 +146,10 @@ function PanelSection({ n, state, title, running = false, children }) {
 
 function Metric({ label, wide = false, accent = false, children }) {
   return (
-    <div className={`bg-white px-3 py-2.5 dark:bg-black ${wide ? "col-span-3" : ""}`}>
-      <dt className="text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{label}</dt>
+    <div className={`bg-white px-2.5 py-1.5 dark:bg-black ${wide ? "col-span-3" : ""}`}>
+      <dt className="text-[9px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{label}</dt>
       <dd
-        className={`mt-0.5 truncate text-sm font-semibold tabular-nums ${
+        className={`mt-0.5 truncate text-[13px] font-semibold tabular-nums ${
           accent ? "text-accent-600 dark:text-accent-400" : "text-gray-900 dark:text-gray-100"
         }`}
       >
@@ -162,18 +159,18 @@ function Metric({ label, wide = false, accent = false, children }) {
   );
 }
 
-/** Estado vacío: qué se lee, cuánto tarda y qué se obtiene. Sustituye al antiguo "Cómo funciona". */
 function Facts() {
+  const [mode] = usePredictionMode();
   const items = [
-    { label: "Fuentes", text: "Sentinel-2, Landsat y CHIRPS (datos abiertos), resumidos dentro del polígono." },
-    { label: "Cálculo", text: "10 variables por ventana fenológica. Tarda entre 30 y 90 s." },
+    { label: "Fuentes", text: mode === "lluvia" ? "CHIRPS (datos abiertos), resumido dentro del polígono." : "Sentinel-2, Landsat y CHIRPS (datos abiertos), resumidos dentro del polígono." },
+    { label: "Cálculo", text: mode === "lluvia" ? "Solo la lluvia de CHIRPS dentro del polígono." : "10 variables por ventana fenológica. Tarda entre 30 y 90 s." },
     { label: "Resultado", text: "Rendimiento estimado, intervalo al 90 % y peso SHAP de cada variable." },
   ];
   return (
     <dl className="grid gap-px overflow-hidden rounded-lg border border-gray-200 bg-gray-200 dark:border-gray-800 dark:bg-gray-800 sm:grid-cols-3">
       {items.map(({ label, text }) => (
         <div key={label} className="bg-white p-4 dark:bg-black">
-          <dt className="text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{label}</dt>
+          <dt className="text-[9px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{label}</dt>
           <dd className="mt-1.5 text-sm leading-relaxed text-gray-600 dark:text-gray-400">{text}</dd>
         </div>
       ))}
@@ -189,23 +186,23 @@ function downloadBlob(filename, text, type = "application/json") {
 }
 
 function NuevaParcelaTab() {
-  // ── Geometría ────────────────────────────────────────────────────────────
+  
   const [points, setPoints] = useState([]);
   const [closed, setClosed] = useState(false);
   const [drawing, setDrawing] = useState(false);
   const [fitKey, setFitKey] = useState(0);
   const fileRef = useRef(null);
 
-  // ── Datos de la parcela ──────────────────────────────────────────────────
+  
   const [name, setName] = useState("NUEVA_01");
-  const [estadoManual, setEstadoManual] = useState(null); // null = usar el detectado por la ubicación
+  const [estadoManual, setEstadoManual] = useState(null); 
   const [anio, setAnio] = useState(TRAINED_YEAR);
 
-  // ── Ejecución ────────────────────────────────────────────────────────────
-  const [phase, setPhase] = useState("idle"); // idle | running | done | error
-  // El avance por variable y el cronómetro viven dentro de <RunProgress>: así los temporizadores solo
-  // vuelven a pintar ese panel y no toda la pantalla (mapa y formulario incluidos).
-  const [predicting, setPredicting] = useState(false); // ya llegó la respuesta: "Predicción del modelo"
+  
+  const [phase, setPhase] = useState("idle"); 
+  
+  
+  const [predicting, setPredicting] = useState(false); 
   const [result, setResult] = useState(null);
   const [ran, setRan] = useState(null);
   const [error, setError] = useState(null);
@@ -213,18 +210,18 @@ function NuevaParcelaTab() {
   const resultsRef = useRef(null);
   const running = phase === "running";
 
-  // ── Guardado: el resultado se guarda en las parcelas del usuario (Supabase) solo al pulsar 'Guardar parcela'.
+  
   const { addParcel, updateParcel, isCustomParcel } = useParcels();
-  const [savedId, setSavedId] = useState(null); // parcela guardada de la última vez (se actualiza al volver a guardar)
-  const [savedFor, setSavedFor] = useState(null); // resultado (objeto `ran`) que ya quedó guardado
+  const [savedId, setSavedId] = useState(null); 
+  const [savedFor, setSavedFor] = useState(null); 
   const [saving, setSaving] = useState(false);
 
-  // ── Zona urbana: se consulta OpenStreetMap cada vez que cambia el contorno cerrado.
-  const [urban, setUrban] = useState({ status: "idle" }); // idle | checking | ok | urban | unknown
-  const [recheck, setRecheck] = useState(0); // sube al pulsar 'Reintentar verificación'
-  // La persona puede OMITIR la verificación de zona urbana: desde ahí la validez del resultado depende de ella.
+  
+  const [urban, setUrban] = useState({ status: "idle" }); 
+  const [recheck, setRecheck] = useState(0); 
+  
   const [urbanOverride, setUrbanOverride] = useState(false);
-  const [vertexHit, setVertexHit] = useState(false); // se rechazó un vértice por caer en zona urbana
+  const [vertexHit, setVertexHit] = useState(false); 
   const urbanCtlRef = useRef(null);
   const urbanOverrideRef = useRef(false);
   urbanOverrideRef.current = urbanOverride;
@@ -241,7 +238,7 @@ function NuevaParcelaTab() {
     };
   }, [closed, points]);
 
-  // El estado se propone solo según dónde cae el polígono, hasta que el usuario lo cambie a mano.
+  
   const estado = estadoManual ?? info?.detected ?? "Puebla";
 
   useEffect(() => () => abortRef.current?.abort(), []);
@@ -250,7 +247,7 @@ function NuevaParcelaTab() {
     if (!closed || points.length < 3) {
       setUrban({ status: "idle" });
       if (points.length === 0) {
-        setUrbanOverride(false); // parcela nueva: vuelve a verificarse
+        setUrbanOverride(false); 
         setVertexHit(false);
       }
       return undefined;
@@ -258,7 +255,7 @@ function NuevaParcelaTab() {
     const controller = new AbortController();
     urbanCtlRef.current = controller;
     setUrban({ status: "checking" });
-    // Espera un instante a que se deje de mover el vértice para no consultar en cada arrastre.
+    
     const timer = setTimeout(async () => {
       try {
         const r = await checkUrban(points, { signal: controller.signal });
@@ -278,11 +275,11 @@ function NuevaParcelaTab() {
     };
   }, [closed, points, recheck]);
 
-  const isUrban = urban.status === "urban"; // se detectó zona urbana
-  const urbanBlocked = isUrban && !urbanOverride; // ...y la persona no omitió la verificación
+  const isUrban = urban.status === "urban"; 
+  const urbanBlocked = isUrban && !urbanOverride; 
   const overLimit = Boolean(info && info.ha > MAX_AREA_HA);
   const skipUrbanCheck = () => {
-    urbanCtlRef.current?.abort(); // se descarta la consulta a OpenStreetMap en curso
+    urbanCtlRef.current?.abort(); 
     setUrbanOverride(true);
     setVertexHit(false);
     setUrban({ status: "skipped" });
@@ -348,8 +345,8 @@ function NuevaParcelaTab() {
   const stale = Boolean(result && ran && ran.signature !== signature);
   const canRun = Boolean(info && !info.crosses && !overLimit && !urbanBlocked && (urban.status === "ok" || urban.status === "unknown" || urban.status === "skipped") && name.trim() && estado && !running);
 
-  // ── Acciones de dibujo ───────────────────────────────────────────────────
-  // Handlers estables: GeometryMap está memoizado y no debe repintarse al escribir el nombre de la parcela.
+  
+  
   const resetResults = useCallback(() => {
     setPhase("idle");
     setResult(null);
@@ -364,9 +361,9 @@ function NuevaParcelaTab() {
     setDrawing(true);
     resetResults();
   }, [resetResults]);
-  // Cada vértice nuevo (o movido) se verifica contra OpenStreetMap: si cae sobre una ciudad o un pueblo se rechaza
-  // en el momento y la parcela vuelve a como estaba. Si OpenStreetMap no responde no se bloquea (la verificación
-  // del contorno completo, al cerrarlo, vuelve a intentarlo y avisa).
+  
+  
+  
   const pointsRef = useRef(points);
   pointsRef.current = points;
   const onPointsChange = useCallback((next) => {
@@ -374,7 +371,7 @@ function NuevaParcelaTab() {
     setPoints(next);
 
     let vertex = null;
-    let restore = null; // vértice anterior (arrastre) o null (vértice recién agregado: se quita)
+    let restore = null; 
     if (next.length === prev.length + 1) vertex = next[next.length - 1];
     else if (next.length === prev.length) {
       const i = next.findIndex((p, k) => p[0] !== prev[k][0] || p[1] !== prev[k][1]);
@@ -385,7 +382,7 @@ function NuevaParcelaTab() {
     }
     if (!vertex) return;
 
-    if (urbanOverrideRef.current) return; // verificación omitida por la persona
+    if (urbanOverrideRef.current) return; 
     const same = (p) => p[0] === vertex[0] && p[1] === vertex[1];
     checkPointUrban(vertex)
       .then((r) => {
@@ -426,8 +423,8 @@ function NuevaParcelaTab() {
     if (extra) toast.info(`El archivo traía ${extra} polígono${extra === 1 ? "" : "s"} más; usé el primero.`);
   }
 
-  // Shapefile (.zip o .shp+.dbf+.prj), KML/KMZ y GeoJSON en otra proyección los lee el backend (/parse-geometry),
-  // que los reproyecta a lat/lng y valida el contorno con las mismas reglas que el cálculo satelital.
+  
+  
   async function importViaBackend(files, localError) {
     const id = toast.loading("Leyendo el archivo…");
     try {
@@ -457,7 +454,7 @@ function NuevaParcelaTab() {
     e.target.value = "";
     if (!files.length) return;
 
-    // Un GeoJSON suelto en lat/lng se lee aquí mismo, sin backend; si no se puede, lo intenta el backend.
+    
     if (files.length === 1 && /\.(geo)?json$/i.test(files[0].name)) {
       try {
         const { points: pts, extra } = parseGeoJSON(await files[0].text());
@@ -485,7 +482,7 @@ function NuevaParcelaTab() {
     }
   }
 
-  // ── Ejecución del cálculo ────────────────────────────────────────────────
+  
   async function run() {
     if (!canRun) return;
     if (urbanBlocked) return;
@@ -499,13 +496,13 @@ function NuevaParcelaTab() {
     setError(null);
     requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
 
-    // La petición es una sola; el avance por variable es una estimación de tiempo (la lleva <RunProgress>).
+    
     try {
       const data = await predictFromGeometry(
         { ID_POLIGONO: snapshot.name, Estado: estado, geometry: toGeoJSONPolygon(points), anio },
         { signal: controller.signal }
       );
-      setPredicting(true); // "Predicción del modelo"
+      setPredicting(true); 
       await new Promise((r) => setTimeout(r, 450));
       if (controller.signal.aborted) return;
       setResult(data);
@@ -515,7 +512,7 @@ function NuevaParcelaTab() {
     } catch (err) {
       if (err.name === "AbortError") return;
       const message = userMessage(err, "No pudimos completar el cálculo.");
-      setError({ message }); // el detalle técnico (código, URL, cuerpo) queda solo en la consola
+      setError({ message }); 
       setPhase("error");
       toast.error("No se pudieron calcular los índices", {
         description: message,
@@ -532,7 +529,7 @@ function NuevaParcelaTab() {
       area: `${ran.ha.toFixed(2)} ha`,
       yieldEstimate: result.yieldEstimate,
       confidence: view.half,
-      score: view.score, // el mismo score que se ve en pantalla
+      score: view.score, 
       region: ran.estado,
       municipio: "—",
       lat: ran.center[0],
@@ -540,9 +537,9 @@ function NuevaParcelaTab() {
       ndvi: f.bas_ndvi_emergencia_macollamiento ?? 0,
       evi: f.bas_evi_emergencia_macollamiento ?? 0,
       precip: f.precip_acum_emergencia_macollamiento_mm ?? 0,
-      gdd: 0, // el cálculo satelital no incluye grados-día
-      shap: result.shap ?? [], // SHAP real de esta predicción
-      // Todo lo calculado, para poder reabrirlo después: contorno, las 10 variables, intervalo y ciclo.
+      gdd: 0, 
+      shap: result.shap ?? [], 
+      
       satelite: {
         version: 1,
         geometry: ran.geometry,
@@ -552,13 +549,13 @@ function NuevaParcelaTab() {
         ic90_inferior: result.ic90_inferior,
         ic90_superior: result.ic90_superior,
         advertencias: result.advertencias ?? [],
-        avisos_dominio: result.avisos ?? [], // fuera de rango (lluvia / estado) al calcular
+        avisos_dominio: result.avisos ?? [], 
         proveedor: result.proveedor ?? null,
         calculado_en: new Date().toISOString(),
       },
     };
     setSaving(true);
-    // Si ya se había guardado y sigue existiendo, se actualiza en vez de duplicarla.
+    
     const res = savedId && isCustomParcel(savedId) ? await updateParcel(savedId, fields) : await addParcel(fields);
     setSaving(false);
     if (res?.error || !res?.data) {
@@ -579,7 +576,7 @@ function NuevaParcelaTab() {
   }
 
   const isSaved = Boolean(savedId && savedFor === ran);
-  // Un cálculo tarda hasta 90 s: si hay un resultado sin guardar, el navegador avisa antes de cerrar o recargar.
+  
   const unsaved = phase === "done" && Boolean(result) && !isSaved;
   useEffect(() => {
     if (!unsaved) return undefined;
@@ -597,22 +594,26 @@ function NuevaParcelaTab() {
     toast("Cálculo cancelado.");
   }
 
-  // ── Derivados del resultado ──────────────────────────────────────────────
+  
   const view = useMemo(() => {
     if (!result) return null;
     const f = result.features_calculadas ?? {};
     const half = (result.ic90_superior - result.ic90_inferior) / 2;
     const score = scoreFromInputs({
       yieldEstimate: result.yieldEstimate,
-      confidence: half / Z90, // el score usa el error típico (σ); el IC 90 % es ±1.645 σ
+      confidence: half / Z90, 
     });
     return { features: f, half, score, risk: classifyRisk(score) };
   }, [result]);
 
-  // Estado de cada paso del panel.
+  
   const s1 = closed ? "done" : "active";
   const s2 = !closed ? "pending" : phase === "done" ? "done" : "active";
   const s3 = phase === "done" && !stale ? "done" : canRun || running ? "active" : "pending";
+
+  const [predMode] = usePredictionMode();
+  const READ = predMode === "lluvia" ? "Se lee la lluvia real de CHIRPS dentro del polígono." : "Se leen imágenes reales de 10 variables (30 a 90 s).";
+  const READ_SHORT = predMode === "lluvia" ? "Se lee la lluvia real de CHIRPS dentro del polígono." : "Se leen imágenes reales de 10 variables. Tarda entre 30 y 90 s.";
 
   const drawHint =
     points.length === 0
@@ -624,11 +625,11 @@ function NuevaParcelaTab() {
         : `${points.length} vértices. Cierra con 'Terminar' o tocando el primer punto.`;
 
   return (
-    <div className="space-y-8">
-      {/* Un solo contenedor para el mapa y el panel de trabajo (separados por una línea fina) */}
-      <div className="grid grid-cols-1 overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 lg:grid-cols-[minmax(0,1fr)_360px]">
-        {/* ── Mapa: protagonista de la pantalla ── */}
-        <div className="relative min-h-[460px] sm:min-h-[560px] lg:min-h-[640px]">
+    <div className="space-y-6">
+      {}
+      <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
+        {}
+        <div className="relative h-[320px] sm:h-[380px] lg:h-[420px]">
           <div className="absolute inset-0">
             <GeometryMap
               points={points}
@@ -647,11 +648,11 @@ function NuevaParcelaTab() {
           </div>
         </div>
 
-        {/* ── Panel de trabajo: tres pasos, de arriba abajo ── */}
-        <aside className="min-w-0 divide-y divide-gray-200 border-t border-gray-200 dark:divide-gray-800 dark:border-gray-800 lg:border-l lg:border-t-0">
+        {}
+        <aside className="grid min-w-0 grid-cols-1 divide-y divide-gray-200 border-t border-gray-200 dark:divide-gray-800 dark:border-gray-800 lg:grid-cols-[minmax(0,17rem)_minmax(0,15rem)_minmax(0,1fr)] lg:divide-x lg:divide-y-0">
           <PanelSection n={1} state={s1} title="Contorno de la parcela">
             {info ? (
-              <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 dark:border-gray-800 dark:bg-gray-800">
+              <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-gray-200 bg-gray-200 dark:border-gray-800 dark:bg-gray-800">
                 <Metric label="Superficie" accent>{formatHa(info.ha)} ha</Metric>
                 <Metric label="Perímetro">{formatDistance(info.perimeter)}</Metric>
                 <Metric label="Vértices">{points.length}</Metric>
@@ -660,7 +661,7 @@ function NuevaParcelaTab() {
                 </Metric>
               </dl>
             ) : (
-              <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{drawHint}</p>
+              <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">{drawHint}</p>
             )}
 
             <Collapse open={warnings.length > 0}>
@@ -672,14 +673,14 @@ function NuevaParcelaTab() {
               </div>
             </Collapse>
 
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-1.5">
               <input ref={fileRef} type="file" multiple accept=".geojson,.json,.zip,.shp,.dbf,.prj,.shx,.cpg,.kml,.kmz" onChange={handleFile} className="hidden" />
               {!closed && !drawing && (
                 <button
                   type="button"
                   onClick={startDrawing}
                   disabled={running}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:opacity-40 dark:focus-visible:ring-offset-black"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-md bg-accent-500 px-2.5 py-1 text-xs font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:opacity-40 dark:focus-visible:ring-offset-black"
                 >
                   <Pencil size={13} strokeWidth={1.75} /> Dibujar parcela
                 </button>
@@ -701,11 +702,11 @@ function NuevaParcelaTab() {
           </PanelSection>
 
           <PanelSection n={2} state={s2} title="Datos del ciclo">
-            <div className="space-y-4">
+            <div className="space-y-2.5">
               <Field label="ID de la parcela">
                 <input value={name} onChange={(e) => setName(e.target.value)} disabled={running} placeholder="NUEVA_01" className={FIELD} />
               </Field>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <Field label="Estado">
                   <SelectField value={estado} disabled={running} onChange={(e) => setEstadoManual(e.target.value)}>
                     {ESTADOS.map((s) => (
@@ -723,7 +724,7 @@ function NuevaParcelaTab() {
                   </SelectField>
                 </Field>
               </div>
-              <p className="text-xs leading-relaxed text-gray-400 dark:text-gray-500">
+              <p className="text-[11px] leading-snug text-gray-400 dark:text-gray-500">
                 {info?.detected && estadoManual === null ? `Estado detectado por la ubicación: ${info.detected}. ` : "El estado define el margen de confianza. "}
                 Modelo entrenado con el ciclo {TRAINED_YEAR}.
               </p>
@@ -733,7 +734,7 @@ function NuevaParcelaTab() {
           <PanelSection n={3} state={s3} running={running} title="Predicción">
             {!running && <ModeSelector stacked className="mb-3" />}
             {running ? (
-              <button type="button" onClick={cancel} className={`${BTN} w-full gap-2 px-4 py-2.5 text-sm font-medium`}>
+              <button type="button" onClick={cancel} className={`${BTN} w-full gap-2 px-3 py-2 text-xs font-medium`}>
                 <Square size={14} /> Cancelar cálculo
               </button>
             ) : (
@@ -741,9 +742,9 @@ function NuevaParcelaTab() {
                 type="button"
                 onClick={run}
                 disabled={!canRun}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black"
+                className="flex w-full items-center justify-center gap-2 rounded-md bg-accent-500 px-3 py-2 text-xs font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black"
               >
-                <Calculator size={15} strokeWidth={1.75} />
+                <Calculator size={14} strokeWidth={1.75} />
                 {result ? "Recalcular índices satelitales" : "Calcular índices satelitales"}
               </button>
             )}
@@ -763,7 +764,7 @@ function NuevaParcelaTab() {
                     type="button"
                     onClick={saveResult}
                     disabled={saving || stale || urbanBlocked}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-accent-500 px-4 py-2.5 text-sm font-medium text-accent-700 transition-colors hover:bg-accent-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:text-accent-400 dark:hover:bg-accent-500/10 dark:focus-visible:ring-offset-black"
+                    className="flex w-full items-center justify-center gap-2 rounded-md border border-accent-500 px-3 py-2 text-xs font-medium text-accent-700 transition-colors hover:bg-accent-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:text-accent-400 dark:hover:bg-accent-500/10 dark:focus-visible:ring-offset-black"
                   >
                     {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} strokeWidth={1.75} />}
                     {saving ? "Guardando…" : "Guardar parcela"}
@@ -776,15 +777,15 @@ function NuevaParcelaTab() {
                 )}
               </div>
             )}
-            <p className="mt-3 text-xs leading-relaxed text-gray-400 dark:text-gray-500">
+            <p className="mt-2 text-[11px] leading-snug text-gray-400 dark:text-gray-500">
               {canRun && urban.status === "skipped"
-                ? "Verificación de zona urbana omitida: la validez del resultado depende de que la parcela sea terreno agrícola. Se leen imágenes reales de 10 variables (30 a 90 s)."
+                ? `Verificación de zona urbana omitida: la validez del resultado depende de que la parcela sea terreno agrícola. ${READ}`
                 : canRun && urbanOverride && isUrban
-                ? "Verificación de zona urbana omitida: la validez del resultado depende de que la parcela sea terreno agrícola. Se leen imágenes reales de 10 variables (30 a 90 s)."
+                ? `Verificación de zona urbana omitida: la validez del resultado depende de que la parcela sea terreno agrícola. ${READ}`
                 : canRun && urban.status === "unknown"
-                ? "Sin verificar la zona urbana: si la parcela cae sobre un pueblo o una ciudad, el resultado no será válido. Se leen imágenes reales de 10 variables (30 a 90 s)."
+                ? `Sin verificar la zona urbana: si la parcela cae sobre un pueblo o una ciudad, el resultado no será válido. ${READ}`
                 : canRun || running
-                ? "Se leen imágenes reales de 10 variables. Tarda entre 30 y 90 s."
+                ? READ_SHORT
                 : urbanBlocked
                   ? "El contorno cae sobre una zona urbana: muévelo a terreno agrícola u omite la verificación para poder calcular."
                   : urban.status === "checking"
@@ -799,7 +800,7 @@ function NuevaParcelaTab() {
         </aside>
       </div>
 
-      {/* ── Resultados, a todo el ancho ── */}
+      {}
       <div ref={resultsRef} className="scroll-mt-6 space-y-12">
         {phase === "idle" && !result && <Facts />}
 
@@ -954,7 +955,7 @@ export default function SatelitePage() {
   const [params, setParams] = useSearchParams();
   const requested = params.get("tab");
   const tab = TABS.some((t) => t.key === requested) ? requested : "nueva";
-  // Los resultados de la validación viven aquí para no perderse (ni cortar un cálculo en curso) al cambiar de pestaña.
+  
   const [validationRows, setValidationRows] = useState(() => (Array.isArray(REAL_VALIDATION) ? REAL_VALIDATION.map((r) => ({ ...r, live: r.live ?? r.gee })) : []));
 
   return (
@@ -995,7 +996,7 @@ export default function SatelitePage() {
       </div>
 
       <div className="px-4 py-6 sm:px-6 lg:px-8">
-        {/* La pestaña de dibujo permanece montada para no perder el polígono ni el resultado al cambiar de pestaña. */}
+        {}
         <div hidden={tab !== "nueva"}>
           <NuevaParcelaTab />
         </div>

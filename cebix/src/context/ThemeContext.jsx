@@ -4,14 +4,14 @@ import { appStorage } from "../services/AppStorage";
 const STORAGE_KEY = "cebix-preferences";
 
 const DEFAULT_PREFS = {
-  theme: "system", // "light" | "dark" | "system"
-  accent: "brand", // "brand" | "cobre" | "oliva" | "pizarra" | "mono" | "ndvi" — por defecto: Ámbar (acento 1)
+  theme: "system", 
+  accent: "brand", 
 };
 
 function loadPrefs() {
   const saved = appStorage.getJSON(STORAGE_KEY, null);
   if (!saved) return DEFAULT_PREFS;
-  // Ignora la preferencia "density" que pudo guardarse antes de quitar ese ajuste.
+  
   const { density: _density, ...rest } = saved;
   return { ...DEFAULT_PREFS, ...rest };
 }
@@ -27,7 +27,7 @@ export function ThemeProvider({ children }) {
   const [prefs, setPrefs] = useState(loadPrefs);
   const [systemDark, setSystemDark] = useState(getSystemPrefersDark);
 
-  // Watch OS-level scheme changes so "Sistema" stays live.
+  
   useEffect(() => {
     if (!window.matchMedia) return;
     const mql = window.matchMedia("(prefers-color-scheme: dark)");
@@ -38,7 +38,7 @@ export function ThemeProvider({ children }) {
 
   const resolvedTheme = prefs.theme === "system" ? (systemDark ? "dark" : "light") : prefs.theme;
 
-  // Apply resolved theme + accent to <html> and persist preferences.
+  
   useEffect(() => {
     const root = document.documentElement;
     root.classList.toggle("dark", resolvedTheme === "dark");

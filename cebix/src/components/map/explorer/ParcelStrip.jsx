@@ -4,7 +4,6 @@ import BigNumber from "./BigNumber";
 import { riskColorOf } from "./tokens";
 import RangeBadge from "../../ui/RangeBadge";
 
-/** Tira horizontal de parcelas (de mayor a menor rendimiento). Tocar una la selecciona y centra el mapa en ella. */
 export default function ParcelStrip({ parcels, selectedId, onSelect, className = "" }) {
   const scroller = useRef(null);
   const cards = useRef(new Map());
@@ -15,7 +14,7 @@ export default function ParcelStrip({ parcels, selectedId, onSelect, className =
     if (!el) return;
     const start = el.scrollLeft > 4;
     const end = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
-    // Mismo valor → mismo objeto → React no repinta las tarjetas en cada evento de scroll.
+    
     setEdges((prev) => (prev.start === start && prev.end === end ? prev : { start, end }));
   }, []);
 
@@ -28,7 +27,7 @@ export default function ParcelStrip({ parcels, selectedId, onSelect, className =
     return () => ro.disconnect();
   }, [updateEdges, parcels]);
 
-  // Si la selección viene del mapa, trae su tarjeta a la vista.
+  
   useEffect(() => {
     const el = cards.current.get(selectedId);
     el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
@@ -63,7 +62,7 @@ export default function ParcelStrip({ parcels, selectedId, onSelect, className =
       <ul
         ref={scroller}
         onScroll={updateEdges}
-        // Desvanecido solo del lado donde aún hay parcelas por ver (inicio / final).
+        
         style={{ "--fade-start": edges.start ? "40px" : "0px", "--fade-end": edges.end ? "40px" : "0px" }}
         className="strip-fade flex snap-x gap-2 overflow-x-auto pb-1 scrollbar-none"
       >

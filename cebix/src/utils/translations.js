@@ -1,14 +1,9 @@
-/**
- * Traducciones (español → inglés). El texto en español es la clave: si falta una
- * entrada, `t()` devuelve el mismo texto, así la app nunca muestra claves vacías y
- * se puede traducir pantalla por pantalla envolviendo textos con `t("...")`.
- */
 const EN = {
-  // Navegación
+  
   Gestión: "Management",
   Análisis: "Analysis",
   Configuración: "Configuration",
-  Sistema: "System", // opción de tema en Ajustes
+  Sistema: "System", 
   Resumen: "Overview",
   Parcelas: "Plots",
   Modelo: "Model",
@@ -16,8 +11,8 @@ const EN = {
   Predicciones: "Predictions",
   "Parcela satelital": "Satellite plot",
   "Validación SHAP": "SHAP validation",
-  "Cebada y FIRA": "Barley and FIRA",
-  "El cultivo, la institución que lo financia y el problema que resuelve CEBIX.": "The crop, the institution that finances it and the problem CEBIX solves.",
+  Cebada: "Barley",
+  "El cultivo y el problema que resuelve CEBIX.": "The crop and the problem CEBIX solves.",
   Ajustes: "Settings",
   Perfil: "Profile",
   "Cerrar sesión": "Sign out",
@@ -32,9 +27,9 @@ const EN = {
   "Expandir menú": "Expand menu",
   "Contraer menú": "Collapse menu",
 
-  // Títulos de pantallas
+  
   "Resumen general": "General overview",
-  "Del dato satelital a la decisión financiera.": "From satellite data to financial decisions.",
+  "Del dato satelital al rendimiento de tu cebada.": "From satellite data to your barley yield.",
   "Todas las parcelas": "All plots",
   "Mi perfil": "My profile",
   "Tu información de cuenta en CEBIX": "Your CEBIX account information",
@@ -46,7 +41,7 @@ const EN = {
   "Dibuja una parcela nueva y obtén su predicción con índices calculados en vivo desde imágenes reales.":
     "Draw a new plot and get its prediction with indices computed live from real imagery.",
 
-  // Ajustes
+  
   "Personaliza la apariencia y el comportamiento de CEBIX": "Customize the look and behavior of CEBIX",
   Restablecer: "Reset",
   Apariencia: "Appearance",
@@ -73,7 +68,7 @@ const EN = {
   "Alertas por correo": "Email alerts",
   "Interruptor general: si lo apagas no recibirás ningún correo de CEBIX":
     "Master switch: if you turn it off you won't receive any CEBIX email",
-  "Alertas de riesgo": "Risk alerts",
+  "Alertas de bajo rendimiento": "Low-yield alerts",
   "Cuando una parcela cambia a semáforo rojo o amarillo": "When a plot turns red or yellow on the traffic light",
   "Resumen semanal": "Weekly summary",
   "Reporte cada lunes con el estado general del portafolio": "A report every Monday with the overall portfolio status",
@@ -96,7 +91,7 @@ const EN = {
   "Vista previa": "Preview",
   "Se guardan en este dispositivo": "Saved on this device",
 
-  // Perfil / detalle
+  
   hoy: "today",
   "Miembro desde": "Member since",
   "Última actualización": "Last updated",

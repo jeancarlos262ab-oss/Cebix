@@ -1,5 +1,3 @@
-"""Carga del modelo entrenado y ejecución de inferencia (predicción + IC90 + SHAP local)."""
-
 import json
 import os
 
@@ -9,25 +7,34 @@ import pandas as pd
 import shap
 from fastapi import HTTPException
 
-from app.config import META_PATH, MODEL_10VAR_PATH, MODEL_PATH, MODEL_PLANET_PATH, PASSTHROUGH_FIELDS, PLANET_META_PATH
+from app.config import (
+    DOMAIN_GEO_MARGIN_DEG,
+    DOMAIN_PRECIP_MARGIN,
+    IC_INFLATION,
+    META_PATH,
+    MODEL_10VAR_PATH,
+    MODEL_PATH,
+    MODEL_PLANET_PATH,
+    PARCELAS_OFICIALES_PATH,
+    PASSTHROUGH_FIELDS,
+    PLANET_META_PATH,
+)
 
-_cache: dict = {}  # variante -> (artefacto, explainer)
+_cache: dict = {}  
 _meta_cache = None
 _PATHS = {"abierto": MODEL_PATH, "10var": MODEL_10VAR_PATH, "planet": MODEL_PLANET_PATH}
-# Modos que elige la persona en el front -> artefacto. "lluvia" es el modelo de producción; "10var" es el Plan B.
+
 MODOS = {"lluvia": "abierto", "10var": "10var"}
 
-
 def variant_from_modo(modo: str | None) -> str:
-    """Traduce el parámetro `modo` de la API ('lluvia' por defecto o '10var') al artefacto; 422 si no existe."""
+    
     m = (modo or "lluvia").strip().lower()
     if m not in MODOS:
         raise HTTPException(status_code=422, detail="modo debe ser 'lluvia' o '10var'.")
     return MODOS[m]
 
-
 def get_artifact(variant: str = "abierto"):
-    """Carga cada modelo UNA vez (perezosamente) y lo reutiliza. variant: 'abierto' (solo fuentes libres) o 'planet'."""
+    
     if variant not in _cache:
         path = _PATHS[variant]
         if not os.path.exists(path):
@@ -36,17 +43,15 @@ def get_artifact(variant: str = "abierto"):
         _cache[variant] = (art, shap.TreeExplainer(art["model"]))
     return _cache[variant]
 
-
 def get_planet_meta():
-    """Resumen del modelo con Planet (métricas, variables, importancias); None si aún no se generó."""
+    
     if not os.path.exists(PLANET_META_PATH):
         return None
     with open(PLANET_META_PATH, encoding="utf-8") as f:
         return json.load(f)
 
-
 def get_model_meta():
-    """Contenido de model_meta.json (métricas, SHAP global, textos)."""
+    
     global _meta_cache
     if _meta_cache is None:
         if not os.path.exists(META_PATH):
@@ -58,6 +63,50 @@ def get_model_meta():
             _meta_cache = json.load(f)
     return _meta_cache
 
+_PRECIP = "precip_acum_emergencia_macollamiento_mm"
+_domain_cache: dict | None = None
+
+def get_domain() -> dict:
+    
+    global _domain_cache
+    if _domain_cache is None:
+        try:
+            ref = pd.read_csv(PARCELAS_OFICIALES_PATH)
+            tr = ref[ref["CONJUNTO"] == "ENTRENAMIENTO"]
+            _domain_cache = {
+                "precip": (float(tr[_PRECIP].min()), float(tr[_PRECIP].max())),
+                "lat": (float(tr["lat"].min()), float(tr["lat"].max())),
+                "lng": (float(tr["lng"].min()), float(tr["lng"].max())),
+                "estados": set(tr["Estado"].dropna().unique()),
+            }
+        except Exception:
+            _domain_cache = {}
+    return _domain_cache
+
+def domain_warnings(row, estado) -> list[str]:
+    
+    d = get_domain()
+    if not d:
+        return []
+    out = []
+    if estado and estado not in d["estados"]:
+        out.append(f"El estado «{estado}» no estuvo en el entrenamiento (solo Hidalgo, Puebla y Tlaxcala).")
+    p = row.get(_PRECIP)
+    if p is not None and np.isfinite(p):
+        lo, hi = d["precip"]
+        m = (hi - lo) * DOMAIN_PRECIP_MARGIN
+        if p < lo - m or p > hi + m:
+            out.append(
+                f"La lluvia de abril–mayo ({p:.0f} mm) queda fuera del rango visto al entrenar ({lo:.0f}–{hi:.0f} mm): "
+                "la estimación es una extrapolación."
+            )
+    lat, lng = row.get("lat"), row.get("lng")
+    if lat is not None and lng is not None and np.isfinite(lat) and np.isfinite(lng):
+        (la0, la1), (ln0, ln1) = d["lat"], d["lng"]
+        g = DOMAIN_GEO_MARGIN_DEG
+        if not (la0 - g <= lat <= la1 + g and ln0 - g <= lng <= ln1 + g):
+            out.append("La parcela está lejos de la zona donde se entrenó el modelo (oriente de Hidalgo / norte de Puebla / Tlaxcala).")
+    return out
 
 def run_inference(rows_df, estados, variant: str = "abierto"):
     artifact, explainer = get_artifact(variant)
@@ -65,10 +114,10 @@ def run_inference(rows_df, estados, variant: str = "abierto"):
 
     for col in feature_order:
         if col not in rows_df.columns:
-            rows_df[col] = np.nan  # el imputer entrenado rellena con la mediana de train
+            rows_df[col] = np.nan  
 
-    # Variables sin las que NO se predice: rellenarlas con la mediana de entrenamiento daría una cifra que parece una
-    # estimación y no lo es (el modelo se basa en la lluvia). Mejor un error claro.
+    
+    
     required = artifact.get("required_features") or []
     if required:
         faltan = rows_df[required].isna().any(axis=1)
@@ -83,7 +132,7 @@ def run_inference(rows_df, estados, variant: str = "abierto"):
             )
 
     X_raw = rows_df[feature_order]
-    # Variables (distintas de las obligatorias) que no vinieron y se rellenan con la mediana de entrenamiento.
+    
     imputed_cols = X_raw.isna()
     X_imp = artifact["imputer"].transform(X_raw)
     X_scaled = artifact["scaler"].transform(X_imp)
@@ -91,9 +140,9 @@ def run_inference(rows_df, estados, variant: str = "abierto"):
 
     point_pred = artifact["model"].predict(X_scaled_df)
 
-    # IC 90 %: percentiles 5 y 95 de los residuos fuera de muestra sumados a la predicción. Se usan los residuos del
-    # estado de la parcela (recogen su sesgo y su dispersión) y, si el artefacto no los trae o el estado no está, los
-    # de todas las parcelas. Es determinista: una parcela da el mismo intervalo sin importar el orden ni el tamaño del archivo.
+    
+    
+    
     residuals = np.asarray(artifact["residuals_oof"], dtype=float)
     by_state = artifact.get("residuals_by_state") or {}
     q_global = np.quantile(residuals, [0.05, 0.95])
@@ -101,8 +150,9 @@ def run_inference(rows_df, estados, variant: str = "abierto"):
     for st, r in by_state.items():
         r = np.asarray(r, dtype=float)
         q_state[st] = np.quantile(r, [0.05, 0.95]) if len(r) >= 20 else q_global
-    lowers = [float(p + q_state.get(estados[i], q_global)[0]) for i, p in enumerate(point_pred)]
-    uppers = [float(p + q_state.get(estados[i], q_global)[1]) for i, p in enumerate(point_pred)]
+    
+    lowers = [float(p + IC_INFLATION * q_state.get(estados[i], q_global)[0]) for i, p in enumerate(point_pred)]
+    uppers = [float(p + IC_INFLATION * q_state.get(estados[i], q_global)[1]) for i, p in enumerate(point_pred)]
 
     shap_values = explainer(X_scaled_df)
 
@@ -121,7 +171,11 @@ def run_inference(rows_df, estados, variant: str = "abierto"):
             for j in order
         ]
         faltantes = [artifact["feature_labels"].get(c, c) for c in feature_order if imputed_cols.iloc[i][c]]
+        row = {c: pd.to_numeric(rows_df.iloc[i].get(c), errors="coerce") for c in (_PRECIP, "lat", "lng") if c in rows_df.columns}
+        avisos = domain_warnings(row, estado)
         results.append({
+            "fuera_de_rango": bool(avisos),
+            "avisos": avisos,
             "modo": "10var" if variant == "10var" else "lluvia",
             "variables_imputadas": faltantes,
             "yieldEstimate": round(float(point_pred[i]), 2),
@@ -132,9 +186,8 @@ def run_inference(rows_df, estados, variant: str = "abierto"):
         })
     return results
 
-
 def _clean(v):
-    """JSON no admite NaN/inf: se devuelve None y el frontend lo trata como 'sin dato'."""
+    
     if v is None:
         return None
     if isinstance(v, (np.floating, float)):
@@ -143,7 +196,6 @@ def _clean(v):
         return int(v)
     return v
 
-
 def row_context(df, i):
-    """Datos de contexto que venían en el CSV (municipio, coordenadas, área) y se devuelven tal cual."""
+    
     return {c: _clean(df[c].iloc[i]) for c in PASSTHROUGH_FIELDS if c in df.columns}

@@ -2,10 +2,6 @@ import { memo } from "react";
 import { Compass, Maximize2, Minimize2, Minus, Plus } from "lucide-react";
 import { PANEL } from "./mapUi";
 
-/**
- * Barra de controles del mapa: panel vertical plano y oscuro (mismo estilo que el resto de la botonera, ver mapUi.js).
- * Solo presentación: el padre decide qué hace cada botón.
- */
 function MapControls({ onZoomIn, onZoomOut, onReset, isFullscreen, onToggleFullscreen, disabled = false }) {
   const sep = <div className="my-0.5 h-px w-5 bg-white/15" aria-hidden="true" />;
   return (

@@ -36,13 +36,11 @@ import { useTheme } from "../../context/ThemeContext";
 import { getAccentHex } from "../../utils/accentColors";
 import "leaflet/dist/leaflet.css";
 
-// Globo 3D, cargado solo cuando se necesita. Si el equipo acepta WebGL se usa MapLibre GL con
-// proyección de globo; si no (PCs sin potencia / sin aceleración), el globo ligero de Canvas 2D.
 const GlobeMapCanvas = lazy(() => import("./GlobeMap"));
 const GlobeMapGL = lazy(loadGlobeMapGL);
 
 const SATELLITE = { url: IMAGERY_URL };
-// Un solo mundo: sin copias repetidas en tiras y con el zoom mínimo limitado a lo que cabe en el mapa.
+
 const WORLD = [
   [-85.05, -180],
   [85.05, 180],
@@ -53,14 +51,11 @@ function limitMinZoom(map) {
   map.options.maxBoundsViscosity = 1;
   const { x, y } = map.getSize();
   if (!x || !y) return;
-  const z = map.getBoundsZoom(WORLD, true); // el mundo llena el recuadro, sin huecos
+  const z = map.getBoundsZoom(WORLD, true); 
   map.setMinZoom(z);
   if (map.getZoom() < z) map.setZoom(z, { animate: false });
 }
 
-// Encuadre inicial: Hidalgo, Tlaxcala y Puebla (START_BOUNDS = STUDY_BOUNDS de parcelStyle.js).
-
-// Vértices: el diseño sale de parcelStyle.vertexLook, el mismo que usa el mapa de MapLibre.
 const vertexIcon = (closeTarget, color) => {
   const { size, css } = vertexLook(closeTarget, color);
   return L.divIcon({
@@ -71,7 +66,6 @@ const vertexIcon = (closeTarget, color) => {
   });
 };
 
-/** Clics del mapa: solo agregan vértices mientras se dibuja (y se evita el zoom por doble clic). */
 function DrawEvents({ drawing, onAdd }) {
   const map = useMap();
   useEffect(() => {
@@ -87,7 +81,6 @@ function DrawEvents({ drawing, onAdd }) {
   return null;
 }
 
-/** Re-mide el mapa al volver a la pantalla (keep-alive) y encuadra el polígono cuando `fitKey` cambia. */
 function MapSync({ fitKey, points }) {
   const map = useMap();
   const active = usePageActive();
@@ -97,16 +90,16 @@ function MapSync({ fitKey, points }) {
       return () => clearTimeout(id);
     }
   }, [active, map]);
-  // Cubre también la pestaña oculta (display:none) y el cambio de tamaño de la ventana.
+  
   useEffect(() => {
     const ro = new ResizeObserver(() => {
       map.invalidateSize();
-      limitMinZoom(map); // también al pasar a pantalla completa o cambiar el tamaño de la ventana
+      limitMinZoom(map); 
     });
     ro.observe(map.getContainer());
     return () => ro.disconnect();
   }, [map]);
-  // Recorte duro: la vista nunca sale del mundo, ni arrastrando ni con la inercia del movimiento.
+  
   useEffect(() => {
     const clamp = () => {
       if (!WORLD_BOUNDS.contains(map.getBounds())) map.panInsideBounds(WORLD_BOUNDS, { animate: false });
@@ -120,11 +113,10 @@ function MapSync({ fitKey, points }) {
   }, [map]);
   useEffect(() => {
     if (fitKey && points.length >= 3) map.fitBounds(L.latLngBounds(points), { padding: [70, 70], maxZoom: 17 });
-  }, [fitKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fitKey]); 
   return null;
 }
 
-/** Amplía unos límites [[s,w],[n,e]] por un factor alrededor de su centro. */
 function widen([[s, w], [n, e]], f) {
   const cy = (s + n) / 2;
   const cx = (w + e) / 2;
@@ -136,7 +128,6 @@ function widen([[s, w], [n, e]], f) {
   ];
 }
 
-/** Cambia el modo de mezcla de un panel de Leaflet ya creado (react-leaflet solo lo aplica al crearlo). */
 function PaneBlend({ name, blend }) {
   const map = useMap();
   useEffect(() => {
@@ -146,11 +137,6 @@ function PaneBlend({ name, blend }) {
   return null;
 }
 
-/**
- * Mapa satelital plano con dibujo de polígono (Leaflet, sin plugins).
- * Controlado por el padre: `points` ([lat,lng][]), `closed` y `drawing`.
- * `target` ([[s,w],[n,e]]): si viene del globo, arranca amplio y vuela hasta esa zona.
- */
 function FlatGeometryMap({
   points,
   closed,
@@ -175,7 +161,7 @@ function FlatGeometryMap({
     if (points.length >= 3) return L.latLngBounds(points).pad(0.4);
     return START_BOUNDS;
   });
-  // Cada vez que se entra desde el globo: encuadra amplio y vuela a la zona elegida.
+  
   const lastEntry = useRef(entry.key);
   useEffect(() => {
     if (!map || !active || !entry.target || lastEntry.current === entry.key) return;
@@ -185,17 +171,17 @@ function FlatGeometryMap({
     const id = setTimeout(() => map.flyToBounds(entry.target, { duration: 1.3, padding: [30, 30], maxZoom: 17 }), 150);
     return () => clearTimeout(id);
   }, [map, active, entry]);
-  // La primera entrada (mapa recién creado) también vuela.
+  
   useEffect(() => {
     if (!map || !entry.target) return;
     const id = setTimeout(() => map.flyToBounds(entry.target, { duration: 1.3, padding: [30, 30], maxZoom: 17 }), 150);
     return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [map]);
   const ready = points.length >= 3;
-  // Malla en perspectiva que se adapta a la forma de la parcela ya cerrada.
+  
   const gridLines = useMemo(() => (closed && ready ? parcelGridLines(points) : []), [closed, ready, points]);
-  // Anillo que se descarga, como [lat,lng][] (mismo redondeo a 6 decimales que el GeoJSON).
+  
   const exportRing = useMemo(
     () => (closed && ready ? toGeoJSONPolygon(points).coordinates[0].map(([lng, lat]) => [lat, lng]) : []),
     [closed, ready, points],
@@ -204,8 +190,8 @@ function FlatGeometryMap({
   const accentHex = getAccentHex(accent, resolvedTheme);
   const stateStyle = useMemo(() => boundaryLeafletStyle(accentHex), [accentHex]);
 
-  // Pasada la superficie máxima, el contorno y la malla se pintan en rojo (sin el modo "difference", que
-  // alteraría el color). El modo de mezcla del panel se cambia aquí, en el propio elemento del panel.
+  
+  
   const color = traceColor(overLimit);
 
   const status =
@@ -213,7 +199,7 @@ function FlatGeometryMap({
     "Pulsa 'Dibujar parcela' y marca el contorno sobre la imagen";
 
   return (
-    <div className="relative h-full min-h-[440px] w-full overflow-hidden">
+    <div className="relative h-full min-h-[300px] w-full overflow-hidden">
       <MapContainer
         ref={setMap}
         bounds={startBounds}
@@ -225,7 +211,7 @@ function FlatGeometryMap({
         maxZoom={19}
         className="absolute inset-0 bg-gray-100 dark:bg-gray-900"
       >
-        {/* Capa base de vista general: siempre hay imagen debajo mientras llegan las teselas nítidas. */}
+        {}
         <TileLayer url={SATELLITE.url} noWrap minNativeZoom={2} maxNativeZoom={5} maxZoom={19} zIndex={1} keepBuffer={2} />
         <TileLayer
           {...SATELLITE}
@@ -239,9 +225,9 @@ function FlatGeometryMap({
         />
         <GeoJSON key={accentHex} data={estadosBoundaries} style={() => stateStyle} interactive={false} />
 
-        {/* Dibujo de la parcela con contraste invertido: trazos blancos en modo "difference" invierten el color
-            de la imagen que tienen debajo, así se leen sobre cualquier tono. El modo de mezcla va en el panel
-            (no en cada trazo) porque los paneles de Leaflet son contextos de apilamiento aislados. */}
+        {
+
+}
         <Pane name="parcel" style={{ zIndex: 450, mixBlendMode: traceBlend(false) }}>
           <PaneBlend name="parcel" blend={traceBlend(overLimit)} />
           {points.length >= 2 && !closed && (
@@ -287,8 +273,8 @@ function FlatGeometryMap({
           })}
         </Pane>
 
-        {/* Contorno que se descarga: el anillo exacto de toGeoJSONPolygon, en un panel aparte con mezcla normal
-            (el panel "parcel" usa "difference" y alteraría el color). */}
+        {
+}
         <Pane name="export" style={{ zIndex: 460 }}>
           {closed && ready && (
             <Polyline
@@ -303,7 +289,7 @@ function FlatGeometryMap({
         <MapSync fitKey={fitKey} points={points} />
       </MapContainer>
 
-      {/* Herramientas de dibujo (a la izquierda) y cambio de vista (separado, al final) */}
+      {}
       <div className="pointer-events-none absolute left-3 top-3 z-1000">
         <div className={`pointer-events-auto flex items-center gap-0.5 p-1 ${PANEL}`}>
           {drawing ? (
@@ -339,7 +325,7 @@ function FlatGeometryMap({
         </div>
       </div>
 
-      {/* Zoom y saltos a cada estado */}
+      {}
       <div className="pointer-events-none absolute right-3 top-3 z-1000 flex flex-col items-end gap-2">
         <div className={`pointer-events-auto flex flex-col overflow-hidden ${PANEL}`}>
           <span className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wider text-gray-500">Ir a</span>
@@ -384,26 +370,21 @@ function FlatGeometryMap({
   );
 }
 
-/**
- * Pantalla de parcela satelital: arranca en un globo 3D (MapLibre GL con proyección de globo; en equipos sin WebGL, un globo ligero de Canvas 2D)
- * y entra al mapa plano para dibujar. Si ya hay una parcela o se importa un GeoJSON,
- * va directo al mapa plano.
- */
 function GeometryMap(props) {
   const { points, fitKey, onStartDrawing } = props;
   const [view, setView] = useState(points.length ? "flat" : "globe");
-  // Cada vista se crea UNA sola vez (la primera que se necesita) y se reutiliza: no se desmonta al cambiar.
+  
   const [flatCreated, setFlatCreated] = useState(points.length > 0);
   const [globeCreated, setGlobeCreated] = useState(points.length === 0);
   const [flatEntry, setFlatEntry] = useState({ key: 0, target: null });
   const [globeEntry, setGlobeEntry] = useState({ key: 0, lat: 8, lon: -98.1 });
   const [lastFit, setLastFit] = useState(fitKey);
-  // MapLibre GL si el equipo acepta WebGL; si falla al arrancar, se cae al globo de Canvas 2D.
+  
   const [glFailed, setGlFailed] = useState(false);
   const useGL = !glFailed && resolveMapEngine() === "gl";
   const GlobeMap = GlobeMapCanvas;
-  // Con MapLibre GL no hace falta: pide sus propias teselas y la precarga de 341 imágenes competiría con
-  // la carga inicial del globo por las mismas conexiones.
+  
+  
   useEffect(() => {
     if (!useGL) preloadWorldTiles();
   }, [useGL]);
@@ -430,7 +411,7 @@ function GeometryMap(props) {
     setView("globe");
   };
 
-  // Importar un GeoJSON salta directo al mapa plano (se ajusta durante el render, sin efecto).
+  
   if (fitKey !== lastFit) {
     setLastFit(fitKey);
     if (fitKey) {
@@ -439,16 +420,16 @@ function GeometryMap(props) {
     }
   }
 
-  // Si se empieza a dibujar desde el panel (no desde el globo), se pasa al mapa plano sobre la zona de estudio.
+  
   if (!useGL && props.drawing && view === "globe") goFlat(START_BOUNDS);
 
   const pane = (on) =>
     `absolute inset-0 transition-[opacity,visibility] duration-300 ${on ? "visible opacity-100" : "invisible opacity-0"}`;
 
-  // Con MapLibre GL todo vive en un solo mapa: globo, zoom y dibujo de la parcela.
+  
   if (useGL) {
     return (
-      <div ref={boxRef} className="relative h-full min-h-[440px] w-full [&:fullscreen]:bg-black">
+      <div ref={boxRef} className="relative h-full min-h-[300px] w-full [&:fullscreen]:bg-black">
         <Suspense fallback={<div className="h-full w-full bg-black" />}>
           <GlobeMapGL
             {...props}
@@ -464,9 +445,9 @@ function GeometryMap(props) {
     );
   }
 
-  // El contenedor es el que entra en pantalla completa, así sigue activa al cambiar de globo a mapa plano.
+  
   return (
-    <div ref={boxRef} className="relative h-full min-h-[440px] w-full [&:fullscreen]:bg-black">
+    <div ref={boxRef} className="relative h-full min-h-[300px] w-full [&:fullscreen]:bg-black">
       {globeCreated && (
         <div className={pane(view === "globe")}>
           <Suspense fallback={<div className="h-full w-full bg-black" />}>
@@ -474,8 +455,8 @@ function GeometryMap(props) {
               entry={globeEntry}
               active={view === "globe"}
               onEnter={(bounds, draw, isStudyZone) => {
-                // Si ya hay algo dibujado (parcela o trazo en curso) se conserva: nunca se borra al volver del
-                // globo. "Ir a la zona de estudio" y "Dibujar parcela" regresan a ese dibujo en vez de a la región.
+                
+                
                 const hasDrawing = points.length > 0;
                 let target = bounds;
                 if (hasDrawing && isStudyZone && points.length >= 2) {
@@ -483,7 +464,7 @@ function GeometryMap(props) {
                   target = [
                     [b.getSouth(), b.getWest()],
                     [b.getNorth(), b.getEast()],
-                  ]; // arreglo [[s,w],[n,e]], el formato que esperan widen() y flyToBounds()
+                  ]; 
                 }
                 goFlat(target);
                 if (draw && !hasDrawing) onStartDrawing();

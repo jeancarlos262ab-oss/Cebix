@@ -20,18 +20,10 @@ function load() {
 
 const PreferencesContext = createContext(null);
 
-/**
- * Idioma, formato de fecha y zona horaria (ajuste "Idioma y región").
- * Se guardan en este dispositivo y se aplican a toda la app: textos traducidos con `t()`,
- * fechas, horas y números formateados con las funciones de `utils/intl`.
- *
- * Al cambiar una preferencia se vuelve a montar el contenido para que todas las pantallas
- * (incluidas las que ya estaban abiertas) se pinten con el nuevo formato.
- */
 export function PreferencesProvider({ children }) {
   const [region, setRegion] = useState(load);
 
-  // Debe estar al día antes de pintar a los hijos (también lo leen funciones fuera de React).
+  
   setIntlPrefs(region);
 
   useEffect(() => {

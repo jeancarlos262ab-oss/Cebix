@@ -26,11 +26,6 @@ function ChartTooltip({ active, payload, label }) {
   );
 }
 
-/**
- * Dibuja marcas verticales, pero recortadas para que solo aparezcan dentro
- * del área pintada bajo la curva (del valor de cada etapa hacia abajo),
- * nunca en la zona blanca por encima de la línea.
- */
 function VerticalTicksInsideArea({ xAxisMap, yAxisMap, offset, data }) {
   if (!xAxisMap || !yAxisMap || !offset) return null;
   const xAxis = Object.values(xAxisMap)[0];

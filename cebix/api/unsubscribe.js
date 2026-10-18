@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     const patch = t === "all" ? { notif_email: false } : t === "risk" ? { notif_risk: false } : { notif_weekly: false };
     const { error } = await supabaseAdmin().from("profiles").update(patch).eq("id", u);
     if (error) throw error;
-    const what = t === "all" ? "ningún correo" : t === "risk" ? "alertas de riesgo" : "el resumen semanal";
+    const what = t === "all" ? "ningún correo" : t === "risk" ? "alertas de bajo rendimiento" : "el resumen semanal";
     return res.status(200).send(page("Listo", `Ya no recibirás ${what} de CEBIX. Puedes volver a activarlos cuando quieras en Ajustes → Notificaciones.`));
   } catch (err) {
     console.error("unsubscribe", err);

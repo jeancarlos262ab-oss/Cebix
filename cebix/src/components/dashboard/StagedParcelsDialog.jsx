@@ -4,21 +4,6 @@ import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_PRIMARY, MODAL_BTN_DANGER } from "..
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
-/**
- * Ventana emergente con las parcelas leídas o calculadas que todavía NO se guardaron. Cada nombre se puede
- * cambiar antes de guardar. Cerrarla no borra nada: las parcelas siguen sin guardar hasta pulsar "Guardar"
- * o "Descartar".
- *
- * @param {{
- *   staged: object[],
- *   saving: boolean,
- *   onRename: (index: number, name: string) => void,
- *   onCommitName: (index: number) => void,
- *   onSave: () => void,
- *   onDiscard: () => void,
- *   onClose: () => void,
- * }} props
- */
 export default function StagedParcelsDialog({ staged, saving, onRename, onCommitName, onSave, onDiscard, onClose }) {
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const count = staged.length;

@@ -1,6 +1,5 @@
 import { GLASS } from "./tokens";
 
-/** Reparto de parcelas por región; cada fila también filtra el mapa. */
 export default function RegionBars({ regions, total, value, onChange }) {
   if (regions.length === 0) return null;
   return (

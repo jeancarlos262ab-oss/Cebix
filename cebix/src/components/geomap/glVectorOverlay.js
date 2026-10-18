@@ -1,15 +1,3 @@
-/**
- * Capas vectoriales de MapLibre dibujadas como SVG encima del mapa, con el MISMO método que la malla de la
- * parcela (antes SVG; hoy nativa en glTraceLayers.js): cada coordenada se reproyecta con map.project() al cuadro "render".
- *
- * Las capas GeoJSON nativas (type "line" / "circle") pasan por el worker de MapLibre; si el worker tarda,
- * llega tarde tras recrear el mapa, o el contenedor nació con 0×0 px, a veces nunca se pintan (mientras la
- * malla, que no depende del worker, siempre aparece). Dibujándolas aquí no hay worker ni teselado que pueda fallar.
- *
- * Costo: "render" se emite en cada cuadro aunque el mapa esté quieto (fundido de teselas, animaciones), así que
- * cada overlay compara una firma de la vista (centro, zoom, rumbo, tamaño) y no hace nada si no cambió.
- */
-
 const NS = "http://www.w3.org/2000/svg";
 
 function el(tag, attrs = {}) {
@@ -28,20 +16,16 @@ function makeSvg(map, { first = false } = {}) {
 }
 
 const RAD = Math.PI / 180;
-/** Vector unitario de un [lng, lat] (se calcula una sola vez por punto). */
+
 const unit = (lng, lat) => {
   const cl = Math.cos(lat * RAD);
   return [cl * Math.cos(lng * RAD), cl * Math.sin(lng * RAD), Math.sin(lat * RAD)];
 };
-// cos(84°): más allá de esto, un punto está del lado oculto del globo.
+
 const HORIZON_DOT = 0.1;
-// Desde este zoom el globo ya es casi plano y lo visible es una zona chica: no hace falta descartar nada.
+
 const NO_CULL_ZOOM = 6;
 
-/**
- * Vista del mapa: firma barata para saber si cambió algo, y descarte del hemisferio oculto (en el globo,
- * map.project() también devuelve un punto para el lado de atrás, y se dibujaría "a través" del planeta).
- */
 function makeView(map) {
   let sig = "";
   let cx = 1;
@@ -64,7 +48,7 @@ function makeView(map) {
     get h() {
       return h;
     },
-    /** true si la vista cambió desde la última vez (o si `force`). Deja listo el descarte. */
+    
     update(force) {
       const c = map.getCenter();
       const z = map.getZoom();
@@ -80,7 +64,6 @@ function makeView(map) {
   };
 }
 
-/** Anillos [lng,lat][] de un GeoJSON (Polygon, MultiPolygon, LineString, MultiLineString, y colecciones). */
 function collectLines(geojson) {
   const lines = [];
   const walk = (g) => {
@@ -114,16 +97,11 @@ function collectLines(geojson) {
   return lines;
 }
 
-/**
- * Líneas (contornos de estados) como un solo <path>.
- * @param style {{color, width, opacity, dashArray?: number[]}}  el guion va en píxeles, como en SVG
- * @returns {{setStyle(style): void, destroy(): void}}
- */
 export function createLinesOverlay(map, geojson, style) {
   const svg = makeSvg(map, { first: true });
   const path = el("path", { fill: "none", "stroke-linejoin": "round", "stroke-linecap": "butt" });
   svg.appendChild(path);
-  // Coordenadas y vectores se preparan una sola vez.
+  
   const rings = collectLines(geojson).map((ring) => ({
     ll: ring,
     v: ring.map(([lng, lat]) => unit(lng, lat)),
@@ -143,7 +121,7 @@ export function createLinesOverlay(map, geojson, style) {
     if (!view.update(force === true)) return;
     const parts = [];
     for (const { ll, v } of rings) {
-      let pen = false; // ¿hay un tramo visible abierto?
+      let pen = false; 
       let lx = 0;
       let ly = 0;
       for (let i = 0; i < ll.length; i++) {
@@ -152,7 +130,7 @@ export function createLinesOverlay(map, geojson, style) {
           continue;
         }
         const { x, y } = map.project(ll[i]);
-        // Vértices a menos de 1.5 px del anterior no aportan nada a la vista (de lejos son la mayoría).
+        
         if (pen && Math.abs(x - lx) < 1.5 && Math.abs(y - ly) < 1.5 && i < ll.length - 1) continue;
         parts.push(`${pen ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`);
         lx = x;
@@ -180,18 +158,6 @@ export function createLinesOverlay(map, geojson, style) {
   };
 }
 
-/**
- * Puntos (parcelas) en un <canvas> 2D encima del mapa, con clic y hover. Un solo elemento sin importar cuántas
- * parcelas haya (nada de un nodo DOM por punto): se dibujan por lotes y el clic/hover se resuelve aquí.
- * @param opts {{
- *   radius: (zoom:number, state:{hover:boolean, clicked:boolean}) => number,
- *   strokeWidth: (zoom:number, state) => number,
- *   fillOpacity?: number,
- *   onClick?: (id) => void,
- *   onHover?: (id|null) => void,
- * }}
- * @returns {{set({items: {id, lng, lat, color}[], clickedId}): void, destroy(): void}}
- */
 export function createPointsOverlay(map, opts) {
   const cv = document.createElement("canvas");
   cv.setAttribute("aria-hidden", "true");
@@ -209,7 +175,7 @@ export function createPointsOverlay(map, opts) {
   let xs = new Float32Array(0);
   let ys = new Float32Array(0);
   let vis = new Uint8Array(0);
-  let groups = []; // [{color, idx: number[]}] para dibujar por lotes
+  let groups = []; 
   let clickedIdx = -1;
   let hoverIdx = -1;
   let baseR = 0;
@@ -277,7 +243,7 @@ export function createPointsOverlay(map, opts) {
       ctx.globalAlpha = 1;
       ctx.stroke();
     }
-    // El del hover va encima y más grande. El seleccionado no se dibuja: lo reemplaza el rombo.
+    
     if (hoverIdx >= 0 && hoverIdx !== clickedIdx && vis[hoverIdx]) {
       const st = { hover: true, clicked: false };
       ctx.beginPath();
@@ -298,7 +264,7 @@ export function createPointsOverlay(map, opts) {
     paint();
   }
 
-  /** Índice del punto bajo (px, py), o -1. Los últimos dibujados quedan arriba, así que se busca al revés. */
+  
   function hit(px, py) {
     for (let i = n - 1; i >= 0; i--) {
       if (!vis[i] || i === clickedIdx) continue;
@@ -366,7 +332,7 @@ export function createPointsOverlay(map, opts) {
       try {
         map.getCanvas().style.cursor = "";
       } catch {
-        // el mapa ya se eliminó
+        
       }
       view.destroy();
       cv.remove();

@@ -1,13 +1,5 @@
 import { useEffect, useState } from "react";
 
-/**
- * Mapas base adicionales (todos raster, sin API key). Los comparten ParcelMapGL (MapLibre) y ParcelMapLite (Leaflet):
- * cada entrada es una lista de capas (la primera es el fondo; las siguientes se dibujan encima, p. ej. etiquetas).
- * Los mapas base de siempre (satelital, terreno, claro, oscuro) siguen definidos en cada motor.
- *
- *   url          plantilla XYZ; admite {s} si se indica `subdomains`
- *   maxNative    zoom máximo con teselas reales (más allá se amplía la última)
- */
 const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
 const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
@@ -62,32 +54,24 @@ export const EXTRA_BASEMAPS = {
   },
 };
 
-/** Botones (en este orden) tras los básicos; el icono lo pone cada motor. */
 export const EXTRA_BASEMAP_KEYS = Object.keys(EXTRA_BASEMAPS);
 
-/** Expande "{s}" en una lista de URLs (MapLibre no tiene subdominios). */
 export function expandTiles({ url, subdomains }) {
   return subdomains ? subdomains.map((s) => url.replace("{s}", s)) : [url];
 }
 
-const BTN = 32; // alto de cada botón de la barra (h-8)
-const GAP = 2; // gap-0.5
+const BTN = 32; 
+const GAP = 2; 
 
-/**
- * Cuántas filas caben en la barra de controles según el alto libre del mapa: si no caben todos los botones en una
- * columna, la barra se reparte en 2 o más columnas. `ref` es el contenedor de las vistas; su offsetParent es el contenedor absoluto que
- * posiciona los controles dentro del mapa. `reserve` = px que se dejan libres abajo (lo que va debajo de las vistas
- * y, p. ej., una tira de parcelas encima del mapa).
- */
 export function useToolbarRows(ref, count, reserve = 12) {
   const [rows, setRows] = useState(count);
   useEffect(() => {
     const el = ref.current;
-    const holder = el?.offsetParent; // contenedor absoluto que posiciona los controles dentro del mapa
+    const holder = el?.offsetParent; 
     const map = holder?.offsetParent;
     if (!el || !holder || !map) return undefined;
     const update = () => {
-      const free = map.clientHeight - holder.offsetTop - el.offsetTop - reserve - 10; // 10 = padding + borde de la barra
+      const free = map.clientHeight - holder.offsetTop - el.offsetTop - reserve - 10; 
       const fit = Math.floor((free + GAP) / (BTN + GAP));
       setRows(Math.max(3, Math.min(count, fit)));
     };

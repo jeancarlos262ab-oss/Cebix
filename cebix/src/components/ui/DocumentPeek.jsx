@@ -1,14 +1,3 @@
-/**
- * Documento sin contorno (hoja gris con esquina doblada y renglones) que asoma por el borde de un
- * contenedor. Solo dibuja el icono: quien lo usa lo mete en un contenedor con `overflow-hidden`, que
- * recorta la parte que debe quedar escondida, y le da tamaño y posición con `className`.
- *
- * Al aparecer se desliza una sola vez desde detrás del borde (animación `doc-peek` de index.css) y se
- * queda en `rest`: el desplazamiento final, por ejemplo "0px" (queda donde se posicionó) o "50%" (la
- * mitad de su alto baja y queda recortada).
- *
- * @param {{ className?: string, rest?: string }} props
- */
 export default function DocumentPeek({ className = "", rest = "0px" }) {
   return (
     <svg

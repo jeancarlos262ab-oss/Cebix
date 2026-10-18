@@ -1,6 +1,6 @@
 # CEBIX — Reto AgroCebada 2026
 
-Dashboard de predicción de rendimiento de cebada y elegibilidad crediticia,
+Dashboard de predicción de rendimiento de cebada y estimación de rendimiento por parcela,
 construido sobre el dataset del Reto AgroCebada 2026 (Sentinel-2/Landsat,
 Planet, CHIRPS, CHIRTS-ERA5, INEGI CEM 4.0).
 
@@ -140,7 +140,7 @@ CHIRPS, CHIRTS-ERA5, INEGI CEM 4.0). Modelo final: **Random Forest, 10 features 
 SHAP, sin Planet**, validado con leave-region-out. La narrativa completa (3 rondas, decisiones y
 limitaciones) está en `ml/README.md`.
 
-Lo que sigue siendo código y no sale del modelo: la fórmula del score de crédito y el semáforo
+Lo que sigue siendo código y no sale del modelo: la fórmula del índice de rendimiento y el semáforo
 (70 / 45) en `src/context/ParcelsContext.jsx`, y los polígonos de estados del mapa
 (`src/data/estadosBoundaries.json`).
 
@@ -159,7 +159,7 @@ src/
 
 Ajustes → Notificaciones guarda tres preferencias en `profiles` (`notif_email`, `notif_risk`, `notif_weekly`).
 
-- **Alertas de riesgo**: la app manda una foto compacta del portafolio a `/api/portfolio-sync` (2.5 s después de cualquier cambio).
+- **Alertas de bajo rendimiento**: la app manda una foto compacta del portafolio a `/api/portfolio-sync` (2.5 s después de cualquier cambio).
   El servidor la compara con la anterior y, si una parcela que ya existía pasó a amarillo o rojo, manda **un solo correo agrupado**.
   La primera sincronización solo guarda; las parcelas nuevas no generan aviso.
 - **Resumen semanal**: el cron de Vercel (`vercel.json`, lunes 14:00 UTC = 8:00 a. m. CDMX) llama a `/api/weekly-summary`.

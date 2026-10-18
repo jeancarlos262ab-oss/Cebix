@@ -1,19 +1,14 @@
 import { memo } from "react";
 import { RISK_COLORS } from "../../utils/riskColors";
 
-// Orden de arriba hacia abajo: el texto de cada fila queda alineado con su luz.
 const RISK_LEVELS = [
-  { color: RISK_COLORS.green, label: "Elegible" },
-  { color: RISK_COLORS.yellow, label: "Revisión manual" },
-  { color: RISK_COLORS.red, label: "Alto riesgo" },
+  { color: RISK_COLORS.green, label: "Rendimiento alto" },
+  { color: RISK_COLORS.yellow, label: "Rendimiento medio" },
+  { color: RISK_COLORS.red, label: "Rendimiento bajo" },
 ];
 
-const ROW = "h-6"; // misma altura en texto y luces para que se alineen
+const ROW = "h-6"; 
 
-/**
- * Leyenda de elegibilidad minimalista: el texto flota directo sobre el mapa y
- * las tres luces van en una caja rectangular (sin bordes ni brillo).
- */
 function RiskTrafficLight() {
   return (
     <div className="flex items-stretch gap-2.5">

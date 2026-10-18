@@ -21,29 +21,19 @@ const REGION_COLOR = { Puebla: "#4C9A63", Hidalgo: "#374151", Tlaxcala: "#C08A2E
 
 const REGION_CODE = { Hidalgo: "HGO", Tlaxcala: "TLX", Puebla: "PUE" };
 
-// La fuente de verdad es Supabase (tablas user_analysis y committee_submissions, por usuario con RLS):
-// así la corrida del modelo y los envíos a comité aparecen en cualquier computadora. El navegador solo
-// guarda una copia (caché) para pintar al instante y para no perder nada si Supabase falla un momento.
-// Esa copia va separada por usuario: una cuenta distinta en el mismo equipo no ve lo de otra.
 const scopedKey = (key, uid) => `${key}:${uid}`;
-// Marca "este navegador ya se sincronizó con Supabase". Antes de ella, lo que haya en el navegador se sube una
-// vez (datos de antes de usar Supabase); después, Supabase manda: si otra computadora borró algo, aquí también
-// desaparece y no se vuelve a subir una copia vieja.
+
 const SYNCED_KEY = "cebix-cloud-synced-v1";
-// `dirty` = la corrida del modelo está en pantalla pero NO se ha guardado: solo se guarda al pulsar "Guardar".
+
 const EMPTY_STORE = { uid: null, analysis: null, submissions: {}, dirty: false };
 
-// Claves antiguas (globales, compartidas entre cuentas). Se borran para que no "se cuelen" datos viejos.
 const LEGACY_KEYS = [SUBMISSIONS_KEY, ANALYSIS_KEY];
 const clearLegacyKeys = () => LEGACY_KEYS.forEach((key) => appStorage.remove(key));
 
-/** Rendimiento de referencia (t/ha) para el semáforo: una parcela es "elegible" si es probable que lo alcance.
- * Es la única decisión de negocio del cálculo; cámbiala aquí si FIRA define otro mínimo. */
 export const MIN_YIELD_TON_HA = 3.5;
-/** Un intervalo de confianza de 90 % mide ±1.645 desviaciones típicas. */
+
 export const Z90 = 1.645;
 
-// Función de distribución normal estándar (aproximación de Abramowitz-Stegun 7.1.26, error < 1.5e-7).
 function normalCdf(z) {
   const t = 1 / (1 + 0.3275911 * Math.abs(z) / Math.SQRT2);
   const poly = t * (0.254829592 + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
@@ -51,10 +41,6 @@ function normalCdf(z) {
   return 0.5 * (1 + (z >= 0 ? erf : -erf));
 }
 
-/** Score de elegibilidad (0-100) = probabilidad (%) de que el rendimiento real sea >= MIN_YIELD_TON_HA.
- * Sale solo de lo que mide el modelo: el rendimiento estimado y su error típico en t/ha (`confidence`, el RMSE
- * del estado, validado dejando un estado fuera). Sin NDVI ni pesos fijos, y es igual con el CSV Básico o el PRO.
- * Cortes: >= 70 elegible, 45-69 revisión, < 45 alto riesgo. */
 export function scoreFromInputs({ yieldEstimate, confidence }) {
   const y = Number(yieldEstimate);
   if (!Number.isFinite(y)) return 0;
@@ -63,24 +49,14 @@ export function scoreFromInputs({ yieldEstimate, confidence }) {
   return Math.round(Math.max(0, Math.min(1, p)) * 100);
 }
 
+const RISK_LABEL = { green: "Rendimiento alto", yellow: "Rendimiento medio", red: "Rendimiento bajo" };
+
 export function classifyRisk(score) {
-  if (score >= 70) return { risk: "Elegible", riskColor: "green" };
-  if (score >= 45) return { risk: "Revisión", riskColor: "yellow" };
-  return { risk: "Alto riesgo", riskColor: "red" };
+  if (score >= 70) return { risk: "Rendimiento alto", riskColor: "green" };
+  if (score >= 45) return { risk: "Rendimiento medio", riskColor: "yellow" };
+  return { risk: "Rendimiento bajo", riskColor: "red" };
 }
 
-/** SHAP local aproximado para parcelas capturadas manualmente: toma la importancia global
- * REAL del modelo (la entrega el backend en GET /model-info) y la escala por qué tan lejos
- * está cada variable de la parcela del promedio del portafolio actual.
- *
- * Del formulario manual solo tres campos corresponden a features del modelo (se enlazan por
- * la clave de la feature, no por su texto):
- *   precip -> precipitación en emergencia-macollamiento (el acumulado capturado se usa como
- *             aproximación de esa ventana)
- *   ndvi   -> NDVI en emergencia-macollamiento
- *   evi    -> EVI en emergencia-macollamiento
- * El signo respeta la dirección real de cada variable. Si el backend aún no entregó la
- * importancia global no se inventa ningún valor: la parcela queda sin drivers. */
 const SHAP_DRIVERS = [
   { field: "precip", key: "precip_acum_emergencia_macollamiento_mm" },
   { field: "ndvi", key: "bas_ndvi_emergencia_macollamiento" },
@@ -104,18 +80,15 @@ function average(arr) {
 }
 
 function nextId(all) {
-  // Los ids de Supabase son uuid (texto): solo cuentan los numéricos, si no Math.max devuelve NaN.
+  
   return all.reduce((max, p) => (Number.isFinite(Number(p.id)) ? Math.max(max, Number(p.id)) : max), 0) + 1;
 }
 
-/** Siguiente código AGC_Cnnn libre, a partir de los polygonId que ya existen. */
 function nextCustomCode(all) {
   const used = all.map((p) => /^AGC_C(\d+)$/i.exec(String(p.polygonId ?? ""))?.[1]).filter(Boolean).map(Number);
   return `AGC_C${String((used.length ? Math.max(...used) : 0) + 1).padStart(3, "0")}`;
 }
 
-// En la app la superficie es texto con unidad ("8.59 ha"); en Supabase (parcels_custom.area) es numérica.
-// Se convierte en la frontera con la base para que cualquier alta (formulario, CSV, archivos) funcione.
 function areaToNumber(value) {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   const n = parseFloat(String(value ?? "").replace(/[^\d.,-]/g, "").replace(",", "."));
@@ -139,7 +112,8 @@ function fromDatabaseParcel(row) {
     yieldEstimate: Number(row.yield_estimate),
     confidence: Number(row.confidence),
     score: Number(row.score),
-    risk: row.risk,
+    
+    risk: RISK_LABEL[row.risk_color] ?? row.risk,
     riskColor: row.risk_color,
     region: row.region,
     municipio: row.municipio,
@@ -153,11 +127,10 @@ function fromDatabaseParcel(row) {
     isTrainingSet: false,
     isCustom: true,
     shap: row.shap ?? [],
-    satelite: row.satelite ?? null, // detalle del cálculo satelital (contorno, variables, intervalo) si la parcela viene de ahí
+    satelite: row.satelite ?? null, 
   };
 }
 
-/** true si el error de Supabase es porque la tabla aún no tiene la columna `satelite` (falta correr la migración). */
 function isMissingSateliteColumn(err) {
   return Boolean(err) && /satelite/i.test(`${err.message ?? ""} ${err.details ?? ""}`) && /column|schema cache/i.test(`${err.message ?? ""} ${err.details ?? ""} ${err.code ?? ""}`);
 }
@@ -182,12 +155,11 @@ function toDatabaseParcel(record) {
     precip: record.precip,
     gdd: record.gdd,
     shap: record.shap,
-    // Solo se manda cuando hay detalle satelital: así editar otras parcelas no toca esa columna.
+    
     ...(record.satelite ? { satelite: record.satelite } : {}),
   };
 }
 
-/** Normaliza un registro (de formulario manual o de una fila de CSV) a un objeto parcela completo. */
 function buildParcelRecord(fields, existingParcels, importance = []) {
   const yieldEstimate = Number(fields.yieldEstimate);
   const confidence = Number(fields.confidence ?? 0.7);
@@ -223,12 +195,11 @@ function buildParcelRecord(fields, existingParcels, importance = []) {
     gdd,
     isTrainingSet: false,
     isCustom: true,
-    // Si la parcela ya trae su SHAP real (la calculó el modelo, p. ej. desde Parcela satelital) se conserva tal cual.
+    
     shap: Array.isArray(fields.shap) ? fields.shap : approximateShap({ ndvi, evi, precip }, existingParcels, importance),
     satelite: fields.satelite ?? null,
   };
 }
-
 
 const numOrNull = (v) => {
   if (v === undefined || v === null || v === "") return null;
@@ -243,19 +214,16 @@ const firstNum = (...vals) => {
   return null;
 };
 
-/** Convierte una predicción REAL del backend (+ las columnas del CSV subido, si hay)
- * en el objeto parcela que usan todas las pantallas. No hay valores precargados:
- * todo viene de lo que el modelo calculó en esa corrida. */
 function buildAnalysisParcel(pred, row = {}, index = 0) {
-  const meta = { ...row, ...pred }; // el backend devuelve Municipio/lat/lng/area_ha si venían en el CSV
+  const meta = { ...row, ...pred }; 
   const polygonId = String(pred.ID_POLIGONO);
   const region = pred.Estado || row.Estado || "Puebla";
   const yieldEstimate = firstNum(pred.yieldEstimate) ?? 0;
   const confidence = firstNum(pred.confidence) ?? 0;
   const ic90 = [firstNum(pred.ic90_inferior) ?? yieldEstimate, firstNum(pred.ic90_superior) ?? yieldEstimate];
 
-  // NDVI de pico del ciclo (mismo cálculo en Básico y PRO, lo manda el backend): así el semáforo no depende de qué
-  // archivo se subió. Mismos campos que se mostraban antes, ahora leídos del CSV de la corrida.
+  
+  
   const ndvi = firstNum(meta.ndvi_pico_ciclo, meta.bas_ndvi_pico_ciclo, meta.ndvi, meta.bas_ndvi_emergencia_macollamiento, meta.pro_ndvi_espigado_llenado) ?? 0;
   const evi = firstNum(meta.bas_evi_encanado, meta.evi, meta.bas_evi_emergencia_macollamiento, meta.pro_evi_encanado) ?? 0;
   const precip = firstNum(meta.precip_acum_ciclo_mm, meta.precip, meta.precip_acum_emergencia_macollamiento_mm) ?? 0;
@@ -307,8 +275,8 @@ export function ParcelsProvider({ children }) {
   const globalImportance = modelInfo?.globalImportance;
   const [customParcels, setCustomParcels] = useState([]);
   const uid = user?.id ?? null;
-  // Resultado de la última corrida REAL del modelo y envíos a comité DE ESTE USUARIO.
-  // Arranca vacío: el dashboard no trae datos precargados ni mezcla los de otras cuentas.
+  
+  
   const [stored, setStored] = useState(EMPTY_STORE);
   const { analysis, submissions, dirty: analysisDirty } = stored.uid === uid && uid !== null ? stored : EMPTY_STORE;
   const dirtyRef = useRef(false);
@@ -316,8 +284,8 @@ export function ParcelsProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Cambia cada vez que el usuario modifica la corrida o los envíos en esta sesión; sirve para que la
-  // lectura inicial de Supabase (que puede tardar) no pise algo que el usuario ya hizo mientras tanto.
+  
+  
   const editsRef = useRef({ analysis: 0, submissions: 0 });
   const [hydratedUid, setHydratedUid] = useState(null);
   const analysisLoading = Boolean(uid) && hydratedUid !== uid;
@@ -338,13 +306,13 @@ export function ParcelsProvider({ children }) {
       return undefined;
     }
 
-    // 1) Pinta al instante con la copia local de este navegador (si la hay).
+    
     const localAnalysis = appStorage.getJSON(scopedKey(ANALYSIS_KEY, uid), null);
     const localSubmissions = appStorage.getJSON(scopedKey(SUBMISSIONS_KEY, uid), {});
     editsRef.current = { analysis: 0, submissions: 0 };
     setStored({ uid, analysis: localAnalysis, submissions: localSubmissions, dirty: false });
 
-    // 2) Trae lo guardado en Supabase (lo que se ve igual en cualquier PC).
+    
     let cancelled = false;
     (async () => {
       const [remoteA, remoteS] = await Promise.all([fetchAnalysis(uid), fetchSubmissions(uid)]);
@@ -358,7 +326,7 @@ export function ParcelsProvider({ children }) {
           nextAnalysis = remoteA.data;
           appStorage.setJSON(scopedKey(ANALYSIS_KEY, uid), nextAnalysis);
         } else if (!alreadySynced && localAnalysis?.parcels?.length) {
-          // Datos que solo estaban en este navegador (de antes de usar Supabase): se suben una vez.
+          
           saveAnalysis(uid, localAnalysis).then(({ error: e }) => e && notifySaveError("la corrida del modelo", e));
         } else {
           nextAnalysis = null;
@@ -428,15 +396,15 @@ export function ParcelsProvider({ children }) {
   const analysisParcels = useMemo(() => analysis?.parcels ?? [], [analysis]);
   const parcels = useMemo(() => [...analysisParcels, ...customParcels], [analysisParcels, customParcels]);
 
-  /** Guarda la salida del modelo (respuesta de /predict-csv) y el CSV de origen. */
+  
   const loadAnalysis = useCallback((predicciones, csvText = "", fileName = "") => {
     const rows = csvText ? parseCSV(csvText) : [];
     const byId = new Map(rows.map((r) => [String(r.ID_POLIGONO), r]));
     const built = predicciones.map((pred, i) => buildAnalysisParcel(pred, byId.get(String(pred.ID_POLIGONO)), i));
     const next = { parcels: built, fileName, runAt: new Date().toISOString() };
     if (uid) {
-      // Queda como BORRADOR: se ve en todas las pantallas, pero no se guarda (ni en el navegador ni en
-      // Supabase) hasta que la persona pulse "Guardar corrida" (saveAnalysisDraft).
+      
+      
       editsRef.current.analysis += 1;
       setStored((prev) => ({ ...(prev.uid === uid ? prev : { ...EMPTY_STORE, uid }), analysis: next, dirty: true }));
     }
@@ -451,14 +419,14 @@ export function ParcelsProvider({ children }) {
     saveAnalysis(uid, null).then(({ error: e }) => e && notifySaveError("el borrado de la corrida", e));
   }, [uid, notifySaveError]);
 
-  /** Guarda la corrida del modelo (borrador) en Supabase y en la copia local. Solo se llama desde el botón. */
+  
   const saveAnalysisDraft = useCallback(async () => {
     if (!uid || !dirtyRef.current) return { error: null };
     const current = analysis;
     const { error: e } = await saveAnalysis(uid, current);
     if (e) {
       console.error("No se pudo guardar la corrida del modelo en Supabase", e);
-      return { error: e }; // sigue como borrador: se puede reintentar
+      return { error: e }; 
     }
     if (current) appStorage.setJSON(scopedKey(ANALYSIS_KEY, uid), current);
     else appStorage.remove(scopedKey(ANALYSIS_KEY, uid));
@@ -466,7 +434,7 @@ export function ParcelsProvider({ children }) {
     return { error: null };
   }, [uid, analysis]);
 
-  /** Descarta el borrador y vuelve a la última corrida guardada (o a vacío si no había). */
+  
   const discardAnalysisDraft = useCallback(() => {
     if (!uid) return;
     const saved = appStorage.getJSON(scopedKey(ANALYSIS_KEY, uid), null);
@@ -474,7 +442,7 @@ export function ParcelsProvider({ children }) {
     setStored((prev) => (prev.uid === uid ? { ...prev, analysis: saved, dirty: false } : prev));
   }, [uid]);
 
-  // Si hay una corrida sin guardar, el navegador avisa antes de cerrar o recargar la pestaña.
+  
   useEffect(() => {
     if (!analysisDirty) return undefined;
     const warn = (e) => {
@@ -500,12 +468,12 @@ export function ParcelsProvider({ children }) {
     return Array.from(counts.values()).sort((a, b) => b.parcelCount - a.parcelCount);
   }, [parcels]);
 
-  // Sincroniza el portafolio con el servidor para las alertas de riesgo y el resumen semanal por correo.
-  // Espera 2.5 s sin cambios (agrupa ediciones o una importación completa en un solo aviso) y solo
-  // envía cuando cambia algo realmente.
+  
+  
+  
   const syncedRef = useRef({ uid: null, sig: "" });
   useEffect(() => {
-    if (authLoading || loading || analysisLoading || !uid || stored.uid !== uid || analysisDirty) return undefined; // un borrador sin guardar no se manda al servidor
+    if (authLoading || loading || analysisLoading || !uid || stored.uid !== uid || analysisDirty) return undefined; 
     const compact = parcels.map((p) => ({
       id: String(p.polygonId ?? p.id),
       name: p.name,
@@ -524,7 +492,7 @@ export function ParcelsProvider({ children }) {
     return () => clearTimeout(timer);
   }, [authLoading, loading, analysisLoading, uid, stored.uid, parcels, analysisDirty]);
 
-  // Lista más reciente de parcelas, para que varias altas seguidas (importar un CSV) no repitan código.
+  
   const latestRef = useRef([]);
   useEffect(() => {
     latestRef.current = [...analysisParcels, ...customParcels];
@@ -536,7 +504,7 @@ export function ParcelsProvider({ children }) {
     let { data, error: insertError } = await insert(toDatabaseParcel(record));
     let warning = null;
     if (insertError && record.satelite && isMissingSateliteColumn(insertError)) {
-      // La tabla aún no tiene la columna: se guarda la parcela igual (sin el detalle) y se avisa.
+      
       const { satelite: _omit, ...withoutSatelite } = toDatabaseParcel(record);
       ({ data, error: insertError } = await insert(withoutSatelite));
       warning = "satelite-column";
@@ -549,13 +517,13 @@ export function ParcelsProvider({ children }) {
     return { data: savedParcel, error: null, warning };
   }, [globalImportance]);
 
-  /** Guarda la corrida actual (ya modificada) en estado y en el navegador, separada por usuario. */
+  
   const persistAnalysis = useCallback(
     (nextAnalysis) => {
       if (!uid) return;
       editsRef.current.analysis += 1;
       if (dirtyRef.current) {
-        // Hay una corrida sin guardar: los cambios se suman al borrador y se guardan juntos con el botón.
+        
         setStored((prev) => ({ ...(prev.uid === uid ? prev : { ...EMPTY_STORE, uid }), analysis: nextAnalysis, dirty: true }));
         return;
       }
@@ -567,12 +535,8 @@ export function ParcelsProvider({ children }) {
     [uid, notifySaveError]
   );
 
-  /**
-   * Edita una parcela.
-   *  - Capturada a mano (Supabase): se pueden cambiar todos los campos; score y semáforo se recalculan.
-   *  - De la corrida del modelo: solo datos descriptivos (nombre, municipio, superficie y coordenadas).
-   *    El rendimiento, el score y el SHAP los calculó el modelo y no se tocan.
-   */
+  
+
   const updateParcel = useCallback(async (id, fields) => {
     const custom = customParcels.find((p) => p.id === id);
 
@@ -595,7 +559,7 @@ export function ParcelsProvider({ children }) {
     }
 
     const record = buildParcelRecord(
-      { polygonId: custom.polygonId, ...fields, id }, // conserva el código de la parcela al editar
+      { polygonId: custom.polygonId, ...fields, id }, 
       [...analysisParcels, ...customParcels.filter((parcel) => parcel.id !== id)],
       globalImportance
     );
@@ -614,7 +578,7 @@ export function ParcelsProvider({ children }) {
     return { data: savedParcel, error: null, warning };
   }, [analysis, analysisParcels, customParcels, globalImportance, persistAnalysis]);
 
-  /** Elimina una parcela: de Supabase si es propia, o de la corrida actual si viene del modelo. */
+  
   const removeParcel = useCallback(async (id) => {
     const isCustom = customParcels.some((p) => p.id === id);
 
@@ -638,12 +602,8 @@ export function ParcelsProvider({ children }) {
     return { error: null };
   }, [analysis, analysisParcels, customParcels, persistAnalysis, submissions, uid]);
 
-  /**
-   * Elimina varias parcelas de una sola vez. No se puede llamar a removeParcel en bucle:
-   * cada llamada parte de la lista "vieja" de la corrida y las demás eliminaciones se perderían.
-   * Primero se borran las propias en Supabase (si falla, no se toca nada) y luego se actualiza
-   * la corrida del modelo y los envíos a comité en un solo paso.
-   */
+  
+
   const removeParcels = useCallback(async (ids) => {
     const idSet = new Set(ids);
     const customIds = customParcels.filter((p) => idSet.has(p.id)).map((p) => p.id);

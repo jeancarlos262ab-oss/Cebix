@@ -15,26 +15,14 @@ import { SphereLayer } from "./globeLayer";
 import { SphereWorkerClient } from "./globeWorkerClient";
 import { createSky } from "./globeStars";
 
-/**
- * Globo 3D ligero: Canvas 2D puro, sin WebGL ni librerías.
- * Solo se redibuja cuando algo cambia (arrastre, zoom, vuelo): en reposo no gasta CPU.
- *
- * La esfera la pinta SphereLayer (globeLayer.js / globeFast.js): girar de lado no hace
- * trigonometría por píxel, y el zoom re-escala el último cuadro hasta que se asienta.
- * La referencia exacta sigue siendo renderSphere() en globeRender.js.
- */
-
 const D2R = Math.PI / 180;
-// Tamaño del planeta en reposo (zoom 1): su radio es BASE_R · lado menor del lienzo. Pequeño, como
-// en Google Earth (un planeta flotando en el espacio). El zoom máximo sube para que, al entrar a
-// la zona, el planeta siga llenando la pantalla igual que antes (0.43 x 2.6 = 0.19 x 5.9).
+
 const BASE_R = 0.19;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 5.9;
-// El presupuesto de píxeles de la esfera (en movimiento / en reposo) vive en globeLayer.js.
-const MAX_DPR = 1.5; // el lienzo con contornos y textos no pasa de esta densidad
 
-// Anillos de los estados en [lat, lon], calculados una sola vez.
+const MAX_DPR = 1.5; 
+
 const STATE_RINGS = estadosBoundaries.features.map((f) => f.geometry.coordinates[0].map(([lng, la]) => [la, lng]));
 
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -42,12 +30,6 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const normLon = (l) => ((((l + 180) % 360) + 360) % 360) - 180;
 const boundsCenter = (b) => ({ lat: (b[0][0] + b[1][0]) / 2, lon: (b[0][1] + b[1][1]) / 2 });
 
-/**
- * @param entry    {key, lat, lon, zoom?}  cada vez que `key` cambia (y el globo está activo) repite la
- *                 animación de entrada; si zoom > 1 hace un "alejar" suave desde ese punto
- * @param active   false mientras el mapa plano está al frente: el globo se queda montado pero en pausa
- * @param onEnter  (bounds, draw, isStudyZone) => void  se llama al terminar el vuelo hacia la zona elegida
- */
 export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, onToggleFullscreen }) {
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
@@ -65,11 +47,11 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
   if (!layer.current) layer.current = new SphereLayer({ collectStats: !!import.meta.env.DEV });
   const sky = useRef(null);
   if (!sky.current) sky.current = createSky();
-  // Esfera en un hilo aparte (si el navegador lo permite): cliente, cuadro en vuelo y estado.
+  
   const workerRef = useRef(null);
-  const skyBuf = useRef(null); // lienzo auxiliar donde se pinta el cielo mientras llega la esfera
-  const frameRef = useRef(null); // parámetros del cuadro en vuelo
-  const doneSig = useRef(null); // firma del último cuadro compuesto
+  const skyBuf = useRef(null); 
+  const frameRef = useRef(null); 
+  const doneSig = useRef(null); 
   const texSent = useRef(null);
   const dirty = useRef(false);
   const pageActive = usePageActive() && active;
@@ -80,11 +62,11 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
   const colorRef = useRef(color);
   colorRef.current = color;
 
-  const [texState, setTexState] = useState("loading"); // loading | ok | error
+  const [texState, setTexState] = useState("loading"); 
   const [busy, setBusy] = useState(false);
 
-  /* ───────────── dibujo ───────────── */
-  // Contornos de los estados y pin de la zona de estudio (encima de cielo y esfera).
+  
+  
   const drawOverlay = useCallback((ctx, { cx, cy, R, lon0, lat0, q }) => {
     const pt = { x: 0, y: 0 };
     const line = (coords, close = false) => {
@@ -101,12 +83,12 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
       ctx.stroke();
     };
 
-    // Contornos de los estados de la zona de estudio
+    
     ctx.lineWidth = 1.2 * q;
     ctx.strokeStyle = colorRef.current;
     for (const ring of STATE_RINGS) line(ring, true);
 
-    // Pin de la zona de estudio
+    
     pin.current.visible = projectPoint(STUDY.lat, STUDY.lon, lon0, lat0, cx, cy, R, pt);
     if (pin.current.visible) {
       pin.current.x = pt.x / q;
@@ -140,7 +122,7 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
     }
   }, []);
 
-  // Cuadro compuesto (cielo + esfera + trazos) cuando la esfera llega del hilo aparte.
+  
   const composeFrame = useCallback(
     (msg) => {
       const f = frameRef.current;
@@ -161,13 +143,13 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
       msg.bitmap.close();
       drawOverlay(ctx, f);
       doneSig.current = f.sig;
-      // Mientras la esfera se calculaba, la vista pudo cambiar: se pinta el cuadro más reciente.
+      
       if (dirty.current && activeRef.current) {
         dirty.current = false;
         if (!rafRender.current) rafRender.current = requestAnimationFrame(render);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
     [drawOverlay],
   );
 
@@ -177,7 +159,7 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
     const { w, h } = dims.current;
     if (!canvas || !w || !h || !activeRef.current) return;
     const frameT0 = performance.now();
-    const q = Math.min(window.devicePixelRatio || 1, MAX_DPR); // fijo: el lienzo no se realoca al arrastrar
+    const q = Math.min(window.devicePixelRatio || 1, MAX_DPR); 
     const cw = Math.max(2, Math.round(w * q));
     const ch = Math.max(2, Math.round(h * q));
 
@@ -189,20 +171,20 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
     const lat0 = lat * D2R;
     const tx = tex.current.z3 || tex.current.z2 || null;
 
-    /* Camino rápido: la esfera se calcula en un hilo aparte mientras aquí se pinta el cielo. */
+    
     const client = workerRef.current;
     if (client) {
       if (tx !== texSent.current) {
         texSent.current = tx;
         client.setTexture(tx);
-        doneSig.current = null; // textura nueva: hay que repintar aunque la vista sea la misma
+        doneSig.current = null; 
       }
       const sig = `${cw}|${ch}|${lon0}|${lat0}|${R}|${fast.current}|${tx ? tx.levels.length : 0}`;
       if (client.busy) {
         if (sig !== frameRef.current?.sig) dirty.current = true;
         return;
       }
-      if (sig === doneSig.current) return; // nada cambió desde el último cuadro
+      if (sig === doneSig.current) return; 
       let sb = skyBuf.current;
       if (!sb) {
         const c = document.createElement("canvas");
@@ -224,15 +206,15 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
       canvas.width = cw;
       canvas.height = ch;
     }
-    // alpha:false → el navegador compone el lienzo como opaco (más rápido). El fondo ya era negro.
+    
     const ctx = canvas.getContext("2d", { alpha: false });
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, cw, ch);
 
-    // Cielo: estrellas y constelaciones detrás del globo, giran con él (ver globeStars.js).
+    
     sky.current.draw(ctx, { cw, ch, lon0, lat0, q, zoom, fast: fast.current });
 
-    // Esfera: tablas precalculadas + desplazamiento por giro (ver globeLayer.js).
+    
     layer.current.setTexture(tx);
     layer.current.draw(ctx, {
       cw,
@@ -262,7 +244,7 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
     [render],
   );
 
-  // Hilo aparte para la esfera. Si no hay soporte o falla, todo sigue en el hilo principal.
+  
   useEffect(() => {
     if (!SphereWorkerClient.supported()) return undefined;
     const client = new SphereWorkerClient({
@@ -286,7 +268,7 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
     };
   }, [composeFrame, requestRender]);
 
-  /* ───────────── vuelo animado ───────────── */
+  
   const stopMotion = useCallback(() => {
     cancelAnimationFrame(rafFly.current);
     cancelAnimationFrame(rafInertia.current);
@@ -305,10 +287,10 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
         done?.();
         return;
       }
-      const dl = ((to.lon - from.lon + 540) % 360) - 180; // camino corto
+      const dl = ((to.lon - from.lon + 540) % 360) - 180; 
       const t0 = performance.now();
       const step = (now) => {
-        const t = Math.min(1, Math.max(0, (now - t0) / ms)); // rAF puede dar una marca algo anterior a t0
+        const t = Math.min(1, Math.max(0, (now - t0) / ms)); 
         const e = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
         view.current = {
           lon: normLon(from.lon + dl * e),
@@ -338,8 +320,8 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
     [busy, flyTo, onEnter],
   );
 
-  /* ───────────── ciclo de vida ───────────── */
-  // Tamaño del contenedor
+  
+  
   useEffect(() => {
     const el = wrapRef.current;
     const ro = new ResizeObserver(([entry]) => {
@@ -350,7 +332,7 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
     return () => ro.disconnect();
   }, [requestRender]);
 
-  // Re-dibuja al volver a la pantalla (keep-alive).
+  
   useEffect(() => {
     if (pageActive) {
       doneSig.current = null;
@@ -358,7 +340,7 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
     }
   }, [pageActive, requestRender]);
 
-  // Texturas: primero 1024 px (rápida), luego 2048 px (nítida).
+  
   useEffect(() => {
     let dead = false;
     loadGlobeTexture(2)
@@ -382,15 +364,15 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
     };
   }, [requestRender]);
 
-  // Cronómetro de desarrollo: en la consola del navegador,
-  //   __globePerf.report()          → ms por tipo de cuadro (geom | tilt | lateral | scale | ref)
-  //   __globePerf.reset()           → reinicia los contadores
-  //   __globePerf.reference = true  → usa el render anterior (renderSphere por píxel) para comparar
+  
+  
+  
+  
   useEffect(() => {
     if (!import.meta.env.DEV) return undefined;
     const l = layer.current;
     window.__globePerf = {
-      layer: l, // l.quality = factor de resolución actual (1 = completo)
+      layer: l, 
       reference: false,
       report: () => console.table(l.report()),
       reset: () => l.resetStats(),
@@ -400,8 +382,8 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
     };
   }, []);
 
-  // Animación de entrada: viene girando hacia México, o se aleja si regresa del mapa plano.
-  // El globo es una sola instancia: se reutiliza cada vez que se vuelve a él.
+  
+  
   useEffect(() => {
     if (!active) {
       stopMotion();
@@ -416,7 +398,7 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
       flyTo({ ...STUDY, zoom: 1 }, 1700);
     }
     return stopMotion;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [entry.key, active]);
 
   useEffect(
@@ -427,7 +409,7 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
     [],
   );
 
-  // Rueda del ratón (listener no pasivo para poder evitar el scroll de la página).
+  
   useEffect(() => {
     const el = canvasRef.current;
     const onWheel = (e) => {
@@ -441,7 +423,7 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
     return () => el.removeEventListener("wheel", onWheel);
   }, [busy, requestRender, stopMotion]);
 
-  /* ───────────── puntero ───────────── */
+  
   const degPerPx = () => 57.2958 / (Math.min(dims.current.w, dims.current.h) * BASE_R * view.current.zoom);
   const nearPin = (e) => {
     const r = canvasRef.current.getBoundingClientRect();
@@ -482,7 +464,7 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
       if (nearPin(e)) enter(STUDY_BOUNDS);
       return;
     }
-    // Inercia corta, solo en longitud.
+    
     let v = d.vlon;
     if (Math.abs(v) < 0.02 || reducedMotion()) {
       requestRender(false);
@@ -521,7 +503,7 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
   return (
     <div
       ref={wrapRef}
-      className="relative h-full min-h-[440px] w-full overflow-hidden bg-black"
+      className="relative h-full min-h-[300px] w-full overflow-hidden bg-black"
     >
       <canvas
         ref={canvasRef}

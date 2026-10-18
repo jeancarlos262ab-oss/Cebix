@@ -1,35 +1,3 @@
-"""
-Extracción de las 10 features del modelo SIN cuentas, tarjetas ni cuotas
-=========================================================================
-
-Todas las fuentes son abiertas y se leen de forma anónima:
-
-  * Sentinel-2 L2A y Landsat 8/9 -> catálogo STAC 'Earth Search' (Element 84) sobre el
-    Registro de Datos Abiertos de AWS. Las imágenes son Cloud-Optimized GeoTIFF: solo se
-    descarga el recorte de la parcela (unos KB por banda), no la escena entera.
-  * Lluvia -> CHIRPS v2.0 diario (Climate Hazards Center, UCSB), también COG anónimo.
-
-Método (igual que el dataset oficial): por cada escena se promedia el
-índice dentro del polígono y, entre las escenas de cada ventana fenológica, se toma la mediana.
-
-Diferencias a conocer frente al dataset oficial (por eso hay que correr scripts/validate_satelite.py):
-  * Un píxel con valor no finito (p. ej. LAI con SAVI >= 0.69) se descarta píxel a píxel; la guía
-    dice que esa escena 'no aporta'. Puede mover un poco el LAI.
-  * Píxel dentro del polígono = su centro cae dentro (la guía pondera por fracción cubierta).
-    En 10 m la diferencia es mínima; en CHIRPS (5.5 km) sí se pondera por fracción cubierta.
-  * Es más lento: ~30–90 s por parcela (muchas lecturas HTTP pequeñas), según la red.
-
-Variables de entorno opcionales:
-  STAC_API_URL           https://earth-search.aws.element84.com/v1
-  STAC_S2_COLLECTION     sentinel-2-l2a
-  STAC_LS_COLLECTION     landsat-c2-l2
-  CHIRPS_URL_TEMPLATE    https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/cogs/p05/{year}/chirps-v2.0.{year}.{month:02d}.{day:02d}.cog
-  STAC_WORKERS           lecturas en paralelo (6 por defecto; sube la memoria usada)
-
-Importante: la ruta de CHIRPS y los nombres de las colecciones son los publicados al escribir
-esto; si el servicio los cambia, basta con ajustar estas variables, sin tocar el código.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -61,25 +29,18 @@ from app.services.features.common import (
     validate_year,
 )
 
-# ─────────────────────────────── Configuración ───────────────────────────────
-
 STAC_API_URL = os.environ.get("STAC_API_URL", "https://earth-search.aws.element84.com/v1")
 S2_COLLECTION = os.environ.get("STAC_S2_COLLECTION", "sentinel-2-l2a")
 LS_COLLECTION = os.environ.get("STAC_LS_COLLECTION", "landsat-c2-l2")
-# Plantillas candidatas de CHIRPS, en orden de preferencia. Se usa la primera que responda.
-#   1) v2.0 COG: con la que se entrenó el modelo (si el servidor ya no la publica, se pasa a la siguiente).
-#   2) v3.0 diario "sat" y 3) v3.0 diario "rnl": CHIRPS v3 reemplaza a v2 (Climate Hazards Center).
-# Se pueden sobreescribir con CHIRPS_URL_TEMPLATES (varias, separadas por coma) o CHIRPS_URL_TEMPLATE (una sola).
+
 _CHIRPS_DEFAULTS = [
     "https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/cogs/p05/{year}/chirps-v2.0.{year}.{month:02d}.{day:02d}.cog",
     "https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/sat/{year}/chirps-v3.0.sat.{year}.{month:02d}.{day:02d}.tif",
     "https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/rnl/{year}/chirps-v3.0.rnl.{year}.{month:02d}.{day:02d}.tif",
 ]
 
-
 def _chirps_templates() -> list[str]:
-    """Plantillas personalizadas primero, luego las por defecto. Se descartan las que no traen {year}
-    (p. ej. una carpeta en vez de un archivo), porque darían la misma URL todos los días."""
+    
     custom = [t.strip() for t in os.environ.get("CHIRPS_URL_TEMPLATES", "").split(",") if t.strip()]
     single = os.environ.get("CHIRPS_URL_TEMPLATE", "").strip()
     if single:
@@ -91,37 +52,31 @@ def _chirps_templates() -> list[str]:
             out.append(t)
     return out
 
-
-CHIRPS_URL_TEMPLATE = _chirps_templates()[0]  # compatibilidad con scripts que lo importan
-_chirps_ok_template: str | None = None  # plantilla que ya funcionó en este proceso
+CHIRPS_URL_TEMPLATE = _chirps_templates()[0]  
+_chirps_ok_template: str | None = None  
 WORKERS = max(1, int(os.environ.get("STAC_WORKERS", "6")))
 
-# CHIRPS: el servidor del CHC responde 403 cuando recibe muchas lecturas en paralelo, así que se lee con
-# pocos hilos, se reintenta con espera creciente y cada día leído se guarda en disco (solo se reintentan los que faltan).
 CHIRPS_WORKERS = max(1, int(os.environ.get("CHIRPS_WORKERS", "3")))
 CHIRPS_TRIES = max(1, int(os.environ.get("CHIRPS_TRIES", "4")))
-CHIRPS_MAX_MISSING = float(os.environ.get("CHIRPS_MAX_MISSING", "0.10"))  # hasta 10 % de días sin dato: se escala
+CHIRPS_MAX_MISSING = float(os.environ.get("CHIRPS_MAX_MISSING", "0.10"))  
 CHIRPS_CACHE_DIR = Path(os.environ.get("CHIRPS_CACHE_DIR", "/tmp/cebix_chirps_cache"))
 CHIRPS_USER_AGENT = os.environ.get("CHIRPS_USER_AGENT", "cebix-backend/1.0")
-# Rejilla local de lluvia acumulada abr–may (GeoTIFF de 1 banda, mm). Se genera una vez con scripts/build_chirps_grid.py
-# desde una máquina a la que el CHC sí responda; así la lluvia de un ciclo ya cerrado (2025) no depende de la red.
+
 CHIRPS_LOCAL_DIR = Path(os.environ.get("CHIRPS_LOCAL_DIR", str(Path(__file__).resolve().parents[3] / "data" / "chirps")))
 READ_TRIES = 3
-SUPERSAMPLE = 20  # submuestreo para ponderar CHIRPS por fracción de píxel cubierta
+SUPERSAMPLE = 20  
 
-# Mes -> ventana fenológica (abr–may / jun–jul / ago–sep). Ver PHENO_WINDOWS.
 WINDOW_OF_MONTH = {4: "emergencia_macollamiento", 5: "emergencia_macollamiento", 6: "encanado", 7: "encanado", 8: "espigado_llenado", 9: "espigado_llenado"}
 
 S2_BANDS = {"blue": "B2", "red": "B4", "nir": "B8", "swir16": "B11", "swir22": "B12"}
 
-# GDAL: lectura anónima y rápida de COG por HTTP. Se fija en el entorno antes de abrir nada.
 os.environ.setdefault("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
 os.environ.setdefault("CPL_VSIL_CURL_ALLOWED_EXTENSIONS", ".tif,.TIF,.tiff,.cog,.COG")
 os.environ.setdefault("GDAL_HTTP_TIMEOUT", "30")
 os.environ.setdefault("GDAL_HTTP_MAX_RETRY", "3")
 os.environ.setdefault("GDAL_HTTP_RETRY_DELAY", "1")
 os.environ.setdefault("AWS_NO_SIGN_REQUEST", "YES")
-try:  # certificados para https dentro de contenedores mínimos
+try:  
     import certifi
 
     os.environ.setdefault("CURL_CA_BUNDLE", certifi.where())
@@ -130,12 +85,8 @@ except ImportError:
 
 _run_lock = threading.Lock()
 
-
-# ─────────────────────────────── Utilidades ───────────────────────────────
-
-
 def status() -> dict:
-    """Diagnóstico sin tocar la red: ¿se pueden importar las librerías? Si no, dice por qué."""
+    
     import sys
 
     problems = {}
@@ -143,7 +94,7 @@ def status() -> dict:
         try:
             __import__(mod)
         except ImportError as e:
-            # 'No module named' = no instalado; cualquier otro texto = instalado pero roto (p. ej. falta una DLL de GDAL)
+            
             problems[pkg] = {"instalado": "No module named" not in str(e), "detalle": " ".join(str(e).split())[:200]}
     return {
         "provider": "stac",
@@ -155,7 +106,6 @@ def status() -> dict:
         "stac_api": STAC_API_URL,
     }
 
-
 def _require_libs():
     st = status()
     if not st["ready"]:
@@ -163,42 +113,34 @@ def _require_libs():
 
         detail = "; ".join(f"{p}: {'instalado pero falla al cargar (' + i['detalle'] + ')' if i['instalado'] else 'no instalado'}" for p, i in st["problems"].items())
         if any(i["instalado"] and "shared object" in i["detalle"] for i in st["problems"].values()):
-            # Python sí está instalado; lo que falta es una librería del SISTEMA (típico de imágenes Docker mínimas).
+            
             fix = "Falta una librería del sistema operativo, no de Python: en Docker/Debian instala libexpat1 (apt-get install -y libexpat1) y vuelve a construir la imagen."
         else:
             fix = f"Con el entorno que ejecuta uvicorn (Python {st['python']}) corre: python -m pip install -r requirements.txt y reinicia el servidor."
         raise SatelliteNotConfigured(f"Faltan librerías en el servidor ({detail}). {fix} Detalle en /satellite-status.")
-
 
 def _retry(fn, *args, tries: int = READ_TRIES):
     last = None
     for attempt in range(tries):
         try:
             return fn(*args)
-        except Exception as e:  # noqa: BLE001 — red, 404 transitorios, timeouts
+        except Exception as e:  
             last = e
             if attempt < tries - 1:
                 time.sleep(0.8 * (attempt + 1))
     raise last
 
-
 def _short(e: Exception, n: int = 200) -> str:
     s = " ".join(str(e).split())
     return s if len(s) <= n else s[: n - 1] + "…"
-
 
 def _utc_day(dt: datetime) -> date:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc).date()
 
-
-# ─────────────────────────────── Sentinel-2: un recorte por escena ───────────────────────────────
-
-
 def _asset_ref(item, key: str) -> tuple[str, float, float]:
-    """(href, escala, offset) de una banda. Con baseline >= 04.00 la reflectancia lleva offset -0.1:
-    así toda la serie queda comparable entre versiones de procesamiento."""
+    
     asset = item.assets.get(key)
     if asset is None:
         raise KeyError(f"La escena {item.id} no trae la banda '{key}'.")
@@ -214,9 +156,8 @@ def _asset_ref(item, key: str) -> tuple[str, float, float]:
             offset = 0.0
     return asset.href, float(scale), float(offset)
 
-
 def _indices(refl: dict[str, np.ndarray], valid: np.ndarray) -> dict[str, float | None]:
-    """Fórmulas oficiales (Paso 4 de la guía) y promedio dentro del polígono."""
+    
     B2, B4, B8, B11, B12 = (refl[k] for k in ("blue", "red", "nir", "swir16", "swir22"))
     with np.errstate(all="ignore"):
         ndvi = (B8 - B4) / (B8 + B4)
@@ -233,12 +174,8 @@ def _indices(refl: dict[str, np.ndarray], valid: np.ndarray) -> dict[str, float 
         out[name] = float(v.mean()) if v.size else None
     return out
 
-
 def _scene_means(refs: dict[str, tuple[str, float, float]], geom: dict) -> dict[str, float | None] | None:
-    """
-    Promedio del polígono de cada índice en UNA escena, leyendo solo el recorte de la parcela.
-    `refs`: banda -> (href, escala, offset). Devuelve None si el polígono no toca datos válidos.
-    """
+    
     import rasterio
     from rasterio.enums import Resampling
     from rasterio.errors import WindowError
@@ -253,7 +190,7 @@ def _scene_means(refs: dict[str, tuple[str, float, float]], geom: dict) -> dict[
             try:
                 win = geometry_window(red, [g])
             except WindowError:
-                return None  # el polígono cae fuera de esta escena
+                return None  
             h, w = int(win.height), int(win.width)
             if h == 0 or w == 0:
                 return None
@@ -263,8 +200,8 @@ def _scene_means(refs: dict[str, tuple[str, float, float]], geom: dict) -> dict[
 
         for key in ("blue", "nir", "swir16", "swir22"):
             with rasterio.open(refs[key][0]) as src:
-                # SWIR viene a 20 m: se lleva a la malla de 10 m del recorte (vecino más cercano,
-                # a la resolución de 10 m).
+                
+                
                 dn[key] = src.read(
                     1,
                     window=from_bounds(*bounds, transform=src.transform),
@@ -275,16 +212,15 @@ def _scene_means(refs: dict[str, tuple[str, float, float]], geom: dict) -> dict[
     valid = inside.copy()
     refl = {}
     for key, arr in dn.items():
-        valid &= arr > 0  # 0 = sin dato
+        valid &= arr > 0  
         _, scale, offset = refs[key]
         refl[key] = np.maximum(arr.astype("float32") * scale + offset, 0.0)
     if not valid.any():
         return None
     return _indices(refl, valid)
 
-
 def _dedupe(items: list) -> list:
-    """Misma tile y fecha reprocesada (sufijo _0, _1…): se conserva la versión más reciente."""
+    
     best: dict[str, tuple[int, object]] = {}
     for it in items:
         parts = it.id.split("_")
@@ -297,12 +233,8 @@ def _dedupe(items: list) -> list:
             best[key] = (ver, it)
     return [v[1] for v in best.values()]
 
-
-# ─────────────────────────────── CHIRPS ───────────────────────────────
-
-
 def _chirps_day(url: str, geom: dict) -> float | None:
-    """Lluvia (mm) de un día: media del polígono ponderada por la fracción de cada píxel que cubre."""
+    
     import rasterio
     from rasterio.features import rasterize
     from rasterio.warp import transform_geom
@@ -314,7 +246,7 @@ def _chirps_day(url: str, geom: dict) -> float | None:
         GDAL_HTTP_TIMEOUT="30",
         GDAL_HTTP_MAX_RETRY="4",
         GDAL_HTTP_RETRY_DELAY="2",
-        GDAL_HTTP_RETRY_CODES="ALL",  # incluye 403/429/5xx (límite de peticiones del servidor)
+        GDAL_HTTP_RETRY_CODES="ALL",  
         GDAL_HTTP_USERAGENT=CHIRPS_USER_AGENT,
     ):
         with rasterio.open(url) as src:
@@ -338,7 +270,7 @@ def _chirps_day(url: str, geom: dict) -> float | None:
     ok = np.isfinite(data) & (data >= 0)
     if nodata is not None:
         ok &= data != nodata
-    if weights.sum() == 0:  # parcela diminuta que no marcó ningún subpíxel: píxel del centroide
+    if weights.sum() == 0:  
         weights = np.zeros_like(data)
         weights[min(h - 1, h // 2), min(w - 1, w // 2)] = 1.0
     weights = weights * ok
@@ -346,23 +278,20 @@ def _chirps_day(url: str, geom: dict) -> float | None:
         return None
     return float((data * weights).sum() / weights.sum())
 
-
 def _chirps_local_total(geom: dict, year: int) -> float | None:
-    """Lluvia abr–may desde la rejilla local (si existe y cubre la parcela). Mismo ponderado por fracción de píxel."""
+    
     path = CHIRPS_LOCAL_DIR / f"chirps_abr_may_{year}.tif"
     if not path.is_file():
         return None
     try:
-        value = _chirps_day(str(path), geom)  # la rejilla ya es la suma de los 61 días: se lee como un "día" más
-    except Exception as e:  # noqa: BLE001 — rejilla dañada o parcela fuera de ella: se sigue con la red
+        value = _chirps_day(str(path), geom)  
+    except Exception as e:  
         logging.getLogger(__name__).warning("Rejilla CHIRPS local no utilizable (%s): %s", path.name, _short(e))
         return None
     return None if value is None else round(value, 3)
 
-
 def _pick_chirps_template(geom: dict, year: int, errors: list[str]) -> str | None:
-    """Prueba cada plantilla con un día de la ventana y devuelve la primera que responde.
-    Un 403 suele ser temporal (límite de peticiones del CHC): se reintenta con espera antes de pasar a la siguiente."""
+    
     global _chirps_ok_template
     candidates = _chirps_templates()
     if _chirps_ok_template in candidates:
@@ -375,11 +304,11 @@ def _pick_chirps_template(geom: dict, year: int, errors: list[str]) -> str | Non
                 try:
                     value = _chirps_day(url, geom)
                     break
-                except Exception:  # noqa: BLE001
+                except Exception:  
                     if attempt == 1:
                         raise
                     time.sleep(3)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:  
             errors.append(f"{type(e).__name__}: {_short(e)} [{url}]")
             continue
         if value is not None:
@@ -388,13 +317,8 @@ def _pick_chirps_template(geom: dict, year: int, errors: list[str]) -> str | Non
         errors.append(f"Sin datos válidos en el píxel [{url}]")
     return None
 
-
 def _precip_gee_fallback(geom: dict, year: int, warnings: list[str], motivo: str) -> float | None:
-    """Plan B cuando el CHC bloquea (403) a este servidor: el mismo CHIRPS diario pero servido por Earth Engine.
-
-    Solo se usa si hay credenciales de GEE (GEE_SERVICE_ACCOUNT_JSON/FILE). Es el mismo producto (UCSB-CHG/CHIRPS/DAILY,
-    v2.0), así que el valor es comparable con el del entrenamiento; solo cambia la ruta de descarga.
-    """
+    
     try:
         from . import gee
 
@@ -402,7 +326,7 @@ def _precip_gee_fallback(geom: dict, year: int, warnings: list[str], motivo: str
             return None
         ee = gee.ensure_initialized()
         value = gee._with_retries(gee._precip, ee, ee.Geometry(geom), year)
-    except Exception as e:  # noqa: BLE001 — cualquier fallo aquí deja el comportamiento anterior (mediana)
+    except Exception as e:  
         logging.getLogger(__name__).warning("CHIRPS vía Earth Engine falló: %s", _short(e))
         return None
     if value is None or not np.isfinite(value):
@@ -410,24 +334,23 @@ def _precip_gee_fallback(geom: dict, year: int, warnings: list[str], motivo: str
     warnings.append(f"CHIRPS: {motivo}; la lluvia se leyó del mismo producto CHIRPS a través de Google Earth Engine.")
     return round(float(value), 3)
 
-
 def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
     start = date(year, 4, 1)
-    days = [start + timedelta(d) for d in range((date(year, 6, 1) - start).days)]  # 1 abr – 31 may
+    days = [start + timedelta(d) for d in range((date(year, 6, 1) - start).days)]  
     log = logging.getLogger(__name__)
 
-    # 0) Rejilla local (sin red): es el mismo CHIRPS ya acumulado.
+    
     local = _chirps_local_total(geom, year)
     if local is not None:
         return local
 
-    # 1) Caché en disco: si los 61 días ya se leyeron antes para esta parcela, no hace falta tocar el servidor del CHC.
+    
     geom_key = hashlib.sha1(json.dumps(geom, sort_keys=True).encode()).hexdigest()[:16]
     for cached_tpl in _chirps_templates():
         tkey = hashlib.sha1(cached_tpl.encode()).hexdigest()[:8]
         try:
             vals = [json.loads((CHIRPS_CACHE_DIR / f"{geom_key}_{tkey}" / f"{d.isoformat()}.json").read_text())["mm"] for d in days]
-        except Exception:  # noqa: BLE001 — falta algún día o no hay caché
+        except Exception:  
             continue
         if "v3.0" in cached_tpl:
             warnings.append(
@@ -458,7 +381,7 @@ def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
     def cache_get(d: date):
         try:
             return json.loads(cache_file(d).read_text())["mm"]
-        except Exception:  # noqa: BLE001 — el caché es opcional
+        except Exception:  
             return None
 
     def cache_set(d: date, mm: float) -> None:
@@ -466,7 +389,7 @@ def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
             f = cache_file(d)
             f.parent.mkdir(parents=True, exist_ok=True)
             f.write_text(json.dumps({"mm": mm}))
-        except Exception:  # noqa: BLE001
+        except Exception:  
             pass
 
     errors: list[str] = []
@@ -479,12 +402,12 @@ def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
                 if v is not None:
                     return v
                 errors.append(f"Sin datos válidos en el píxel [{url}]")
-                return None  # no es un fallo de red: reintentar no cambia nada
-            except Exception as e:  # noqa: BLE001
+                return None  
+            except Exception as e:  
                 if attempt == tries - 1:
                     errors.append(f"{type(e).__name__}: {_short(e)} [{url}]")
                 else:
-                    time.sleep(2 ** attempt)  # 1, 2, 4 s: deja respirar al servidor
+                    time.sleep(2 ** attempt)  
         return None
 
     values: dict[date, float] = {}
@@ -496,14 +419,14 @@ def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
         else:
             pending.append(d)
 
-    # 1) Lectura con pocos hilos.
+    
     with ThreadPoolExecutor(CHIRPS_WORKERS) as pool:
         for d, v in zip(pending, pool.map(read_day, pending)):
             if v is not None:
                 values[d] = v
                 cache_set(d, v)
 
-    # 2) Los que fallaron (típicamente 403 por ráfaga) se reintentan uno a uno, con pausa.
+    
     still = [d for d in days if d not in values]
     if still:
         time.sleep(5)
@@ -513,7 +436,7 @@ def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
                 values[d] = v
                 cache_set(d, v)
 
-    # 3) Si aún faltan, se prueba con las otras plantillas SOLO para esos días (se avisa: puede ser otra versión).
+    
     still = [d for d in days if d not in values]
     used_alt = False
     if still:
@@ -542,7 +465,7 @@ def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
                 "y el modelo usó la mediana de entrenamiento."
             )
             return None
-        # Pocos días perdidos: se escala por días válidos / totales y se avisa que es una estimación.
+        
         warnings.append(
             f"CHIRPS: faltaron {missing} de {len(days)} días ({detail}); la lluvia se escaló con los "
             f"{len(values)} días válidos (estimada)."
@@ -555,15 +478,10 @@ def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
         )
     return round(sum(values.values()), 3)
 
-
-# ─────────────────────────────── Catálogo y orquestación ───────────────────────────────
-
-
 def _open_client():
     from pystac_client import Client
 
     return Client.open(STAC_API_URL)
-
 
 def _search(client, collection: str, geometry: dict, year: int) -> list:
     search = client.search(
@@ -575,13 +493,8 @@ def _search(client, collection: str, geometry: dict, year: int) -> list:
     )
     return list(search.items())
 
-
 def extract_features_stac(geometry_geojson: dict, year: int = 2025) -> dict:
-    """
-    Calcula las 10 features del modelo para un polígono, solo con fuentes abiertas.
-    Devuelve:
-        {"features": {...10...}, "advertencias": [...], "area_ha": float}
-    """
+    
     geometry, area_ha = validate_geometry(geometry_geojson)
     year = validate_year(year)
     warnings: list[str] = []
@@ -596,10 +509,10 @@ def extract_features_stac(geometry_geojson: dict, year: int = 2025) -> dict:
             client = _open_client()
             s2_items = _retry(_search, client, S2_COLLECTION, geometry, year)
             ls_items = _retry(_search, client, LS_COLLECTION, geometry, year)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:  
             raise SatelliteError(f"No se pudo consultar el catálogo de imágenes ({STAC_API_URL}): {_short(e)}") from None
 
-        # ── Conteo de fechas con escena (Sentinel-2 + Landsat 8/9, nubes <= 40 %) ──
+        
         s2_dates = {_utc_day(it.datetime) for it in s2_items if it.datetime}
         ls_dates = {
             _utc_day(it.datetime)
@@ -610,7 +523,7 @@ def extract_features_stac(geometry_geojson: dict, year: int = 2025) -> dict:
         }
         n_obs = len(s2_dates) + len(ls_dates)
 
-        # ── Escenas Sentinel-2 por ventana fenológica ──
+        
         scenes_by_window: dict[str, list] = {w: [] for w in PHENO_WINDOWS}
         for it in _dedupe(s2_items):
             if it.datetime and _utc_day(it.datetime).month in WINDOW_OF_MONTH:
@@ -623,7 +536,7 @@ def extract_features_stac(geometry_geojson: dict, year: int = 2025) -> dict:
                 return ("skip", None)
             try:
                 return ("ok", _retry(_scene_means, refs, geometry))
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:  
                 return ("fail", _short(e))
 
         medians: dict[str, dict[str, float | None]] = {}
@@ -670,7 +583,7 @@ def extract_features_stac(geometry_geojson: dict, year: int = 2025) -> dict:
             f"Solo se obtuvieron {len(FEATURE_KEYS) - len(missing)} de {len(FEATURE_KEYS)} variables en {year}. "
             "Suele pasar si las escenas están muy nubladas o el año aún no tiene datos en esa ventana."
         )
-    precip_explained = any(w.startswith("CHIRPS:") for w in warnings)  # ya hay un aviso específico de la lluvia
+    precip_explained = any(w.startswith("CHIRPS:") for w in warnings)  
     for k in missing:
         if k == "precip_acum_emergencia_macollamiento_mm" and precip_explained:
             continue

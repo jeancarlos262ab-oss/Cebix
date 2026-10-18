@@ -1,63 +1,29 @@
-/**
- * Render rápido del globo en CPU (sin WebGL).
- *
- * Idea central: la columna de textura de cada píxel es  atan2(nx, z1) + lon0,
- * donde z1 depende solo de la inclinación (lat0). Girar de lado = sumar un
- * desplazamiento a una tabla ya calculada; solo si cambia la inclinación se
- * recalcula esa tabla.
- *
- *  1. Una vez por textura  → prepareGlobeTexture(): filas lineales en sen(lat)
- *     (adiós atanh por píxel) + mipmaps de caja. Se hace en rebanadas.
- *  2. Una vez por tamaño   → SphereRaster.configure(): normal, luz y bruma por
- *     píxel (la luz está fija a la pantalla, no cambia al girar).
- *  3. Al cambiar lat       → tabla de columna base, fila y nivel de mip por píxel.
- *  4. En cada cuadro       → por píxel: sumar desplazamiento, leer textura, aplicar luz y bruma.
- *
- * Módulo puro (sin DOM): se puede probar en Node. La referencia exacta sigue
- * siendo renderSphere() de globeRender.js.
- */
 import { LIGHT, WRAP, AMBIENT, SHADE_GAMMA, HAZE, HAZE_BASE, HAZE_RIM, HAZE_FLOOR } from "./globeRender.js";
 
 const INV_2PI = 1 / (2 * Math.PI);
 const HALF_PI = Math.PI / 2;
 
-/** sen(lat) máximo que cubre Web Mercator (lat ≈ 85.0511°): tanh(π). */
 const SMAX = Math.tanh(Math.PI);
 
 const RB = 0x00ff00ff;
 const GM = 0x0000ff00;
-const FLAT = [58, 68, 82]; // esfera sin textura (igual que la referencia)
+const FLAT = [58, 68, 82]; 
 
-/* ───────────── atan2 aproximado ───────────── */
-
-/** atan(t) para t en [0,1]: Abramowitz & Stegun 4.4.49 (error ≤ 1e-5 rad). */
 function atanPoly(t) {
   const t2 = t * t;
   return t * (0.999866 + t2 * (-0.3302995 + t2 * (0.180141 + t2 * (-0.085133 + t2 * 0.0208351))));
 }
 
-/* ───────────── paso 1: textura lineal en sen(lat) + mipmaps ───────────── */
-
 const defaultYield = () => new Promise((r) => setTimeout(r, 0));
 const defaultNow = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
 
-/** Fila (continua, con centros de texel en +0.5) de la textura Mercator para un sen(lat). */
 const mercRow = (s, th) => (0.5 - Math.atanh(s) * INV_2PI) * th - 0.5;
 
-/**
- * Convierte una textura Web Mercator en una textura equirrectangular en sen(lat)
- * (filas uniformes en el seno de la latitud) con su cadena de mipmaps.
- *
- * @param {{data:Uint32Array,w:number,h:number,top:number[],bottom:number[]}} merc  w debe ser potencia de 2
- * @param {{sliceMs?:number, yieldFn?:()=>Promise<void>, now?:()=>number}} [opts]
- *        Trabaja en rebanadas de ~sliceMs y cede el hilo entre una y otra.
- * @returns {Promise<{levels:{data:Uint32Array,w:number,h:number}[], top:number[], bottom:number[]}>}
- */
 export async function prepareGlobeTexture(merc, opts = {}) {
   const { sliceMs = 8, yieldFn = defaultYield, now = defaultNow } = opts;
   const { data: src, w: tw, h: th } = merc;
   if (tw & (tw - 1)) throw new Error("El ancho de la textura debe ser potencia de 2");
-  const H = th >> 1; // con la mitad de filas se conserva (o mejora) el detalle hasta ~37° de latitud
+  const H = th >> 1; 
   const base = new Uint32Array(tw * H);
   const acc = new Float32Array(tw * 3);
 
@@ -70,7 +36,7 @@ export async function prepareGlobeTexture(merc, opts = {}) {
   };
 
   for (let j = 0; j < H; j++) {
-    // La fila j abarca sen(lat) ∈ [sb, sa]; en Mercator eso son `span` filas de la fuente (promedio de caja).
+    
     const ya = mercRow(SMAX * (1 - (2 * j) / H), th);
     const yb = mercRow(SMAX * (1 - (2 * (j + 1)) / H), th);
     const span = yb - ya;
@@ -104,7 +70,7 @@ export async function prepareGlobeTexture(merc, opts = {}) {
     await slice();
   }
 
-  // Mipmaps con filtro de caja 2×2 (suma empaquetada por carriles RB / G).
+  
   const levels = [{ data: base, w: tw, h: H }];
   for (;;) {
     const prev = levels[levels.length - 1];
@@ -135,11 +101,6 @@ export async function prepareGlobeTexture(merc, opts = {}) {
   return { levels, top: merc.top, bottom: merc.bottom };
 }
 
-/* ───────────── pasos 2-4: rasterizador por tablas ───────────── */
-
-// Umbrales de f² (texels² por píxel de pantalla) para pasar al nivel L: huella ≥ 2^(L + 0.4).
-// El sesgo +0.4 (algo más nítido que el mip "exacto") se eligió barriendo valores y midiendo el error
-// contra una imagen supermuestreada 4×: el mínimo está entre +0.25 y +0.5 (ver tools/verify-globe.mjs, prueba 5).
 const LOD_BIAS = 0.4;
 const LOD_T = new Float64Array(16);
 for (let L = 1; L < 16; L++) LOD_T[L] = 2 ** (2 * L + 2 * LOD_BIAS);
@@ -152,7 +113,7 @@ export class SphereRaster {
     this.tex = null;
     this.tiltOk = false;
     this.tiltLat = NaN;
-    /** true si el último render() tuvo que recalcular la tabla de inclinación (para cronometrar). */
+    
     this.lastTilt = false;
     this.bStart = new Int32Array(20);
   }
@@ -169,7 +130,7 @@ export class SphereRaster {
     this.vb = new Float32Array(cap);
     this.lvA = new Uint8Array(cap);
     this.ord = new Int32Array(cap);
-    // Copias en el orden de los grupos de mip: así el muestreo recorre la memoria de forma secuencial.
+    
     this.tbP = new Float32Array(cap);
     this.vbP = new Float32Array(cap);
     this.dstP = new Int32Array(cap);
@@ -178,18 +139,13 @@ export class SphereRaster {
 
   setTexture(tex) {
     this.tex = tex;
-    this.tiltOk = false; // el nivel de mip y los casquetes polares dependen del tamaño de la textura
+    this.tiltOk = false; 
     this.lodOk = false;
     this.permOk = false;
   }
 
-  /**
-   * Paso 2. Guarda para cada píxel de la esfera su normal y sus factores de luz y bruma.
-   * Mismas convenciones que renderSphere(): (cx, cy) y R en píxeles del búfer.
-   * @param {number} stride  ancho real del búfer de salida (Uint32Array)
-   * @param {number} w       ancho útil a calcular (≤ stride)
-   * @param {number} h       alto útil a calcular
-   */
+  
+
   configure(stride, w, h, cx, cy, R) {
     const x0 = Math.max(0, Math.floor(cx - R));
     const x1 = Math.min(w, Math.ceil(cx + R));
@@ -213,7 +169,7 @@ export class SphereRaster {
         nzA[n] = nz;
         dst[n] = row + px;
 
-        // Luz y bruma: idénticas a renderSphere(), pero agrupadas como  canal' = canal·mul + add.
+        
         const dot = nx * L0 + ny * L1 + nz * L2;
         let lit = ((dot + WRAP) / (1 + WRAP)) * 1.2;
         lit = lit < 0 ? 0 : lit > 1 ? 1 : lit;
@@ -239,10 +195,8 @@ export class SphereRaster {
     this.permOk = false;
   }
 
-  /**
-   * Paso 3. Para cada píxel: columna base (en vueltas, 0..1), fila normalizada (0..1) y nivel de mip.
-   * Se agrupan los píxeles por nivel para que el bucle de cada cuadro tenga constantes por nivel.
-   */
+  
+
   _tilt(lat0, reuseLod = false) {
     const { levels } = this.tex;
     const maxL = levels.length - 1;
@@ -250,16 +204,16 @@ export class SphereRaster {
     const H0 = levels[0].h;
     const sinP = Math.sin(lat0);
     const cosP = Math.cos(lat0);
-    const kU = (W0 * INV_2PI) / this.R; // texels de columna por radián, por píxel de pantalla
-    const kV = (H0 * 0.5) / SMAX / this.R; // texels de fila por unidad de sen(lat), por píxel
+    const kU = (W0 * INV_2PI) / this.R; 
+    const kV = (H0 * 0.5) / SMAX / this.R; 
     const vScale = 0.5 / SMAX;
     const capTop = maxL + 1;
     const capBot = maxL + 2;
     const { nxA, nyA, nzA, tb, vb, lvA, ord, bStart, n } = this;
     const counts = bStart;
-    // Con la inclinación casi igual a la del cuadro anterior (vuelos y arrastres), el nivel de mip de
-    // cada píxel no cambia: se conserva y solo se recalculan fila y columna. Los píxeles que cruzan al
-    // casquete polar (o salen de él) sí se recalculan; si alguno cambia de grupo se reordena todo.
+    
+    
+    
     const keep = reuseLod && this.lodOk;
     let changed = !keep;
     if (!keep) counts.fill(0);
@@ -273,7 +227,7 @@ export class SphereRaster {
       const vN = 0.5 - yw * vScale;
       vb[i] = vN;
 
-      // α = atan2(nx, z1), aproximado.
+      
       const ax = nx < 0 ? -nx : nx;
       const az = z1 < 0 ? -z1 : z1;
       let a;
@@ -285,7 +239,7 @@ export class SphereRaster {
 
       if (keep) {
         const old = lvA[i];
-        if (vN >= 0 && vN <= 1 && old <= maxL) continue; // mismo nivel de mip
+        if (vN >= 0 && vN <= 1 && old <= maxL) continue; 
         const L = vN < 0 ? capTop : vN > 1 ? capBot : this._lod(nx, ny, nz, z1, sinP, cosP, kU, kV, maxL);
         if (L !== old) {
           lvA[i] = L;
@@ -294,8 +248,8 @@ export class SphereRaster {
         continue;
       }
 
-      // El casquete empieza donde termina Mercator (sen lat = ±SMAX, vN = 0 / 1), como en la
-      // referencia; entre el centro de la primera fila y ese borde se repite la fila extrema.
+      
+      
       const L = vN < 0 ? capTop : vN > 1 ? capBot : this._lod(nx, ny, nz, z1, sinP, cosP, kU, kV, maxL);
       lvA[i] = L;
       counts[L]++;
@@ -307,7 +261,7 @@ export class SphereRaster {
         counts.fill(0);
         for (let i = 0; i < n; i++) counts[lvA[i]]++;
       }
-      // Conteo → posiciones de inicio (bStart[L] = inicio del grupo L; bStart[capBot + 1] = n).
+      
       let acc = 0;
       for (let L = 0; L <= capBot; L++) {
         const c = counts[L];
@@ -315,13 +269,13 @@ export class SphereRaster {
         acc += c;
       }
       counts[capBot + 1] = acc;
-      // Colocación estable (los índices de cada grupo quedan crecientes → buen acceso a memoria).
+      
       const pos = this._pos || (this._pos = new Int32Array(20));
       pos.set(counts);
       for (let i = 0; i < n; i++) ord[pos[lvA[i]]++] = i;
     }
 
-    // Reordenación: si el orden no cambió solo se refrescan fila y columna; si cambió, también destino y luz.
+    
     {
       const { tbP, vbP, dstP, shP, dst, sh } = this;
       if (changed || !this.permOk) {
@@ -355,7 +309,7 @@ export class SphereRaster {
     this.maxL = maxL;
   }
 
-  /** Nivel de mip de un píxel: tamaño en texels de su huella en pantalla (derivadas analíticas). */
+  
   _lod(nx, ny, nz, z1, sinP, cosP, kU, kV, maxL) {
     const inz = 1 / (nz > 1e-3 ? nz : 1e-3);
     const gx = nx * inz;
@@ -377,11 +331,8 @@ export class SphereRaster {
     return L;
   }
 
-  /**
-   * Paso 4 (y el resto si hace falta). Escribe la esfera en `out` (Uint32Array RGBA).
-   * Solo recalcula la tabla de inclinación si lat0 cambió; girar en longitud no hace trigonometría.
-   * `out` debe tener ya en cero los píxeles fuera de la esfera.
-   */
+  
+
   render(out, lon0, lat0, fast = false) {
     if (!this.tex) {
       this.lastTilt = false;
@@ -389,8 +340,8 @@ export class SphereRaster {
       return;
     }
     if (!this.tiltOk || Math.abs(lat0 - this.tiltLat) > 1e-6) {
-      // En movimiento, mientras la inclinación siga a menos de ~1° de la del último cálculo completo de
-      // niveles de mip, se reutilizan esos niveles (cambian muy poco); pasado ese margen se recalculan.
+      
+      
       this._tilt(lat0, fast && this.lodOk && Math.abs(lat0 - this.lodLat) < 0.02);
       this.lastTilt = true;
     } else this.lastTilt = false;
@@ -428,7 +379,7 @@ export class SphereRaster {
       const H = lev.h;
       const mask = W - 1;
       const hMax = H - 1;
-      const uOff = o * W + W - 0.5; // +W mantiene u positivo; la máscara resuelve la costura de ±180°
+      const uOff = o * W + W - 0.5; 
       for (let j = j0; j < j1; j++) {
         const u = tbP[j] * W + uOff;
         const xi = u | 0;
@@ -447,7 +398,7 @@ export class SphereRaster {
         const c11 = d[o1 + xb];
         const fx1 = 256 - fx;
         const fy1 = 256 - fy;
-        // Bilineal en enteros: R y B juntos (carriles de 16 bits), G aparte.
+        
         const ha = ((c00 & RB) * fx1 + (c10 & RB) * fx + 0x00800080) >>> 8;
         const hb = ((c01 & RB) * fx1 + (c11 & RB) * fx + 0x00800080) >>> 8;
         const rb = (ha & RB) * fy1 + (hb & RB) * fy + 0x00800080;
@@ -465,7 +416,7 @@ export class SphereRaster {
       }
     }
 
-    // Casquetes polares: color liso (promedio de la fila extrema), con luz y bruma.
+    
     for (let c = 0; c < 2; c++) {
       const L = maxL + 1 + c;
       const col = c === 0 ? top : bottom;

@@ -1,17 +1,13 @@
-"""Estado del servicio."""
-
 from fastapi import APIRouter
 
 from app.services.model_service import get_artifact
 
 router = APIRouter(tags=["estado"])
 
-
 @router.get("/health")
 def health():
-    # Ligero: no carga el modelo. Es el health check de Render.
+    
     return {"status": "ok"}
-
 
 @router.get("/")
 def root():

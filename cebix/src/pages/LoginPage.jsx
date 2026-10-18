@@ -24,7 +24,6 @@ function getAuthErrorMessage(error) {
   return "No pudimos iniciar sesión. Revisa tus datos e inténtalo de nuevo.";
 }
 
-// Códigos que devuelve /api/verify-otp (ver src/services/otpApi.js).
 function getResetErrorMessage(error) {
   if (!error) return "No pudimos actualizar la contraseña. Intenta de nuevo.";
 
@@ -45,7 +44,6 @@ function getResetErrorMessage(error) {
   return "No pudimos actualizar la contraseña. Intenta de nuevo.";
 }
 
-// Título y subtítulo del layout según el paso en el que va el usuario.
 const HEADINGS = {
   login: { title: "Inicia sesión", subtitle: "Accede a tu espacio de trabajo CEBIX." },
   forgot: { title: "Recupera tu contraseña", subtitle: "Te enviaremos un código de 6 dígitos a tu correo." },
@@ -61,9 +59,9 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // "login" = formulario normal · "forgot" = pedir el correo para
-  // recuperar contraseña · "code" = escribir el código que llegó · "reset" =
-  // elegir la contraseña nueva · "done" = contraseña actualizada.
+  
+  
+  
   const [mode, setMode] = useState("login");
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [resetCode, setResetCode] = useState("");
@@ -95,8 +93,8 @@ export default function LoginPage() {
     event.preventDefault();
     setSubmitting(true);
 
-    // sendPasswordResetOtp nunca devuelve error (no revela si el correo
-    // tiene cuenta o no); si algo falla en la red, avisamos genéricamente.
+    
+    
     const { error: resetError } = await sendPasswordResetOtp(recoveryEmail.trim());
     setSubmitting(false);
 
@@ -108,8 +106,8 @@ export default function LoginPage() {
     setMode("code");
   }
 
-  // Paso 2: se valida el código en el servidor (sin consumirlo) y solo si es
-  // correcto se muestran los campos de la contraseña nueva.
+  
+  
   async function handleCodeSubmit(event) {
     event.preventDefault();
     if (resetCode.length < 6) return;
@@ -157,7 +155,7 @@ export default function LoginPage() {
 
     if (verifyError) {
       toast.error(getResetErrorMessage(verifyError));
-      // Por si el código venció entre un paso y otro: volver al paso del código.
+      
       if (["invalid", "no_code", "expired"].includes(verifyError.message)) {
         setResetCode("");
         setMode("code");

@@ -4,11 +4,6 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 const ARROW =
   "pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-black/75 text-white/80 transition-colors hover:bg-black/90 hover:text-white";
 
-/**
- * Columna con scroll vertical y flechas arriba/abajo para ir mostrando el contenido.
- * Las flechas solo aparecen en escritorio y solo cuando hay más contenido en esa dirección.
- * `className` posiciona/dimensiona el contenedor; en celular fluye normal.
- */
 export default function ScrollColumn({ className = "", children }) {
   const ref = useRef(null);
   const [edges, setEdges] = useState({ up: false, down: false });
@@ -18,7 +13,7 @@ export default function ScrollColumn({ className = "", children }) {
     if (!el) return;
     const up = el.scrollTop > 4;
     const down = el.scrollTop + el.clientHeight < el.scrollHeight - 4;
-    // Mismo valor → mismo objeto → React no repinta (esto se ejecuta en CADA evento de scroll).
+    
     setEdges((prev) => (prev.up === up && prev.down === down ? prev : { up, down }));
   }, []);
 
@@ -39,7 +34,7 @@ export default function ScrollColumn({ className = "", children }) {
       <div
         ref={ref}
         onScroll={update}
-        // Difuminado solo del lado donde aún hay contenido: arriba si ya se desplazó, abajo si falta por ver.
+        
         style={{ "--fade-top": edges.up ? "36px" : "0px", "--fade-bottom": edges.down ? "36px" : "0px" }}
         className="scroll-fade flex h-full flex-col gap-3 [&>*]:shrink-0 lg:overflow-y-auto lg:px-3 lg:py-4 scrollbar-none"
       >

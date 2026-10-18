@@ -1,11 +1,10 @@
 import { supabase } from "./supabaseClient";
 
 const BUCKET = "avatars";
-const AVATAR_SIZE = 256; // miniatura cuadrada (barra lateral, perfil); la original se guarda aparte
-const MAX_INPUT_BYTES = 10 * 1024 * 1024; // lo que se acepta elegir (se reduce antes de subir)
+const AVATAR_SIZE = 256; 
+const MAX_INPUT_BYTES = 10 * 1024 * 1024; 
 export const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-/** Mensaje de error si el archivo no sirve, o null si está bien. */
 export function validateAvatarFile(file) {
   if (!file) return "No se eligió ningún archivo.";
   if (!ACCEPTED_TYPES.includes(file.type)) return "Usa una imagen JPG, PNG o WebP.";
@@ -29,10 +28,6 @@ function loadImage(file) {
   });
 }
 
-/**
- * Miniatura: recorta al centro en cuadrado y reduce a 256x256 (WebP, ~10-20 KB) para la barra
- * lateral y el perfil. La foto ORIGINAL se sube aparte y sin tocar (ver uploadAvatar).
- */
 export async function prepareAvatar(file) {
   const img = await loadImage(file);
   const side = Math.min(img.naturalWidth, img.naturalHeight);
@@ -51,7 +46,6 @@ export async function prepareAvatar(file) {
   return blob;
 }
 
-/** Borra todas las fotos anteriores de la persona (queda una sola carpeta limpia). */
 async function removeAllFor(userId, keep = []) {
   const { data } = await supabase.storage.from(BUCKET).list(userId);
   const stale = (data ?? []).map((f) => `${userId}/${f.name}`).filter((p) => !keep.includes(p));
@@ -60,12 +54,8 @@ async function removeAllFor(userId, keep = []) {
 
 const EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
-/**
- * Sube la miniatura Y el archivo original sin tocar (mismos bytes, misma calidad).
- * Devuelve { thumbUrl, fullUrl }.
- */
 export async function uploadAvatar(userId, thumbBlob, originalFile) {
-  // Nombres nuevos cada vez: evita que el navegador/CDN siga mostrando la foto vieja en caché.
+  
   const stamp = Date.now();
   const thumbPath = `${userId}/thumb-${stamp}.webp`;
   const fullPath = `${userId}/original-${stamp}.${EXT[originalFile.type] ?? "jpg"}`;
@@ -86,16 +76,14 @@ export async function uploadAvatar(userId, thumbBlob, originalFile) {
 
   const { data: thumb } = supabase.storage.from(BUCKET).getPublicUrl(thumbPath);
   const { data: full } = supabase.storage.from(BUCKET).getPublicUrl(fullPath);
-  removeAllFor(userId, [thumbPath, fullPath]).catch(() => {}); // limpieza: si falla, no importa
+  removeAllFor(userId, [thumbPath, fullPath]).catch(() => {}); 
   return { thumbUrl: thumb.publicUrl, fullUrl: full.publicUrl };
 }
 
-/** Quita la foto guardada de la persona. */
 export async function deleteAvatar(userId) {
   await removeAllFor(userId);
 }
 
-/** Traduce los errores típicos de Supabase Storage a algo que se entienda. */
 export function avatarErrorMessage(err) {
   const msg = String(err?.message ?? err ?? "");
   if (/bucket not found/i.test(msg)) return "No pudimos guardar tu foto por el momento. Inténtalo más tarde.";

@@ -1,21 +1,6 @@
 import { useCallback, useEffect, useState, memo } from "react";
 import { Plus, Minus, Compass, Maximize2, Minimize2 } from "lucide-react";
 
-/**
- * Controles personalizados para el motor ligero (Leaflet).
- *
- * Misma interfaz visual que CustomMapControls (motor GL), pero hablando
- * directamente con la API imperativa de Leaflet en vez de MapLibre.
- *
- * @param {{
- *   mapRef: RefObject,          // ref.current = instancia L.Map (no .getMap())
- *   initialCenter: [number, number], // [lat, lng]
- *   initialZoom: number,
- *   position?: "top-right" | "bottom-right" | "bottom-left" | "top-left",
- *   orientation?: "vertical" | "horizontal",   // dirección de la barra (por defecto vertical)
- *   containerRef?: RefObject,
- * }} props
- */
 function LiteMapControls({
   mapRef,
   initialCenter,

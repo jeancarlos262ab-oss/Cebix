@@ -1,10 +1,3 @@
-/**
- * Especificación de las 10 variables que calcula la pantalla 'Parcela satelital' (ver
- * ml/GUIA_GOOGLE_EARTH_ENGINE.md y backend/stac_features.py). Aquí NO hay resultados del modelo:
- * solo la definición de qué se calcula, de dónde y en qué ventana.
- */
-
-/** Ventanas fenológicas fijas (iguales a PHENO_WINDOWS de ml/01_pipeline_features/build_features.py). */
 export const WINDOWS = {
   emergencia: { label: "Emergencia–macollamiento", range: "1 abr – 31 may" },
   encanado: { label: "Encañado", range: "1 jun – 31 jul" },
@@ -18,7 +11,6 @@ export const SOURCES = {
   scenes: { label: "Sentinel-2 + Landsat 8/9", short: "S2+L", dataset: "Conteo de fechas con escena (nubes ≤ 40 %)" },
 };
 
-/** Las 10 features del modelo final, en el orden de la guía. `digits` = decimales al mostrarlas. */
 export const SAT_FEATURES = [
   {
     key: "precip_acum_emergencia_macollamiento_mm",
@@ -113,39 +105,28 @@ export const SAT_FEATURES = [
   },
 ];
 
-/** Año con el que se entrenó el modelo (ciclo abril–octubre). */
 export const TRAINED_YEAR = 2025;
 
-// Superficie máxima que acepta el cálculo satelital (el servicio no alcanza a procesar más): al pasarla la malla
-// se pinta en rojo y 'Calcular' queda bloqueado hasta que el contorno se ajuste. Debe coincidir con SAT_MAX_AREA_HA
-// del backend. A partir de WARN_AREA_HA solo se advierte que la zona mezcla coberturas distintas.
 export const MAX_AREA_HA = 5000;
 export const WARN_AREA_HA = 1000;
 export const YEARS = [2025, 2024, 2023];
 
-// Zona urbana (ciudad o pueblo): el modelo es de cebada de temporal y las parcelas deben ser SOLO terreno agrícola.
-// Se rechaza el contorno si OpenStreetMap muestra cualquiera de estas señales dentro de él. Muchos pueblos pequeños están
-// poco mapeados, por eso se combinan varias señales y los umbrales son bajos a propósito (mejor un falso aviso que dejar
-// pasar un pueblo). Ajústalos si resultan demasiado estrictos.
-export const URBAN_MAX_SHARE = 0.05; // fracción de puntos de muestra sobre mancha urbana (landuse residencial, comercial…)
-export const URBAN_MIN_BUILDINGS = 3; // construcciones dentro del contorno…
-export const URBAN_BUILDINGS_PER_HA = 1.5; // …y por hectárea
-export const URBAN_MIN_PLACES = 1; // poblados marcados (place=city/town/village/hamlet/suburb…) dentro del contorno
-export const URBAN_MIN_STREETS = 2; // calles urbanas (residential, living_street, pedestrian) dentro del contorno
-export const URBAN_MIN_AMENITIES = 3; // comercios, escuelas, iglesias… dentro del contorno
+export const URBAN_MAX_SHARE = 0.05; 
+export const URBAN_MIN_BUILDINGS = 3; 
+export const URBAN_BUILDINGS_PER_HA = 1.5; 
+export const URBAN_MIN_PLACES = 1; 
+export const URBAN_MIN_STREETS = 2; 
+export const URBAN_MIN_AMENITIES = 3; 
 
-/** Estados con los que se entrenó y valida el modelo. */
 export const ESTADOS = ["Hidalgo", "Puebla", "Tlaxcala"];
 
-/** Tolerancias del Paso 8 de la guía: índices y lluvia ±15 %; el conteo de escenas puede diferir más. */
 export const VALIDATION_TOLERANCE = { default: 15, bas_n_obs_ciclo: 30 };
 
-/** Preguntas del botón de información de la pantalla. */
 export const SAT_QUESTIONS = [
   {
     question: "¿Qué hace esta pantalla?",
     answer:
-      "Dibujas el contorno de una parcela nueva sobre el mapa satelital y el servidor lee imágenes satelitales reales para calcular las 10 variables que usa el modelo. Con ellas el Random Forest estima el rendimiento, el intervalo de confianza y el semáforo de elegibilidad, igual que con las parcelas del dataset.",
+      "Dibujas el contorno de una parcela nueva sobre el mapa satelital y el servidor lee imágenes satelitales reales para calcular las 10 variables que usa el modelo. Con ellas el Random Forest estima el rendimiento, el intervalo de confianza y el semáforo de rendimiento, igual que con las parcelas del dataset.",
   },
   {
     question: "¿De dónde salen los datos y cuánto cuestan?",

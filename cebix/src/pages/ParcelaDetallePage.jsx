@@ -10,15 +10,13 @@ import { Contributions, Label, RangeBar, Row } from "../components/results/Repor
 import FeaturesTable from "../components/satelite/FeaturesTable";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { useModelInfo } from "../context/ModelInfoContext";
-import { generateCreditReportPDF } from "../utils/creditReport";
+import { generateYieldReportPDF } from "../utils/yieldReport";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import ParcelFormModal from "../components/dashboard/ParcelFormModal";
 import useParcelActions from "../hooks/useParcelActions";
 import { formatNumber as intlNumber } from "../utils/intl";
 
-// Los valores del modelo/CSV pueden traer muchos decimales (p. ej. 512.34567891):
-// se redondean para que quepan en el recuadro y se separan los miles.
 function formatNumber(value, maxDecimals = 1) {
   const n = Number(value);
   if (!Number.isFinite(n)) return "—";
@@ -31,8 +29,8 @@ function ParcelaDetallePageContent() {
   const { parcels } = useParcels();
   const { info } = useModelInfo();
   const { saveParcel, deleteParcel } = useParcelActions();
-  const [dialog, setDialog] = useState(null); // null | "edit" | "delete"
-  const deletingRef = useRef(false); // evita el aviso "no se encontró" mientras se elimina y se navega
+  const [dialog, setDialog] = useState(null); 
+  const deletingRef = useRef(false); 
   const parcel = parcels.find((p) => String(p.id) === id);
 
   if (!parcel) {
@@ -47,7 +45,7 @@ function ParcelaDetallePageContent() {
     );
   }
 
-  // Mitad del intervalo al 90 %: el calibrado del modelo si lo hay; si no, el margen guardado.
+  
   const halfIc = parcel.ic90 ? (parcel.ic90[1] - parcel.ic90[0]) / 2 : parcel.confidence;
 
   return (
@@ -88,16 +86,16 @@ function ParcelaDetallePageContent() {
       <div className="mt-6" aria-hidden="true" />
 
       <div className="space-y-10 px-4 py-6 sm:px-6 lg:px-8">
-        {/* Fila superior: mapa | indicadores | score. En pantalla ancha los tres miden lo mismo
-            que el recuadro del score de elegibilidad (el más alto): el mapa va en posición
-            absoluta para no aportar altura y los indicadores se reparten el alto disponible. */}
+        {
+
+}
         <div className="grid grid-cols-1 gap-10 xl:grid-cols-[minmax(0,1fr)_230px_360px]">
           <div className="relative h-72 min-w-0 xl:h-auto">
             <div className="absolute inset-0">
               {hasCoords(parcel) ? (
                 <ParcelMap
-                  // Al cambiar de parcela (o editar sus coordenadas) el mapa se recrea centrado en ese punto;
-                  // sin la key conservaba la vista de la parcela anterior.
+                  
+                  
                   key={`${parcel.id}:${parcel.lat}:${parcel.lng}`}
                   parcels={[parcel]}
                   height="100%"
@@ -116,7 +114,7 @@ function ParcelaDetallePageContent() {
             </div>
           </div>
 
-          {/* Indicadores del ciclo: celdas unidas por una línea fina, sin iconos ni énfasis de color. */}
+          {}
           <section className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
             {[
               { label: "NDVI pico", value: parcel.ndvi.toFixed(2), hint: "Máximo del ciclo" },
@@ -140,7 +138,7 @@ function ParcelaDetallePageContent() {
         </div>
 
         <div className="grid grid-cols-1 items-start gap-10 xl:grid-cols-[minmax(0,1fr)_360px]">
-          {/* Columna principal */}
+          {}
           <div className="min-w-0 space-y-10">
             <RangeNotice parcel={parcel} />
             <section className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
@@ -165,7 +163,7 @@ function ParcelaDetallePageContent() {
               <Contributions data={parcel.shap} />
             </section>
 
-            {/* Solo parcelas guardadas desde 'Parcela satelital': lo que se calculó en ese momento. */}
+            {}
             {parcel.satelite?.features && (
               <section>
                 <Label>Variables calculadas desde satélite</Label>
@@ -184,7 +182,7 @@ function ParcelaDetallePageContent() {
             )}
           </div>
 
-          {/* Columna lateral */}
+          {}
           <aside className="min-w-0 space-y-10">
             <section>
               <Label>Ficha de la parcela</Label>
@@ -203,7 +201,7 @@ function ParcelaDetallePageContent() {
               type="button"
               onClick={async () => {
                 try {
-                  await generateCreditReportPDF(parcel, { modelSummary: info?.modelSummary });
+                  await generateYieldReportPDF(parcel, { modelSummary: info?.modelSummary });
                   toast.success("Reporte PDF generado.");
                 } catch (err) {
                   console.error("Error al generar el PDF", err);

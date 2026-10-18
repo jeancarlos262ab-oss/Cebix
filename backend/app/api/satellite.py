@@ -1,5 +1,3 @@
-"""Parcelas nuevas: calcula las 10 features desde satélite y corre el modelo."""
-
 import pandas as pd
 from fastapi import APIRouter, HTTPException
 
@@ -10,30 +8,21 @@ from app.services.model_service import get_artifact, run_inference, variant_from
 
 router = APIRouter(tags=["satélite"])
 
-
 @router.get("/satellite-status")
 def satellite_status():
-    """Diagnóstico sin tocar la red: proveedor activo y si sus librerías/credenciales están listas."""
+    
     return satellite_service.status()
-
 
 @router.post("/predict-from-geometry")
 def predict_from_geometry(payload: GeometryRequest):
-    """
-    Calcula en vivo las 10 features de una parcela nueva desde satélite y corre el modelo.
-    Usa fuentes abiertas (Sentinel-2, Landsat y CHIRPS), sin cuenta; tarda ~30–90 s. Un solo cálculo a la vez.
-    Superficie máxima: SAT_MAX_AREA_HA (5000 ha); entre 1000 ha y el máximo se calcula pero con advertencia.
-
-    Errores: 422 geometría/año inválidos o sin datos satelitales, 429 otro cálculo en curso,
-    502 falla de la fuente de imágenes, 503 librerías o credenciales faltantes en el servidor.
-    """
+    
     try:
         extracted = satellite_service.extract(payload.geometry, payload.anio)
     except SatelliteError as e:
         raise HTTPException(status_code=e.status, detail=e.message) from None
 
     features = extracted["features"]
-    df = pd.DataFrame([features]).astype(float)  # None -> NaN: el imputer entrenado los rellena
+    df = pd.DataFrame([features]).astype(float)  
     variant = variant_from_modo(payload.modo)
     result = run_inference(df, [payload.Estado], variant)[0]
 

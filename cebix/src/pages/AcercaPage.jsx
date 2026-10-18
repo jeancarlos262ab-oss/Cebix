@@ -1,27 +1,17 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, CalendarRange, ChevronRight, CloudRain, GraduationCap, ImageIcon, Landmark, MapPin, Network, Satellite, Sprout } from "lucide-react";
-import logoFira from "../assets/acerca/logo-fira.webp";
+import { ArrowUpRight, CalendarRange, ChevronRight, CloudRain, ImageIcon, MapPin, Network, Satellite, Sprout } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import { useParcels } from "../context/ParcelsContext";
 import { RISK_COLORS } from "../utils/riskColors";
 import { WINDOWS } from "../data/satelite";
 import { Card, CHIP, DIVIDE, Fact, Heading, HERO_MASK, LINE, Reveal, useHeroSize } from "../components/ui/PageKit";
 
-/* ───────────── Imágenes ─────────────
- * Cada recuadro busca src/assets/acerca/imagen-N.webp. Si el archivo existe se muestra
- * solo; si no, se ve un recuadro que dice qué foto poner. */
 const FILES = import.meta.glob("../assets/acerca/imagen-*.webp", { eager: true, import: "default" });
-/* Logo de FIRA sin fondo. Es azul marino, así que en tema oscuro se pasa a blanco para que se lea. */
-function FiraLogo({ className = "h-12" }) {
-  return <img src={logoFira} alt="FIRA" decoding="async" className={`w-auto dark:brightness-0 dark:invert ${className}`} />;
-}
-
 const imageFor = (n) => Object.entries(FILES).find(([path]) => new RegExp(`/imagen-${n}\\.[a-z]+$`).test(path))?.[1];
 
 const SLOTS = {
   1: { title: "Espiga de cebada en el campo", hint: "Foto de día con la espiga bien visible. Es la imagen principal de la pantalla.", size: "1600 × 1200" },
-  2: { title: "Productor revisando su cultivo", hint: "Una persona revisando el cultivo. Da rostro a quien recibe el crédito.", size: "1600 × 1000" },
   3: { title: "Cebada recién emergida", hint: "Plántulas o macollos de cebada, cerca del suelo.", size: "1200 × 900" },
   4: { title: "Cebada en encañado", hint: "Tallos alargándose, cultivo verde y alto, aún sin espiga.", size: "1200 × 900" },
   5: { title: "Cebada espigada", hint: "Espigas formadas y grano llenándose, color dorado verdoso.", size: "1200 × 900" },
@@ -29,13 +19,11 @@ const SLOTS = {
   7: { title: "Zona de estudio desde el aire", hint: "Vista aérea o satelital de Hidalgo, Puebla y Tlaxcala.", size: "1200 × 900" },
 };
 
-/* Foto con carga suave: mientras llega se ve un fondo que pulsa, y al cargar aparece con un fundido corto.
- * `badge` es una etiqueta de vidrio sobre la foto; `zoom` la acerca un poco al pasar el cursor por su grupo. */
 const Photo = memo(function Photo({ src, alt, className, position, eager, badge, zoom }) {
   const ref = useRef(null);
   const [loaded, setLoaded] = useState(false);
 
-  // Si la imagen ya estaba en caché, onLoad pudo dispararse antes de montar.
+  
   useEffect(() => {
     if (ref.current?.complete && ref.current.naturalWidth > 0) setLoaded(true);
   }, [src]);
@@ -87,27 +75,19 @@ function ImageSlot({ n, className = "", position = "center", eager = false, badg
 
 const MONTHS = ["Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct"];
 
-/* El color de cada etapa se repite en el calendario y en la tarjeta, para ligar etapa y meses. */
 const STAGES = [
   { key: "emergencia", name: "Emergencia", img: 3, from: 1, chip: "bg-ndvi-400 text-ndvi-700", text: "Nace la planta y forma sus primeros hijuelos (macollos). La lluvia de esta etapa es la que más pesa en el rendimiento final." },
   { key: "encanado", name: "Encañado", img: 4, from: 3, chip: "bg-ndvi-600 text-white", text: "El tallo se alarga y se define cuántas espigas podrá sostener la planta." },
   { key: "espigado", name: "Espigado", img: 5, from: 5, chip: "bg-brand-400 text-brand-700", text: "Sale la espiga y se llena el grano: se juega la calidad y el peso de la cosecha." },
 ];
 
-/* El ancho de cada tramo es proporcional a su rango de puntaje (0–44, 45–69, 70–100). */
 const SEMAFORO = [
-  { color: RISK_COLORS.red, label: "Alto riesgo", range: "0 – 44", width: 45, text: "El rendimiento esperado no alcanza para respaldar el crédito." },
-  { color: RISK_COLORS.yellow, label: "Revisión manual", range: "45 – 69", width: 25, text: "Hay señales mixtas: conviene que un analista la revise." },
-  { color: RISK_COLORS.green, label: "Elegible", range: "70 – 100", width: 30, text: "El rendimiento esperado respalda el crédito." },
+  { color: RISK_COLORS.red, label: "Rendimiento bajo", range: "0 – 44", width: 45, text: "Es poco probable que alcance el rendimiento de referencia (3.5 t/ha)." },
+  { color: RISK_COLORS.yellow, label: "Rendimiento medio", range: "45 – 69", width: 25, text: "Señales mixtas: conviene darle seguimiento durante el ciclo." },
+  { color: RISK_COLORS.green, label: "Rendimiento alto", range: "70 – 100", width: 30, text: "Es probable que alcance o supere el rendimiento de referencia." },
 ];
 
-const FLOW = ["Satélite y clima", "Rendimiento estimado", "Puntaje de 0 a 100", "Semáforo"];
-
-const FIRA_POINTS = [
-  { icon: Landmark, title: "Qué es", text: "Un conjunto de fideicomisos públicos del Gobierno Federal, operados por el Banco de México, que desde 1954 impulsan el financiamiento del campo y del sector agroalimentario." },
-  { icon: Network, title: "Cómo llega al productor", text: "Opera como banca de segundo piso: no presta directamente, sino que fondea y garantiza a bancos y otros intermediarios financieros, que otorgan el crédito." },
-  { icon: GraduationCap, title: "Más que crédito", text: "Además del financiamiento y las garantías, ofrece capacitación, asistencia técnica y transferencia de tecnología para que el productor sea sujeto de crédito." },
-];
+const FLOW = ["Satélite y clima", "Rendimiento estimado", "Índice de 0 a 100", "Nivel de rendimiento"];
 
 const DATA = [
   { icon: Satellite, name: "Sentinel-2 y Landsat", text: "Imágenes satelitales abiertas: de ellas salen los índices de vegetación (NDVI, EVI, LAI y otros) de cada parcela." },
@@ -120,10 +100,7 @@ const QUICK = [
   { icon: MapPin, label: "Zona de estudio", value: "Hidalgo, Puebla y Tlaxcala" },
   { icon: CalendarRange, label: "Ciclo", value: "Abril a octubre" },
   { icon: CloudRain, label: "Manejo", value: "Temporal, sin riego" },
-  { icon: Landmark, label: "Institución", value: "FIRA · desde 1954" },
 ];
-
-/* ───────────── Columna derecha (tarjetas con contorno) ───────────── */
 
 const QuickInfo = memo(function QuickInfo() {
   return (
@@ -143,16 +120,15 @@ const QuickInfo = memo(function QuickInfo() {
   );
 });
 
-/* Conteos reales de las parcelas del usuario, con el mismo semáforo que el resto de la app. */
 function ParcelsGlance() {
   const { parcels } = useParcels();
   const rows = useMemo(() => {
     const counts = { green: 0, yellow: 0, red: 0 };
     for (const p of parcels) if (p.riskColor in counts) counts[p.riskColor] += 1;
     return [
-      { key: "green", label: "Elegibles", color: RISK_COLORS.green },
-      { key: "yellow", label: "Revisión manual", color: RISK_COLORS.yellow },
-      { key: "red", label: "Alto riesgo", color: RISK_COLORS.red },
+      { key: "green", label: "Rendimiento alto", color: RISK_COLORS.green },
+      { key: "yellow", label: "Rendimiento medio", color: RISK_COLORS.yellow },
+      { key: "red", label: "Rendimiento bajo", color: RISK_COLORS.red },
     ].map((r) => ({ ...r, n: counts[r.key] }));
   }, [parcels]);
 
@@ -186,11 +162,11 @@ function ParcelsGlance() {
 export default function AcercaPage() {
   const rootRef = useRef(null);
   const heroRef = useRef(null);
-  useHeroSize(heroRef); // mismo tamaño de foto que Validación SHAP (ver PageKit)
+  useHeroSize(heroRef); 
 
   return (
     <div ref={rootRef} className="relative isolate overflow-x-clip">
-      {/* Foto pegada a la esquina superior derecha, detrás del encabezado */}
+      {}
       <div
         ref={heroRef}
         className="pointer-events-none absolute right-0 top-0 -z-10 h-80 w-full transform-gpu opacity-30 [contain:paint] lg:w-[45%] lg:opacity-100"
@@ -200,13 +176,13 @@ export default function AcercaPage() {
       </div>
 
       <TopBar
-        title="Cebada y FIRA"
-        subtitle="El cultivo, la institución que lo financia y el problema que resuelve CEBIX."
+        title="Cebada"
+        subtitle="El cultivo y el problema que resuelve CEBIX."
         hideSearch
       />
 
       <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-          {/* 1 · El cultivo: texto sobre la foto, datos en una fila sin caja */}
+          {}
           <Reveal className="pb-6 pt-10 lg:pt-16">
             <div className="max-w-xl">
               <Heading title="La cebada en el altiplano" large bebas>
@@ -222,10 +198,10 @@ export default function AcercaPage() {
             </div>
           </Reveal>
 
-          {/* 2 · Etapas del cultivo, con la columna de información a su derecha (sin fijar) */}
+          {}
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_280px] xl:items-start">
             <div className="min-w-0 space-y-6">
-          {/* 2 · Etapas: calendario arriba y tres columnas con foto */}
+          {}
           <Reveal className="min-w-0">
             <Card
               icon={Sprout}
@@ -270,64 +246,16 @@ export default function AcercaPage() {
             </Card>
           </Reveal>
 
-          {/* 3 · FIRA: foto a la izquierda, tres puntos en filas */}
+          {}
           <Reveal>
-            <Card
-              title={
-                <span className="flex items-center gap-4">
-                  <FiraLogo className="h-12 sm:h-14" />
-                  <span className="text-xs sm:whitespace-nowrap font-normal leading-relaxed text-gray-500 dark:text-gray-400">
-                    Fideicomisos Instituidos en Relación con la Agricultura.
-                  </span>
-                </span>
-              }
-            >
-              <div className="grid lg:grid-cols-12">
-                <ImageSlot
-                  n={2}
-                  zoom
-                  position="55% 50%"
-                  badge="Desde 1954"
-                  className={`h-52 border-b lg:col-span-4 lg:h-auto lg:min-h-full lg:border-b-0 lg:border-r ${LINE}`}
-                />
-                <div className="flex flex-col lg:col-span-8">
-                  <ul className={`flex-1 divide-y ${DIVIDE}`}>
-                    {FIRA_POINTS.map(({ icon: Icon, title, text }) => (
-                      <li key={title} className="flex items-start gap-4 px-5 py-4">
-                        <span className={`${CHIP} mt-0.5`}><Icon size={20} strokeWidth={1.6} /></span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</p>
-                          <p className="mt-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400">{text}</p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className={`border-t px-5 py-3 ${LINE}`}>
-                    <a
-                      href="https://www.fira.gob.mx"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="group inline-flex w-fit items-center gap-1.5 text-sm font-medium text-accent-600 dark:text-accent-400"
-                    >
-                      Sitio oficial de FIRA
-                      <ArrowUpRight size={14} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </Reveal>
-
-          {/* 4 · El problema: texto y semáforo a la izquierda, foto satelital a la derecha */}
-          <Reveal>
-            <Card icon={Network} title="Decidir un crédito antes de la cosecha" description="El problema">
+            <Card icon={Network} title="Estimar el rendimiento antes de la cosecha" description="El problema">
               <div className="grid lg:grid-cols-12">
                 <div className="flex flex-col lg:col-span-7">
                   <div className="space-y-5 p-5">
                     <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-                      En una parcela de temporal hay que saber cuánto va a cosechar antes de que ocurra, y casi nunca hay
-                      mediciones de campo: visitarlas una por una es lento y caro. CEBIX estima el rendimiento con imágenes de
-                      satélite y clima, y lo convierte en un puntaje de 0 a 100 que se lee como semáforo.
+                      En una parcela de temporal conviene saber cuánto se va a cosechar antes de que ocurra, y casi nunca hay
+                      mediciones de campo: visitarlas una por una es lento y caro. CEBIX estima el rendimiento con la lluvia
+                      del inicio del ciclo y lo resume en un índice de 0 a 100 que se lee como semáforo.
                     </p>
 
                     <ol className="flex flex-wrap items-center gap-x-1 gap-y-2">
@@ -339,7 +267,7 @@ export default function AcercaPage() {
                       ))}
                     </ol>
 
-                    <div role="img" aria-label="Escala de 0 a 100: alto riesgo hasta 44, revisión manual de 45 a 69, elegible desde 70">
+                    <div role="img" aria-label="Escala de 0 a 100: rendimiento bajo hasta 44, medio de 45 a 69, alto desde 70">
                       <div className="flex h-2 gap-1">
                         {SEMAFORO.map((s) => (
                           <span key={s.label} className="first:rounded-l-full last:rounded-r-full" style={{ width: `${s.width}%`, background: s.color }} />
@@ -373,7 +301,7 @@ export default function AcercaPage() {
             </Card>
           </Reveal>
 
-          {/* 5 · Los datos */}
+          {}
           <Reveal>
             <Card icon={Satellite} title="De dónde salen" description="Los datos">
               <div className="grid md:grid-cols-5">

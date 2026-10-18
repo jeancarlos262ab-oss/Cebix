@@ -6,7 +6,6 @@ import { GLASS } from "./tokens";
 
 const BINS = 14;
 
-/** Rendimiento promedio de las parcelas a la vista + histograma de cómo se reparten. */
 export default function YieldCard({ parcels, selected }) {
   const stats = useMemo(() => {
     const values = parcels.map((p) => p.yieldEstimate).filter(Number.isFinite);

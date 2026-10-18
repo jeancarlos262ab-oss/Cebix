@@ -1,25 +1,15 @@
 import { formatDate, formatDateTime } from "./intl";
 import { RISK_COLORS } from "./riskColors";
 
-/**
- * Genera y descarga el reporte de elegibilidad en PDF de una parcela, con los
- * mismos datos que se muestran en el panel (rendimiento, score, variables, SHAP local).
- * No hay texto de relleno: todos los valores vienen del objeto `parcel` real.
- *
- * jsPDF pesa bastante (~350 KB): se descarga solo al generar el primer reporte.
- */
-
-/* ---------- Paleta (RGB): estilo factura, bandas gris claro + texto negro/gris ---------- */
 const INK = [0, 0, 0];
 const MUTED = [150, 150, 150];
 const RULE = [200, 200, 200];
-const BAND = [228, 230, 233]; // gris claro de las bandas superior e inferior
+const BAND = [228, 230, 233]; 
 const POS = [60, 122, 78];
 const NEG = [184, 73, 59];
 
 const hexToRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 
-/* ---------- Isotipo CEBIX (misma geometría que components/ui/Logo.jsx) ---------- */
 const MARK_W = 697;
 const MARK_H = 509;
 const MARK_PATH = [
@@ -28,21 +18,15 @@ const MARK_PATH = [
   "M374 374L501 508H696L471 283Z",
 ].join("");
 
-/**
- * Dibuja el logo completo (isotipo + wordmark CEBIX) en un canvas y lo devuelve como PNG
- * (jsPDF no admite SVG ni fuentes web). Misma geometría que components/ui/Logo.jsx:
- * isotipo de 1.05em, separación de 0.32em y wordmark en font-garet (Garet → Poppins ExtraBold, el
- * que carga loadFonts.js), mayúsculas, tracking-tight (-0.025em).
- */
 async function logoToPng(color = "#000000") {
   try {
-    const E = 160; // 1em en px del canvas (alta resolución)
+    const E = 160; 
     const family = '"Garet", "Poppins", -apple-system, "Segoe UI", sans-serif';
     const fontSpec = `800 ${E}px ${family}`;
     try {
       await document.fonts.load(fontSpec, "CEBIX");
     } catch {
-      /* si la fuente no carga se usa la de respaldo */
+      
     }
     const markH = 1.05 * E;
     const markW = (markH * MARK_W) / MARK_H;
@@ -58,7 +42,7 @@ async function logoToPng(color = "#000000") {
 
     canvas.width = Math.ceil(markW + gap + textW + 4);
     canvas.height = Math.ceil(markH);
-    // Cambiar el tamaño del canvas reinicia el contexto: se vuelve a configurar.
+    
     ctx.font = fontSpec;
     if ("letterSpacing" in ctx) ctx.letterSpacing = `${-0.025 * E}px`;
     ctx.fillStyle = color;
@@ -76,7 +60,6 @@ async function logoToPng(color = "#000000") {
   }
 }
 
-/* ---------- Utilidades de formato ---------- */
 const num = (v) => {
   const n = typeof v === "number" ? v : parseFloat(String(v ?? "").replace(",", "."));
   return Number.isFinite(n) ? n : null;
@@ -85,7 +68,7 @@ const fix = (v, d = 2, suffix = "") => {
   const n = num(v);
   return n === null ? "—" : `${n.toFixed(d)}${suffix}`;
 };
-/** Helvetica estándar de jsPDF solo cubre Latin-1: se cambian los símbolos que no existen. */
+
 const clean = (v) =>
   String(v ?? "—")
     .replace(/[≥]/g, ">=")
@@ -104,10 +87,10 @@ export async function generateCreditReportPDF(parcel, { modelSummary = null } = 
   const [{ jsPDF }, logo] = await Promise.all([import("jspdf"), logoToPng()]);
   
 
-  // Una sola hoja carta, con letra chica (7–9 pt) al estilo de una factura.
+  
   const doc = new jsPDF({ unit: "pt", format: "letter" });
-  const PW = doc.internal.pageSize.getWidth(); // 612
-  const PH = doc.internal.pageSize.getHeight(); // 792
+  const PW = doc.internal.pageSize.getWidth(); 
+  const PH = doc.internal.pageSize.getHeight(); 
   const M = 30;
   const R = PW - M;
   const HEADER_H = 64;
@@ -130,11 +113,11 @@ export async function generateCreditReportPDF(parcel, { modelSummary = null } = 
   };
   const wrap = (value, width) => doc.splitTextToSize(clean(value), width);
 
-  /* ---------- Banda superior ---------- */
+  
   fill(BAND);
   doc.rect(0, 0, PW, HEADER_H, "F");
 
-  // Marca: isotipo (la X) + wordmark CEBIX, igual que en el sidebar
+  
   const boxX = M;
   const boxY = 21;
   const logoH = 22;
@@ -150,7 +133,7 @@ export async function generateCreditReportPDF(parcel, { modelSummary = null } = 
   font("normal", 7, INK);
   txt(`Elegibilidad crediticia  ·  ${parcel.polygonId ?? parcel.id ?? "—"}`, R, 44, { align: "right" });
 
-  /* ---------- Bloque de datos de la parcela ---------- */
+  
   const lat = num(parcel.lat);
   const lng = num(parcel.lng);
   const area = String(parcel.area ?? "").trim() || "—";
@@ -188,7 +171,7 @@ export async function generateCreditReportPDF(parcel, { modelSummary = null } = 
   font("bold", 9, INK);
   txt("CEBIX", R, y + 14, { align: "right" });
 
-  /* ---------- Tabla 1: resultado y variables del ciclo ---------- */
+  
   y += 78;
   const COL = { concept: M + 10, desc: 130, value: 410, unit: 470 };
   const tableHeader = (cols, yy) => {
@@ -227,7 +210,7 @@ export async function generateCreditReportPDF(parcel, { modelSummary = null } = 
     hline(y);
   });
 
-  /* ---------- Totales: rendimiento, score y clasificación ---------- */
+  
   y += 6;
   const TX = 410;
   const totalRows = [
@@ -241,7 +224,7 @@ export async function generateCreditReportPDF(parcel, { modelSummary = null } = 
     y += 24;
     hline(y, TX, R);
   });
-  // Clasificación (equivalente al "Total Due" de la factura)
+  
   hline(y + 1.5, TX, R, [170, 170, 170], 1.4);
   font("bold", 9, INK);
   txt("Clasificación", TX, y + 18);
@@ -253,7 +236,7 @@ export async function generateCreditReportPDF(parcel, { modelSummary = null } = 
   doc.circle(R - 10 - doc.getTextWidth(clean(riskTxt)) - 8, y + 15.5, 3.5, "F");
   const totalsBottom = y + 26;
 
-  // Texto de apoyo a la izquierda de los totales (zona vacía en la factura de referencia)
+  
   font("normal", 7, MUTED);
   doc.text(
     wrap(
@@ -264,7 +247,7 @@ export async function generateCreditReportPDF(parcel, { modelSummary = null } = 
     y - 40
   );
 
-  /* ---------- Tabla 2: SHAP local ---------- */
+  
   y = totalsBottom + 18;
   const shapAll = (Array.isArray(parcel.shap) ? parcel.shap : [])
     .map((item) => ({ feature: item?.feature ?? "—", impact: num(item?.impact ?? item?.value) ?? 0, direction: item?.direction }))
@@ -289,7 +272,7 @@ export async function generateCreditReportPDF(parcel, { modelSummary = null } = 
     font("normal", 8, MUTED);
     txt("Sin desglose SHAP disponible para esta parcela.", COL.concept, y + 14);
   } else {
-    // La fila se adapta al espacio libre para que todo quepa en una sola hoja.
+    
     const SH = Math.min(18, Math.floor((availBottom - y) / Math.min(shapAll.length, 12)));
     const maxRows = Math.max(1, Math.floor((availBottom - y) / SH));
     const shap = shapAll.slice(0, maxRows);
@@ -312,7 +295,7 @@ export async function generateCreditReportPDF(parcel, { modelSummary = null } = 
     });
   }
 
-  /* ---------- Banda inferior: notas ---------- */
+  
   fill(BAND);
   doc.rect(0, FOOTER_Y, PW, FOOTER_H, "F");
 

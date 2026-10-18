@@ -12,11 +12,6 @@ function ChartTooltip({ active, payload }) {
   );
 }
 
-/**
- * Mismo estilo que AlgorithmComparisonChart (barras, cuadrícula horizontal, leyenda y tooltip oscuro).
- * R² de validación según cuántas variables se usan; la elegida va resaltada y las demás atenuadas.
- * @param {{data: {nFeatures: number, r2: number, rmse: number}[], selected: number}} props
- */
 export default function FeatureCountChart({ data, selected }) {
   const rows = data.map((d) => ({ ...d, label: `${d.nFeatures} variables`, name: String(d.nFeatures) }));
   return (

@@ -7,19 +7,12 @@ import Semaphore from "../ui/Semaphore";
 import { Contributions, Label, SummaryPanel } from "../results/ReportParts";
 import { formatHa } from "../../utils/polygon";
 
-/**
- * Resultado de una parcela calculada en vivo. Es un informe de una sola columna, sin tarjetas
- * ni iconos decorativos: resumen numérico → contribución de cada variable → tabla de variables.
- * Comparte piezas con Predicciones (components/results/ReportParts.jsx).
- */
-
 const BTN =
   "inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800";
 
 const BTN_PRIMARY =
   "inline-flex items-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black";
 
-/** save = { saving, savedId, onSave }: guarda el resultado en las parcelas del usuario (persistente). */
 export default function ParcelResult({ result, view, ran, stale, save, downloaded, onDownload, onReset }) {
   return (
     <div className={`space-y-10 transition-opacity ${stale ? "opacity-60" : ""}`}>
@@ -67,12 +60,12 @@ export default function ParcelResult({ result, view, ran, stale, save, downloade
         rows={[{ label: "Superficie", value: `${formatHa(ran.ha)} ha` }]}
       />
 
-      {/* Semáforo a todo el ancho (la imagen sobresale hacia arriba: el relleno superior le da su aire) */}
+      {}
       <div className="pt-6">
         <Semaphore score={view.score} sober horizontal />
       </div>
 
-      {/* Contribución de cada variable */}
+      {}
       <section>
         <Label>Contribución de las variables</Label>
         <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
@@ -81,10 +74,10 @@ export default function ParcelResult({ result, view, ran, stale, save, downloade
         <Contributions data={result.shap} />
       </section>
 
-      {/* El polígono, leído de los mismos datos que se descargan */}
+      {}
       <DownloadedPolygon data={downloaded} />
 
-      {/* Variables calculadas */}
+      {}
       <section>
         <Label>Variables calculadas desde satélite</Label>
         <p className="mb-3 mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">

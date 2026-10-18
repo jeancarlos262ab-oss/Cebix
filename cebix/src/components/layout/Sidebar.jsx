@@ -12,8 +12,8 @@ import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_PRIMARY } from "../ui/Modal";
 
 function NavSection({ title, items, collapsed }) {
   const { t } = usePreferences();
-  // Re-renderiza al navegar para que cada enlace apunte a la pantalla tal
-  // como se dejó (pestaña, filtro...), leyendo el registro singleton.
+  
+  
   const { pathname, search } = useLocation();
   const saved = getPageRegistry().search;
   return (
@@ -22,8 +22,8 @@ function NavSection({ title, items, collapsed }) {
         <p
           aria-hidden={collapsed || undefined}
           className={[
-            // Siempre ocupa su lugar (una sola línea) para que la separación
-            // vertical sea idéntica con el sidebar contraído.
+            
+            
             "overflow-hidden whitespace-nowrap px-4 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 transition-colors duration-300 ease-out",
             collapsed ? "invisible" : "",
           ].join(" ")}
@@ -40,7 +40,7 @@ function NavSection({ title, items, collapsed }) {
               title={collapsed ? t(label) : undefined}
               className={({ isActive }) =>
                 [
-                  // Alto fijo: idéntico con el sidebar expandido y contraído.
+                  
                   "flex h-[34px] w-full items-center text-sm font-medium transition-colors duration-300 ease-out",
                   collapsed ? "justify-center px-0" : "gap-2.5 px-4",
                   isActive
@@ -116,11 +116,11 @@ function SignOutConfirm({ onCancel, onConfirm, loading }) {
 
 function Sidebar({ floating = false }) {
   const { t } = usePreferences();
-  // floating: en escritorio el sidebar sale del flujo y flota sobre el contenido
-  // (lo usa el mapa satelital, que ocupa toda la pantalla por detrás).
+  
+  
   const { mobileOpen, close, collapsed: collapsedPref, setCollapsed } = useSidebar();
-  // El modo "solo iconos" existe únicamente en escritorio (lg+). En móvil/tablet el
-  // drawer siempre se muestra completo, aunque se haya contraído antes en escritorio.
+  
+  
   const [isDesktop, setIsDesktop] = useState(
     () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches
   );
@@ -160,12 +160,13 @@ function Sidebar({ floating = false }) {
       <aside
         className={[
           "fixed inset-y-3 left-3 z-50 flex shrink-0 flex-col overflow-hidden rounded-2xl duration-300 ease-out",
-          // Transición suave al pasar de/al mapa satelital (fondo, borde y sombra). En móvil además
-          // anima el deslizamiento del drawer; en escritorio no hay deslizamiento (lg:translate-x-0).
+          
+          
           "transition-[transform,background-color,border-color,box-shadow] lg:transition-[background-color,border-color,box-shadow]",
-          // Sobre el mapa satelital el contenedor es siempre negro (translúcido); "dark" fuerza
-          // los colores oscuros dentro del sidebar aunque la app esté en modo claro. Lo demás es igual.
-          "border border-gray-200 shadow-card dark:border-gray-800",
+          
+          
+          "border shadow-card",
+          floating ? "border-transparent" : "border-gray-200 dark:border-gray-800",
           floating ? "dark bg-black/65" : "bg-white/65 dark:bg-black/65",
           collapsed ? "lg:w-20" : "lg:w-[232px]",
           "w-[232px] max-w-[calc(100vw-1.5rem)]",
@@ -182,12 +183,12 @@ function Sidebar({ floating = false }) {
             collapsed ? "justify-center px-0" : "px-4",
           ].join(" ")}
         >
-          {/* Mismo logo y misma posición en ambos estados: al contraer solo se oculta el texto. */}
-          {/* Sobre el mapa satelital el fondo es siempre oscuro: logo (isotipo + texto) en blanco. */}
+          {}
+          {}
           <Logo size="sm" showText={!collapsed} tone={floating ? "white" : "auto"} />
           {collapsed && (
-            // Al pasar el cursor, el icono del logo se cambia por el de expandir
-            // (sin mover nada: va encima del logo, centrado en él).
+            
+            
             <button
               type="button"
               onClick={() => setCollapsed(false)}
@@ -220,7 +221,7 @@ function Sidebar({ floating = false }) {
         </div>
 
         <nav className="flex-1 overflow-y-auto scrollbar-none py-4">
-          {/* Cada subtítulo dice qué se hace en ese grupo. */}
+          {}
           <NavSection title="Gestión" items={generalNav} collapsed={collapsed} />
           <NavSection title="Análisis" items={workspaceNav} collapsed={collapsed} />
           <NavSection

@@ -10,12 +10,12 @@ import { useParcels } from "../../context/ParcelsContext";
 import useParcelActions from "../../hooks/useParcelActions";
 import { exportParcelsCSV } from "../../utils/csv";
 
-const COLUMNS = ["Parcela", "Rendimiento", "Elegibilidad", "NDVI", "Municipio", ""];
+const COLUMNS = ["Parcela", "Rendimiento", "Nivel", "NDVI", "Municipio", ""];
 
 export default function ParcelsTable() {
   const { parcels } = useParcels();
   const { saveParcel, importParcels } = useParcelActions();
-  const [modal, setModal] = useState(null); // null | "add" | parcel object being edited
+  const [modal, setModal] = useState(null); 
   const tableRef = useRef(null);
   const { pageItems, paginationProps } = usePagination(parcels, { scrollRef: tableRef });
 
@@ -47,7 +47,7 @@ export default function ParcelsTable() {
         <UploadDropzone onParsed={importParcels} />
       </div>
 
-      {/* Justo encima de la tabla, alineado a la derecha. */}
+      {}
       <div className="mt-4 flex justify-end">
         <FullscreenLink />
       </div>

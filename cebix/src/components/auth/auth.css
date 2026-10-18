@@ -1,19 +1,9 @@
-/* ==========================================================================
-   Login / Signup: negro con texto blanco (tema oscuro) o blanco con texto
-   negro (tema claro) y un solo color, la cebada.
-
-   Siguen el tema de la app (clase `dark` en <html>; se cambia con el botón de
-   la esquina o en Ajustes) pero no dependen del acento de Ajustes. La cebada
-   (dorado de cebada madura) es el único color: botón, subrayado de pestaña,
-   enlaces y foco. Lo de arriba es el tema oscuro; el claro lo redefine abajo.
-   ========================================================================== */
-
 .auth-root {
   --barley: #d4a63c;
   --barley-hover: #e0b650;
   --on-barley: #1a1204;
-  --radius: 999px; /* píldora, como botones y buscador del dashboard */
-  --radius-box: 1.25rem; /* cajas con varias líneas de texto */
+  --radius: 999px; 
+  --radius-box: 1.25rem; 
 
   --ink: #ffffff;
   --muted: #a8a8a8;
@@ -23,7 +13,7 @@
   --tint: rgba(212, 166, 60, 0.12);
   --tint-line: rgba(212, 166, 60, 0.4);
 
-  /* Panel de marca */
+  
   --brand-bg: #000000;
   --brand-fg: #ffffff;
   --brand-soft: rgba(255, 255, 255, 0.7);
@@ -33,8 +23,6 @@
   color: var(--ink);
   color-scheme: dark;
 }
-
-/* ---------- Tema claro: mismas variables, invertidas ---------- */
 
 html:not(.dark) .auth-root {
   --barley-hover: #c6972d;
@@ -54,8 +42,6 @@ html:not(.dark) .auth-root {
 
   color-scheme: light;
 }
-
-/* ---------- Panel de marca ---------- */
 
 .auth-brand {
   background: var(--brand-bg);
@@ -81,8 +67,6 @@ html:not(.dark) .auth-root {
 .auth-brand-rule {
   border-color: var(--brand-line);
 }
-
-/* ---------- Parcelas vistas desde el cielo: dibujo estático y ligero ---------- */
 
 .auth-parcels {
   color: var(--brand-fg);
@@ -122,7 +106,6 @@ html:not(.dark) .auth-root {
   stroke: none;
 }
 
-/* Montañas: relleno negro (tapa la capa de atrás) y cresta fina */
 .mountain-fill {
   fill: var(--paper);
   stroke: none;
@@ -135,7 +118,6 @@ html:not(.dark) .auth-root {
   stroke-linejoin: round;
 }
 
-/* Nubes: línea fina, más tenue que las parcelas */
 .parcel-cloud {
   fill: none;
   stroke: currentColor;
@@ -145,18 +127,13 @@ html:not(.dark) .auth-root {
   stroke-linecap: round;
 }
 
-/* Resplandor amarillo en la esquina superior derecha del panel de marca.
-   Un solo degradado radial estático: sin blur, sin filtros, sin animación
-   por cuadro (solo el fundido de entrada). */
 .auth-sun {
-  /* El centro queda fuera del panel (offsets negativos): solo asoma el borde
-     del resplandor, suave y sin protagonismo. */
+  
   top: -10%;
   right: -8%;
   width: 68%;
   height: 60%;
-  /* La elipse mide exactamente el alto y ancho de la caja, así que llega a
-     transparente justo en sus bordes (sin corte visible). */
+  
   background: radial-gradient(
     ellipse 100% 100% at 100% 0%,
     rgba(250, 204, 64, 0.52) 0%,
@@ -168,7 +145,6 @@ html:not(.dark) .auth-root {
   animation: parcels-fade-in 1.8s ease-out both;
 }
 
-/* En claro el resplandor se satura un poco más para que se lea sobre el blanco. */
 html:not(.dark) .auth-sun {
   background: radial-gradient(
     ellipse 100% 100% at 100% 0%,
@@ -196,8 +172,6 @@ html:not(.dark) .auth-sun {
   }
 }
 
-/* ---------- Botón de tema (esquina superior derecha) ---------- */
-
 .auth-theme-btn {
   display: flex;
   width: 2.5rem;
@@ -221,8 +195,6 @@ html:not(.dark) .auth-sun {
   outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
-
-/* ---------- Pestañas ---------- */
 
 .auth-tabs {
   display: flex;
@@ -248,7 +220,6 @@ html:not(.dark) .auth-sun {
   color: var(--ink);
 }
 
-/* Subrayado de la pestaña activa: se desliza entre pestañas (layoutId) */
 .auth-tab-bar {
   position: absolute;
   right: 0;
@@ -265,8 +236,6 @@ html:not(.dark) .auth-sun {
   outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
-
-/* ---------- Campos ---------- */
 
 .auth-label {
   display: block;
@@ -337,7 +306,6 @@ select.auth-input {
   color: var(--muted);
 }
 
-/* Código de 6 dígitos */
 .auth-code {
   height: 3.5rem;
   text-align: center;
@@ -348,8 +316,6 @@ select.auth-input {
   padding-left: 0.55em !important;
   padding-right: 0 !important;
 }
-
-/* ---------- Botón principal ---------- */
 
 .auth-btn {
   display: flex;
@@ -390,8 +356,6 @@ select.auth-input {
   transform: translateX(3px);
 }
 
-/* ---------- Enlaces y textos de apoyo ---------- */
-
 .auth-link {
   border-radius: 0.25rem;
   font-weight: 600;
@@ -418,8 +382,6 @@ select.auth-input {
 .auth-muted {
   color: var(--muted);
 }
-
-/* ---------- Aviso (correo enviado, contraseña actualizada) ---------- */
 
 .auth-notice {
   display: flex;

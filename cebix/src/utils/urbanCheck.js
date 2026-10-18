@@ -1,16 +1,3 @@
-/**
- * Detecta si un contorno dibujado cae sobre una ciudad o un pueblo, con datos de OpenStreetMap (Overpass API).
- *
- * Dos señales:
- *   1) Mancha urbana: polígonos landuse = residential / commercial / industrial / retail / construction.
- *      Se pregunta al servidor `is_in` (¿este punto cae dentro de una mancha urbana?) para unos cuantos puntos de muestra.
- *      Así no se descarga la geometría de ciudades enteras (megabytes): la respuesta son unos cuantos contadores.
- *   2) Otras señales de poblado, para los pueblos que en OSM no tienen mancha urbana dibujada: construcciones (y su
- *      densidad por hectárea), un poblado marcado (place=village…), calles urbanas y comercios/escuelas/iglesias.
- *
- * Los dos servidores públicos se consultan A LA VEZ y gana el primero que responde.
- * Si ninguno responde se lanza un Error: quien llama decide qué hacer (la pantalla avisa pero no bloquea).
- */
 import { API_URL } from "../services/modelApi";
 import { areaHa, sampleInside } from "./polygon";
 import {
@@ -22,35 +9,30 @@ import {
   URBAN_MIN_STREETS,
 } from "../data/satelite";
 
-// Primero el proxy del backend (POST /overpass): no tiene CORS y prueba varios espejos del lado del servidor. Los
-// servidores públicos se dejan como respaldo en paralelo (gana el primero que responde). overpass.kumi.systems y
-// overpass.private.coffee ya no se llaman desde el navegador: no mandan cabeceras CORS ("blocked by CORS policy").
 const PROXY = `${API_URL}/overpass`;
 const ENDPOINTS = [PROXY, "https://overpass-api.de/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
 const TIMEOUT_MS = 20000;
-const ROUNDS = 2; // rondas completas sobre todos los servidores
+const ROUNDS = 2; 
 const RETRY_DELAY_MS = 1500;
 const PLACES = "^(city|town|village|hamlet|suburb|neighbourhood|quarter)$";
 const TOWN_STREETS = "^(residential|living_street|pedestrian)$";
 const URBAN_LANDUSE = "^(residential|commercial|industrial|retail|construction)$";
-const MAX_ZONE_SAMPLES = 20; // puntos de muestra dentro del contorno (cada uno es un is_in barato)
+const MAX_ZONE_SAMPLES = 20; 
 
 const cache = new Map();
 
 const fix = (n) => n.toFixed(6);
-/** Un `is_in` + conteo de manchas urbanas que contienen el punto. Genera UN elemento `count` en la respuesta. */
+
 const landuseCount = ([lat, lng], k) => `is_in(${fix(lat)},${fix(lng)})->.a${k};\narea.a${k}["landuse"~"${URBAN_LANDUSE}"];\nout count;`;
-/** Total de un elemento `count`: Overpass lo entrega como texto en tags.total. */
+
 const countOf = (el) => Number(el?.tags?.total ?? 0) || 0;
 
-/** Reparte hasta `max` puntos de la lista de forma pareja. */
 function spread(list, max) {
   if (list.length <= max) return list;
   const step = list.length / max;
   return Array.from({ length: max }, (_, i) => list[Math.floor(i * step)]);
 }
 
-/** Consulta del contorno completo: un conteo de mancha urbana por muestra + señales de poblado dentro del polígono. */
 export function buildQuery(points, samples = spread(sampleInside(points), MAX_ZONE_SAMPLES)) {
   const poly = points.map(([lat, lng]) => `${fix(lat)} ${fix(lng)}`).join(" ");
   const inPoly = `(poly:"${poly}")`;
@@ -66,7 +48,6 @@ out count;
 out count;`;
 }
 
-/** Aplica las reglas a la respuesta de Overpass. Pura: se puede probar sin red. */
 export function evaluate(points, elements, samplesUsed = spread(sampleInside(points), MAX_ZONE_SAMPLES).length) {
   const counts = elements.filter((el) => el.type === "count");
   const inUrban = counts.slice(0, samplesUsed).filter((c) => countOf(c) > 0).length;
@@ -88,12 +69,8 @@ export function evaluate(points, elements, samplesUsed = spread(sampleInside(poi
   return { urban: reason !== null, reason, share, buildings, places, streets, amenities, perHa };
 }
 
-/**
- * Consulta los servidores a la vez y devuelve la respuesta del primero que conteste bien.
- * Antes se probaban uno tras otro con 25 s de espera cada uno: si el primero se colgaba, tardaba casi un minuto.
- */
 async function overpass(query, signal) {
-  let controllers = ENDPOINTS.map(() => new AbortController()); // se renuevan en cada ronda
+  let controllers = ENDPOINTS.map(() => new AbortController()); 
   const stopAll = () => controllers.forEach((c) => c.abort());
   if (signal?.aborted) throw Object.assign(new Error("Cancelado"), { name: "AbortError" });
   signal?.addEventListener("abort", stopAll, { once: true });
@@ -133,15 +110,11 @@ async function overpass(query, signal) {
     }
     throw lastErr;
   } finally {
-    stopAll(); // cancela al servidor que quedó atrás
+    stopAll(); 
     signal?.removeEventListener("abort", stopAll);
   }
 }
 
-/**
- * @param {[number, number][]} points contorno [lat, lng][]
- * @returns {Promise<{urban: boolean, reason: "landuse"|"buildings"|null, share: number, buildings: number, perHa: number}>}
- */
 export async function checkUrban(points, { signal } = {}) {
   const key = points.map((p) => `${p[0].toFixed(5)},${p[1].toFixed(5)}`).join(";");
   if (cache.has(key)) return cache.get(key);
@@ -152,9 +125,8 @@ export async function checkUrban(points, { signal } = {}) {
   return result;
 }
 
-// ── Verificación de un solo vértice (se usa mientras se dibuja) ─────────────────────────────────────────────────
 const POINT_BUILDING_RADIUS_M = 80;
-const POINT_MIN_BUILDINGS = 3; // una bodega o un corral aislados no cuentan como pueblo
+const POINT_MIN_BUILDINGS = 3; 
 const POINT_PLACE_RADIUS_M = 150;
 const POINT_STREET_RADIUS_M = 40;
 const pointCache = new Map();
@@ -171,7 +143,6 @@ way["highway"~"${TOWN_STREETS}"](around:${POINT_STREET_RADIUS_M},${lat},${lng});
 out count;`;
 }
 
-/** Aplica las reglas a un vértice. Pura: se puede probar sin red. */
 export function evaluatePoint(_point, elements) {
   const counts = elements.filter((el) => el.type === "count");
   const buildings = countOf(counts[1]);
@@ -183,10 +154,6 @@ export function evaluatePoint(_point, elements) {
   return { urban: reason !== null, reason, buildings };
 }
 
-/**
- * ¿Este vértice cae sobre una ciudad o un pueblo?
- * @param {[number, number]} point [lat, lng]
- */
 export async function checkPointUrban(point, { signal } = {}) {
   const key = `${point[0].toFixed(5)},${point[1].toFixed(5)}`;
   if (pointCache.has(key)) return pointCache.get(key);

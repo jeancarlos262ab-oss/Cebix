@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "../../utils/maplibreSetup";
-// MapLibre 6 carga su worker (el que procesa GeoJSON: estados, parcela y malla) desde un archivo aparte.
-// Vite no lo copia solo al build, así que se empaqueta aquí y se le indica la URL.
+
 import { Check, Crosshair, Eraser, MousePointer2, Pencil, Undo2 } from "lucide-react";
 import MapControls from "./MapControls";
 import { GHOST, PANEL, PRIMARY, STATUS } from "./mapUi";
@@ -30,28 +29,18 @@ import { ESTADOS } from "./config";
 import estadosBoundaries from "../../data/estadosBoundaries.json";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-/**
- * Mapa completo con MapLibre GL: globo 3D (proyección "globe") que al acercar pasa solo a mapa plano,
- * y sobre el que también se dibuja la parcela. Es el único mapa cuando el equipo acepta WebGL; en los
- * demás, GeometryMap usa el globo de Canvas 2D (GlobeMap.jsx) más el mapa plano de Leaflet.
- *
- * Controlado por el padre, igual que el mapa plano: `points` ([lat,lng][]), `closed` y `drawing`.
- * @param onFail   () => void  si MapLibre GL no pudo arrancar o se perdió el contexto WebGL
- */
-
-const MIN_ZOOM = 0.8; // zoom mínimo permitido: planeta completo, flotando en el espacio
-const REST_ZOOM = MIN_ZOOM; // el mapa siempre arranca (y se restablece) con el zoom al mínimo
-const MAX_RETRIES = 3; // veces que se recrea el mapa antes de rendirse y usar el mapa ligero
-const LOAD_TIMEOUT_MS = 10000; // si el estilo no carga en este tiempo, se recrea
+const MIN_ZOOM = 0.8; 
+const REST_ZOOM = MIN_ZOOM; 
+const MAX_RETRIES = 3; 
+const LOAD_TIMEOUT_MS = 10000; 
 
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-// Los límites de la app son [[s,w],[n,e]]; MapLibre usa [[w,s],[e,n]].
+
 const toLngLatBounds = (b) => [
   [b[0][1], b[0][0]],
   [b[1][1], b[1][0]],
 ];
 
-/** Estilo del mapa; el contorno de los estados usa el color de acento (components/map/boundaryStyle.js). */
 const buildStyle = (accentHex) => ({
   version: 8,
   projection: { type: "globe" },
@@ -81,7 +70,7 @@ const buildStyle = (accentHex) => ({
       source: "imagery",
       paint: { "raster-fade-duration": 0 },
     },
-    // Los tres estados, con el mismo trazo (y color de acento) que Mapa satelital y que el mapa plano de Leaflet.
+    
     {
       id: "estados-line",
       type: "line",
@@ -92,7 +81,6 @@ const buildStyle = (accentHex) => ({
   ],
 });
 
-/** Pin de la zona de estudio (elemento DOM para el Marker). */
 function createPinElement(color) {
   const root = document.createElement("div");
   root.style.cssText = "position:relative;width:16px;height:16px;cursor:pointer";
@@ -125,7 +113,6 @@ function paintPin(el, color) {
 
 const toLngLat = (p) => [p[1], p[0]];
 
-/** Vértice: mismo diseño que en Leaflet (parcelStyle.vertexLook), con el modo de mezcla del resto del trazo. */
 function vertexElement(closeTarget, overLimit) {
   const el = document.createElement("div");
   el.dataset.vertex = "1";
@@ -134,7 +121,6 @@ function vertexElement(closeTarget, overLimit) {
   return el;
 }
 
-/** Aspecto de un vértice (se reutiliza al arrastrar, cuando cambia según el límite de superficie). */
 function paintVertex(el, overLimit) {
   const { size, css } = vertexLook(Boolean(el.dataset.close), traceColor(overLimit));
   const cursor = el.style.cursor;
@@ -163,7 +149,7 @@ export default function GlobeMapGL({
   const mapRef = useRef(null);
   const pinRef = useRef(null);
   const vertexMarkers = useRef([]);
-  const traceRef = useRef(null); // contorno y malla (capas nativas del mapa)
+  const traceRef = useRef(null); 
   const live = useRef({});
   const pageActive = usePageActive();
   live.current = { points, drawing, locked, overLimit, maxAreaHa, onChange, onFinish, onFail, pageActive };
@@ -173,19 +159,19 @@ export default function GlobeMapGL({
   colorRef.current = color;
 
   const [ready, setReady] = useState(false);
-  // Sube cada vez que un mapa nuevo queda listo: los efectos que dibujan sobre el mapa dependen de él, para que se
-  // vuelvan a ejecutar aunque `ready` no cambie (el mapa viejo se recrea y `ready` vuelve a true en el mismo ciclo).
+  
+  
   const [mapVer, setMapVer] = useState(0);
   const [tilesError, setTilesError] = useState(false);
 
-  // Recuperación: si el mapa no llega a cargar, falla al iniciar o el navegador le quita el contexto WebGL
-  // (pasa cuando hay muchos mapas abiertos en pantallas en segundo plano), se vuelve a crear solo, en vez de
-  // dejar al usuario recargando la página. `gen` cambia para re-ejecutar la creación.
+  
+  
+  
   const [gen, setGen] = useState(0);
   const attempts = useRef(0);
   const retryTimer = useRef(null);
   const pendingRecover = useRef(false);
-  const view = useRef(null); // última vista, para no volver al planeta completo al recrear
+  const view = useRef(null); 
 
   const recover = useCallback((reason) => {
     attempts.current += 1;
@@ -196,7 +182,7 @@ export default function GlobeMapGL({
     }
     clearTimeout(retryTimer.current);
     retryTimer.current = setTimeout(() => {
-      // En una pantalla oculta no se recrea (le quitaría el contexto a la que sí se ve): espera a que se muestre.
+      
       if (live.current.pageActive === false) pendingRecover.current = true;
       else setGen((g) => g + 1);
     }, 150 * attempts.current);
@@ -217,7 +203,7 @@ export default function GlobeMapGL({
     mapRef.current?.fitBounds(toLngLatBounds(b), { padding: 40, maxZoom: 12, duration: reducedMotion() ? 0 : 1100, essential: true });
   }, []);
 
-  /* ───────────── creación del mapa (una sola vez) ───────────── */
+  
   const createMap = useCallback(() => {
     let map;
     setReady(false);
@@ -244,16 +230,16 @@ export default function GlobeMapGL({
     traceRef.current = createTraceLayers(map);
     let isReady = false;
     let stableTimer;
-    // Si el estilo nunca termina de cargar (carrera con el contexto WebGL, red lenta al arrancar...), se recrea.
+    
     const watchdog = setTimeout(() => {
       if (!isReady) recover("el estilo no cargó a tiempo");
     }, LOAD_TIMEOUT_MS);
     map.touchZoomRotate.disableRotation();
 
-    // "Listo" en cuanto el estilo carga (no espera a las teselas: así la parcela se dibuja aunque
-    // las imágenes tarden o fallen).
+    
+    
     const markReady = () => {
-      // Estrellas y Vía Láctea en WebGL, por debajo de todo (el globo las tapa; solo se ve el espacio).
+      
       try {
         if (!map.getLayer("sky-stars")) map.addLayer(createStarsLayer(), "bg");
       } catch (err) {
@@ -261,7 +247,7 @@ export default function GlobeMapGL({
       }
       isReady = true;
       clearTimeout(watchdog);
-      stableTimer = setTimeout(() => (attempts.current = 0), 5000); // se perdona el historial si se mantiene estable
+      stableTimer = setTimeout(() => (attempts.current = 0), 5000); 
       setReady(true);
       setMapVer((v) => v + 1);
       map.resize();
@@ -276,7 +262,7 @@ export default function GlobeMapGL({
       if (e.sourceId === "imagery" && e.tile) setTilesError(false);
     });
 
-    // Clic en el mapa: agrega vértices mientras se dibuja.
+    
     map.on("click", (e) => {
       const { drawing: d, locked: l, points: pts, onChange: change } = live.current;
       if (!d || l || e.originalEvent?.target?.closest?.("[data-vertex]")) return;
@@ -290,7 +276,7 @@ export default function GlobeMapGL({
     };
     canvas.addEventListener("webglcontextlost", onLost);
 
-    // Pin de la zona de estudio: acerca a la zona.
+    
     const el = createPinElement(colorRef.current);
     el.addEventListener("click", (ev) => {
       ev.stopPropagation();
@@ -299,13 +285,13 @@ export default function GlobeMapGL({
     pinRef.current = el;
     new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([STUDY.lon, STUDY.lat]).addTo(map);
 
-    // Recuerda la vista para conservarla si hay que recrear el mapa.
+    
     map.on("moveend", () => {
       const c = map.getCenter();
       view.current = { center: [c.lng, c.lat], zoom: map.getZoom() };
     });
 
-    // Si se está recreando, vuelve a donde estaba; la primera vez arranca con el planeta completo y gira hacia México.
+    
     if (view.current) {
       map.jumpTo(view.current);
     } else if (reducedMotion()) {
@@ -326,14 +312,14 @@ export default function GlobeMapGL({
       try {
         map.remove();
       } catch {
-        // contexto ya perdido: no hay nada más que liberar
+        
       }
       mapRef.current = null;
       pinRef.current = null;
     };
   }, [recover]);
-  // MapLibre se crea solo cuando el contenedor ya tiene tamaño: si nace oculto (pantalla en segundo
-  // plano, pestaña sin abrir) con 0×0 px, las capas vectoriales (parcela, malla, estados) no se pintan.
+  
+  
   useEffect(() => {
     const el = mapEl.current;
     let teardown;
@@ -357,7 +343,7 @@ export default function GlobeMapGL({
   const goStudyRef = useRef(goStudy);
   goStudyRef.current = goStudy;
 
-  // Se re-mide al volver a la pantalla (keep-alive) o al cambiar de tamaño.
+  
   useEffect(() => {
     if (pageActive) mapRef.current?.resize();
   }, [pageActive]);
@@ -368,13 +354,13 @@ export default function GlobeMapGL({
     return () => ro.disconnect();
   }, []);
 
-  // El pin de la zona de estudio se oculta mientras hay una parcela (o se dibuja una) para no taparla.
+  
   const hidePin = drawing || points.length > 0;
   useEffect(() => {
     if (pinRef.current) pinRef.current.style.display = hidePin ? "none" : "";
   }, [hidePin, ready, mapVer]);
 
-  // El color de acento sigue al tema.
+  
   useEffect(() => {
     if (pinRef.current) paintPin(pinRef.current, color);
     const m = mapRef.current;
@@ -383,8 +369,8 @@ export default function GlobeMapGL({
     }
   }, [color, ready, mapVer]);
 
-  /* ───────────── dibujo de la parcela ───────────── */
-  // Contorno y malla: capas nativas de MapLibre (glTraceLayers.js + parcelStyle.js).
+  
+  
   const grid = useMemo(() => (closed && ok ? parcelGridLines(points) : []), [closed, ok, points]);
 
   useEffect(() => {
@@ -392,7 +378,7 @@ export default function GlobeMapGL({
     traceRef.current?.set({ points, closed, grid, overLimit });
   }, [ready, mapVer, points, closed, grid, overLimit]);
 
-  // Vértices: círculos blancos; se arrastran cuando la parcela está cerrada; el primero cierra el trazo.
+  
   useEffect(() => {
     const m = mapRef.current;
     if (!ready || !m) return undefined;
@@ -412,7 +398,7 @@ export default function GlobeMapGL({
         const ll = mk.getLngLat();
         const cur = live.current.points.map((q, k) => (k === i ? [ll.lat, ll.lng] : q));
         const over = cur.length >= 3 && areaHa(cur) > live.current.maxAreaHa;
-        // El contorno, la malla y el color siguen al vértice mientras se arrastra.
+        
         traceRef.current?.set({ points: cur, closed: true, grid: cur.length >= 3 ? parcelGridLines(cur) : [], overLimit: over });
         vertexMarkers.current.forEach((v) => paintVertex(v.getElement(), over));
       });
@@ -428,7 +414,7 @@ export default function GlobeMapGL({
     };
   }, [ready, mapVer, points, drawing, locked, ok, overLimit]);
 
-  // Cursor de dibujo y sin zoom por doble clic mientras se marcan vértices.
+  
   useEffect(() => {
     const m = mapRef.current;
     if (!m) return;
@@ -438,7 +424,7 @@ export default function GlobeMapGL({
     else m.doubleClickZoom.enable();
   }, [drawing, locked, ready, mapVer]);
 
-  // Importar un GeoJSON (o cualquier nuevo `fitKey`): encuadra la parcela.
+  
   const firstFit = useRef(true);
   useEffect(() => {
     if (firstFit.current) {
@@ -450,11 +436,11 @@ export default function GlobeMapGL({
     const b = new maplibregl.LngLatBounds();
     points.forEach((p) => b.extend(toLngLat(p)));
     m.fitBounds(b, { padding: 70, maxZoom: 17, duration: reducedMotion() ? 0 : 1100, essential: true });
-  }, [fitKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fitKey]); 
 
   const startDrawing = () => {
     onStartDrawing();
-    // Si se está viendo el planeta entero, baja a la zona de estudio para poder marcar vértices.
+    
     if ((mapRef.current?.getZoom() ?? 0) < 7) goStudy();
   };
 
@@ -467,7 +453,7 @@ export default function GlobeMapGL({
         : "Arrastra para girar · rueda o +/− para acercar · 'Dibujar parcela' para marcar el contorno");
 
   return (
-    <div className="relative h-full min-h-[440px] w-full overflow-hidden bg-black">
+    <div className="relative h-full min-h-[300px] w-full overflow-hidden bg-black">
       <div ref={mapEl} aria-label="Globo terráqueo interactivo" className="absolute inset-0 isolate h-full w-full" />
 
       <div className="pointer-events-none absolute left-3 top-3 z-10">

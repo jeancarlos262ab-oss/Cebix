@@ -1,16 +1,3 @@
-"""Genera la rejilla local de lluvia abr–may (suma de los 61 días de CHIRPS) para México.
-
-Por qué: el servidor del CHC (data.chc.ucsb.edu) responde 403 a la IP del backend en Render. La lluvia de un ciclo ya
-cerrado (2025) no cambia, así que se calcula UNA vez desde una máquina a la que el CHC sí responda (tu PC) y se sube
-el archivo al repo. El backend lo lee primero y solo toca la red si falta.
-
-Uso (desde backend/, con rasterio instalado):
-    python scripts/build_chirps_grid.py 2025
-    python scripts/build_chirps_grid.py 2025 --bbox -118.5 14.0 -86.0 33.5
-
-Salida: data/chirps/chirps_abr_may_2025.tif  (~0.5 MB). Haz commit de ese archivo y vuelve a desplegar.
-Usa las mismas plantillas de URL que el servicio (CHIRPS_URL_TEMPLATES) y se niega a escribir si faltó algún día.
-"""
 import argparse
 import sys
 import time
@@ -18,8 +5,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from app.services.features import stac  # noqa: E402
-
+from app.services.features import stac  
 
 def read_day(url: str, bbox, tries: int = 4):
     import rasterio
@@ -37,11 +23,10 @@ def read_day(url: str, bbox, tries: int = 4):
                         data[data == nodata] = float("nan")
                     data[data < 0] = float("nan")
                     return data, src.window_transform(win), src.crs
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:  
             last = e
             time.sleep(2**attempt)
     raise RuntimeError(f"{url}: {last}")
-
 
 def main() -> int:
     ap = argparse.ArgumentParser()
@@ -67,7 +52,7 @@ def main() -> int:
             try:
                 data, tf, cr = read_day(url, args.bbox)
                 break
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:  
                 errs.append(str(e)[:160])
         if data is None:
             print(f"✗ {d}: {errs[0] if errs else 'sin datos'}\nNo se escribe la rejilla: faltan días.", file=sys.stderr)
@@ -89,7 +74,6 @@ def main() -> int:
         dst.write(total.astype("float32"), 1)
     print(f"\nListo: {path} ({path.stat().st_size / 1024:.0f} KB). Haz commit y vuelve a desplegar.")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

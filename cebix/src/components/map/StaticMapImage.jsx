@@ -3,22 +3,6 @@ import LocationPin from "./LocationPin";
 import { buildStaticSatelliteUrl } from "../../utils/staticMap";
 import { openInGoogleMaps } from "../../utils/googleMaps";
 
-/**
- * Vista satelital como imagen ESTÁTICA (screenshot), no como mapa
- * interactivo: mucho más ligera (un solo PNG) que cargar MapLibre/Leaflet,
- * pensada para lugares donde solo se necesita una referencia visual rápida
- * de la ubicación (p. ej. el panel de Predicciones).
- *
- * @param {{
- *   lat: number,
- *   lng: number,
- *   zoom?: number,
- *   height?: number,
- *   rounded?: boolean,   // esquinas redondeadas (nunca lleva borde)
- *   fill?: boolean,   // ocupa todo el alto del contenedor; height solo define la resolución pedida
- *   className?: string,
- * }} props
- */
 export default function StaticMapImage({
   lat,
   lng,
@@ -35,8 +19,8 @@ export default function StaticMapImage({
     return null;
   }
 
-  // Se pide la imagen ya en proporción rectangular (más ancha que alta) al
-  // servidor, así no hay que recortarla ni deformarla en el cliente.
+  
+  
   const requestWidth = Math.round(height * 2.3);
   const src = buildStaticSatelliteUrl({ lat, lng, zoom, width: requestWidth, height });
 

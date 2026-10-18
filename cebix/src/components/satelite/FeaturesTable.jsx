@@ -7,7 +7,6 @@ const fmt = (value, digits) =>
     ? "—"
     : formatNumber(value, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
-/** Las 10 variables calculadas en vivo, con su fuente, ventana y valor. */
 export default function FeaturesTable({ features }) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-800">

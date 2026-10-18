@@ -1,44 +1,16 @@
-/**
- * Render de un globo ortográfico en CPU (sin WebGL).
- *
- * Para cada píxel de la esfera se calcula latitud/longitud y se muestrea la
- * textura (teselas Web Mercator de Esri unidas en un solo bitmap) con
- * interpolación bilineal. Es una función pura: no toca el DOM, así que se
- * puede probar en Node.
- *
- * Convención: p = Ry(lon0) · Rx(-lat0) · s, con s = (x derecha, y arriba, z hacia el usuario).
- */
-
 const D2R = Math.PI / 180;
 const INV_2PI = 1 / (2 * Math.PI);
 
-/**
- * Luz fija respecto a la pantalla (arriba-izquierda, de frente): al girar el globo
- * la sombra se queda abajo-derecha, como si la cámara orbitara un planeta real.
- * Vector unitario (x derecha, y arriba, z hacia el usuario).
- */
 export const LIGHT = [-0.45, 0.5, 0.74];
-export const WRAP = 0.05; // suaviza el terminador (0 = corte duro)
-export const AMBIENT = 0.012; // luz mínima en el lado en sombra (casi negro, como Google Earth)
-export const SHADE_GAMMA = 1.45; // >1 oscurece más rápido hacia el terminador
-// Atmósfera: filtro azulado sobre el propio disco del planeta (velo uniforme + más intenso hacia
-// el borde, tipo fresnel). Se calcula SOLO dentro de la esfera: no hay halo ni resplandor por
-// fuera del limbo, el borde del planeta queda nítido contra el espacio.
-export const HAZE = [135, 195, 255]; // azul celeste atmosférico
-export const HAZE_BASE = 0.26; // filtro azul claro parejo en todo el globo
-export const HAZE_RIM = 0.7; // refuerzo hacia el borde
-export const HAZE_FLOOR = 0.1; // cuánta bruma se ve en la sombra (bajo = sombra limpia y oscura)
-/**
- * @param {Uint32Array} out   buffer RGBA (cw*ch) — se asume ya en cero
- * @param {number} cw         ancho en píxeles
- * @param {number} ch         alto en píxeles
- * @param {number} cx         centro x de la esfera
- * @param {number} cy         centro y de la esfera
- * @param {number} R          radio en píxeles
- * @param {number} lon0       longitud del centro (rad)
- * @param {number} lat0       latitud del centro (rad)
- * @param {{data:Uint32Array,w:number,h:number,top:number[],bottom:number[]}|null} tex
- */
+export const WRAP = 0.05; 
+export const AMBIENT = 0.012; 
+export const SHADE_GAMMA = 1.45; 
+
+export const HAZE = [135, 195, 255]; 
+export const HAZE_BASE = 0.26; 
+export const HAZE_RIM = 0.7; 
+export const HAZE_FLOOR = 0.1; 
+
 export function renderSphere(out, cw, ch, cx, cy, R, lon0, lat0, tex) {
   const sinP = Math.sin(lat0);
   const cosP = Math.cos(lat0);
@@ -71,7 +43,7 @@ export function renderSphere(out, cw, ch, cx, cy, R, lon0, lat0, tex) {
         const xw = nx * cosL + z1 * sinL;
         const zw = z1 * cosL - nx * sinL;
 
-        // Mercator: v = 0.5 - atanh(sin(lat)) / 2π
+        
         const v = (0.5 - Math.atanh(yw) * INV_2PI) * th - 0.5;
         if (v < 0) {
           [r, g, b] = tex.top;
@@ -100,25 +72,25 @@ export function renderSphere(out, cw, ch, cx, cy, R, lon0, lat0, tex) {
           b = ((c00 >> 16) & 255) * w00 + ((c10 >> 16) & 255) * w10 + ((c01 >> 16) & 255) * w01 + ((c11 >> 16) & 255) * w11;
         }
       } else {
-        // Sin textura: esfera lisa y neutra.
+        
         r = 58;
         g = 68;
         b = 82;
       }
 
-      // Luz direccional con terminador suave: la parte baja/derecha queda en sombra.
+      
       const dot = nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2];
       let lit = ((dot + WRAP) / (1 + WRAP)) * 1.2;
       lit = lit < 0 ? 0 : lit > 1 ? 1 : lit;
       lit = Math.pow(lit, SHADE_GAMMA);
       const s = AMBIENT + (1 - AMBIENT) * lit;
-      // La sombra oscurece los tres canales por igual (sin luz azul de relleno).
+      
       r *= s;
       g *= s;
       b *= s;
 
-      // Bruma azul de lejanía: ligera al centro, más fuerte en el borde (fresnel),
-      // y más visible del lado iluminado.
+      
+      
       const fr = 1 - nz;
       const hz = HAZE_BASE + HAZE_RIM * fr * fr * (0.2 + 0.8 * lit);
       const hf = HAZE_FLOOR + (1 - HAZE_FLOOR) * s;
@@ -130,10 +102,6 @@ export function renderSphere(out, cw, ch, cx, cy, R, lon0, lat0, tex) {
   }
 }
 
-/**
- * Proyecta (lat, lon) en grados a coordenadas de pantalla.
- * Devuelve false si el punto está en el hemisferio oculto; escribe en `out` ({x,y}).
- */
 export function projectPoint(latDeg, lonDeg, lon0, lat0, cx, cy, R, out) {
   const lat = latDeg * D2R;
   const lon = lonDeg * D2R;
@@ -154,11 +122,6 @@ export function projectPoint(latDeg, lonDeg, lon0, lat0, cx, cy, R, out) {
   return z2 > 0;
 }
 
-/**
- * Igual que projectPoint pero para un vector unitario (x, y, z) ya calculado y con
- * sin/cos precalculados: sirve para la esfera celeste (estrellas).
- * Devuelve z (>0 = delante de la cámara) y escribe x, y de pantalla en `out`.
- */
 export function projectDir(px, py, pz, sinL, cosL, sinP, cosP, cx, cy, R, out) {
   const x1 = px * cosL - pz * sinL;
   const z1 = px * sinL + pz * cosL;

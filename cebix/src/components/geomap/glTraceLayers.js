@@ -1,11 +1,3 @@
-/**
- * Dibujo de la parcela NATIVO de MapLibre: una fuente GeoJSON y capas de línea/relleno dentro del propio
- * mapa (contorno, malla y relleno de "superficie excedida"). Se proyectan y recortan con el mapa, giran con
- * el globo y no necesitan un SVG aparte reproyectado en cada cuadro.
- *
- * Mismo estilo que Leaflet (parcelStyle.js): trazo blanco (rojo si pasa la superficie máxima) con el grosor
- * de contorno y de malla compartidos. Las capas de MapLibre no tienen el modo "difference" de Leaflet.
- */
 import { toGeoJSONPolygon } from "../../utils/polygon";
 import { EXPORT_COLOR, EXPORT_DASH, EXPORT_WEIGHT, GRID_WEIGHT, OUTLINE_WEIGHT, OVER_LIMIT_COLOR, OVER_LIMIT_FILL_OPACITY, traceColor } from "./parcelStyle";
 
@@ -17,7 +9,6 @@ const EMPTY = { type: "FeatureCollection", features: [] };
 const lngLat = (p) => [p[1], p[0]];
 const feature = (kind, geometry) => ({ type: "Feature", properties: { kind }, geometry });
 
-/** state = { points: [lat,lng][], closed, grid: [lat,lng][][], overLimit } → GeoJSON. */
 function toGeoJSON({ points, closed, grid, overLimit }) {
   const features = [];
   const ring = points.map(lngLat);
@@ -28,7 +19,7 @@ function toGeoJSON({ points, closed, grid, overLimit }) {
       feature("outline", { type: "LineString", coordinates: polygon ? [...ring, ring[0]] : ring }),
     );
   }
-  // Mismo anillo (redondeado a 6 decimales) que sale en el GeoJSON descargado y que recibe el cálculo.
+  
   if (polygon) features.push(feature("export", { type: "LineString", coordinates: toGeoJSONPolygon(points).coordinates[0] }));
   if (polygon && grid.length) {
     features.push(feature("grid", { type: "MultiLineString", coordinates: grid.map((l) => l.map(lngLat)) }));
@@ -36,10 +27,6 @@ function toGeoJSON({ points, closed, grid, overLimit }) {
   return { type: "FeatureCollection", features };
 }
 
-/**
- * @param map  maplibregl.Map
- * @returns {{set(state): void, destroy(): void}}
- */
 export function createTraceLayers(map) {
   let state = { points: [], closed: false, grid: [], overLimit: false };
   let alive = true;
@@ -91,7 +78,7 @@ export function createTraceLayers(map) {
         for (const id of [...LAYERS].reverse()) if (map.getLayer(id)) map.removeLayer(id);
         if (map.getSource(SRC)) map.removeSource(SRC);
       } catch {
-        // el mapa ya se liberó
+        
       }
     },
   };

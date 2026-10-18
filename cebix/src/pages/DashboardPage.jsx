@@ -7,7 +7,7 @@ import RequireAnalysis from "../components/ui/RequireAnalysis";
 function DashboardPageContent() {
   return (
     <>
-      <TopBar title="Resumen general" subtitle="Del dato satelital a la decisión financiera." />
+      <TopBar title="Resumen general" subtitle="Del dato satelital al rendimiento de tu cebada." />
 
       <div className="mt-6" aria-hidden="true" />
 
@@ -25,7 +25,7 @@ function DashboardPageContent() {
 
 export default function DashboardPage() {
   return (
-    <RequireAnalysis skeleton="dashboard" title="Resumen general" subtitle="Del dato satelital a la decisión financiera." >
+    <RequireAnalysis skeleton="dashboard" title="Resumen general" subtitle="Del dato satelital al rendimiento de tu cebada." >
       <DashboardPageContent />
     </RequireAnalysis>
   );

@@ -1,10 +1,6 @@
 import { Link } from "react-router-dom";
 import { Maximize2 } from "lucide-react";
 
-/**
- * Enlace a la lista de parcelas en pantalla completa (/parcelas/historial).
- * Solo icono, sin contorno ni texto; el texto queda en aria-label y title.
- */
 export default function FullscreenLink({ to = "/parcelas/historial" }) {
   return (
     <Link

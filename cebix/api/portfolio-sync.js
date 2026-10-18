@@ -12,7 +12,7 @@ const MAX_PARCELS = 5000;
  *
  * 1. Valida la sesión (el correo SIEMPRE va a la cuenta autenticada, nunca a una dirección del body).
  * 2. Compara con la foto anterior: parcelas que ya existían y ahora están en amarillo o rojo.
- * 3. Si hay cambios y el usuario tiene activados "Alertas por correo" + "Alertas de riesgo", manda UN correo agrupado.
+ * 3. Si hay cambios y el usuario tiene activados "Alertas por correo" + "Alertas de bajo rendimiento", manda UN correo agrupado.
  * 4. Guarda la foto nueva (también la usa el resumen semanal). La primera vez solo guarda: no avisa.
  */
 export default async function handler(req, res) {

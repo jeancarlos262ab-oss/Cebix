@@ -1,10 +1,5 @@
-/**
- * Utilidades geográficas para el panel de información del mapa.
- */
-
 const EARTH_RADIUS_M = 6371008.8;
 
-/** Distancia en metros entre dos puntos (haversine). */
 export function haversine(lat1, lng1, lat2, lng2) {
   const toRad = (d) => (d * Math.PI) / 180;
   const dLat = toRad(lat2 - lat1);

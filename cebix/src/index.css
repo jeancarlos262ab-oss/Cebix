@@ -1,11 +1,7 @@
-/* Las fuentes de Google se cargan sin bloquear el render desde utils/loadFonts.js.
-   El CSS de MapLibre lo importa cada mapa GL (así solo se descarga al abrir un mapa). */
 @import 'tailwindcss';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Imágenes bloqueadas como cebada.webp: sin arrastrar, sin seleccionar, sin menú de "guardar imagen" en móvil.
-   (El arrastre y el clic derecho se bloquean además en utils/lockImages.js.) */
 @layer base {
   img,
   picture {
@@ -42,24 +38,16 @@
   --shadow-card: 0 1px 2px 0 rgba(16, 24, 40, 0.06);
 }
 
-/*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
 @layer base {
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: var(--color-gray-300, currentcolor);
   }
 
-  /* Tailwind v4 ya no pone cursor:pointer en los botones ni usa gris en los placeholders. */
+  
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
@@ -72,8 +60,7 @@
 }
 
 @utility font-display {
-  /* Cifras y encabezados destacados: Sora, geométrica, limpia y moderna.
-     Para cambiarla basta con editar esta línea y el @import de arriba. */
+  
   font-family:
     'Sora',
     'Inter',
@@ -84,7 +71,7 @@
 }
 
 @utility font-bebas {
-  /* Títulos grandes de Acerca y SHAP (Heading con la prop `bebas`). Fuente de un solo grosor. */
+  
   font-family:
     'Bebas Neue',
     'Sora',
@@ -95,7 +82,7 @@
 }
 
 @utility font-garet {
-  /* Exclusivo del wordmark CEBIX (Logo.jsx). El resto de la app usa Inter. */
+  
   font-family:
     'Garet',
     'Poppins',
@@ -145,11 +132,7 @@
     color: #e5e7eb;
   }
 
-  /* Color de acento: controla botones primarios, enlaces y estados activos
-     en toda la app. "brand" (Ámbar) es el valor por defecto y la base del resto:
-     cobre / oliva / pizarra conservan su misma saturación y luminosidad (solo
-     rota el tono) para que combinen con él. mono/ndvi también se activan con
-     data-accent, elegido en Ajustes. */
+  
   html[data-accent="brand"] {
     --accent-700: #7a581a;
     --accent-600: #9c6f1f;
@@ -219,12 +202,11 @@
     --accent-400: #9ca3af;
     --accent-100: #374151;
     --accent-50: #1f2937;
-    /* texto sobre fondo blanco: negro */
+    
     --accent-contrast: #000000;
   }
 
-  /* Barras "de fondo" de las gráficas (p. ej. GDD esperado): gris claro en modo
-     claro y gris medio en oscuro, para que contrasten con el acento blanco. */
+  
   html {
     --chart-track: #eaecf0;
   }
@@ -233,15 +215,15 @@
     --chart-track: #4b5563;
   }
 
-  /* Paleta PROPIA de las gráficas */
+  
   html {
-    --chart-1: #9c6f1f;        /* serie principal (ocre) */
-    --chart-2: #77803b;        /* serie secundaria (oliva) */
-    --chart-3: #944f27;        /* serie terciaria (cobre) */
-    --chart-neutral: #a29a8a;  /* referencia / error (gris cálido) */
-    --chart-positive: #4c9a63; /* suma al rendimiento */
-    --chart-negative: #b8493b; /* resta al rendimiento */
-    --chart-mixed: #9a8a72;    /* efecto mixto (taupe) */
+    --chart-1: #9c6f1f;        
+    --chart-2: #77803b;        
+    --chart-3: #944f27;        
+    --chart-neutral: #a29a8a;  
+    --chart-positive: #4c9a63; 
+    --chart-negative: #b8493b; 
+    --chart-mixed: #9a8a72;    
   }
 
   html.dark {
@@ -254,7 +236,7 @@
     --chart-mixed: #b3a58d;
   }
 
-  /* Scrollbar personalizado */
+  
   * {
     scrollbar-width: thin;
     scrollbar-color: #d0d5dd transparent;
@@ -295,11 +277,6 @@
     background-color: var(--accent-400);
   }
 }
-
-/* ========================================
-   Mapas: contenedores SIEMPRE negros (modo claro y oscuro)
-   Popups (MapLibre + Leaflet), controles nativos y atribución.
-   ======================================== */
 
 .maplibregl-popup,
 .leaflet-popup {
@@ -371,7 +348,6 @@
   border-left-color: rgba(0, 0, 0, 0.92);
 }
 
-/* Controles nativos (si alguno se llegara a usar) */
 .maplibregl-ctrl-group,
 .leaflet-bar a,
 .leaflet-control-layers {
@@ -395,7 +371,6 @@
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Atribución */
 .maplibregl-ctrl-attrib,
 .leaflet-container .leaflet-control-attribution {
   background-color: rgba(0, 0, 0, 0.85) !important;
@@ -424,7 +399,7 @@
 .app-skeleton .strong .react-loading-skeleton {
   --base-color: #e4e7ec;
 }
-/* Un poco más marcado que el de la tabla de resultados: se ve sobre toda la pantalla, no sobre un recuadro. */
+
 .app-skeleton .react-loading-skeleton {
   --base-color: #eceff3;
 }
@@ -439,7 +414,6 @@ html.dark .app-skeleton .strong .react-loading-skeleton {
   --highlight-color: #475467;
 }
 
-/* Mapa satelital: el lienzo es negro también en modo claro. */
 .dark-skeleton .react-loading-skeleton {
   --base-color: #1d2939;
   --highlight-color: #344054;
@@ -492,8 +466,6 @@ ol.app-toaster li[data-sonner-toast] [data-button] {
   border-radius: 9999px !important;
 }
 
-/* Degradado de acento en la esquina superior izquierda (fijo, detrás de todo).
-   Usa el color de acento elegido en Ajustes, así que cambia con él. */
 .app-corner-glow {
   background: radial-gradient(
     ellipse 75% 65% at 0% 0%,
@@ -512,8 +484,6 @@ html.dark .app-corner-glow {
   );
 }
 
-/* Documento que asoma por el borde de un contenedor (estado vacío): entra deslizándose una sola vez
-   desde detrás del borde (el contenedor padre lo recorta) y se queda quieto. */
 @keyframes doc-peek-in {
   from {
     transform: translateY(100%);
@@ -533,17 +503,14 @@ html.dark .app-corner-glow {
   }
 }
 
-/* Mapa satelital: los controles internos del mapa (zoom, capas, leyenda) van sin contorno. */
 .map-flat [class*="border-white/15"] {
   border-color: transparent;
 }
 
-/* Mapa satelital: mismo nivel de transparencia en barras de capas y zoom que en el resto de contenedores. */
 .map-flat [class*="bg-black/90"] {
   background-color: rgb(0 0 0 / 0.65);
 }
 
-/* Columna con scroll del mapa: difuminado al inicio/final según haya más contenido (solo escritorio). */
 @media (min-width: 1024px) {
   .scroll-fade {
     -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top, 0px), #000 calc(100% - var(--fade-bottom, 0px)), transparent 100%);
@@ -551,15 +518,11 @@ html.dark .app-corner-glow {
   }
 }
 
-/* Tira de parcelas: desvanecido al inicio/final según el scroll horizontal. */
 .strip-fade {
   -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-start, 0px), #000 calc(100% - var(--fade-end, 0px)), transparent 100%);
   mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-start, 0px), #000 calc(100% - var(--fade-end, 0px)), transparent 100%);
 }
 
-/* Cambio de contenido dentro de una pantalla (pestañas, selector de parcela): entra con un fundido corto de
-   opacity/transform, que corre en el compositor. Sustituye a AnimatePresence mode="wait" + layout de framer-motion,
-   que primero esperaba a que saliera lo anterior y medía el DOM en cada render. */
 @keyframes fade-in-up {
   from {
     opacity: 0;
@@ -581,9 +544,18 @@ html.dark .app-corner-glow {
   }
 }
 
-/* Mapas de parcelas en pantalla completa: ocupan todo el alto/ancho aunque tengan alto fijo en línea. */
 .map-fs:fullscreen {
   width: 100% !important;
   height: 100% !important;
   border-radius: 0 !important;
 }
+
+html:not(.dark) .border-gray-100:not(.dark *),
+html:not(.dark) .border-gray-200:not(.dark *) { border-color: var(--color-gray-300); }
+html:not(.dark) .border-gray-300:not(.dark *) { border-color: var(--color-gray-400); }
+html:not(.dark) .divide-gray-100 > :not(:last-child):not(.dark *),
+html:not(.dark) .divide-gray-200 > :not(:last-child):not(.dark *) { border-color: var(--color-gray-300); }
+html:not(.dark) .border-t-gray-100:not(.dark *),
+html:not(.dark) .border-b-gray-100:not(.dark *) { border-color: var(--color-gray-300); }
+html:not(.dark) .border-b-gray-200:not(.dark *),
+html:not(.dark) .border-t-gray-200:not(.dark *) { border-color: var(--color-gray-300); }

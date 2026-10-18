@@ -2,10 +2,6 @@ import { useEffect, useRef, useState } from "react";
 
 const DURATION = 300;
 
-/**
- * Desliza su contenido al aparecer o desaparecer (altura 0 ↔ natural, sin medir nada con JS).
- * Como la altura cambia cuadro a cuadro, lo que está alrededor (p. ej. el mapa, que se estira con el panel) la sigue.
- */
 export function Collapse({ open, children, className = "" }) {
   return (
     <div
@@ -19,16 +15,12 @@ export function Collapse({ open, children, className = "" }) {
   );
 }
 
-/**
- * Lista cuyos elementos se deslizan al entrar y al salir. `items` = [{ key, ...datos }]; `render(item)` pinta uno.
- * Los que ya no están siguen montados lo que dura la animación de salida.
- */
 export function SlideList({ items, render, gap = "pt-2" }) {
   const [rows, setRows] = useState(() => items.map((item) => ({ item, open: true })));
   const first = useRef(true);
   const latest = useRef(items);
   latest.current = items;
-  const sig = items.map((i) => i.key).join("\n"); // el efecto solo corre cuando cambia el conjunto de elementos
+  const sig = items.map((i) => i.key).join("\n"); 
 
   useEffect(() => {
     if (first.current) {
@@ -37,7 +29,7 @@ export function SlideList({ items, render, gap = "pt-2" }) {
     }
     const current = latest.current;
     const keys = new Set(current.map((i) => i.key));
-    // Nuevos: se montan cerrados y se abren en el cuadro siguiente. Quitados: se cierran y se retiran al terminar.
+    
     setRows((prev) => {
       const known = new Map(prev.map((r) => [r.item.key, r]));
       const next = current.map((item) => ({ item, open: known.has(item.key) ? known.get(item.key).open || false : false }));

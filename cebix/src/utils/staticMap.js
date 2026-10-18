@@ -1,24 +1,6 @@
-/**
- * Genera URLs de imágenes satelitales ESTÁTICAS (un solo PNG, no un mapa
- * interactivo) usando el endpoint público "export" de Esri World_Imagery —
- * el mismo servicio de tiles que ya usa el mapa satelital, así que la vista
- * se ve igual, pero como una foto fija: mucho más ligera de cargar que
- * MapLibre GL / Leaflet y sin controles ni interacción.
- *
- * No requiere API key. Referencia del endpoint:
- * https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export
- */
-
-// Resolución (metros/pixel) en el ecuador a zoom 0, convención estándar de
-// mapas tipo "slippy map" (tiles de 256px). Se usa solo para traducir un
-// nivel de zoom conocido a un tamaño de recuadro (bbox) en grados.
 const BASE_RESOLUTION = 156543.03392804097;
 const METERS_PER_DEG_LAT = 111320;
 
-/**
- * @param {{lat: number, lng: number, zoom?: number, width?: number, height?: number, dpr?: number}} options
- * @returns {string} URL de una imagen PNG estática centrada en [lat, lng]
- */
 export function buildStaticSatelliteUrl({
   lat,
   lng,
@@ -48,8 +30,8 @@ export function buildStaticSatelliteUrl({
     bboxSR: "4326",
     imageSR: "4326",
     size: `${w},${h}`,
-    // png24 (sin canal alfa) es más ligero que png32; suficiente para una
-    // foto satelital sin transparencia.
+    
+    
     format: "png24",
     f: "image",
   });

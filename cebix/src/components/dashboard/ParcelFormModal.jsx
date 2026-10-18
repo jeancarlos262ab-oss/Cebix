@@ -43,7 +43,6 @@ function toFormState(parcel) {
 
 const NUMERIC_FIELDS = ["lat", "lng", "ndvi", "evi", "precip", "gdd", "yieldEstimate", "confidence"];
 
-// Campos que se pueden editar en una parcela que viene de la corrida del modelo.
 const METADATA_FIELDS = ["lat", "lng"];
 
 function validate(form, metadataOnly = false) {
@@ -65,17 +64,6 @@ function validate(form, metadataOnly = false) {
   return errors;
 }
 
-/**
- * @param {{
- *   parcel?: object,
- *   onClose: () => void,
- *   onSubmit: (fields: object) => Promise<{error?: Error|null}|void>|void,
- * }} props
- * - Sin `parcel`: crea. Con `parcel` capturada a mano: edita todos los campos.
- * - Con `parcel` de la corrida del modelo (`fromModelRun`): solo se editan los datos
- *   descriptivos; rendimiento, score y SHAP los calculó el modelo y no se modifican.
- * - `onSubmit` puede devolver `{ error }`: el formulario se queda abierto y lo muestra.
- */
 export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
   const [form, setForm] = useState(() => toFormState(parcel));
   const [errors, setErrors] = useState({});
@@ -84,12 +72,12 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
   const isEdit = Boolean(parcel);
   const metadataOnly = Boolean(parcel?.fromModelRun);
 
-  // ── Autollenado al marcar el punto en el mapa (igual que el estado en la pantalla satelital) ──
+  
   const [locating, setLocating] = useState(false);
   const formRef = useRef(form);
   formRef.current = form;
-  const autoMunicipio = useRef(""); // último municipio puesto automáticamente (para no pisar lo que escribió el usuario)
-  const regionTouched = useRef(false); // el usuario eligió la región a mano: ya no se cambia sola
+  const autoMunicipio = useRef(""); 
+  const regionTouched = useRef(false); 
   const geoRequest = useRef(null);
   useEffect(() => () => geoRequest.current?.abort(), []);
 
@@ -98,7 +86,7 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
   }
 
   function handlePick(lat, lng) {
-    // Región inmediata (sin red) para Hidalgo / Tlaxcala / Puebla; luego la afina la consulta a internet.
+    
     const estado = detectEstado(lat, lng);
     setForm((f) => ({
       ...f,
@@ -108,8 +96,8 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
     }));
     setErrors((e) => ({ ...e, lat: undefined, lng: undefined }));
 
-    // Región y municipio: se consultan a OpenStreetMap, así funcionan en cualquier lugar donde se ponga el punto.
-    // La región solo se escribe si el usuario no la eligió a mano; el municipio solo si está vacío o lo llenó el autollenado.
+    
+    
     geoRequest.current?.abort();
     const controller = new AbortController();
     geoRequest.current = controller;
@@ -129,7 +117,7 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
           }
         }
       })
-      .catch(() => {}) // sin red o servicio saturado: queda la región detectada sin red y el municipio a mano
+      .catch(() => {}) 
       .finally(() => {
         if (!controller.signal.aborted) setLocating(false);
       });
@@ -184,7 +172,7 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
       description={
         metadataOnly
           ? "Esta parcela viene de la corrida del modelo: aquí solo se editan sus datos descriptivos. Rendimiento, score y SHAP los calculó el modelo."
-          : "Score y semáforo de elegibilidad se calculan automáticamente a partir de estos valores."
+          : "Score y semáforo de rendimiento se calculan automáticamente a partir de estos valores."
       }
       footer={
         <>

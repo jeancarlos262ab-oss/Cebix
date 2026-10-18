@@ -1,10 +1,3 @@
-/**
- * Utilidades de exportación CSV. Genera el archivo en el navegador a partir
- * de los datos reales que ya están en memoria (parcelas, series de
- * gráficas) — no hay ningún dato de relleno aquí, solo formateo y descarga.
- */
-
-/** Escapa un valor para una celda CSV (comillas dobles, comas, saltos de línea). */
 function escapeCell(value) {
   if (value === null || value === undefined) return "";
   const str = String(value);
@@ -54,8 +47,8 @@ const PARCEL_CSV_COLUMNS = [
   { key: "area", label: "Superficie" },
   { key: "yieldEstimate", label: "Rendimiento (ton/ha)", format: (r) => r.yieldEstimate.toFixed(2) },
   { key: "confidence", label: "± ton/ha", format: (r) => r.confidence.toFixed(2) },
-  { key: "score", label: "Score elegibilidad" },
-  { key: "risk", label: "Riesgo" },
+  { key: "score", label: "Índice de rendimiento" },
+  { key: "risk", label: "Nivel de rendimiento" },
   { key: "ndvi", label: "NDVI pico", format: (r) => r.ndvi.toFixed(3) },
   { key: "evi", label: "EVI", format: (r) => r.evi.toFixed(3) },
   { key: "precip", label: "Precipitación (mm)" },

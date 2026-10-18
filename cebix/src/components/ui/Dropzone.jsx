@@ -1,21 +1,5 @@
 import { useState } from "react";
 
-/**
- * Zona de arrastrar y soltar reutilizable. Solo se encarga del aspecto y del arrastre: quien la usa decide
- * qué hacer con los archivos (`onFiles`). Mismo redondeo que el resto de contenedores de la app
- * (rounded-2xl), sin relleno por defecto.
- *
- * @param {{
- *   onFiles: (files: File[]) => void,
- *   accept?: string,
- *   multiple?: boolean,
- *   disabled?: boolean,
- *   busy?: boolean,
- *   active?: boolean,            // hay un archivo ya elegido (el mismo borde punteado, en color de acento)
- *   className?: string,
- *   children: React.ReactNode | ((state: { dragging: boolean }) => React.ReactNode),
- * }} props
- */
 export default function Dropzone({
   onFiles,
   accept,

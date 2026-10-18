@@ -1,16 +1,3 @@
-/**
- * ParcelMapLite — motor de mapas "ligero" (Leaflet).
- *
- * Alternativa a ParcelMapGL para equipos de bajos recursos: Leaflet dibuja
- * tiles como <img> normales sobre el DOM y no necesita WebGL, por lo que
- * consume muchísima menos GPU/CPU que MapLibre GL. Replica la misma API de
- * props y, en la medida de lo posible, la misma UI (capas, basemaps,
- * límites estatales, popup, controles) para que el cambio de motor sea
- * transparente para quien usa la app.
- *
- * No se renderiza directamente desde las páginas: lo selecciona
- * automáticamente ParcelMap.jsx según el dispositivo.
- */
 import RangeBadge from "../ui/RangeBadge";
 import { LEFT_FADE_LENGTH, softFadeGradient } from "./edgeFade";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -32,22 +19,6 @@ import { RISK_COLORS } from "../../utils/riskColors";
 
 const RISK_HEX = RISK_COLORS;
 
-/**
- * Mapas base del motor ligero. Los 4 son tiles raster PNG de Esri (misma
- * familia que Satelital/Terreno) — ninguno requiere API key. "Claro" y
- * "Oscuro" usaban antes CartoDB, pero CARTO empezó a exigir API key en
- * 2026, así que se reemplazaron por el equivalente gratuito de Esri
- * (Canvas/World_Light_Gray_Base y Canvas/World_Dark_Gray_Base).
- *
- * "Claro"/"Oscuro" ya NO se eligen a mano: el mapa base sigue el tema
- * general de la app (claro/oscuro/sistema definido en Ajustes). Sólo
- * "Satelital" y "Terreno" quedan como opciones manuales en la barra.
- */
-/**
- * maxNativeZoom: nivel máximo en el que Esri tiene tiles reales. Más allá,
- * Leaflet escala el último nivel disponible en vez de pedir tiles que no
- * existen (que mostraban "Map data not yet available").
- */
 const ESRI_ATTRIBUTION = "Tiles &copy; Esri &mdash; Esri, HERE, Garmin";
 
 const BASEMAPS_LITE = {
@@ -79,7 +50,6 @@ const BASEMAPS_LITE = {
   },
 };
 
-/** Botones manuales en la barra de basemaps. "Mapa" resuelve a claro/oscuro según el tema. */
 const BASEMAP_BUTTONS = [
   { key: "satellite", label: "Satelital", icon: SatelliteIcon },
   { key: "terreno", label: "Terreno", icon: Mountain },
@@ -90,7 +60,7 @@ const BASEMAP_BUTTONS = [
 export { BASEMAPS_LITE };
 
 const LAYERS = [
-  { key: "risk", label: "Semáforo de elegibilidad", icon: Gauge },
+  { key: "risk", label: "Semáforo de rendimiento", icon: Gauge },
   { key: "ndvi", label: "Vigor NDVI", icon: Leaf },
 ];
 
@@ -101,8 +71,6 @@ const NDVI_LEGEND = [
   { color: "#C0362E", label: "NDVI < 0.50 (estrés)" },
 ];
 
-// Un único ícono de pin compartido por todos los mapas de todas las pantallas
-// (antes se creaba uno nuevo en cada montaje).
 const getPinIcon = lazySingleton(() =>
   L.divIcon({
     className: "",
@@ -130,7 +98,6 @@ function colorForParcel(parcel, colorMode) {
   return RISK_COLORS.green;
 }
 
-/** Normaliza center a [lat, lng], aceptando array o {latitude, longitude}. */
 function normalizeCenter(center) {
   if (Array.isArray(center)) return center;
   if (center && center.latitude !== undefined) return [center.latitude, center.longitude];
@@ -209,7 +176,7 @@ function MapControlsPanel({
 
 const MapLegend = memo(function MapLegend({ layer }) {
   const items = NDVI_LEGEND;
-  // Semáforo: flota directo sobre el mapa, sin contenedor ni título.
+  
   if (layer !== "ndvi") return <RiskTrafficLight />;
   return (
     <div className="rounded-lg border border-white/15 bg-black/90 px-3.5 py-3 text-gray-100">
@@ -225,34 +192,6 @@ const MapLegend = memo(function MapLegend({ layer }) {
   );
 });
 
-/**
- * Componente de mapa de parcelas — motor ligero (Leaflet).
- *
- * Misma API de props que ParcelMapGL para poder intercambiarse sin tocar
- * las páginas que lo usan.
- *
- * @param {{
- *   parcels: Array,
- *   selectedId?: number,
- *   onSelect?: (parcel) => void,
- *   height?: number | string,
- *   center?: [number, number],
- *   zoom?: number,
- *   allowGroundView?: boolean,
- *   showLayerControl?: boolean,
- *   showLegend?: boolean,   // leyenda arriba a la derecha (por defecto igual que showLayerControl)
- *   showBoundariesByDefault?: boolean,
- *   viewOnly?: boolean,   // solo visualizar el lugar: sin capas de riesgo/NDVI y con pin en vez de círculo
- *   basemap?: "satellite" | "terreno",   // mapa base inicial; si se omite, sigue el tema de la app
- *   rounded?: boolean,    // true = esquinas redondeadas (los mapas nunca llevan borde)
- *   edgeFade?: boolean,   // desvanece el mapa hacia el fondo de la app solo en el borde izquierdo (lg+), con el color del tema; para el mapa satelital junto al sidebar
- *   controlsLeftClassName?: string,   // offset izquierdo de la barra de capas (por defecto "left-3")
- *   controlsTopClassName?: string,   // clase de Tailwind para el offset superior de la barra de capas (por defecto "top-3"); útil cuando algo del layout de la página, como un título, ya ocupa esa esquina.
- *   basemapKeys?: string[],   // botones de mapa base a mostrar (por defecto: satelital, terreno y mapa según tema)
- *   zoomClassName?: string,   // clases extra para reubicar la barra de zoom
- *   controlsOrientation?: "vertical" | "horizontal",   // dirección de la barra de zoom (por defecto "vertical")
- * }} props
- */
 function ParcelMapLite({
   parcels,
   selectedId,
@@ -279,14 +218,14 @@ function ParcelMapLite({
   const containerRef = useRef(null);
   const markersRef = useRef(new Map());
   const selectedIdRef = useRef(null);
-  // Parcela seleccionada: se dibuja con otra figura (rombo) en vez del círculo.
+  
   const [markedId, setMarkedId] = useState(null);
 
   const { resolvedTheme, accent } = useTheme();
   const accentHex = getAccentHex(accent, resolvedTheme);
   const boundaryStyle = useCallback(() => boundaryLeafletStyle(accentHex), [accentHex]);
-  // null = el basemap sigue el tema general de la app (claro/oscuro);
-  // "satellite" | "terreno" = el usuario fijó uno manualmente en la barra.
+  
+  
   const [userBasemap, setUserBasemap] = useState(
     initialBasemap === "satellite" || initialBasemap === "terreno" ? initialBasemap : null
   );
@@ -319,7 +258,7 @@ function ParcelMapLite({
   const basemapConfig = BASEMAPS_LITE[basemap] || BASEMAPS_LITE.satellite;
 
   const styleFor = useCallback(
-    // El círculo seleccionado se oculta (sigue ahí para el popup y el clic); lo reemplaza el rombo.
+    
     (parcel, { selected }) => ({
       color: "#ffffff",
       weight: 2,
@@ -359,7 +298,7 @@ function ParcelMapLite({
     [parcels, styleFor]
   );
 
-  // El mapa sigue al contenedor (pantalla completa, cambios de tamaño).
+  
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return undefined;
@@ -372,7 +311,7 @@ function ParcelMapLite({
     if (selectedId === undefined || selectedId === null) return;
     const parcel = parcels.find((p) => p.id === selectedId);
     if (parcel) selectParcel(parcel, { flyTo: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [selectedId, parcels]);
 
   const flyToParcel = useCallback((parcel) => {
@@ -464,8 +403,8 @@ function ParcelMapLite({
             >
               {showPopup && (
                 <Popup className="parcel-popup" offset={[0, -6]}>
-                  {/* Ojo: sin <p>. leaflet.css le pone margen a `.leaflet-popup-content p`
-                      y pisa las utilidades de Tailwind. */}
+                  {
+}
                   <div className="w-56 font-sans">
                     <div className="min-w-0">
                       <div className="text-sm font-semibold leading-snug text-white">{parcel.name}</div>
@@ -494,7 +433,7 @@ function ParcelMapLite({
                         </dd>
                       </div>
                       <div className="col-span-2 bg-black px-2.5 py-2">
-                        <dt className="text-[11px] text-gray-400">Elegibilidad</dt>
+                        <dt className="text-[11px] text-gray-400">Nivel</dt>
                         <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-white">
                           <span
                             className="h-2 w-2 shrink-0 rounded-xs"

@@ -1,13 +1,5 @@
 import { Check } from "lucide-react";
 
-/**
- * Mini maqueta de la interfaz (sidebar + topbar + tarjetas + gráficas + tabla) usada como
- * previsualización de un tema. El viewBox mantiene una proporción fija (240×100) y el
- * contenedor la respeta, así que nunca se estira: en celular la tarjeta ocupa todo el ancho
- * y la maqueta crece con ella, rellenándose con más elementos.
- *
- * @param {{variant: "light" | "dark" | "split", accentColor: string}} props
- */
 function MiniMockup({ variant, accentColor }) {
   const isDark = variant === "dark";
   const canvasBg = isDark ? "#0A0A0A" : "#F4F6FA";
@@ -24,7 +16,7 @@ function MiniMockup({ variant, accentColor }) {
     <svg viewBox="0 0 240 100" className="block h-full w-full" preserveAspectRatio="xMidYMid slice">
       <rect x="0" y="0" width="240" height="100" fill={canvasBg} />
 
-      {/* sidebar */}
+      {}
       <rect x="0" y="0" width="52" height="100" fill={sidebarBg} />
       <circle cx="13" cy="12" r="4" fill={accentColor} />
       <rect x="21" y="10" width="20" height="4" rx="2" fill={textStrong} />
@@ -41,14 +33,14 @@ function MiniMockup({ variant, accentColor }) {
       <rect x="20" y="88.5" width="18" height="2.5" rx="1.25" fill={lineStrong} />
       <rect x="20" y="93" width="12" height="2" rx="1" fill={lineSoft} />
 
-      {/* topbar */}
+      {}
       <rect x="62" y="9" width="46" height="5" rx="2.5" fill={textStrong} />
       <rect x="62" y="17" width="70" height="3" rx="1.5" fill={lineStrong} />
       <rect x="182" y="8" width="38" height="11" rx="5.5" fill={cardBg} />
       <rect x="188" y="12.5" width="16" height="2.5" rx="1.25" fill={lineStrong} />
       <circle cx="228" cy="13.5" r="5" fill={accentColor} />
 
-      {/* tarjetas de métricas */}
+      {}
       {[
         [62, green],
         [112, amber],
@@ -65,7 +57,7 @@ function MiniMockup({ variant, accentColor }) {
       <circle cx="222" cy="38.5" r="6" fill="none" stroke={lineStrong} strokeWidth="3" />
       <path d="M222 32.5 A6 6 0 0 1 228 38.5" fill="none" stroke={accentColor} strokeWidth="3" />
 
-      {/* gráfica de línea */}
+      {}
       <rect x="62" y="57" width="88" height="37" rx="4" fill={cardBg} />
       <rect x="68" y="62" width="22" height="3" rx="1.5" fill={textStrong} />
       {[72, 79, 86].map((y) => (
@@ -80,7 +72,7 @@ function MiniMockup({ variant, accentColor }) {
         strokeLinejoin="round"
       />
 
-      {/* barras */}
+      {}
       <rect x="156" y="57" width="34" height="37" rx="4" fill={cardBg} />
       {[8, 14, 10, 18, 13].map((h, i) => (
         <rect
@@ -94,7 +86,7 @@ function MiniMockup({ variant, accentColor }) {
         />
       ))}
 
-      {/* tabla */}
+      {}
       <rect x="196" y="57" width="36" height="37" rx="4" fill={cardBg} />
       {[63, 71, 79, 87].map((y, i) => (
         <g key={y}>
@@ -119,12 +111,6 @@ function MiniMockup({ variant, accentColor }) {
   );
 }
 
-/**
- * Tarjeta seleccionable de tema. Al seleccionarla NO cambia el contorno: se pinta con el
- * color de acento el fondo del recuadro que contiene los textos.
- *
- * @param {{label: string, description?: string, variant: "light"|"dark"|"split", active: boolean, onSelect: () => void, accentColor?: string}} props
- */
 export default function ThemePreviewCard({ label, description, variant, active, onSelect, accentColor = "#C08A2E" }) {
   return (
     <button

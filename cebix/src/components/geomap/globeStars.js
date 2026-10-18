@@ -1,71 +1,46 @@
-/**
- * Cielo del globo: estrellas + Vía Láctea realista, en Canvas 2D.
- *
- * Diseño ligero:
- *  - Todo se calcula UNA vez al crear el cielo (vectores unitarios en Float32Array).
- *    Por cuadro solo se proyectan ~2000 puntos y se pintan en pocos trazos.
- *  - La Vía Láctea va FIJA al cielo: rota junto con las estrellas (misma orientación y velocidad).
- *    Su brillo y su polvo (lo caro: ~260 sprites grandes) se pintan en capas de baja resolución
- *    que se reutilizan entre cuadros desplazándolas, y se reproyectan exactas cada pocos píxeles.
- *  - Se dibuja dentro del mismo render() de GlobeMap: en reposo no gasta nada.
- *    No hay animación propia ni requestAnimationFrame.
- *  - Las estrellas rotan cuando se gira el globo, en el MISMO sentido que el planeta
- *    (SKY.direction) y en sincronía angular con él (SKY.speed = 1: vuelta completa del globo =
- *    vuelta completa del cielo). La Vía Láctea rota igual que las estrellas (SKY.mwSpeed = 1).
- *    Las rotaciones se acumulan en ángulo (camino corto en longitud, sin saltos al cruzar 180°).
- *  - Proyección acimutal equidistante de campo moderado (SKY.reach): sin la deformación
- *    de los bordes que daba la sensación de estar dentro de una caja.
- *  - Vía Láctea = brillo difuso aditivo (sprites precalculados) + estrellas diminutas
- *    + vetas de polvo oscuro, todo a lo largo de una banda inclinada. Sin gradientes
- *    ni filtros por cuadro.
- */
 import { projectDir } from "./globeRender.js";
 
-/** Ajustes rápidos. */
 const SKY = {
-  stars: 4200, // estrellas de campo: muchas y tenues, como en Google Earth
-  milkyWay: true, // Vía Láctea: brillo difuso + vetas oscuras de polvo + estrellas diminutas
-  glow: 170, // manchas de brillo difuso a lo largo de la banda
-  lanes: 90, // manchas oscuras (polvo que absorbe la luz)
-  grains: 5000, // estrellas diminutas sin resolver, concentradas en la banda
-  reach: 1.5, // ángulo (rad) desde el eje de la cámara que llega a la esquina del lienzo
-  // Giro del cielo respecto al del globo, en ÁNGULO: 1 = sincronía exacta (cuando el globo da una
-  // vuelta completa, el cielo también da una vuelta completa y vuelve a la misma posición);
-  // 0 = cielo fijo; 0.1 = estrellas muy lejanas que casi no giran.
+  stars: 4200, 
+  milkyWay: true, 
+  glow: 170, 
+  lanes: 90, 
+  grains: 5000, 
+  reach: 1.5, 
+  
+  
+  
   speed: 1,
-  // Giro de la Vía Láctea respecto al de las estrellas, en ÁNGULO: 1 = rota exactamente igual que
-  // las estrellas (valor actual); 0 = quieta; 0.06 = muy lenta, como algo lejanísimo.
+  
+  
   mwSpeed: 1,
-  lowRes: 0.35, // resolución (0-1) de las capas de brillo y polvo (son difusas: no necesitan más)
-  // Cuánto se acerca el cielo al hacer zoom al globo (0 = nada; 0.03 = casi nada: con el zoom
-  // máximo el cielo crece ~15%). Afecta a estrellas y a la Vía Láctea por igual.
+  lowRes: 0.35, 
+  
+  
   zoom: 0.03,
-  // Sentido del giro del cielo: 1 = el cielo se mueve en la misma dirección que la superficie del
-  // planeta (todo gira "con" el planeta);
-  // -1 = sentido contrario (el de un cielo fijo en el espacio visto tras la órbita de la cámara).
+  
+  
+  
   direction: 1,
 };
 
-// Fracción de la resolución de la capa de brillo mientras el globo se mueve (en reposo: 1).
 const GLOW_FAST = 0.5;
-// Fracción de granos de la Vía Láctea y de estrellas tenues que se pintan mientras el globo se mueve.
+
 const GRAIN_FAST = 0.3;
 const STAR_FAST = 0.55;
 
 const TINTS = [
-  [255, 255, 255], // blanca
-  [170, 200, 255], // azulada
-  [255, 214, 168], // cálida
+  [255, 255, 255], 
+  [170, 200, 255], 
+  [255, 214, 168], 
 ];
 
-// Brillo de la Vía Láctea: cálido (núcleo), neutro y frío (brazos).
 const GLOW_TINTS = [
-  [222, 196, 164], // pardo cálido (núcleo)
-  [206, 200, 198], // gris neutro
-  [176, 190, 214], // gris azulado
+  [222, 196, 164], 
+  [206, 200, 198], 
+  [176, 190, 214], 
 ];
 
-/** Generador pseudoaleatorio con semilla: el cielo es siempre el mismo. */
 function mulberry32(seed) {
   let a = seed | 0;
   return () => {
@@ -76,10 +51,8 @@ function mulberry32(seed) {
   };
 }
 
-/** Número casi gaussiano (suma de 3 uniformes), rango ≈ [-1, 1]. */
 const gauss = (rnd) => (rnd() + rnd() + rnd() - 1.5) / 1.5;
 
-/** Sprites precalculados: estrellas (halo), brillo difuso y mancha oscura de polvo. */
 function makeSprites() {
   const mk = (size, [r, g, b], stops) => {
     const c = document.createElement("canvas");
@@ -99,13 +72,7 @@ function makeSprites() {
   };
 }
 
-/**
- * Proyecta un punto de la esfera celeste con acimutal equidistante centrada en el eje de la
- * cámara (el cielo que queda detrás del globo): radio en pantalla = k · ángulo.
- * Reutiliza projectDir() para el giro (con R=1 devuelve x1, -y2 y z2).
- * Devuelve false si el punto cae más allá del alcance.
- */
-const LIM = -Math.cos(SKY.reach + 0.4); // más allá de la esquina: la caché lleva margen y se desplaza sin huecos
+const LIM = -Math.cos(SKY.reach + 0.4); 
 function skyProject(px, py, pz, sinL, cosL, sinP, cosP, cx, cy, k, out) {
   const z2 = projectDir(px, py, pz, sinL, cosL, sinP, cosP, 0, 0, 1, out);
   if (z2 > LIM) return false;
@@ -120,13 +87,13 @@ function skyProject(px, py, pz, sinL, cosL, sinP, cosP, cx, cy, k, out) {
 }
 
 export function createSky({ stars = SKY.stars } = {}) {
-  /* ───────────── datos (una sola vez) ───────────── */
+  
   const rnd = mulberry32(7421);
 
-  // Estrellas de fondo, repartidas por toda la esfera.
+  
   const faint = [];
   const mid = [];
-  const bright = []; // x, y, z, tamaño, tinte
+  const bright = []; 
   for (let i = 0; i < stars; i++) {
     const y = 2 * rnd() - 1;
     const rr = Math.sqrt(1 - y * y);
@@ -145,20 +112,20 @@ export function createSky({ stars = SKY.stars } = {}) {
   const T1 = new Float32Array(mid);
   const T2 = new Float32Array(bright);
 
-  // Vía Láctea: un círculo máximo inclinado. Ángulo 0 = núcleo galáctico (más brillante y cálido).
-  // Base ortonormal del plano de la banda: (ex, ey), normal n.
+  
+  
   const nrm = [0.32, 0.82, 0.47];
   const nl = Math.hypot(...nrm);
   const n = nrm.map((v) => v / nl);
-  let ex = [n[1], -n[0], 0]; // ⟂ n
+  let ex = [n[1], -n[0], 0]; 
   const el = Math.hypot(...ex);
   ex = ex.map((v) => v / el);
   const ey0 = [n[1] * ex[2] - n[2] * ex[1], n[2] * ex[0] - n[0] * ex[2], n[0] * ex[1] - n[1] * ex[0]];
-  // Base girada 90°: así el núcleo (ángulo 0) queda en la parte del cielo que se ve detrás del
-  // globo, y la banda es un ARCO que se desvanece hacia los extremos (no un anillo completo).
+  
+  
   const bx = ey0;
   const by = ex.map((v) => -v);
-  /** Punto en la banda: ángulo a lo largo, desvío fuera del plano (rad). */
+  
   const onBand = (ang, off) => {
     const ca = Math.cos(ang);
     const sa = Math.sin(ang);
@@ -170,33 +137,33 @@ export function createSky({ stars = SKY.stars } = {}) {
       (bx[2] * ca + by[2] * sa) * co + n[2] * so,
     ];
   };
-  /** 1 en el núcleo, cae hacia el lado opuesto de la banda. */
-  const ARC = 2.4; // semiancho (rad) del tramo de banda que se dibuja
+  
+  const ARC = 2.4; 
   const coreness = (a) => Math.exp(-(a * a) / (2 * 0.85 * 0.85));
 
-  // Brillo difuso: x, y, z, radio angular (rad), alfa, tinte. Se suma (lighter) a lo largo de la banda.
+  
   const gl = [];
   for (let i = 0; i < SKY.glow; i++) {
-    const a = ((i + rnd()) / SKY.glow) * ARC * 2 - ARC; // solo el arco [-ARC, ARC]
+    const a = ((i + rnd()) / SKY.glow) * ARC * 2 - ARC; 
     const core = coreness(a);
-    const v = onBand(a, gauss(rnd) * 0.1); // banda más ancha y difusa
+    const v = onBand(a, gauss(rnd) * 0.1); 
     const warm = core > 0.5 && rnd() < 0.7;
     gl.push(
       v[0], v[1], v[2],
       0.16 + rnd() * 0.16 + core * 0.06,
-      core * (0.55 + 0.45 * rnd()), // se apaga hacia los extremos del arco
+      core * (0.55 + 0.45 * rnd()), 
       warm ? 0 : rnd() < 0.5 ? 1 : 2,
     );
   }
   for (let i = 0; i < 8; i++) {
-    // protuberancia del núcleo
+    
     const v = onBand(gauss(rnd) * 0.25, gauss(rnd) * 0.09);
     gl.push(v[0], v[1], v[2], 0.2 + rnd() * 0.12, 0.9, 0);
   }
   const GL = new Float32Array(gl);
 
-  // Vetas de polvo oscuro: un sendero continuo y sinuoso a un lado del eje de la banda
-  // (como la Gran Grieta), hecho de muchas manchas pequeñas y tenues que se solapan.
+  
+  
   const ln = [];
   for (let i = 0; i < SKY.lanes; i++) {
     const a = (i / (SKY.lanes - 1) * 2 - 1) * 1.7 + (rnd() - 0.5) * 0.04;
@@ -206,11 +173,11 @@ export function createSky({ stars = SKY.stars } = {}) {
   }
   const LN = new Float32Array(ln);
 
-  // Estrellas diminutas sin resolver (la "textura" de la banda), más densas hacia el núcleo.
+  
   const g0 = [];
   const g1 = [];
   for (let i = 0; i < SKY.grains; i++) {
-    const a = gauss(rnd) * 1.5; // concentrados en el arco, ralos hacia los extremos
+    const a = gauss(rnd) * 1.5; 
     const v = onBand(a, gauss(rnd) * 0.11);
     (coreness(a) > 0.4 && rnd() < 0.6 ? g1 : g0).push(v[0], v[1], v[2]);
   }
@@ -219,19 +186,19 @@ export function createSky({ stars = SKY.stars } = {}) {
 
   let sprites = null;
   const pt = { x: 0, y: 0 };
-  // Estado de rotación del cielo (ver draw): ángulos acumulados y última vista dibujada.
+  
   let aLon = 0;
   let aLat = 0;
-  let mLon = 0; // rotación acumulada de la Vía Láctea (más lenta que la de las estrellas)
+  let mLon = 0; 
   let mLat = 0;
   let pLon = null;
   let pLat = null;
 
-  /* ───────────── capas de baja resolución (brillo y polvo) ───────────── */
-  // El brillo y el polvo son difusos y caros (~260 sprites grandes), así que se pintan en lienzos
-  // auxiliares a baja resolución (SKY.lowRes) y se escalan al copiarlos. Se reproyectan exactos en
-  // cada cuadro: el movimiento es continuo, sin saltos.
-  const MARGIN = 0; // px de margen alrededor de la pantalla para poder desplazar la capa
+  
+  
+  
+  
+  const MARGIN = 0; 
   let lay = null;
 
   function ensureLayers(cw, ch) {
@@ -249,12 +216,12 @@ export function createSky({ stars = SKY.stars } = {}) {
     lay = { glow: mk(), dust: mk(), w, h, dw, dh };
   }
 
-  /** Reproyecta brillo y polvo con la orientación actual (coste completo, a baja resolución). */
+  
   function buildLayers(cw, ch, zs, ks, sinL, cosL, sinP, cosP, fast) {
     const sc = lay.w / lay.dw;
-    // El brillo es muy difuso (manchas de ≥ 70 px): mientras el globo se mueve se pinta a una
-    // fracción de la resolución, en la esquina del mismo lienzo (sin reasignar nada), y se
-    // escala al copiarlo. En reposo (fast = false) se pinta completo, igual que antes.
+    
+    
+    
     const gs = fast ? GLOW_FAST : 1;
     lay.gs = gs;
     const lcx = (cw / 2 + MARGIN) * sc;
@@ -270,7 +237,7 @@ export function createSky({ stars = SKY.stars } = {}) {
     g.globalCompositeOperation = "lighter";
     for (let i = 0; i < GL.length; i += 6) {
       const a = GL[i + 4] * 0.12;
-      if (a < 0.0015) continue; // invisible (<½ nivel de 8 bits)
+      if (a < 0.0015) continue; 
       if (!skyProject(GL[i], GL[i + 1], GL[i + 2], sinL, cosL, sinP, cosP, lcx, lcy, lk, pt)) continue;
       const h = GL[i + 3] * lk;
       if (pt.x < -h || pt.x > W + h || pt.y < -h || pt.y > H + h) continue;
@@ -295,39 +262,34 @@ export function createSky({ stars = SKY.stars } = {}) {
     d.globalAlpha = 1;
   }
 
-  /* ───────────── dibujo (por cuadro) ───────────── */
-  /**
-   * Dibuja el cielo ANTES de la esfera (la esfera, opaca, tapa lo que queda detrás).
-   * @param {CanvasRenderingContext2D} ctx
-   * @param {{cw:number,ch:number,lon0:number,lat0:number,q:number}} p
-   *        lon0/lat0 en radianes (los mismos que la esfera); q = densidad del lienzo;
-   *        zoom = zoom actual del globo (para mantener la velocidad relativa al planeta).
-   */
+  
+  
+
   function draw(ctx, { cw, ch, lon0, lat0, q, zoom = 1, fast = false }) {
     if (!sprites) sprites = makeSprites();
-    const k = (Math.hypot(cw, ch) * 0.5) / SKY.reach; // px por radián
-    // Zoom del cielo: crece una fracción mínima de lo que crece el planeta (nunca por debajo de 1,
-    // para no dejar bordes vacíos). ks = px por radián con ese zoom.
+    const k = (Math.hypot(cw, ch) * 0.5) / SKY.reach; 
+    
+    
     const zs = 1 + (Math.max(1, zoom) - 1) * SKY.zoom;
     const ks = k * zs;
 
-    // Rotación acumulada del cielo: el giro del globo (camino corto en longitud, sin saltos al
-    // cruzar los 180°) multiplicado por SKY.speed.
+    
+    
     if (pLon === null) {
       pLon = lon0;
       pLat = lat0;
     }
     const dLon = lon0 - pLon;
-    // El cielo se proyecta DETRÁS del globo: con la misma rotación que la esfera se movería al
-    // revés que la superficie frontal. Por eso el factor lleva signo negativo (× direction), para
-    // que gire en el mismo sentido que el planeta. La rotación se acumula en ÁNGULO (no en píxeles):
-    // con speed = 1 una vuelta completa del globo es una vuelta completa del cielo.
+    
+    
+    
+    
     const f = -SKY.direction * SKY.speed;
-    const dl = dLon - Math.PI * 2 * Math.round(dLon / (Math.PI * 2)); // camino corto
+    const dl = dLon - Math.PI * 2 * Math.round(dLon / (Math.PI * 2)); 
     const dp = lat0 - pLat;
     aLon += dl * f;
     aLat += dp * f;
-    // La Vía Láctea sigue el mismo giro pero muy atenuado (está mucho más lejos).
+    
     const fm = -SKY.direction * SKY.mwSpeed;
     mLon += dl * fm;
     mLat += dp * fm;
@@ -348,10 +310,10 @@ export function createSky({ stars = SKY.stars } = {}) {
 
     if (SKY.milkyWay) {
       ensureLayers(cw, ch);
-      // Reproyección EXACTA en cada cuadro (como las estrellas): así la banda se mueve de forma
-      // continua y recta. Reutilizar la capa desplazándola era más barato, pero cada
-      // reconstrucción producía un pequeño salto y la Vía Láctea se veía avanzar "a golpes".
-      // El coste se mantiene bajo porque las capas son de baja resolución.
+      
+      
+      
+      
       buildLayers(cw, ch, zs, ks, sinM, cosM, sinQ, cosQ, fast);
       const ox = 0;
       const oy = 0;
@@ -360,15 +322,15 @@ export function createSky({ stars = SKY.stars } = {}) {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "low";
 
-      // 1) Brillo difuso (capa).
+      
       ctx.drawImage(lay.glow.canvas, 0, 0, lay.gW, lay.gH, rx, ry, lay.dw, lay.dh);
 
-      // 2) Estrellas diminutas de la banda: un solo trazo por color (a resolución completa).
-      // Mientras el globo se mueve se pinta solo una fracción de los granos (una muestra uniforme: el
-      // arreglo ya está barajado) con más opacidad, para que la banda conserve su brillo y textura.
-      // En reposo (fast = false) se pintan todos, igual que antes.
+      
+      
+      
+      
       const gf = fast ? GRAIN_FAST : 1;
-      const ga = fast ? 1 / GRAIN_FAST : 1; // misma cobertura total (tope: opacidad 1)
+      const ga = fast ? 1 / GRAIN_FAST : 1; 
       const grains = [
         [G0, `rgba(214,222,240,${Math.min(1, 0.34 * ga).toFixed(3)})`],
         [G1, `rgba(255,226,188,${Math.min(1, 0.38 * ga).toFixed(3)})`],
@@ -386,11 +348,11 @@ export function createSky({ stars = SKY.stars } = {}) {
         ctx.fill();
       }
 
-      // 3) Polvo oscuro (capa): tapa brillo y granos, formando las vetas.
+      
       ctx.drawImage(lay.dust.canvas, rx, ry, lay.dw, lay.dh);
     }
 
-    // Estrellas tenues y medias: un solo trazo por grupo.
+    
     const sf = fast ? STAR_FAST : 1;
     const sa = fast ? 1 / STAR_FAST : 1;
     const groups = [
@@ -410,7 +372,7 @@ export function createSky({ stars = SKY.stars } = {}) {
       ctx.fill();
     }
 
-    // Estrellas brillantes: sprite con halo.
+    
     for (let i = 0; i < T2.length; i += 5) {
       if (!skyProject(T2[i], T2[i + 1], T2[i + 2], sinL, cosL, sinP, cosP, cx, cy, ks, pt)) continue;
       if (pt.x < 0 || pt.x > cw || pt.y < 0 || pt.y > ch) continue;

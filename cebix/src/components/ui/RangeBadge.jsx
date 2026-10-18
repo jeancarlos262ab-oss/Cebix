@@ -2,7 +2,6 @@ import { AlertTriangle } from "lucide-react";
 import { useModelInfo } from "../../context/ModelInfoContext";
 import { parcelWarnings } from "../../utils/reliability";
 
-/** Avisos de una parcela (lista de textos); vacío si está dentro de lo que el modelo conoce. */
 export function useParcelWarnings(parcel) {
   const { info } = useModelInfo();
   return parcelWarnings(parcel, info?.dominio);
@@ -13,7 +12,6 @@ const TONES = {
   dark: "bg-amber-400/20 text-amber-200",
 };
 
-/** Etiqueta "Fuera de rango" con el motivo en el tooltip. No dibuja nada si la parcela está dentro del rango. */
 export default function RangeBadge({ parcel, warnings, tone = "light", compact = false, className = "" }) {
   const own = useParcelWarnings(warnings ? null : parcel);
   const list = warnings ?? own;
@@ -31,7 +29,6 @@ export default function RangeBadge({ parcel, warnings, tone = "light", compact =
   );
 }
 
-/** Bloque de aviso con el detalle, para pantallas de una sola parcela. */
 export function RangeNotice({ parcel, warnings, className = "" }) {
   const own = useParcelWarnings(warnings ? null : parcel);
   const list = warnings ?? own;

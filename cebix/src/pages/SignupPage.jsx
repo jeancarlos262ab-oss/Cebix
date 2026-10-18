@@ -7,9 +7,6 @@ import AuthField, { PasswordToggle } from "../components/auth/AuthField";
 import AuthButton from "../components/auth/AuthButton";
 import { useAuth } from "../context/AuthContext";
 
-// Los mensajes de error ahora vienen de nuestras funciones /api/send-otp y
-// /api/verify-otp (ver src/services/otpApi.js), no de Supabase, así que los
-// códigos son los que definimos ahí mismo.
 function getSignUpErrorMessage(error) {
   if (!error) return "No pudimos crear la cuenta. Intenta de nuevo.";
 
@@ -43,9 +40,9 @@ function getVerifyErrorMessage(error) {
   if (code === "network_error") {
     return "No pudimos conectarnos. Revisa tu conexión e inténtalo de nuevo.";
   }
-  // Si el código era correcto pero falló el inicio de sesión posterior
-  // (signIn), el mensaje ya viene traducido por getAuthErrorMessage de
-  // LoginPage; aquí solo caemos al genérico.
+  
+  
+  
   return "No pudimos verificar el código. Inténtalo de nuevo.";
 }
 
@@ -62,9 +59,9 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // "form" = datos de la cuenta · "verify" = código de 6 dígitos que llegó
-  // al correo. Este segundo paso es lo que evita que alguien se registre
-  // con un correo que no controla: sin el código no hay cuenta activa.
+  
+  
+  
   const [step, setStep] = useState("form");
   const [code, setCode] = useState("");
   const [resending, setResending] = useState(false);

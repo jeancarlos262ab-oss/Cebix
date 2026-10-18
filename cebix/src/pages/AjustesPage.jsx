@@ -46,8 +46,8 @@ export default function AjustesPage() {
   const isDark = resolvedTheme === "dark";
   const swatchOf = (a) => (isDark && a.darkSwatch) || a.swatch;
 
-  // Todo se guarda solo: cada cambio se aplica al instante (apariencia, región y sonido en este navegador;
-  // los avisos en la cuenta). No hay botón de guardar.
+  
+  
   const { account, updateAccount } = useAccount();
   const pref = { theme, accent, idioma, formatoFecha, zonaHoraria };
   const [notifs, setNotifs] = useState({
@@ -58,21 +58,21 @@ export default function AjustesPage() {
   const [soundOn, setSoundOn] = useState(isToastSoundEnabled);
   const accentColor = swatchOf(ACCENTS.find((a) => a.id === pref.accent) ?? ACCENTS[0]);
 
-  // Si la cuenta termina de cargar (o cambia en otro lado) los avisos se alinean con lo guardado.
+  
   useEffect(() => {
     setNotifs({ email: account.notifEmail, riesgo: account.notifRisk, resumenSemanal: account.notifWeekly });
   }, [account.notifEmail, account.notifRisk, account.notifWeekly]);
 
-  /** Aplica y guarda al instante un cambio de apariencia o región. */
+  
   function applyPref(patch) {
     if ("theme" in patch && patch.theme !== theme) setTheme(patch.theme);
     if ("accent" in patch && patch.accent !== accent) setAccent(patch.accent);
     if ("formatoFecha" in patch && patch.formatoFecha !== formatoFecha) setFormatoFecha(patch.formatoFecha);
     if ("zonaHoraria" in patch && patch.zonaHoraria !== zonaHoraria) setZonaHoraria(patch.zonaHoraria);
-    if ("idioma" in patch && patch.idioma !== idioma) setIdioma(patch.idioma); // cambia el idioma de toda la app
+    if ("idioma" in patch && patch.idioma !== idioma) setIdioma(patch.idioma); 
   }
 
-  /** Cambia un aviso: se ve al instante y se guarda en la cuenta; si falla, vuelve al valor anterior. */
+  
   async function applyNotif(patch) {
     const previous = notifs;
     setNotifs((n) => ({ ...n, ...patch }));
@@ -92,7 +92,7 @@ export default function AjustesPage() {
     setToastSoundEnabled(value);
   }
 
-  // "Restablecer" vuelve a los valores por defecto y los guarda al instante.
+  
   async function handleReset() {
     applyPref({ theme: "system", accent: "brand", ...DEFAULT_REGION });
     applySound(true);
@@ -127,7 +127,7 @@ export default function AjustesPage() {
       />
 
       <div className="mt-8 max-w-4xl px-4 sm:mt-10 sm:px-6 lg:px-8">
-        {/* Apariencia */}
+        {}
         <SettingsSection
           icon={Palette}
           title={t("Apariencia")}
@@ -193,7 +193,7 @@ export default function AjustesPage() {
           </div>
         </SettingsSection>
 
-        {/* Notificaciones */}
+        {}
         <SettingsSection
           icon={Bell}
           title={t("Notificaciones")}
@@ -206,7 +206,7 @@ export default function AjustesPage() {
             onChange={(v) => applyNotif({ email: v })}
           />
           <Toggle
-            label={t("Alertas de riesgo")}
+            label={t("Alertas de bajo rendimiento")}
             description={t("Cuando una parcela cambia a semáforo rojo o amarillo")}
             checked={notifs.riesgo}
             disabled={!notifs.email}
@@ -227,7 +227,7 @@ export default function AjustesPage() {
           />
         </SettingsSection>
 
-        {/* Idioma y región */}
+        {}
         <SettingsSection
           icon={Globe2}
           title={t("Idioma y región")}

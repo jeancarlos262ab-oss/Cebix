@@ -1,9 +1,4 @@
-/**
- * Piezas del "informe de resultado" que comparten Parcela satelital y Predicciones:
- * resumen numérico, escalas finas y contribución por variable. Sin tarjetas ni iconos decorativos.
- */
-
-const MAX_YIELD = 6; // escala fija 0 – 6 ton/ha
+const MAX_YIELD = 6; 
 const DIRECTION_COLOR = { positivo: "var(--chart-positive)", negativo: "var(--chart-negative)", mixto: "var(--chart-mixed)" };
 const SIGN = { positivo: "+", negativo: "−", mixto: "±" };
 
@@ -11,7 +6,6 @@ export function Label({ children }) {
   return <h3 className="text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{children}</h3>;
 }
 
-/** Escala 0 – 6 ton/ha: línea fina, intervalo sombreado y una marca para la estimación. */
 export function RangeBar({ estimate, half }) {
   const low = Math.max(0, estimate - half);
   const high = Math.min(MAX_YIELD, estimate + half);
@@ -51,7 +45,6 @@ export function Row({ label, children }) {
   );
 }
 
-/** Contribución SHAP: barras que salen de un eje central (resta a la izquierda, suma a la derecha). */
 export function Contributions({ data }) {
   const rows = (data ?? [])
     .map((d) => ({ ...d, magnitude: Math.abs(d.value ?? d.impact ?? 0) }))
@@ -104,10 +97,6 @@ export function Contributions({ data }) {
   );
 }
 
-/**
- * Panel de resumen: rendimiento esperado con su escala a la izquierda y una lista de datos a la derecha
- * (intervalo, score y las filas extra que pase cada pantalla). El semáforo va aparte.
- */
 export function SummaryPanel({ yieldEstimate, half, low, high, score, rows = [] }) {
   return (
     <section className="grid overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -125,7 +114,7 @@ export function SummaryPanel({ yieldEstimate, half, low, high, score, rows = [] 
         <Row label="Intervalo al 90 %">
           {low.toFixed(1)} – {high.toFixed(1)} ton/ha
         </Row>
-        <Row label="Score de elegibilidad">{score} / 100</Row>
+        <Row label="Índice de rendimiento">{score} / 100</Row>
         {rows.map((r) => (
           <Row key={r.label} label={r.label}>
             {r.value}

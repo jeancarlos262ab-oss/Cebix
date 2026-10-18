@@ -15,13 +15,13 @@ import { RISK_COLORS } from "../utils/riskColors";
 import { EmptyAnalysis } from "../components/ui/RequireAnalysis";
 import useParcelActions from "../hooks/useParcelActions";
 
-const COLUMNS = ["Parcela", "Rendimiento", "Elegibilidad", "NDVI", "Municipio", ""];
+const COLUMNS = ["Parcela", "Rendimiento", "Nivel", "NDVI", "Municipio", ""];
 const REGION_FILTERS = ["Todas", "Hidalgo", "Tlaxcala", "Puebla"];
 
 const RISK_SUMMARY = [
-  { key: "green", color: RISK_COLORS.green, label: "Elegibles" },
-  { key: "yellow", color: RISK_COLORS.yellow, label: "Revisión manual" },
-  { key: "red", color: RISK_COLORS.red, label: "Alto riesgo" },
+  { key: "green", color: RISK_COLORS.green, label: "Rendimiento alto" },
+  { key: "yellow", color: RISK_COLORS.yellow, label: "Rendimiento medio" },
+  { key: "red", color: RISK_COLORS.red, label: "Rendimiento bajo" },
 ];
 
 function ParcelasPageContent() {
@@ -35,10 +35,10 @@ function ParcelasPageContent() {
   const riskParam = searchParams.get("risk");
   const [risk, setRisk] = useState(RISK_SUMMARY.some((r) => r.key === riskParam) ? riskParam : "all");
   const [selectedId, setSelectedId] = useState(null);
-  const [modal, setModal] = useState(null); // null | "add" | parcel
+  const [modal, setModal] = useState(null); 
 
-  // Primero se filtra por región; los conteos de elegibilidad se calculan sobre esa lista para que
-  // los botones de riesgo sigan mostrando cuántas hay en cada nivel aunque haya uno seleccionado.
+  
+  
   const regionFiltered = useMemo(
     () => (region === "Todas" ? parcels : parcels.filter((p) => p.region === region)),
     [region, parcels]
@@ -47,12 +47,12 @@ function ParcelasPageContent() {
     () => (risk === "all" ? regionFiltered : regionFiltered.filter((p) => p.riskColor === risk)),
     [risk, regionFiltered]
   );
-  // Misma referencia mientras no cambie el filtro: ParcelMap (memo) no vuelve a sincronizar sus capas
-  // al abrir un modal o seleccionar una fila.
+  
+  
   const mappable = useMemo(() => filtered.filter(hasCoords), [filtered]);
 
-  // Solo se pintan las filas de la página actual (el mapa y el resumen sí
-  // siguen usando la lista completa filtrada).
+  
+  
   const tableRef = useRef(null);
   const { pageItems, reset: resetPage, paginationProps } = usePagination(filtered, {
     scrollRef: tableRef,
@@ -67,7 +67,7 @@ function ParcelasPageContent() {
     [regionFiltered]
   );
 
-  // Cuántas parcelas hay en cada región (sobre la lista completa, no la filtrada).
+  
   const regionCounts = useMemo(
     () =>
       Object.fromEntries(
@@ -76,7 +76,7 @@ function ParcelasPageContent() {
     [parcels]
   );
 
-  // La región y el nivel de riesgo viajan en la URL (?region=...&risk=...).
+  
   const syncParams = useCallback(
     (nextRegion, nextRisk) => {
       const params = {};
@@ -96,7 +96,7 @@ function ParcelasPageContent() {
     [syncParams, resetPage, risk]
   );
 
-  // Tocar el nivel que ya está activo vuelve a mostrar todos.
+  
   const handleRiskChange = useCallback(
     (key) => {
       const next = key === risk ? "all" : key;
@@ -112,8 +112,8 @@ function ParcelasPageContent() {
   return (
     <>
       {empty ? (
-        // Sin parcelas no hay nada que exportar y "Agregar parcela" ya está en "Otras opciones":
-        // se ocultan ambos botones y el estado vacío pone su propia barra superior.
+        
+        
         <EmptyAnalysis skeleton="parcelas" title="Parcelas" subtitle="0 parcelas en tu cuenta." onAdd={() => setModal("add")} />
       ) : (
         <>
@@ -145,8 +145,8 @@ function ParcelasPageContent() {
       <div className="mt-6" aria-hidden="true" />
 
       <div className="grid grid-cols-1 items-start gap-10 px-4 py-6 sm:px-6 lg:grid-cols-[280px_1fr] lg:px-8">
-        {/* En escritorio aside y contenido se "aplanan" (lg:contents) para que el mapa
-            comparta fila con el recuadro de filtro y tenga exactamente su altura. */}
+        {
+}
         <aside className="min-w-0 space-y-10 lg:contents lg:space-y-0">
           <section className="overflow-hidden rounded-2xl border border-gray-200 p-5 dark:border-gray-800 lg:col-start-1 lg:row-start-1">
             <h2 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">Filtrar por región</h2>
@@ -187,7 +187,7 @@ function ParcelasPageContent() {
           <section className="overflow-hidden rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
             <div className="flex items-center justify-between gap-3">
               <h3 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">
-                Elegibilidad
+                Nivel de rendimiento
               </h3>
               {risk !== "all" && (
                 <button
@@ -200,7 +200,7 @@ function ParcelasPageContent() {
               )}
             </div>
 
-            {/* Distribución de un vistazo; al filtrar, los demás niveles se atenúan. */}
+            {}
             <div className="mt-4 flex h-1.5 w-full gap-0.5 overflow-hidden bg-gray-100 dark:bg-gray-800" aria-hidden="true">
               {riskCounts.map((r) => (
                 <div
@@ -215,7 +215,7 @@ function ParcelasPageContent() {
               ))}
             </div>
 
-            <div className="-mx-5 mt-3 flex flex-col gap-0.5" role="group" aria-label="Filtrar por elegibilidad">
+            <div className="-mx-5 mt-3 flex flex-col gap-0.5" role="group" aria-label="Filtrar por nivel de rendimiento">
               {riskCounts.map((r) => {
                 const active = risk === r.key;
                 const share = regionFiltered.length ? Math.round((r.count / regionFiltered.length) * 100) : 0;
@@ -268,12 +268,12 @@ function ParcelasPageContent() {
           </div>
         </aside>
 
-        {/* Contenido principal: mapa y tabla */}
+        {}
         <div className="min-w-0 space-y-10 lg:contents lg:space-y-0">
-          {/* Móvil: alto fijo. Escritorio: llena la fila y mide lo mismo que "Filtrar por región". */}
+          {}
           <div className="relative h-72 min-w-0 lg:col-start-2 lg:row-start-1 lg:h-auto lg:self-stretch">
-            {/* En escritorio el mapa va en posición absoluta: no aporta altura a la fila,
-                así que mide exactamente lo mismo que "Filtrar por región". */}
+            {
+}
             <div className="absolute inset-0">
               <ParcelMap
                 parcels={mappable}

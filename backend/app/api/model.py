@@ -1,5 +1,3 @@
-"""Información del modelo: features esperadas, métricas y CSV de ejemplo."""
-
 import io
 import os
 import zipfile
@@ -13,16 +11,15 @@ from app.services.model_service import get_artifact, get_domain, get_model_meta,
 
 router = APIRouter(tags=["modelo"])
 
-
 @router.get("/model-info")
 def model_info():
-    """Todo lo que describe al modelo (métricas, SHAP global, textos). El frontend no trae nada de esto fijo."""
+    
     meta = dict(get_model_meta())
     planet = get_planet_meta()
     if planet:
         meta["planetModel"] = planet
     d = get_domain()
-    if d:  # dominio de entrenamiento: el frontend avisa de parcelas "fuera de rango" aunque se hayan guardado antes
+    if d:  
         meta["dominio"] = {
             "precip": list(d["precip"]),
             "lat": list(d["lat"]),
@@ -32,7 +29,6 @@ def model_info():
             "margenGrados": DOMAIN_GEO_MARGIN_DEG,
         }
     return meta
-
 
 @router.get("/features")
 def list_features():
@@ -44,10 +40,9 @@ def list_features():
         ]
     }
 
-
 @router.get("/example-csv")
 def example_csv(tipo: str = Query("datos", description="'datos' (por defecto), 'planet' o 'todos' (un .zip con ambos).")):
-    """Archivo de ejemplo en el mismo formato que el de carga: con él se puede probar la aplicación."""
+    
     if tipo == "todos":
         files = [(EXAMPLE_DATOS_PATH, "datos_ejemplo.csv"), (EXAMPLE_PLANET_PATH, "planet_ejemplo.csv")]
         if not all(os.path.exists(p) for p, _ in files):

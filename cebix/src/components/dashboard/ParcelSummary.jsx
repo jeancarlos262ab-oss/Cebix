@@ -11,12 +11,8 @@ import { useParcels } from "../../context/ParcelsContext";
 import { downloadCSV } from "../../utils/csv";
 import { yieldByRegion, yieldRange } from "../../utils/parcelStats";
 
-const TABS = ["Predicción", "Variables", "Riesgo", "Rango"];
+const TABS = ["Predicción", "Variables", "Nivel", "Rango"];
 
-/**
- * Tabs con scroll horizontal suave: sin barra de scroll, con flechas a los lados
- * que desaparecen por completo junto con su espacio cuando no hay más contenido que mostrar en esa dirección.
- */
 function ScrollableTabs({ tabs, active, onChange }) {
   const scrollerRef = useRef(null);
   const [edges, setEdges] = useState({ left: false, right: false });
@@ -48,7 +44,7 @@ function ScrollableTabs({ tabs, active, onChange }) {
     el.scrollBy({ left: dir * Math.max(el.clientWidth * 0.6, 80), behavior: "smooth" });
   };
 
-  // Al elegir una pestaña, la centra suavemente dentro del contenedor.
+  
   const handleSelect = (tab, event) => {
     onChange(tab);
     const el = scrollerRef.current;
@@ -148,14 +144,14 @@ export default function ParcelSummary() {
       }));
     }
 
-    if (activeTab === "Riesgo") {
+    if (activeTab === "Nivel") {
       const green = parcels.filter((p) => p.riskColor === "green").length;
       const yellow = parcels.filter((p) => p.riskColor === "yellow").length;
       const red = parcels.filter((p) => p.riskColor === "red").length;
       return [
-        { label: "Elegibles (score ≥ 70)", value: `${green} parcelas` },
-        { label: "Revisión manual (45–69)", value: `${yellow} parcelas` },
-        { label: "Alto riesgo (< 45)", value: `${red} parcelas` },
+        { label: "Rendimiento alto (índice ≥ 70)", value: `${green} parcelas` },
+        { label: "Rendimiento medio (45–69)", value: `${yellow} parcelas` },
+        { label: "Rendimiento bajo (< 45)", value: `${red} parcelas` },
       ];
     }
 
@@ -169,7 +165,7 @@ export default function ParcelSummary() {
       ];
     }
 
-    // "Predicción" — promedios sobre las parcelas de la última corrida del modelo (Random Forest).
+    
     const avgYield = parcels.reduce((s, p) => s + p.yieldEstimate, 0) / parcels.length;
     const avgScore = parcels.reduce((s, p) => s + p.score, 0) / parcels.length;
     const outside = parcels.filter((p) => parcelWarnings(p, info?.dominio).length > 0).length;
@@ -177,7 +173,7 @@ export default function ParcelSummary() {
       { label: "Rendimiento estimado (promedio)", value: `${avgYield.toFixed(1)} ton/ha` },
       ...(outside > 0 ? [{ label: "Parcelas fuera de rango", value: `${outside} de ${parcels.length} (menos confiables)` }] : []),
       { label: "Margen de error (RMSE espacial)", value: rmse == null ? "—" : `± ${rmse.toFixed(2)} ton/ha` },
-      { label: "Score de elegibilidad (promedio)", value: `${Math.round(avgScore)} / 100` },
+      { label: "Índice de rendimiento (promedio)", value: `${Math.round(avgScore)} / 100` },
     ];
   }, [activeTab, parcels, importance, rmse, info]);
 
@@ -186,7 +182,7 @@ export default function ParcelSummary() {
     <section>
       <h2 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">Resumen del modelo</h2>
       <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-        Rendimiento y riesgo por parcela.
+        Rendimiento por parcela.
       </p>
       <ParcelEmblem />
 

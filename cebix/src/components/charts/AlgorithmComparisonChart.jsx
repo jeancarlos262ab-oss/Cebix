@@ -42,10 +42,6 @@ function ChartLegend() {
   );
 }
 
-/**
- * `highlight` (opcional): nombre del modelo a resaltar; los demás se atenúan.
- * @param {{data: {model: string, rmse: number, mae: number, r2: number, type: string}[], highlight?: string}} props
- */
 export default function AlgorithmComparisonChart({ data, highlight }) {
   const dim = (row) => (highlight && row.model !== highlight ? 0.45 : 1);
   return (

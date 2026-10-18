@@ -2,15 +2,10 @@ import { useCallback } from "react";
 import { toast } from "../services/toast";
 import { useParcels } from "../context/ParcelsContext";
 
-/**
- * Operaciones CRUD de parcelas con sus mensajes al usuario. Cada función devuelve
- * `{ error }` para que el formulario o el diálogo puedan mostrar el motivo si algo falla
- * (por ejemplo, un rechazo de Supabase) en lugar de anunciar un éxito que no ocurrió.
- */
 export default function useParcelActions() {
   const { addParcel, updateParcel, removeParcel, removeParcels } = useParcels();
 
-  /** Crea (target = null) o edita (target = parcela) y avisa solo si de verdad se guardó. */
+  
   const saveParcel = useCallback(
     async (target, fields) => {
       const result = target ? await updateParcel(target.id, fields) : await addParcel(fields);
@@ -29,7 +24,7 @@ export default function useParcelActions() {
     [removeParcel]
   );
 
-  /** Elimina varias parcelas a la vez (selección múltiple). Recibe la lista de parcelas completas. */
+  
   const deleteParcels = useCallback(
     async (list) => {
       const result = await removeParcels(list.map((parcel) => parcel.id));
@@ -41,7 +36,7 @@ export default function useParcelActions() {
     [removeParcels]
   );
 
-  /** Alta de varias parcelas (CSV), una por una. Devuelve cuántas fallaron y el primer motivo. */
+  
   const importParcels = useCallback(
     async (records) => {
       let failed = 0;

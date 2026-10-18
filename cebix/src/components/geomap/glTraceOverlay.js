@@ -1,10 +1,3 @@
-/**
- * Dibujo de la parcela sobre MapLibre con el MISMO diseño que Leaflet (ver parcelStyle.js).
- *
- * Las capas de MapLibre viven dentro del canvas WebGL y no admiten el modo de mezcla "difference" que usa
- * Leaflet para que el trazo invierta la imagen de abajo. Por eso el contorno y la malla se dibujan en un SVG
- * encima del mapa (con `mix-blend-mode`), reproyectado con map.project() en cada cuadro.
- */
 import { GRID_WEIGHT, OUTLINE_WEIGHT, OVER_LIMIT_FILL_OPACITY, OVER_LIMIT_COLOR, traceBlend, traceColor } from "./parcelStyle";
 
 const NS = "http://www.w3.org/2000/svg";
@@ -15,10 +8,6 @@ function el(tag, attrs) {
   return n;
 }
 
-/**
- * @param map  maplibregl.Map
- * @returns {{set(state): void, destroy(): void}}  state = { points: [lat,lng][], closed, grid: [lat,lng][][], overLimit }
- */
 export function createTraceOverlay(map) {
   const svg = el("svg", { "aria-hidden": "true" });
   svg.style.cssText = "position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none";

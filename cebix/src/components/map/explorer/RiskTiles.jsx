@@ -3,7 +3,6 @@ import { GLASS, RISK_META } from "./tokens";
 
 const ICONS = { green: CircleCheck, yellow: CircleAlert, red: TriangleAlert };
 
-/** Tres contadores de elegibilidad (verde / amarillo / rojo) de las parcelas a la vista. */
 export default function RiskTiles({ counts }) {
   return (
     <div className={`grid grid-cols-3 gap-2 rounded-lg p-4 ${GLASS}`}>

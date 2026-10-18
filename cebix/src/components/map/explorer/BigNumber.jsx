@@ -1,4 +1,3 @@
-/** Cifra grande con los decimales atenuados (78.3 → "78" + ".3" en gris), como en los tableros de referencia. */
 export default function BigNumber({ value, decimals = 1, unit, className = "text-4xl", unitClassName = "text-xs" }) {
   if (!Number.isFinite(value)) {
     return <span className={`font-thin leading-none text-white/40 ${className}`}>—</span>;

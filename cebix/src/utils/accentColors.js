@@ -1,10 +1,3 @@
-/**
- * Color de acento como valor hex, para librerías que no entienden variables
- * CSS (MapLibre, Leaflet). Debe coincidir con --accent-500 de index.css.
- *
- * @param {"brand"|"cobre"|"oliva"|"pizarra"|"ndvi"|"mono"} accent
- * @param {"light"|"dark"} resolvedTheme
- */
 const ACCENT_500 = {
   brand: { light: "#C08A2E", dark: "#C08A2E" },
   cobre: { light: "#B76637", dark: "#B76637" },

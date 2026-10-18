@@ -1,9 +1,3 @@
-/**
- * Formato regional compartido.
- *
- * Guarda las preferencias activas de "Idioma y región" (las actualiza PreferencesProvider)
- * para que también las usen funciones fuera de React (PDF, utilidades, etc.).
- */
 export const DEFAULT_REGION = {
   idioma: "es-MX",
   formatoFecha: "dd/mm/aaaa",
@@ -18,9 +12,6 @@ export function setIntlPrefs(prefs) {
 
 export const getLocale = () => current.idioma;
 
-/* Construir un Intl.DateTimeFormat / Intl.NumberFormat es MUY caro (sobre todo con timeZone u opciones), y estas
- * funciones se llaman por cada fila de cada tabla en cada render. Se crean una sola vez por combinación
- * idioma + opciones y se reutilizan. */
 const formatters = new Map();
 function cached(Ctor, locale, options) {
   const key = `${Ctor.name}|${locale}|${options ? JSON.stringify(options) : ""}`;
@@ -42,7 +33,7 @@ function safeTimeZone(tz) {
     new Intl.DateTimeFormat("en", { timeZone: tz });
     ok = tz;
   } catch {
-    ok = undefined; // zona inválida: usa la del dispositivo
+    ok = undefined; 
   }
   validZones.set(tz, ok);
   return ok;
@@ -54,7 +45,6 @@ function toDate(value) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** 10/10/2026 o 10/10/2026 según "Formato de fecha", en la zona horaria elegida. */
 export function formatDate(value) {
   const d = toDate(value);
   if (!d) return "—";
@@ -71,7 +61,6 @@ export function formatDate(value) {
   return current.formatoFecha === "mm/dd/aaaa" ? `${month}/${day}/${year}` : `${day}/${month}/${year}`;
 }
 
-/** Hora en la zona elegida: 24 h en español, 12 h (AM/PM) en inglés. */
 export function formatTime(value) {
   const d = toDate(value);
   if (!d) return "—";
@@ -90,7 +79,6 @@ export function formatDateTime(value) {
   return `${formatDate(d)} ${formatTime(d)}`;
 }
 
-/** "octubre de 2026" / "October 2026". */
 export function formatMonthYear(value) {
   const d = toDate(value);
   if (!d) return "—";
@@ -101,14 +89,12 @@ export function formatMonthYear(value) {
   }).format(d);
 }
 
-/** Separadores de miles y decimales según el idioma (1,234.5 en inglés; 1,234.5 en es-MX). */
 export function formatNumber(value, options) {
   const n = Number(value);
   if (!Number.isFinite(n)) return "—";
   return numberFormat(current.idioma, options).format(n);
 }
 
-/** "Ciudad de México (GMT-6)" con el desfase real de la zona en este momento. */
 export function timeZoneOffsetLabel(tz, locale = current.idioma) {
   try {
     const part = dateFormat(locale, { timeZone: tz, timeZoneName: "shortOffset" })

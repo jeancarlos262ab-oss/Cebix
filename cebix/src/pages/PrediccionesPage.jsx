@@ -9,7 +9,7 @@ import StaticMapImage from "../components/map/StaticMapImage";
 import { Contributions, Label, Row, SummaryPanel } from "../components/results/ReportParts";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { useModelInfo } from "../context/ModelInfoContext";
-import { generateCreditReportPDF } from "../utils/creditReport";
+import { generateYieldReportPDF } from "../utils/yieldReport";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
 import { formatNumber } from "../utils/intl";
 
@@ -31,7 +31,6 @@ const chartQuestions = [
   },
 ];
 
-/** Encabezado de sección: título + descripción opcional, con aire fijo debajo. */
 function SectionHeader({ title, description }) {
   return (
     <div className="mb-6">
@@ -43,7 +42,6 @@ function SectionHeader({ title, description }) {
   );
 }
 
-/** Fila etiqueta/valor de las fichas. */
 function DetailRow({ label, children }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-3 first:pt-0 last:pb-0">
@@ -64,7 +62,7 @@ function PrediccionesPageContent() {
     if (generating) return;
     setGenerating(true);
     try {
-      await generateCreditReportPDF(parcel, { modelSummary: info?.modelSummary });
+      await generateYieldReportPDF(parcel, { modelSummary: info?.modelSummary });
       toast.success("Reporte PDF generado.");
     } catch (err) {
       console.error("Error al generar el PDF", err);
@@ -74,8 +72,8 @@ function PrediccionesPageContent() {
     }
   };
 
-  // Promedios de la región de la parcela seleccionada, para dar contexto a
-  // las variables que aún no aparecen en las tarjetas superiores (EVI y GDD).
+  
+  
   const regionAverages = useMemo(() => {
     const regionParcels = parcels.filter((p) => p.region === parcel.region);
     const avg = (key) => regionParcels.reduce((sum, p) => sum + p[key], 0) / regionParcels.length;
@@ -121,7 +119,7 @@ function PrediccionesPageContent() {
       <div className="mt-6" aria-hidden="true" />
 
       <div className="grid grid-cols-1 items-start gap-12 px-4 py-8 sm:px-6 lg:grid-cols-[280px_1fr] lg:gap-14 lg:px-8">
-        {/* Columna izquierda: selector, semáforo y datos/acción */}
+        {}
         <aside className="min-w-0 space-y-10">
           <section>
             <SectionHeader
@@ -131,7 +129,7 @@ function PrediccionesPageContent() {
             <div className="relative">
               <select
                 value={parcel.id}
-                // Los ids de las parcelas agregadas son UUID (texto): no se convierten a número.
+                
                 onChange={(e) => setSelectedId(parcels.find((p) => String(p.id) === e.target.value)?.id ?? parcels[0].id)}
                 className="w-full appearance-none rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-black py-2.5 pl-4 pr-10 text-sm font-medium text-gray-800 dark:text-gray-200 shadow-xs focus:border-accent-500 focus:outline-hidden focus:ring-1 focus:ring-accent-500"
               >
@@ -149,7 +147,7 @@ function PrediccionesPageContent() {
           </section>
 
           <section>
-            <SectionHeader title="Elegibilidad" />
+            <SectionHeader title="Nivel de rendimiento" />
             <Semaphore score={parcel.score} sober />
           </section>
 
@@ -172,9 +170,9 @@ function PrediccionesPageContent() {
           </section>
         </aside>
 
-        {/* Contenido principal: métricas, gráficas y mapa */}
+        {}
         <div key={parcel.id} className="fade-in-up min-w-0 space-y-10">
-            {/* Encabezado */}
+            {}
             <header className="border-b border-gray-200 pb-4 dark:border-gray-800">
               <Label>Predicción</Label>
               <h2 className="mt-1 truncate font-display text-lg font-semibold text-gray-900 dark:text-gray-100">{parcel.name}</h2>
@@ -185,7 +183,7 @@ function PrediccionesPageContent() {
 
             <RangeNotice parcel={parcel} />
 
-            {/* Resumen */}
+            {}
             <SummaryPanel
               yieldEstimate={parcel.yieldEstimate}
               half={parcel.ic90 ? (parcel.ic90[1] - parcel.ic90[0]) / 2 : parcel.confidence}
@@ -198,7 +196,7 @@ function PrediccionesPageContent() {
               ]}
             />
 
-            {/* Contribución de cada variable */}
+            {}
             <section>
               <Label>Contribución de las variables</Label>
               <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
@@ -207,11 +205,11 @@ function PrediccionesPageContent() {
               <Contributions data={parcel.shap} />
             </section>
 
-            {/* Ubicación + ficha técnica */}
+            {}
             <section className="grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-2">
               <div className="flex min-w-0 flex-col">
                 <Label>Ubicación</Label>
-                {/* El mapa toma el mismo alto que la ficha técnica (la fila del grid estira ambos). */}
+                {}
                 <div className="relative mt-3 min-h-[160px] flex-1 max-md:min-h-[220px]">
                   {hasCoords(parcel) ? (
                     <div className="absolute inset-0">
@@ -240,7 +238,7 @@ function PrediccionesPageContent() {
               </div>
             </section>
 
-            {/* Otras variables vs. promedio regional */}
+            {}
             <section>
               <Label>Otras variables vs. promedio regional</Label>
               <p className="mb-3 mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">

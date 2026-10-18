@@ -19,11 +19,11 @@ export default function GlobalSearch() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const resultsId = useId(); // único por instancia: ahora hay varias pantallas montadas a la vez
+  const resultsId = useId(); 
   const inputRef = useRef(null);
   const containerRef = useRef(null);
 
-  // El campo responde al instante; el filtrado corre con prioridad baja y no traba el tecleo.
+  
   const deferredQuery = useDeferredValue(query);
 
   const results = useMemo(() => {
@@ -40,7 +40,7 @@ export default function GlobalSearch() {
     setActiveIndex(0);
   }, [query]);
 
-  // Atajo global ⌘K / Ctrl+K para enfocar la búsqueda desde cualquier parte de la app.
+  
   useEffect(() => {
     function handleKeydown(e) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {

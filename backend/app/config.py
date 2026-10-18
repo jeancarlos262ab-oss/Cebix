@@ -1,13 +1,6 @@
-"""Configuración central: rutas de archivos y variables de entorno.
-
-Todo lo que antes estaba disperso en main.py vive aquí. Cada ruta se puede sobreescribir
-con una variable de entorno (útil en Docker/Render); si no, se usan las carpetas del repo.
-"""
-
 import os
 from pathlib import Path
 
-# backend/  (este archivo está en backend/app/config.py)
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_PATH = os.environ.get("MODEL_PATH", str(BASE_DIR / "models" / "model_artifact.joblib"))
@@ -17,22 +10,18 @@ MODEL_PLANET_PATH = os.environ.get("MODEL_PLANET_PATH", str(BASE_DIR / "models" 
 PLANET_META_PATH = os.environ.get("MODEL_PLANET_META_PATH", str(BASE_DIR / "models" / "model_planet_meta.json"))
 EXAMPLE_CSV_PATH = os.environ.get("EXAMPLE_CSV_PATH", str(BASE_DIR / "data" / "ejemplo_features_predict.csv"))
 
-# Tabla de referencia de las 197 parcelas oficiales (Estado, Municipio, área, lat/lng, CONJUNTO y lluvia abr–may 2025).
-# Archivos de ejemplo para descargar o probar: mismo formato que los de carga (59 parcelas, ciclo 2025).
 EXAMPLE_DATOS_PATH = os.environ.get("EXAMPLE_DATOS_PATH", str(BASE_DIR / "data" / "ejemplo_basico.csv"))
 EXAMPLE_PLANET_PATH = os.environ.get("EXAMPLE_PLANET_PATH", str(BASE_DIR / "data" / "ejemplo_planet.csv"))
 PARCELAS_OFICIALES_PATH = os.environ.get("PARCELAS_OFICIALES_PATH", str(BASE_DIR / "data" / "parcelas_oficiales.csv"))
 
-# CORS: en Render se define ALLOWED_ORIGINS con el dominio del frontend en Vercel
-# (varios separados por coma, sin "/" al final), p. ej.:
-#   ALLOWED_ORIGINS=https://cebix.vercel.app,https://cebix.com
-# ALLOWED_ORIGIN_REGEX es opcional, para aceptar también los previews de Vercel:
-#   ALLOWED_ORIGIN_REGEX=https://cebix-.*[.]vercel[.]app
-# Si no se define ALLOWED_ORIGINS, acepta cualquier origen ("*"), útil solo en local.
 ALLOWED_ORIGINS = [
     o.strip().rstrip("/") for o in os.environ.get("ALLOWED_ORIGINS", "*").split(",") if o.strip()
 ]
 ALLOWED_ORIGIN_REGEX = os.environ.get("ALLOWED_ORIGIN_REGEX") or None
 
-# Campos que vienen en el CSV/JSON y se devuelven tal cual junto a la predicción.
 PASSTHROUGH_FIELDS = ["Municipio", "lat", "lng", "area_ha", "CONJUNTO"]
+
+IC_INFLATION = float(os.environ.get("IC_INFLATION", "1.3"))
+
+DOMAIN_PRECIP_MARGIN = float(os.environ.get("DOMAIN_PRECIP_MARGIN", "0.10"))
+DOMAIN_GEO_MARGIN_DEG = float(os.environ.get("DOMAIN_GEO_MARGIN_DEG", "0.15"))

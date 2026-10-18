@@ -1,8 +1,3 @@
-/**
- * Utilidades para la parcela que se dibuja en la pantalla de parcela satelital.
- * Los puntos viajan como [lat, lng] (orden de Leaflet); GeoJSON usa [lng, lat],
- * la conversión se hace solo en toGeoJSONPolygon / parseGeoJSON.
- */
 import { haversine } from "./geo";
 import estadosBoundaries from "../data/estadosBoundaries.json";
 import { formatNumber } from "./intl";
@@ -10,7 +5,6 @@ import { formatNumber } from "./intl";
 const R = 6371008.8;
 const toRad = (d) => (d * Math.PI) / 180;
 
-/** Área geodésica aproximada (m²) de un anillo [lat,lng][]. Precisa de sobra para parcelas. */
 function areaM2(points) {
   if (points.length < 3) return 0;
   let sum = 0;
@@ -35,7 +29,6 @@ export function perimeterM(points) {
   return total;
 }
 
-/** Centroide por área (plano local); si el polígono es degenerado, promedio de vértices. */
 export function centroid(points) {
   const n = points.length;
   if (!n) return null;
@@ -56,17 +49,12 @@ export function centroid(points) {
   return [cy / (3 * a), cx / (3 * a)];
 }
 
-/** Anillo cerrado en orden [lng, lat], como lo pide GeoJSON y ee.Geometry. */
 export function toGeoJSONPolygon(points) {
   const ring = points.map(([lat, lng]) => [Number(lng.toFixed(6)), Number(lat.toFixed(6))]);
   ring.push(ring[0]);
   return { type: "Polygon", coordinates: [ring] };
 }
 
-/**
- * Lee un GeoJSON (Polygon, MultiPolygon, Feature o FeatureCollection) y devuelve el primer
- * anillo exterior como [lat,lng][]. Lanza Error con un mensaje legible si no hay polígono.
- */
 export function parseGeoJSON(text) {
   let data;
   try {
@@ -106,7 +94,6 @@ export function pointInRing(lat, lng, ring) {
   return inside;
 }
 
-/** Estado (Hidalgo / Puebla / Tlaxcala) que contiene el punto, o null si cae fuera de los tres. */
 export function detectEstado(lat, lng) {
   for (const f of estadosBoundaries.features) {
     if (pointInRing(lat, lng, f.geometry.coordinates[0])) return f.properties.name;
@@ -114,7 +101,6 @@ export function detectEstado(lat, lng) {
   return null;
 }
 
-/** [[sur, oeste], [norte, este]] de un estado, para centrar el mapa. */
 export function estadoBounds(name) {
   const f = estadosBoundaries.features.find((x) => x.properties.name === name);
   if (!f) return null;
@@ -136,7 +122,6 @@ function segmentsCross(a, b, c, d) {
   return o1 * o2 < 0 && o3 * o4 < 0;
 }
 
-/** true si dos lados no contiguos se cruzan (polígono "en moño"): el backend lo rechaza o da área absurda. */
 export function selfIntersects(points) {
   const n = points.length;
   if (n < 4) return false;
@@ -151,16 +136,12 @@ export function selfIntersects(points) {
 
 export const formatHa = (ha) => (ha < 10 ? ha.toFixed(2) : ha < 100 ? ha.toFixed(1) : formatNumber(Math.round(ha)));
 
-/**
- * Puntos de muestra distribuidos en una rejilla dentro del polígono [lat,lng][] (más vértices y centroide).
- * Sirve para estimar qué fracción del contorno cae sobre una zona dada.
- */
 export function sampleInside(points, perSide = 24) {
   const lats = points.map((p) => p[0]);
   const lngs = points.map((p) => p[1]);
   const [s, n] = [Math.min(...lats), Math.max(...lats)];
   const [w, e] = [Math.min(...lngs), Math.max(...lngs)];
-  const ring = points.map(([lat, lng]) => [lng, lat]); // pointInRing espera [x=lng, y=lat]
+  const ring = points.map(([lat, lng]) => [lng, lat]); 
   const out = [];
   for (let i = 0; i < perSide; i++) {
     for (let j = 0; j < perSide; j++) {

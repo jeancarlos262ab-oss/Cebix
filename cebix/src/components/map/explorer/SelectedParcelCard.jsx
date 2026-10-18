@@ -15,7 +15,6 @@ function Stat({ label, value }) {
   );
 }
 
-/** Detalle de la parcela elegida: rendimiento, intervalo de confianza 90 %, factores SHAP y accesos. */
 export default function SelectedParcelCard({ parcel, scale, onClose, className = "" }) {
   const warnings = useParcelWarnings(parcel);
   const [lo, hi] = parcel.ic90 ?? [parcel.yieldEstimate, parcel.yieldEstimate];
@@ -38,7 +37,7 @@ export default function SelectedParcelCard({ parcel, scale, onClose, className =
 
   return (
     <section aria-label={`Detalle de ${parcel.name}`} className={`flex flex-col rounded-lg p-4 ${GLASS} ${className}`}>
-      {/* Solo el contenido se desplaza si la pantalla es baja; los botones quedan siempre visibles. */}
+      {}
       <div className="min-h-0 flex-1">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

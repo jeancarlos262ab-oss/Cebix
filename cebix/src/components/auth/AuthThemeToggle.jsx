@@ -2,13 +2,6 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import "./auth.css";
 
-/**
- * Botón para cambiar entre tema claro y oscuro desde Login/Signup (esquina
- * superior derecha de la pantalla). Usa el mismo ThemeContext que Ajustes,
- * así que la elección se guarda y se mantiene dentro de la app.
- *
- * Muestra el icono del tema al que se pasará: sol en oscuro, luna en claro.
- */
 export default function AuthThemeToggle({ className = "" }) {
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";

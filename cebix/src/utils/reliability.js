@@ -1,9 +1,3 @@
-/**
- * Aviso de "fuera de rango": la parcela queda fuera de lo que el modelo vio al entrenar.
- * - Si la parcela trae `avisos` (los calcula el backend con lluvia, ubicación y estado), se usan tal cual.
- * - Si no (parcelas guardadas antes, CSV subidos desde el panel), se revisan estado y ubicación con el `dominio` que
- *   publica GET /model-info. La lluvia no se revisa ahí: en parcelas guardadas su significado puede variar.
- */
 export function parcelWarnings(parcel, dominio) {
   if (!parcel) return [];
   if (Array.isArray(parcel.avisos)) return parcel.avisos;

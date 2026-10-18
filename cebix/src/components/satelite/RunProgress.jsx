@@ -2,14 +2,10 @@ import { useEffect, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
 import { SAT_FEATURES, WINDOWS } from "../../data/satelite";
 import { STEP_MS } from "../../services/sateliteApi";
+import { getPredictionMode } from "../../services/predictionMode";
 import { SourceChip } from "./SourceChip";
 import ExtractionPreview from "./ExtractionPreview";
 
-/**
- * Panel de avance mientras se calculan las 10 variables: encabezado con el estado general,
- * barra de avance fina y una tabla de variables con su estado.
- * `current` es el índice de la variable en curso (>= total = prediciendo con el modelo).
- */
 const ROW = "grid grid-cols-[1.75rem_minmax(0,1fr)_auto] items-center gap-x-3 px-5 py-2.5 sm:grid-cols-[1.75rem_minmax(0,1fr)_auto_5.5rem] md:grid-cols-[1.75rem_minmax(0,1fr)_auto_7rem_5.5rem]";
 
 function Status({ state }) {
@@ -29,10 +25,13 @@ function Status({ state }) {
 }
 
 export default function RunProgress({ predicting: responded = false, year, points = [] }) {
-  const total = SAT_FEATURES.length;
-  // El contorno se congela al empezar: si se edita el mapa durante el cálculo, la vista previa no salta.
+  
+  const [onlyRain] = useState(() => getPredictionMode() === "lluvia");
+  const features = onlyRain ? SAT_FEATURES.filter((f) => f.source === "chirps") : SAT_FEATURES;
+  const total = features.length;
+  
   const [frozenPoints] = useState(points);
-  // Los temporizadores viven aquí: solo este panel se repinta mientras corre el cálculo.
+  
   const [step, setStep] = useState(0);
   const [elapsedSec, setElapsedSec] = useState(0);
   useEffect(() => {
@@ -44,17 +43,17 @@ export default function RunProgress({ predicting: responded = false, year, point
       clearInterval(steps);
     };
   }, [total]);
-  const current = responded ? total : step; // al llegar la respuesta pasa a 'Predicción del modelo'
+  const current = responded ? total : step; 
   const predicting = current >= total;
   const pct = Math.min(100, Math.round((Math.min(current, total) / total) * 100));
   const stateOf = (i) => (i < current ? "done" : i === current ? "running" : "pending");
 
   return (
-    <section className="grid overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800 lg:grid-cols-2">
+    <section className="grid overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800 lg:min-h-[380px] lg:grid-cols-2">
     <div className="min-w-0" aria-live="polite">
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 px-5 py-4">
         <div className="min-w-0">
-          <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Cálculo de índices satelitales</h2>
+          <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">{onlyRain ? "Cálculo de la lluvia (CHIRPS)" : "Cálculo de índices satelitales"}</h2>
           <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
             Ciclo {year} ·{" "}
             {predicting ? "Ejecutando el modelo" : `Variable ${Math.min(current + 1, total)} de ${total}`}
@@ -85,7 +84,7 @@ export default function RunProgress({ predicting: responded = false, year, point
       </div>
 
       <ul className="divide-y divide-gray-100 dark:divide-gray-800/70">
-        {SAT_FEATURES.map((f, i) => {
+        {features.map((f, i) => {
           const st = stateOf(i);
           return (
             <li
@@ -112,17 +111,20 @@ export default function RunProgress({ predicting: responded = false, year, point
       </ul>
 
       <footer className="border-t border-gray-100 px-5 py-3 text-xs leading-relaxed text-gray-500 dark:border-gray-800/70 dark:text-gray-400">
-        Se leen imágenes de Sentinel-2, Landsat y lluvia de CHIRPS (fuentes abiertas). Una parcela tarda entre 30 y 90 s; no cierres la pantalla. El avance por variable es una estimación de tiempo.
+        {onlyRain
+          ? "Solo se lee la lluvia de CHIRPS (fuente abierta) dentro del polígono. No cierres la pantalla. El avance es una estimación de tiempo."
+          : "Se leen imágenes de Sentinel-2, Landsat y lluvia de CHIRPS (fuentes abiertas). Una parcela tarda entre 30 y 90 s; no cierres la pantalla. El avance por variable es una estimación de tiempo."}
       </footer>
     </div>
     <ExtractionPreview
       points={frozenPoints}
-      feature={predicting ? null : SAT_FEATURES[Math.min(current, total - 1)]}
+      feature={predicting ? null : features[Math.min(current, total - 1)]}
       index={Math.min(current, total - 1)}
       total={total}
       predicting={predicting}
       year={year}
-      features={SAT_FEATURES}
+      features={features}
+      onlyRain={onlyRain}
     />
     </section>
   );

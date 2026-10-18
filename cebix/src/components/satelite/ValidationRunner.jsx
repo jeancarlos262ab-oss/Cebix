@@ -11,7 +11,6 @@ import { predictFromGeometry } from "../../services/sateliteApi";
 const FIELD =
   "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-accent-500 focus:outline-hidden focus:ring-1 focus:ring-accent-500 disabled:opacity-50 dark:border-gray-700 dark:bg-black dark:text-gray-200";
 
-/** Lee el CSV oficial (features_completo.csv o similar): ID_POLIGONO + las 10 variables del modelo. */
 async function readOfficial(file) {
   const rows = parseCSV(await file.text());
   if (!rows.length) throw new Error("El CSV está vacío.");
@@ -19,7 +18,7 @@ async function readOfficial(file) {
   const missing = SAT_FEATURES.map((f) => f.key).filter((k) => !(k in rows[0]));
   if (missing.length) throw new Error(`Faltan columnas en el CSV: ${missing.join(", ")}.`);
 
-  // En features_completo.csv solo se comparan las parcelas de ENTRENAMIENTO (las del dataset oficial).
+  
   const hasSet = "CONJUNTO" in rows[0];
   const usable = hasSet && rows.some((r) => r.CONJUNTO === "ENTRENAMIENTO") ? rows.filter((r) => r.CONJUNTO === "ENTRENAMIENTO") : rows;
 
@@ -35,7 +34,6 @@ async function readOfficial(file) {
   return map;
 }
 
-/** Reparte la muestra entre estados (como validate_satelite.py) para que no salgan todas de uno solo. */
 function pickSample(ids, officialMap, n) {
   const groups = new Map();
   for (const id of ids) {
@@ -51,16 +49,11 @@ function pickSample(ids, officialMap, n) {
   return out;
 }
 
-/**
- * Corre la validación del cálculo en vivo desde la pantalla (lo que antes hacía scripts/validate_satelite.py):
- * cruza el CSV oficial con los contornos por ID_POLIGONO, calcula cada parcela desde satélite con
- * POST /predict-from-geometry (una por una, ~30–90 s cada una) y va agregando los resultados a la tabla.
- */
 export default function ValidationRunner({ onRows }) {
   const [csvName, setCsvName] = useState("");
-  const [official, setOfficial] = useState(null); // Map id -> { estado, official }
+  const [official, setOfficial] = useState(null); 
   const [geoName, setGeoName] = useState("");
-  const [polys, setPolys] = useState(null); // Map id -> polígono del backend
+  const [polys, setPolys] = useState(null); 
   const [reading, setReading] = useState(false);
   const [n, setN] = useState(5);
   const [anio, setAnio] = useState(TRAINED_YEAR);
@@ -141,7 +134,7 @@ export default function ValidationRunner({ onRows }) {
         () =>
           setProgress((p) => {
             const elapsed = Math.floor((Date.now() - startedAt) / 1000);
-            return p.elapsed === elapsed ? p : { ...p, elapsed }; // mismo valor → React no repinta
+            return p.elapsed === elapsed ? p : { ...p, elapsed }; 
           }),
         500
       );

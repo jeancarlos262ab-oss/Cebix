@@ -2,10 +2,6 @@ import { RefreshCw, ServerCrash } from "lucide-react";
 import { PageBodySkeleton, RouteSkeleton } from "./PageSkeleton";
 import { useModelInfo } from "../../context/ModelInfoContext";
 
-/**
- * Muestra su contenido cuando el backend ya entregó la información del modelo
- * (GET /model-info); mientras tanto, un indicador de carga, y si falla, el error con reintento.
- */
 export default function RequireModelInfo({ children, skeleton = "modeloTab", withBar = false }) {
   const { info, loading, error, reload } = useModelInfo();
   if (info) return children;

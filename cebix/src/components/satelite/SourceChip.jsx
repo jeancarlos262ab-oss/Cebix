@@ -1,6 +1,5 @@
 import { SOURCES, WINDOWS } from "../../data/satelite";
 
-/** Etiqueta pequeña de fuente (Sentinel-2 / CHIRPS / escenas) o de ventana fenológica. */
 export function SourceChip({ source }) {
   const s = SOURCES[source];
   return (

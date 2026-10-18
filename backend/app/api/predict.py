@@ -1,5 +1,3 @@
-"""Predicción sobre features ya calculadas (JSON o CSV)."""
-
 import io
 
 import pandas as pd
@@ -12,7 +10,6 @@ from app.services.model_service import _clean, row_context, run_inference, varia
 
 router = APIRouter(tags=["predicción"])
 
-
 @router.post("/predict")
 def predict(payload: PredictRequest, modo: str = Query("lluvia", description="'lluvia' (por defecto) o '10var' (Plan B).")):
     if not payload.parcelas:
@@ -23,7 +20,7 @@ def predict(payload: PredictRequest, modo: str = Query("lluvia", description="'l
     estados = [p.Estado for p in payload.parcelas]
 
     df = pd.DataFrame(rows)
-    meta_df = df.copy()  # run_inference agrega columnas al DataFrame; el contexto se lee antes
+    meta_df = df.copy()  
     results = run_inference(df, estados, variant_from_modo(modo))
 
     return {
@@ -32,7 +29,6 @@ def predict(payload: PredictRequest, modo: str = Query("lluvia", description="'l
             for i in range(len(ids))
         ]
     }
-
 
 @router.post("/predict-csv")
 async def predict_csv(
@@ -43,8 +39,7 @@ async def predict_csv(
     ),
     modo: str = Query("lluvia", description="'lluvia' (solo la lluvia de abril–mayo, por defecto) o '10var' (Plan B: 10 variables)."),
 ):
-    """Acepta (a) el CSV de features ya calculadas, (b) el CSV Básico OFICIAL del reto o (c) el CSV PRO (Planet) del reto.
-    El tipo se detecta solo: con el PRO se usa el modelo con Planet; con los otros, el modelo de fuentes abiertas."""
+    
     content = await file.read()
     try:
         columns = pd.read_csv(io.BytesIO(content), nrows=0, encoding="utf-8-sig").columns
@@ -77,7 +72,6 @@ async def predict_csv(
         ],
     }
 
-
 def _predict_official_basico(content: bytes, conjunto: str, variant: str = "abierto"):
     conjunto = conjunto.strip().upper()
     if conjunto not in ("PREDICCION", "ENTRENAMIENTO", "TODAS"):
@@ -97,7 +91,7 @@ def _predict_official_basico(content: bytes, conjunto: str, variant: str = "abie
 
     sin_referencia = int(feats["CONJUNTO"].isna().sum())
     if conjunto != "TODAS":
-        # Parcelas que no están en la tabla oficial (sin CONJUNTO) se conservan: no hay motivo para descartarlas.
+        
         feats = feats[(feats["CONJUNTO"] == conjunto) | feats["CONJUNTO"].isna()].reset_index(drop=True)
     if feats.empty:
         raise HTTPException(status_code=400, detail="El archivo no trae parcelas del conjunto pedido.")
@@ -124,9 +118,8 @@ def _predict_official_basico(content: bytes, conjunto: str, variant: str = "abie
         ],
     }
 
-
 def _predict_official_pro(content: bytes, conjunto: str, variant: str = "abierto"):
-    """CSV PRO (Planet) oficial: lluvia abr–may de la tabla de referencia (modelo de lluvia) + índices Planet como contexto."""
+    
     if variant == "10var":
         raise HTTPException(
             status_code=422,
@@ -157,8 +150,8 @@ def _predict_official_pro(content: bytes, conjunto: str, variant: str = "abierto
 
     ids = feats["ID_POLIGONO"].tolist()
     estados = feats["Estado"].tolist()
-    # El modelo con Planet no mejora a la lluvia sola (ver ml/README.md): el CSV PRO se ejecuta con el modelo de lluvia y
-    # los índices de Planet se devuelven como contexto de la parcela.
+    
+    
     results = run_inference(feats.copy(), estados, variant)
     for r in results:
         r["modelo"] = "abierto"

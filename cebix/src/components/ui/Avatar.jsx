@@ -11,10 +11,6 @@ function initialsOf(name) {
   return (first + last).toUpperCase();
 }
 
-/**
- * Foto de perfil redonda. Si no hay foto (o no carga) muestra las iniciales,
- * en vez de la cara aleatoria de un servicio externo.
- */
 export default function Avatar({ src, name, className = "h-9 w-9", textClass = "text-xs" }) {
   const [failed, setFailed] = useState(false);
 

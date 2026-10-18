@@ -1,20 +1,3 @@
-"""Lectura de archivos de parcelas (Shapefile, GeoJSON, KML/KMZ) -> polígonos en lng/lat (EPSG:4326).
-
-La salida es la entrada de `POST /predict-from-geometry`: cada polígono ya viene reproyectado,
-sin altitud, de un solo anillo, con área, centroide y el resultado de las MISMAS validaciones que
-aplicará el cálculo satelital (`validate_geometry`). Así el frontend sabe de antemano cuáles se
-pueden calcular y no gasta 30–90 s en una parcela que va a ser rechazada.
-
-Formatos:
-  - Shapefile: `.shp` (+ `.dbf` para atributos, `.prj` para el sistema de coordenadas, `.shx`/`.cpg`
-    opcionales), sueltos o dentro de un `.zip`.
-  - GeoJSON (`.geojson` / `.json`): Polygon, MultiPolygon, Feature, FeatureCollection, GeometryCollection.
-  - KML (`.kml`) y KMZ (`.kmz`).
-
-Los MultiPolygon se separan en un polígono por parte. Los huecos se ignoran (el cálculo satelital
-solo usa el contorno exterior). Todo se procesa en memoria: no se escribe nada en disco.
-"""
-
 from __future__ import annotations
 
 import io
@@ -28,39 +11,32 @@ import zipfile
 
 from app.services.features.common import MAX_VERTICES, SatelliteError, WARN_AREA_HA, area_warning, validate_geometry
 
-MAX_UNZIPPED_BYTES = 120 * 1024 * 1024  # protección contra zip bombs
+MAX_UNZIPPED_BYTES = 120 * 1024 * 1024  
 MAX_ZIP_ENTRIES = 300
 MAX_POLYGONS = 500
 
 _ESTADOS = {"hidalgo": "Hidalgo", "puebla": "Puebla", "tlaxcala": "Tlaxcala"}
 
-# Claves de atributos que se reconocen (se comparan sin mayúsculas, acentos ni símbolos).
 _ID_KEYS = ["idpoligono", "idpoligon", "idparcela", "idpol", "id", "folio", "clave", "cve", "parcela", "nombre", "name"]
 _NAME_KEYS = ["nombre", "name", "parcela", "descripcion", "description", "idpoligono", "idpoligon", "idparcela", "id"]
 _ESTADO_KEYS = ["estado", "noment", "nomestado", "entidad", "state", "region"]
 _MUN_KEYS = ["municipio", "nommun", "mun", "municipality", "localidad"]
 
-
 class GeoParseError(Exception):
-    """Error legible para el usuario; `status` es el código HTTP que se devuelve."""
+    
 
     def __init__(self, status: int, message: str):
         super().__init__(message)
         self.status = status
         self.message = message
 
-
-# ───────────────────────────── utilidades ─────────────────────────────
-
-
 def _key(text: str) -> str:
-    """'ID_POLIGONO' -> 'idpoligono' (sin acentos, mayúsculas ni símbolos)."""
+    
     t = unicodedata.normalize("NFKD", str(text)).encode("ascii", "ignore").decode()
     return re.sub(r"[^a-z0-9]", "", t.lower())
 
-
 def _pick(props: dict, keys: list[str]):
-    """Primer valor no vacío cuyo nombre de atributo coincide con alguna de `keys` (en ese orden)."""
+    
     norm = {_key(k): v for k, v in props.items()}
     for k in keys:
         v = norm.get(k)
@@ -71,7 +47,6 @@ def _pick(props: dict, keys: list[str]):
             return s
     return None
 
-
 def _canon_estado(value: str | None) -> str | None:
     if not value:
         return None
@@ -81,9 +56,8 @@ def _canon_estado(value: str | None) -> str | None:
             return name
     return None
 
-
 def _clean_props(props: dict) -> dict:
-    """Atributos simples y acotados (para no devolver miles de columnas ni objetos raros)."""
+    
     out = {}
     for k, v in list(props.items())[:30]:
         if isinstance(v, (int, float, bool)) or v is None:
@@ -92,13 +66,11 @@ def _clean_props(props: dict) -> dict:
             out[str(k)[:40]] = (v.decode("utf-8", "replace") if isinstance(v, bytes) else v)[:120]
     return out
 
-
 def _lonlat_like(ring) -> bool:
     return all(abs(x) <= 180 and abs(y) <= 90 for x, y in ring)
 
-
 def _ring(coords) -> list[tuple[float, float]]:
-    """Convierte una lista de posiciones [x, y, (z)] en [(x, y)], descartando la altitud."""
+    
     out = []
     for pos in coords:
         x, y = float(pos[0]), float(pos[1])
@@ -107,18 +79,14 @@ def _ring(coords) -> list[tuple[float, float]]:
         out.append((x, y))
     return out
 
-
-# Componentes de un shapefile. Solo `.shp` trae la geometría; el resto la complementa.
 SHAPEFILE_EXTS = ("shp", "dbf", "prj", "shx", "cpg")
-
 
 def _ext(name: str) -> str:
     base = name.rsplit("/", 1)[-1]
     return base.rsplit(".", 1)[-1].lower() if "." in base else ""
 
-
 def _decode_text(data: bytes) -> str:
-    """Texto de un .prj/.cpg: UTF-8 (con o sin BOM) y, si no, Latin-1."""
+    
     for enc in ("utf-8-sig", "latin-1"):
         try:
             return data.decode(enc)
@@ -126,13 +94,8 @@ def _decode_text(data: bytes) -> str:
             continue
     return data.decode("utf-8", "ignore")
 
-
 def _encoding_from_cpg(cpg: bytes | None) -> str:
-    """Codificación declarada en el .cpg ("UTF-8", "ISO-8859-1", "1252", "ANSI 1252"...).
-
-    Si falta o no se reconoce, UTF-8 (el valor por defecto de QGIS/GDAL moderno); los caracteres que no
-    se puedan decodificar se reemplazan en vez de romper la lectura.
-    """
+    
     if not cpg:
         return "utf-8"
     raw = _decode_text(cpg).strip().strip("\x00").strip()
@@ -140,7 +103,7 @@ def _encoding_from_cpg(cpg: bytes | None) -> str:
         return "utf-8"
     candidates = [raw, raw.replace(" ", "_")]
     digits = re.search(r"\d{3,5}", raw)
-    if digits:  # "1252", "ANSI 1252", "windows-1252" -> cp1252; "65001" -> utf-8
+    if digits:  
         n = digits.group(0)
         candidates += ["utf-8" if n == "65001" else f"cp{n}"]
     for c in candidates:
@@ -150,12 +113,8 @@ def _encoding_from_cpg(cpg: bytes | None) -> str:
             continue
     return "utf-8"
 
-
-# ───────────────────────────── archivos y zips ─────────────────────────────
-
-
 def _expand(uploads: list[tuple[str, bytes]]) -> dict[str, bytes]:
-    """{ruta: bytes} con los zips/kmz ya abiertos (solo en memoria)."""
+    
     files: dict[str, bytes] = {}
 
     def add(name: str, data: bytes):
@@ -186,13 +145,6 @@ def _expand(uploads: list[tuple[str, bytes]]) -> dict[str, bytes]:
             add(name, data)
     return files
 
-
-# ───────────────────────────── lectores ─────────────────────────────
-# Cada lector devuelve una lista de polígonos "crudos":
-#   {"ring": [(x, y), ...], "holes": bool, "props": dict, "name": str | None, "src": str, "crs": CRS | None}
-# `crs` None = lng/lat (WGS84); si hay un CRS, se reproyecta después.
-
-
 def _polygons_from_geometry(geom, props, src, crs, out: list, skipped: list, depth: int = 0):
     if not isinstance(geom, dict) or depth > 4:
         skipped.append(1)
@@ -209,13 +161,12 @@ def _polygons_from_geometry(geom, props, src, crs, out: list, skipped: list, dep
             for g in geom.get("geometries", []):
                 _polygons_from_geometry(g, props, src, crs, out, skipped, depth + 1)
         else:
-            skipped.append(1)  # Point, LineString...
+            skipped.append(1)  
     except (KeyError, IndexError, TypeError, ValueError):
         raise GeoParseError(400, f"{src}: la geometría tiene coordenadas inválidas.") from None
 
-
 def _geojson_crs(obj: dict, src: str):
-    """CRS declarado en el GeoJSON (formato antiguo `crs`); None si es lng/lat."""
+    
     crs = obj.get("crs") if isinstance(obj, dict) else None
     name = ((crs or {}).get("properties") or {}).get("name") if isinstance(crs, dict) else None
     if not name:
@@ -227,7 +178,6 @@ def _geojson_crs(obj: dict, src: str):
     except Exception:
         raise GeoParseError(422, f"{src}: no reconozco el sistema de coordenadas '{name}'.") from None
     return None if _is_wgs84(c) else c
-
 
 def _read_geojson(data: bytes, src: str, skipped: list) -> list[dict]:
     try:
@@ -255,7 +205,6 @@ def _read_geojson(data: bytes, src: str, skipped: list) -> list[dict]:
     walk(obj)
     return out
 
-
 def _read_kml(data: bytes, src: str, skipped: list) -> list[dict]:
     if re.search(rb"<!\s*(DOCTYPE|ENTITY)", data, re.I):
         raise GeoParseError(400, f"'{src}': los KML con DTD o entidades no se aceptan.")
@@ -263,7 +212,7 @@ def _read_kml(data: bytes, src: str, skipped: list) -> list[dict]:
         root = ET.fromstring(data)
     except ET.ParseError:
         raise GeoParseError(400, f"'{src}' no es un KML válido.") from None
-    for el in root.iter():  # quita los espacios de nombres: {http://...}Placemark -> Placemark
+    for el in root.iter():  
         if isinstance(el.tag, str):
             el.tag = el.tag.rsplit("}", 1)[-1]
 
@@ -294,7 +243,6 @@ def _read_kml(data: bytes, src: str, skipped: list) -> list[dict]:
             skipped.append(1)
     return out
 
-
 def _is_wgs84(crs) -> bool:
     try:
         if crs.to_epsg() == 4326:
@@ -304,9 +252,8 @@ def _is_wgs84(crs) -> bool:
     name = (crs.name or "").upper()
     return crs.is_geographic and ("WGS 84" in name or "WGS84" in name or "WGS_1984" in name or "CRS84" in name)
 
-
 def _read_shapefile(files: dict[str, bytes], shp_key: str, skipped: list) -> list[dict]:
-    import shapefile  # pyshp
+    import shapefile  
 
     src = shp_key.rsplit("/", 1)[-1]
     stem = shp_key[:-4]
@@ -320,8 +267,8 @@ def _read_shapefile(files: dict[str, bytes], shp_key: str, skipped: list) -> lis
         k = lower.get(f"{stem}.{ext}".lower())
         if k:
             return files[k]
-        # Si en la carpeta hay un solo .shp y un solo archivo de este tipo con otro nombre
-        # (p. ej. "parcelas.shp" + "parcelas_v2.dbf"), se asume que son del mismo shapefile.
+        
+        
         if len(shp_in_folder) == 1:
             others = [k for k in same_folder if _ext(k) == ext]
             if len(others) == 1:
@@ -337,7 +284,7 @@ def _read_shapefile(files: dict[str, bytes], shp_key: str, skipped: list) -> lis
         kwargs["shx"] = io.BytesIO(shx)
     encoding = _encoding_from_cpg(cpg)
     if not cpg and dbf and len(dbf) > 29:
-        # Sin .cpg, el byte 29 del .dbf (LDID) indica la página de códigos (Excel/ArcGIS antiguos).
+        
         encoding = {0x01: "cp437", 0x02: "cp850", 0x03: "cp1252", 0x57: "cp1252", 0x65: "cp850"}.get(dbf[29], encoding)
     try:
         reader = shapefile.Reader(encoding=encoding, encodingErrors="replace", **kwargs)
@@ -367,7 +314,7 @@ def _read_shapefile(files: dict[str, bytes], shp_key: str, skipped: list) -> lis
         iterator = reader.iterShapeRecords() if dbf else ((s, None) for s in reader.iterShapes())
         for item in iterator:
             shape, record = (item.shape, item.record) if dbf else item
-            if shape.shapeType == 0:  # nulo
+            if shape.shapeType == 0:  
                 skipped.append(1)
                 continue
             props = dict(zip(field_names, list(record))) if record is not None else {}
@@ -385,12 +332,8 @@ def _read_shapefile(files: dict[str, bytes], shp_key: str, skipped: list) -> lis
         )
     return out
 
-
-# ───────────────────────────── normalización ─────────────────────────────
-
-
 def _rdp(pts: list[tuple[float, float]], eps: float) -> list[tuple[float, float]]:
-    """Douglas-Peucker iterativo sobre una polilínea."""
+    
     n = len(pts)
     if n < 3:
         return pts
@@ -416,9 +359,8 @@ def _rdp(pts: list[tuple[float, float]], eps: float) -> list[tuple[float, float]
             stack.append((idx, b))
     return [p for p, k in zip(pts, keep) if k]
 
-
 def _simplify_ring(pts: list[tuple[float, float]], limit: int) -> list[tuple[float, float]] | None:
-    """Reduce un anillo abierto a <= `limit` vértices (tolerancia creciente; máx. ~110 m)."""
+    
     far = max(range(len(pts)), key=lambda i: (pts[i][0] - pts[0][0]) ** 2 + (pts[i][1] - pts[0][1]) ** 2)
     eps = 1e-6
     while eps <= 1e-3:
@@ -429,7 +371,6 @@ def _simplify_ring(pts: list[tuple[float, float]], limit: int) -> list[tuple[flo
             return res
         eps *= 2
     return None
-
 
 def _centroid(pts: list[tuple[float, float]]) -> tuple[float, float]:
     x0, y0 = pts[0]
@@ -447,13 +388,11 @@ def _centroid(pts: list[tuple[float, float]]) -> tuple[float, float]:
         return sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts)
     return x0 + cx / (3 * a), y0 + cy / (3 * a)
 
-
 def _geodesic_ha(pts: list[tuple[float, float]]) -> float:
     from pyproj import Geod
 
     area, _ = Geod(ellps="WGS84").polygon_area_perimeter([p[0] for p in pts], [p[1] for p in pts])
     return abs(area) / 10000.0
-
 
 def _transformer(crs, cache: dict):
     if crs is None:
@@ -465,9 +404,8 @@ def _transformer(crs, cache: dict):
         cache[k] = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
     return cache[k]
 
-
 def _normalize(raw: dict, cache: dict) -> dict:
-    """Un polígono crudo -> dict de salida (siempre devuelve algo; si no sirve, trae `error`)."""
+    
     ring = raw["ring"]
     error = None
     pts: list[tuple[float, float]] = []
@@ -480,7 +418,7 @@ def _normalize(raw: dict, cache: dict) -> dict:
         for x, y in zip(xs, ys):
             if not (math.isfinite(x) and math.isfinite(y)):
                 raise ValueError("coordenadas fuera del dominio de la proyección")
-            p = (round(float(x), 7), round(float(y), 7))  # 1e-7° ≈ 1 cm
+            p = (round(float(x), 7), round(float(y), 7))  
             if not pts or p != pts[-1]:
                 pts.append(p)
         if len(pts) > 1 and pts[0] == pts[-1]:
@@ -523,12 +461,8 @@ def _normalize(raw: dict, cache: dict) -> dict:
         "_vertices": len(pts),
     }
 
-
-# ───────────────────────────── punto de entrada ─────────────────────────────
-
-
 def parse_uploads(uploads: list[tuple[str, bytes]]) -> dict:
-    """uploads = [(nombre_de_archivo, bytes)]. Devuelve {n_poligonos, poligonos, advertencias}."""
+    
     if not uploads:
         raise GeoParseError(400, "No se recibió ningún archivo.")
     files = _expand(uploads)
@@ -540,7 +474,7 @@ def parse_uploads(uploads: list[tuple[str, bytes]]) -> dict:
     raw: list[dict] = []
     used: set[str] = set()
 
-    # Shapefiles incompletos: avisa qué falta en lugar de un "formato no compatible" genérico.
+    
     def stem_of(k: str) -> str:
         return k[: k.rfind(".")].lower()
 

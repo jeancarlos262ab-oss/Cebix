@@ -13,12 +13,9 @@ import { RISK_COLORS } from "../utils/riskColors";
 
 const REGION_FILTERS = ["Todas", "Hidalgo", "Tlaxcala", "Puebla"];
 
-// Misma rejilla en todas las filas. En pantallas chicas solo caben casilla, parcela y acciones
-// (el rendimiento y la elegibilidad pasan a la segunda línea de la parcela).
 const ROW_GRID =
   "grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 lg:grid-cols-[auto_minmax(0,2fr)_110px_150px_70px_minmax(0,1.2fr)_auto]";
 
-/** Nivel de elegibilidad sobrio: punto plano del color del semáforo y texto neutro. */
 function RiskLabel({ label, color }) {
   return (
     <span className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
@@ -28,7 +25,6 @@ function RiskLabel({ label, color }) {
   );
 }
 
-/** Casilla propia (no depende de plugins de formularios). `indeterminate` = selección parcial. */
 function Checkbox({ checked, indeterminate = false, onChange, label }) {
   const on = checked || indeterminate;
   return (
@@ -84,7 +80,7 @@ const HistoryRow = memo(function HistoryRow({ parcel, selected, onToggle, onEdit
                 <span className="font-mono">{parcel.polygonId}</span>
               </>
             )}
-            {/* Solo en pantallas chicas: aquí no hay columnas para estos datos. */}
+            {}
             <span className="text-gray-300 dark:text-gray-700 lg:hidden">·</span>
             <span className="lg:hidden">{parcel.yieldEstimate.toFixed(1)} ton/ha</span>
             <span className="text-gray-300 dark:text-gray-700 lg:hidden">·</span>
@@ -155,12 +151,12 @@ function ParcelasHistorialContent() {
 
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(() => new Set());
-  const [editing, setEditing] = useState(null); // parcela que se edita
-  const [confirm, setConfirm] = useState(null); // { parcels: [...] } a eliminar
+  const [editing, setEditing] = useState(null); 
+  const [confirm, setConfirm] = useState(null); 
 
   const listRef = useRef(null);
 
-  // El campo responde al instante; la lista se filtra con prioridad baja.
+  
   const deferredQuery = useDeferredValue(query);
 
   const filtered = useMemo(() => {
@@ -187,8 +183,8 @@ function ParcelasHistorialContent() {
     [parcels]
   );
 
-  // Solo cuenta (y borra) lo que se está viendo con el filtro actual: así nunca se elimina
-  // algo seleccionado antes que ya no aparece en pantalla.
+  
+  
   const selectedParcels = useMemo(() => filtered.filter((p) => selected.has(p.id)), [filtered, selected]);
   const allSelected = filtered.length > 0 && selectedParcels.length === filtered.length;
   const someSelected = selectedParcels.length > 0 && !allSelected;
@@ -287,7 +283,7 @@ function ParcelasHistorialContent() {
       <div className="mt-6" aria-hidden="true" />
 
       <div className="space-y-4 px-4 py-6 sm:px-6 lg:px-8">
-        {/* Búsqueda y filtro por región */}
+        {}
         <div className="flex flex-wrap items-center gap-3">
           <label className="relative my-3 w-full sm:my-0 sm:min-w-[220px] sm:flex-1 sm:w-auto">
             <Search
@@ -336,7 +332,7 @@ function ParcelasHistorialContent() {
           </div>
         </div>
 
-        {/* Barra de selección */}
+        {}
         <div
           className={[
             "flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-colors",
@@ -388,7 +384,7 @@ function ParcelasHistorialContent() {
           </div>
         </div>
 
-        {/* Lista */}
+        {}
         <div ref={listRef}>
           <div className="rounded-2xl border border-gray-200 dark:border-gray-800">
             <div
@@ -400,7 +396,7 @@ function ParcelasHistorialContent() {
               <span className="w-5" aria-hidden="true" />
               <span>Parcela</span>
               <span>Rendimiento</span>
-              <span>Elegibilidad</span>
+              <span>Nivel</span>
               <span>NDVI</span>
               <span>Municipio</span>
               <span className="w-[88px]" aria-hidden="true" />

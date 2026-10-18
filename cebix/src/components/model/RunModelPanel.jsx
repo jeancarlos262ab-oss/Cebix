@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "../../services/toast";
 import {
+  AlertTriangle,
   Download,
-  FlaskConical,
   LayoutGrid,
   Trash2,
   FileSpreadsheet,
@@ -22,16 +22,14 @@ import DocumentPeek from "../ui/DocumentPeek";
 import ModeSelector from "./ModeSelector";
 import { useModelInfo } from "../../context/ModelInfoContext";
 import { useParcels } from "../../context/ParcelsContext";
-import { EXAMPLE_TODOS_URL, fetchExampleFile, friendlyError, predictCsv } from "../../services/modelApi";
+import { EXAMPLE_TODOS_URL, friendlyError, predictCsv } from "../../services/modelApi";
 import { formatNumber } from "../../utils/intl";
 import { detectKind } from "../../utils/csvKind";
 
-// Tiempo mínimo que el orbe "piensa", aunque el backend responda antes.
 const MIN_THINKING_MS = 5000;
 
-// Scroll hacia el final de la tabla al mostrar los resultados (react-scroll).
-const SCROLL_CONTAINER_ID = "app-scroll"; // <main> en App.jsx
-const SCROLL_MARGIN = 32; // px de aire bajo la tabla
+const SCROLL_CONTAINER_ID = "app-scroll"; 
+const SCROLL_MARGIN = 32; 
 const SCROLL_MIN_MS = 500;
 const SCROLL_MAX_MS = 1100;
 
@@ -40,22 +38,17 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const formatSize = (bytes) =>
   bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
-/**
- * Ejecuta el modelo REAL (Random Forest; 10 variables abiertas, o con Planet si se sube el CSV PRO) en el backend de
- * inferencia (ver /backend). Sube un CSV con las 10 features y muestra la predicción
- * calculada en ese momento -- no son resultados guardados.
- */
 export default function RunModelPanel() {
   const [file, setFile] = useState(null);
-  const [kind, setKind] = useState(null); // "planet" (CSV PRO), "basico" o "otro": se detecta solo al elegir el archivo
-  const [modeUsed, setModeUsed] = useState(null); // "lluvia" | "10var": modo con el que se ejecutó
-  const [modelUsed, setModelUsed] = useState(null); // "planet" | "abierto" según lo que respondió el backend
-  const [runName, setRunName] = useState(""); // nombre con el que se identifica la corrida en el dashboard
+  const [kind, setKind] = useState(null); 
+  const [modeUsed, setModeUsed] = useState(null); 
+  const [modelUsed, setModelUsed] = useState(null); 
+  const [runName, setRunName] = useState(""); 
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const { loadAnalysis, clearAnalysis, hasAnalysis, analysisMeta } = useParcels();
   const { info } = useModelInfo();
-  // Al elegir con el selector el navegador ya filtra por .csv; al arrastrar se valida aquí.
+  
   function handleFiles(files) {
     const picked = files.find((f) => f.name.toLowerCase().endsWith(".csv"));
     if (picked) {
@@ -77,8 +70,8 @@ export default function RunModelPanel() {
     setModeUsed(null);
 
     try {
-      // La petición real y el mínimo de 5 s corren en paralelo: si el modelo termina antes,
-      // se espera lo que falte; si tarda más, no se añade tiempo extra.
+      
+      
       const k = await detectKind(f);
       const official = k !== "otro";
       const [data, csvText] = await Promise.all([
@@ -89,7 +82,7 @@ export default function RunModelPanel() {
       setResults(data.predicciones);
       setModelUsed(data.modelo || "abierto");
       setModeUsed(data.modo || "lluvia");
-      // Los resultados reales alimentan Resumen, Parcelas, Mapa, Predicciones y SHAP como borrador: no se guardan hasta pulsar el botón.
+      
       loadAnalysis(data.predicciones, csvText, runName.trim() || f.name);
       toast.success(
         `Modelo (${data.modo === "10var" ? "10 variables" : "solo lluvia"}) ejecutado: ${data.predicciones.length} parcela${data.predicciones.length === 1 ? "" : "s"} procesada${data.predicciones.length === 1 ? "" : "s"}. Pulsa "Guardar corrida" para conservarla.`
@@ -106,18 +99,6 @@ export default function RunModelPanel() {
     runWith(file);
   }
 
-  // Un clic: baja el CSV de ejemplo desde el backend y ejecuta el modelo con él.
-  async function handleExample() {
-    try {
-      const example = await fetchExampleFile();
-      setFile(example);
-      setRunName(example.name);
-      await runWith(example);
-    } catch (err) {
-      toast.error(friendlyError(err));
-    }
-  }
-
   function handleClear() {
     clearAnalysis();
     setResults(null);
@@ -131,7 +112,7 @@ export default function RunModelPanel() {
 
   return (
     <div className="grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,1fr)_200px] lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-12">
-      {/* Orb: columna lateral fija al hacer scroll (en móvil va arriba). */}
+      {}
       <aside className="order-first md:order-last">
         <div className="md:sticky md:top-6 md:max-h-[calc(100vh-3rem)] md:overflow-y-auto scrollbar-none">
           <div className="flex justify-center py-2 md:py-4">
@@ -153,11 +134,11 @@ export default function RunModelPanel() {
           title="Prepara tu archivo"
           description="Sube tu archivo de datos (Básico o PRO). El modelo estima el rendimiento con la lluvia de abril–mayo de cada parcela."
         >
-          {/* sm:mt-12 deja sitio arriba para el documento, que sobresale 40 px del contenedor. */}
+          {}
           <div className="relative flex flex-col gap-4 rounded-2xl border border-gray-200 p-4 dark:border-gray-800 sm:mt-12 sm:flex-row sm:items-center sm:justify-between">
-            {/* Documento a la izquierda del texto. Sobresale por arriba del contenedor y su parte de
-                abajo queda recortada a ras del borde inferior; entra deslizándose desde ahí. Solo en
-                pantallas donde las columnas van en fila. */}
+            {
+
+}
             <div aria-hidden="true" className="pointer-events-none absolute -top-10 bottom-0 left-4 hidden w-32 overflow-hidden sm:block">
               <DocumentPeek className="absolute left-0 top-0 h-[149px] w-32" />
             </div>
@@ -233,15 +214,6 @@ export default function RunModelPanel() {
               {loading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} strokeWidth={1.75} />}
               {loading ? "Ejecutando modelo..." : "Ejecutar modelo"}
             </button>
-            <button
-              type="button"
-              onClick={handleExample}
-              disabled={loading}
-              className="ml-0 mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 sm:ml-3 sm:mt-0 sm:w-auto"
-            >
-              <FlaskConical size={16} strokeWidth={1.75} className="text-gray-400" />
-              Probar con el archivo de ejemplo
-            </button>
           </form>
 
         </Step>
@@ -287,11 +259,12 @@ export default function RunModelPanel() {
             <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
               Modelo usado:{" "}
               <strong className="text-gray-800 dark:text-gray-200">
-                {modeUsed === "10var" ? "10 variables (Plan B)" : "solo lluvia temprana (CHIRPS)"}
+                {modeUsed === "10var" ? "10 variables" : "solo lluvia temprana (CHIRPS)"}
               </strong>
               {modeUsed === "10var" && " · Error típico mayor que con solo lluvia; ver Modelo → Resumen."}
             </p>
           )}
+          {results && <ReliabilityNotice results={results} />}
           {results ? (
             <ResultsTable results={results} />
           ) : (
@@ -303,8 +276,6 @@ export default function RunModelPanel() {
   );
 }
 
-// Guía en lenguaje sencillo bajo el orbe: qué significa cada columna de la tabla.
-// Solo aparece cuando ya hay resultados; incluye un ejemplo leído con la primera parcela.
 const GUIDE_ITEMS = [
   {
     term: "Rendimiento (t/ha)",
@@ -324,8 +295,50 @@ const GUIDE_ITEMS = [
   },
 ];
 
+const FALLBACK_LIMITS = [
+  "Un solo ciclo de entrenamiento (2025) y una sola variable: la lluvia de abril–mayo.",
+  "Error típico de ±0.54 t/ha: sirve para comparar y priorizar parcelas, no para fijar una cifra exacta.",
+];
+
+function ReliabilityNotice({ results }) {
+  const { info } = useModelInfo();
+  const limits = info?.limitaciones?.length ? info.limitaciones : FALLBACK_LIMITS;
+  const outside = results.filter((r) => r.fuera_de_rango);
+  return (
+    <div className="mb-3 space-y-2 text-xs">
+      {outside.length > 0 && (
+        <div
+          role="alert"
+          className="flex gap-2 rounded-2xl border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
+        >
+          <AlertTriangle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">
+              {outside.length === 1 ? "1 parcela queda" : `${outside.length} parcelas quedan`} fuera de lo que el modelo vio al entrenar
+            </p>
+            <p className="mt-0.5">
+              Su estimación es una extrapolación y menos confiable ({outside.slice(0, 5).map((r) => r.ID_POLIGONO).join(", ")}
+              {outside.length > 5 ? "…" : ""}). Pasa el cursor sobre la etiqueta &quot;Fuera de rango&quot; para ver el motivo.
+            </p>
+          </div>
+        </div>
+      )}
+      <details className="rounded-2xl border border-gray-200 p-3 text-gray-600 dark:border-gray-800 dark:text-gray-400">
+        <summary className="cursor-pointer font-medium text-gray-900 dark:text-gray-100">
+          Cómo interpretar estas estimaciones
+        </summary>
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          {limits.map((t) => (
+            <li key={t}>{t}</li>
+          ))}
+        </ul>
+      </details>
+    </div>
+  );
+}
+
 function ResultsGuide({ results }) {
-  if (!results?.length) return null; // solo se muestra cuando ya hay tabla
+  if (!results?.length) return null; 
   const first = results[0];
   const top = first?.shap?.[0];
   const kg = first ? Math.round(Number(first.yieldEstimate) * 1000) : NaN;
@@ -352,8 +365,8 @@ function ResultsGuide({ results }) {
         <p className="mt-3 pt-3 text-gray-700 dark:text-gray-300">
           <span className="font-medium text-gray-900 dark:text-gray-100">Ejemplo: </span>
           la parcela {first.ID_POLIGONO} ({first.Estado}) daría cerca de {first.yieldEstimate} t/ha
-          (unos {formatNumber(kg)} kg por hectárea), y casi seguro entre{" "}
-          {first.ic90_inferior} y {first.ic90_superior}.
+          (unos {formatNumber(kg)} kg por hectárea), y, con unos 90 % de probabilidad, entre{" "}
+          {first.ic90_inferior} y {first.ic90_superior} (es un rango probable, no una garantía).
           {top && (
             <>
               {" "}
@@ -370,8 +383,8 @@ function ResultsGuide({ results }) {
 function ResultsTable({ results }) {
   const wrapRef = useRef(null);
 
-  // Al mostrarse los resultados baja suavemente hasta el final de la tabla.
-  // react-scroll cancela la animación si el usuario usa la rueda, el touch o el teclado.
+  
+  
   useEffect(() => {
     const el = wrapRef.current;
     const container = document.getElementById(SCROLL_CONTAINER_ID);
@@ -379,9 +392,9 @@ function ResultsTable({ results }) {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 
     const distance = el.getBoundingClientRect().bottom + SCROLL_MARGIN - container.getBoundingClientRect().bottom;
-    if (distance <= 0) return; // la tabla ya cabe en pantalla
+    if (distance <= 0) return; 
 
-    // Más distancia, un poco más de tiempo (con tope).
+    
     const duration = Math.min(SCROLL_MAX_MS, Math.max(SCROLL_MIN_MS, distance * 1.2));
     animateScroll.scrollMore(distance, {
       containerId: SCROLL_CONTAINER_ID,
@@ -421,6 +434,20 @@ function ResultsTable({ results }) {
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-right font-display text-base font-semibold tabular-nums">
                   {r.yieldEstimate}
+                  {Number.isFinite(r.ic90_inferior) && Number.isFinite(r.ic90_superior) && (
+                    <span className="ml-1 text-xs font-normal text-gray-500 dark:text-gray-400">
+                      ± {((r.ic90_superior - r.ic90_inferior) / 2).toFixed(2)}
+                    </span>
+                  )}
+                  {r.fuera_de_rango && (
+                    <span
+                      title={(r.avisos ?? []).join(" ")}
+                      className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 align-middle font-sans text-[10px] font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+                    >
+                      <AlertTriangle size={10} aria-hidden="true" />
+                      Fuera de rango
+                    </span>
+                  )}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 tabular-nums text-gray-500 dark:text-gray-400">
                   {r.ic90_inferior} – {r.ic90_superior}
@@ -454,8 +481,6 @@ function ResultsTable({ results }) {
   );
 }
 
-// Filas fantasma con la forma de la tabla; el shimmer corre solo mientras el modelo se ejecuta.
-// Los colores se definen en index.css (.results-skeleton) para respetar el modo oscuro.
 function ResultsPlaceholder({ loading }) {
   const bar = {
     height: 10,
@@ -489,7 +514,7 @@ function ResultsPlaceholder({ loading }) {
 function Step({ n, title, description, last = false, children }) {
   return (
     <section className="relative flex gap-4">
-      {/* Línea que une un paso con el siguiente */}
+      {}
       {!last && (
         <span
           aria-hidden="true"

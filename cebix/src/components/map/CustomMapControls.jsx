@@ -1,29 +1,6 @@
 import { useCallback, useEffect, useState, memo } from "react";
 import { Plus, Minus, Compass, Maximize2, Minimize2 } from "lucide-react";
 
-/**
- * Componente de controles personalizados para MapLibre GL JS.
- * 
- * Reemplaza los controles nativos con una UI personalizada usando:
- * - Lucide React para íconos
- * - Tailwind CSS para estilos
- * - Glassmorphism para diseño moderno
- * 
- * Acciones implementadas:
- * - Acercar (zoom in)
- * - Alejar (zoom out)
- * - Restablecer vista (reset)
- * - Pantalla completa
- * 
- * @param {{
- *   mapRef: RefObject,
- *   initialCenter: [number, number],
- *   initialZoom: number,
- *   position?: "top-right" | "bottom-right" | "bottom-left" | "top-left",
- *   orientation?: "vertical" | "horizontal",   // dirección de la barra (por defecto vertical)
- *   containerRef?: RefObject,
- * }} props
- */
 function CustomMapControls({
   mapRef,
   initialCenter,
@@ -37,7 +14,7 @@ function CustomMapControls({
   const [canZoomIn, setCanZoomIn] = useState(true);
   const [canZoomOut, setCanZoomOut] = useState(true);
 
-  // Escuchar cambios en zoom para habilitar/deshabilitar botones
+  
   useEffect(() => {
     const map = mapRef.current?.getMap();
     if (!map) return;
@@ -50,7 +27,7 @@ function CustomMapControls({
 
     updateZoomState();
 
-    // Escuchar eventos de zoom
+    
     map.on("zoom", updateZoomState);
     map.on("zoomend", updateZoomState);
 
@@ -60,7 +37,7 @@ function CustomMapControls({
     };
   }, [mapRef]);
 
-  // Escuchar cambios de pantalla completa
+  
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(Boolean(document.fullscreenElement));
@@ -72,7 +49,7 @@ function CustomMapControls({
     };
   }, []);
 
-  // Acercar (Zoom In)
+  
   const handleZoomIn = useCallback(() => {
     const map = mapRef.current?.getMap();
     if (map && canZoomIn) {
@@ -80,7 +57,7 @@ function CustomMapControls({
     }
   }, [mapRef, canZoomIn]);
 
-  // Alejar (Zoom Out)
+  
   const handleZoomOut = useCallback(() => {
     const map = mapRef.current?.getMap();
     if (map && canZoomOut) {
@@ -88,12 +65,12 @@ function CustomMapControls({
     }
   }, [mapRef, canZoomOut]);
 
-  // Restablecer vista (Reset)
+  
   const handleResetView = useCallback(() => {
     const map = mapRef.current?.getMap();
     if (!map || !initialCenter) return;
 
-    // Normalizar center a [lng, lat]
+    
     let lng, lat;
     if (Array.isArray(initialCenter)) {
       [lng, lat] = initialCenter;
@@ -112,7 +89,7 @@ function CustomMapControls({
     });
   }, [mapRef, initialCenter, initialZoom]);
 
-  // Alternar pantalla completa
+  
   const handleToggleFullscreen = useCallback(() => {
     const container = containerRef?.current;
     if (!container) return;
@@ -128,7 +105,7 @@ function CustomMapControls({
     }
   }, [containerRef]);
 
-  // Calcular posición del contenedor
+  
   const positionClasses = {
     "top-right": "top-3 right-3",
     "bottom-right": "bottom-3 right-3",
@@ -145,7 +122,7 @@ function CustomMapControls({
       role="group"
       aria-label="Controles del mapa"
     >
-      {/* Botón Zoom In */}
+      {}
       <ControlButton
         icon={Plus}
         label="Acercar"
@@ -154,7 +131,7 @@ function CustomMapControls({
         title="Acercar (Zoom In) - Presiona + para acercar"
       />
 
-      {/* Botón Zoom Out */}
+      {}
       <ControlButton
         icon={Minus}
         label="Alejar"
@@ -163,10 +140,10 @@ function CustomMapControls({
         title="Alejar (Zoom Out) - Presiona - para alejar"
       />
 
-      {/* Separador */}
+      {}
       <div className={separatorClass} aria-hidden="true" />
 
-      {/* Botón Reset */}
+      {}
       <ControlButton
         icon={Compass}
         label="Restablecer"
@@ -174,10 +151,10 @@ function CustomMapControls({
         title="Restablecer vista - Volver a la posición inicial"
       />
 
-      {/* Separador */}
+      {}
       <div className={separatorClass} aria-hidden="true" />
 
-      {/* Botón Pantalla Completa */}
+      {}
       <ControlButton
         icon={isFullscreen ? Minimize2 : Maximize2}
         label={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
@@ -192,17 +169,6 @@ function CustomMapControls({
   );
 }
 
-/**
- * Botón individual para los controles del mapa.
- * 
- * @param {{
- *   icon: React.ComponentType,
- *   label: string,
- *   onClick: () => void,
- *   disabled?: boolean,
- *   title?: string,
- * }} props
- */
 const ControlButton = memo(function ControlButton({
   icon: Icon,
   label,

@@ -12,14 +12,6 @@ const DIRECTION_LABEL = {
 
 const SIGN = { positivo: "+", negativo: "−", mixto: "±" };
 
-/**
- * Contribución SHAP por variable, como lista con barras proporcionales.
- * Se hace en HTML (no en recharts) para que los nombres largos se lean completos
- * en vez de cortarse en el eje. `height` se acepta por compatibilidad pero ya no
- * se usa: la lista toma el alto que necesite.
- *
- * @param {{data: {feature: string, value?: number, impact?: number, direction: string}[], height?: number}} props
- */
 export default function FeatureImportanceChart({ data }) {
   const rows = data.map((d) => ({ ...d, magnitude: Math.abs(d.value ?? d.impact) }));
   const max = Math.max(...rows.map((r) => r.magnitude), 0.0001);

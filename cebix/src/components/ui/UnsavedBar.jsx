@@ -4,11 +4,6 @@ import { useParcels } from "../../context/ParcelsContext";
 import { toast } from "../../services/toast";
 import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_DANGER, MODAL_BTN_PRIMARY } from "./Modal";
 
-/**
- * Ventana emergente global para guardar los resultados de la corrida del modelo. Se abre sola cuando hay una
- * corrida SIN guardar. Nada se guarda solo: únicamente al pulsar "Guardar corrida". Cerrarla no borra nada: la
- * corrida sigue como borrador y queda un aviso discreto para volver a abrirla.
- */
 export default function UnsavedBar() {
   const { analysisDirty, analysisMeta, saveAnalysisDraft, discardAnalysisDraft } = useParcels();
   const [open, setOpen] = useState(false);
@@ -16,7 +11,7 @@ export default function UnsavedBar() {
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const wasDirty = useRef(false);
 
-  // Se abre al aparecer un borrador nuevo y se cierra sola cuando ya no hay nada pendiente.
+  
   useEffect(() => {
     if (analysisDirty && !wasDirty.current) setOpen(true);
     if (!analysisDirty) {

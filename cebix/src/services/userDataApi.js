@@ -1,11 +1,3 @@
-/**
- * Persistencia en Supabase de lo que antes vivía solo en localStorage:
- *   - user_analysis         -> última corrida del modelo / importación (una fila por usuario)
- *   - committee_submissions -> parcelas enviadas a comité
- *
- * Todas las funciones devuelven { data, error } y nunca lanzan.
- * Tablas y políticas RLS: supabase/datos_por_usuario.sql
- */
 import { supabase } from "./supabaseClient";
 
 export async function fetchAnalysis(uid) {

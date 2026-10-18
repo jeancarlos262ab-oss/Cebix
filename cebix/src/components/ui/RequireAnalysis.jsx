@@ -38,25 +38,20 @@ function OptionRow({ icon: Icon, title, description, highlight = false, ...props
   return <button type="button" className={ROW} {...props}>{content}</button>;
 }
 
-/**
- * Las pantallas de resultados no traen datos precargados: se llenan con lo que se importa o
- * calcula. Mientras no haya parcelas, aquí se ofrece importarlas (el mismo dropzone de la tabla de
- * parcelas), descargar el archivo de ejemplo o ejecutar el modelo con un CSV.
- */
 export function EmptyAnalysis({ title, subtitle, onAdd, skeleton = "dashboard" }) {
   const { importParcels } = useParcelActions();
   const { customParcelsLoading, loadAnalysis } = useParcels();
 
-  // Igual que en Modelo: el CSV (Básico, PRO o de variables) se manda al backend, que elige el modelo,
-  // y el resultado queda como borrador de corrida hasta pulsar "Guardar corrida".
+  
+  
   const runModelCsv = async (file, kind) => {
     const data = await predictCsv(file);
     const csvText = kind === "otro" ? await file.text() : "";
     loadAnalysis(data.predicciones, csvText, file.name);
   };
 
-  // Todavía se están trayendo tus datos de Supabase (p. ej. al entrar desde otra computadora):
-  // no se muestra "sin datos" para no dar a entender que la cuenta está vacía.
+  
+  
   if (customParcelsLoading) {
     return (
       <div className="relative flex min-h-full flex-col">
@@ -67,10 +62,10 @@ export function EmptyAnalysis({ title, subtitle, onAdd, skeleton = "dashboard" }
   }
 
   return (
-    // Centrado en el área de contenido (el sidebar ocupa su lugar, no flota). Los contenedores
-    // van sin fondo y con el mismo borde y redondeo (rounded-2xl) que el resto de la app.
-    // En móvil la barra superior ocupa su lugar (arriba) y el contenido se centra en el resto; en
-    // escritorio la barra flota y el contenido se centra en toda el área.
+    
+    
+    
+    
     <div className="relative flex min-h-full flex-col lg:flex-row lg:items-center lg:justify-center">
       {title && (
         <div className="lg:absolute lg:inset-x-0 lg:top-0">
@@ -97,14 +92,14 @@ export function EmptyAnalysis({ title, subtitle, onAdd, skeleton = "dashboard" }
                 Con un shapefile, GeoJSON o KML se calcula cada parcela con imágenes de satélite. Con el CSV Básico o PRO se ejecuta el
                 modelo con la lluvia de cada parcela; con otro CSV se usan las variables que ya traiga.
               </p>
-              <ModeSelector className="mb-4" />
+              <ModeSelector stacked className="mb-4" />
               <UploadDropzone onParsed={importParcels} onModelCsv={runModelCsv} />
             </div>
           </section>
 
           <section className="relative mt-24 lg:mt-0 lg:col-span-2">
-            {/* Documento que asoma por el borde superior del contenedor, a la derecha: solo se ve la
-                mitad de arriba (el resto queda recortado a ras del borde). Al aparecer se desliza hacia arriba. */}
+            {
+}
             <div
               aria-hidden="true"
               className="pointer-events-none absolute -top-20 right-5 h-20 w-24 overflow-hidden"
@@ -142,7 +137,6 @@ export function EmptyAnalysis({ title, subtitle, onAdd, skeleton = "dashboard" }
   );
 }
 
-/** Envuelve el contenido de una pantalla: muestra el estado vacío hasta que haya resultados. */
 export default function RequireAnalysis({ title, subtitle, skeleton, children }) {
   const { parcels } = useParcels();
   if (parcels.length === 0) return <EmptyAnalysis title={title} subtitle={subtitle} skeleton={skeleton} />;

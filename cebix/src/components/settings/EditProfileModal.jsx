@@ -28,11 +28,11 @@ export default function EditProfileModal({ account, onClose, onSave }) {
   const [saving, setSaving] = useState(false);
   const fileRef = useRef(null);
 
-  // Foto: se elige y se previsualiza aquí, pero NO se sube hasta pulsar 'Guardar'
-  // (así 'Cancelar' no deja nada en el servidor).
-  const [photoFile, setPhotoFile] = useState(null); // archivo original elegido, sin tocar
-  const [photoBlob, setPhotoBlob] = useState(null); // miniatura 256x256 para la barra lateral
-  const [photoPreview, setPhotoPreview] = useState(null); // URL local para mostrarla
+  
+  
+  const [photoFile, setPhotoFile] = useState(null); 
+  const [photoBlob, setPhotoBlob] = useState(null); 
+  const [photoPreview, setPhotoPreview] = useState(null); 
   const [removePhoto, setRemovePhoto] = useState(false);
 
   useEffect(() => () => photoPreview && URL.revokeObjectURL(photoPreview), [photoPreview]);
@@ -46,7 +46,7 @@ export default function EditProfileModal({ account, onClose, onSave }) {
 
   async function handleFile(e) {
     const file = e.target.files?.[0];
-    e.target.value = ""; // permite volver a elegir el mismo archivo
+    e.target.value = ""; 
     if (!file) return;
     const problem = validateAvatarFile(file);
     if (problem) {

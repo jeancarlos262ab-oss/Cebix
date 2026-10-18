@@ -1,21 +1,6 @@
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
-/**
- * Esqueletos con shimmer (react-loading-skeleton), uno POR PANTALLA con la forma de lo que realmente muestra:
- * columnas, tarjetas, gráficas, tabla, mapa, formularios… Los colores salen de index.css (.app-skeleton).
- *
- *   <RouteSkeleton page="parcelas" />   barra superior fantasma + cuerpo (mientras baja el código de la pantalla)
- *   <PageBodySkeleton page="parcelas" /> solo el cuerpo (cuando la barra superior real ya se pinta)
- *   <FullScreenSkeleton />               sidebar fantasma + cuerpo (verificando sesión)
- *
- * `page` = clave de pantalla: dashboard | parcelas | historial | detalle | modelo | mapa | predicciones | satelite |
- *                              shap | ajustes | perfil | acerca
- */
-
-// ───────────────────────────── Primitivas ─────────────────────────────
-
-/** Barra/bloque con shimmer. `strong` = tono más marcado (títulos, cifras). */
 function B({ h = 12, w = "100%", r = 6, strong = false, circle = false, className = "" }) {
   return (
     <Skeleton
@@ -32,7 +17,6 @@ const Panel = ({ children, className = "" }) => (
   <div className={`overflow-hidden rounded-2xl border border-gray-200 p-5 dark:border-gray-800 ${className}`}>{children}</div>
 );
 
-/** Título de sección + descripción opcional. */
 const Head = ({ w = 150, desc = 0 }) => (
   <div className="mb-3">
     <B h={16} w={w} strong />
@@ -40,7 +24,6 @@ const Head = ({ w = 150, desc = 0 }) => (
   </div>
 );
 
-/** Filas "etiqueta … valor" (fichas de datos). */
 const KV = ({ rows = 5, className = "" }) => (
   <div className={`divide-y divide-gray-100 dark:divide-gray-800/70 ${className}`}>
     {Array.from({ length: rows }, (_, i) => (
@@ -52,7 +35,6 @@ const KV = ({ rows = 5, className = "" }) => (
   </div>
 );
 
-/** Barras horizontales con etiqueta (importancia de variables, regiones). */
 const HBars = ({ rows = 6, labelW = 110 }) => (
   <div className="space-y-3.5">
     {Array.from({ length: rows }, (_, i) => (
@@ -74,7 +56,6 @@ const Pills = ({ n = 4, w = 78 }) => (
   </div>
 );
 
-/** Tabla con columnas de distinto ancho; `cols` describe cada una. */
 export function TableSkeleton({ rows = 6, cols = [32, 150, 80, 100, "flex"], className = "" }) {
   return (
     <div className={`overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 ${className}`}>
@@ -116,15 +97,12 @@ export function LinesSkeleton({ lines = 3, className = "" }) {
 }
 
 export function BlockSkeleton({ height = 240, className = "", rounded = true }) {
-  // height puede ser un número o "100%": en ese caso el contenedor padre debe tener altura definida.
+  
   return <Skeleton height={height} borderRadius={rounded ? 16 : 0} containerClassName={`block h-full w-full ${className}`} />;
 }
 
 const PAD = "px-4 sm:px-6 lg:px-8";
 
-// ───────────────────────────── Barra superior ─────────────────────────────
-
-/** Título + subtítulo + acciones (misma estructura que <TopBar>). */
 function TopBarSkeleton({ title = 200, subtitle = 320, actions = [], search = false }) {
   return (
     <div className={`flex flex-wrap items-start justify-between gap-4 pt-4 sm:pt-6 ${PAD}`}>
@@ -142,9 +120,6 @@ function TopBarSkeleton({ title = 200, subtitle = 320, actions = [], search = fa
   );
 }
 
-// ───────────────────────────── Cuerpos por pantalla ─────────────────────────────
-
-/** Resumen general: resumen del modelo (columna) + distribución + tabla de parcelas evaluadas. */
 function DashboardBody() {
   return (
     <div className={`mt-6 grid grid-cols-1 items-start gap-10 py-6 lg:grid-cols-[280px_1fr] ${PAD}`}>
@@ -182,7 +157,6 @@ function DashboardBody() {
   );
 }
 
-/** Parcelas: filtros por región y elegibilidad + registrar | mapa + listado. */
 function ParcelasBody() {
   return (
     <div className={`mt-6 grid grid-cols-1 items-start gap-10 py-6 lg:grid-cols-[280px_1fr] ${PAD}`}>
@@ -232,7 +206,6 @@ function ParcelasBody() {
   );
 }
 
-/** Historial: búsqueda + filtro de región + lista con casillas y paginación. */
 function HistorialBody() {
   return (
     <div className={`mt-6 space-y-4 py-6 ${PAD}`}>
@@ -247,7 +220,6 @@ function HistorialBody() {
   );
 }
 
-/** Detalle de parcela: cifras, semáforo, rendimiento + rango, SHAP local, variables | ficha. */
 function DetalleBody() {
   return (
     <div className={`mt-6 space-y-10 py-6 ${PAD}`}>
@@ -289,7 +261,6 @@ function DetalleBody() {
   );
 }
 
-/** Modelo: pestañas, KPIs en rejilla unida y tarjetas con gráfica y detalle. */
 function ModeloBody({ tabs = true }) {
   return (
     <div className={`mt-6 space-y-6 py-6 ${PAD}`}>
@@ -322,7 +293,6 @@ function ModeloBody({ tabs = true }) {
   );
 }
 
-/** Predicciones: selector, semáforo y datos (columna) | predicción, contribuciones, ubicación + ficha, tabla regional. */
 function PrediccionesBody() {
   return (
     <div className={`mt-6 grid grid-cols-1 items-start gap-12 py-8 lg:grid-cols-[280px_1fr] lg:gap-14 ${PAD}`}>
@@ -377,45 +347,52 @@ function PrediccionesBody() {
   );
 }
 
-/** Parcela satelital: pestañas + mapa de dibujo | panel de 3 pasos (contorno, datos, predicción). */
 function SateliteBody() {
   return (
-    <div className={`mt-6 space-y-5 py-6 ${PAD}`}>
+    <div className={`mt-6 space-y-6 py-6 ${PAD}`}>
       <div className="flex gap-6 border-b border-gray-200 pb-3 dark:border-gray-800">
         <B h={14} w={110} />
         <B h={14} w={130} />
       </div>
-      <div className="grid grid-cols-1 overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="min-h-[360px] p-3 lg:min-h-[560px]">
+      <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
+        <div className="h-[320px] sm:h-[380px] lg:h-[420px]">
           <BlockSkeleton height="100%" />
         </div>
-        <aside className="divide-y divide-gray-200 border-t border-gray-200 dark:divide-gray-800 dark:border-gray-800 lg:border-l lg:border-t-0">
+        <aside className="grid min-w-0 grid-cols-1 divide-y divide-gray-200 border-t border-gray-200 dark:divide-gray-800 dark:border-gray-800 lg:grid-cols-[minmax(0,17rem)_minmax(0,15rem)_minmax(0,1fr)] lg:divide-x lg:divide-y-0">
           {[
             <>
               <div className="grid grid-cols-3 gap-2">
                 {[0, 1, 2].map((i) => (
-                  <B key={i} h={50} r={10} />
+                  <B key={i} h={38} r={8} />
                 ))}
+                <B h={38} r={8} className="col-span-3" />
               </div>
-              <div className="mt-3 flex gap-2">
-                <B h={32} w={120} r={8} />
-                <B h={32} w={130} r={8} />
+              <div className="mt-3 flex gap-1.5">
+                <B h={28} w={112} r={6} />
+                <B h={28} w={120} r={6} />
               </div>
             </>,
+            <div className="space-y-2.5">
+              <B h={32} r={6} />
+              <div className="grid grid-cols-2 gap-2">
+                <B h={32} r={6} />
+                <B h={32} r={6} />
+              </div>
+              <B h={10} w="80%" />
+            </div>,
             <>
-              <B h={10} w={110} />
-              <B h={38} r={8} className="mt-2" />
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <B h={38} r={8} />
-                <B h={38} r={8} />
+              <B h={10} w="70%" />
+              <div className="mt-2 grid grid-cols-1 gap-1.5 @md:grid-cols-2">
+                <B h={58} r={8} />
+                <B h={58} r={8} />
               </div>
+              <B h={34} r={6} className="mt-3" />
             </>,
-            <B h={44} r={999} />,
           ].map((content, i) => (
-            <section key={i} className="px-5 py-5">
-              <div className="mb-4 flex items-center gap-2.5">
-                <B circle h={22} w={22} />
-                <B h={14} w={[150, 120, 100][i]} strong />
+            <section key={i} className={`min-w-0 px-4 py-4 ${i === 2 ? "@container" : ""}`}>
+              <div className="mb-2.5 flex items-center gap-2.5">
+                <B circle h={20} w={20} />
+                <B h={13} w={[140, 110, 90][i]} strong />
               </div>
               {content}
             </section>
@@ -431,7 +408,6 @@ function SateliteBody() {
   );
 }
 
-/** Validación SHAP: foto de portada, encabezado con 3 cifras, resumen, importancia/consistencia, imágenes, datos. */
 function ShapBody() {
   return (
     <div className={`mt-6 space-y-10 py-6 ${PAD}`}>
@@ -488,7 +464,6 @@ function ShapBody() {
   );
 }
 
-/** Ajustes: secciones (apariencia con 3 vistas previas, idioma/color, notificaciones con interruptores). */
 function AjustesBody() {
   const Section = ({ children }) => (
     <section className="mb-8 overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
@@ -542,7 +517,6 @@ function AjustesBody() {
   );
 }
 
-/** Perfil: identidad (avatar, nombre, correo, fecha, 3 cifras) y seguridad. */
 function PerfilBody() {
   return (
     <div className={`mt-8 max-w-4xl space-y-8 sm:mt-10 ${PAD}`}>
@@ -576,7 +550,6 @@ function PerfilBody() {
   );
 }
 
-/** Cebada y FIRA: portada, encabezado con 3 datos, calendario fenológico, tarjetas con texto e imágenes | info rápida. */
 function AcercaBody() {
   return (
     <div className={`mt-6 py-6 ${PAD}`}>
@@ -640,7 +613,6 @@ function AcercaBody() {
   );
 }
 
-/** Mapa satelital: mapa oscuro a pantalla completa con título, filtro de región y columna de tarjetas a la derecha. */
 function MapaSkeleton() {
   return (
     <div className="dark-skeleton relative h-full min-h-screen w-full bg-black">
@@ -664,8 +636,6 @@ function MapaSkeleton() {
   );
 }
 
-// ───────────────────────────── Tabla de pantallas ─────────────────────────────
-
 const PAGES = {
   dashboard: { Body: DashboardBody, bar: { title: 190, subtitle: 300, search: true } },
   parcelas: { Body: ParcelasBody, bar: { title: 110, subtitle: 190, actions: [96, 150], search: true } },
@@ -680,7 +650,6 @@ const PAGES = {
   acerca: { Body: AcercaBody, bar: { title: 150, subtitle: 240, search: true } },
 };
 
-/** Ruta -> clave de pantalla (null si no se reconoce). */
 export function pageKeyFromPath(pathname = "") {
   const p = pathname.replace(/\/+$/, "") || "/";
   if (p === "/") return "dashboard";
@@ -691,11 +660,10 @@ export function pageKeyFromPath(pathname = "") {
   return map[p] ?? null;
 }
 
-/** Solo el cuerpo de la pantalla (la barra superior real ya está pintada). */
 export function PageBodySkeleton({ page }) {
   if (page === "mapa") return <MapaSkeleton />;
   if (page === "modeloTab") {
-    // Contenido de una pestaña de Modelo: la barra superior y las pestañas reales ya están pintadas.
+    
     return (
       <div role="status" aria-busy="true" aria-label="Cargando" className="app-skeleton w-full">
         <ModeloBody tabs={false} />
@@ -711,7 +679,6 @@ export function PageBodySkeleton({ page }) {
   );
 }
 
-/** Barra superior fantasma + cuerpo: mientras baja el código de la pantalla. */
 export function RouteSkeleton({ page }) {
   if (page === "mapa") return <PageBodySkeleton page="mapa" />;
   const cfg = PAGES[page] ?? PAGES.dashboard;
@@ -724,7 +691,6 @@ export function RouteSkeleton({ page }) {
   );
 }
 
-/** Pantalla completa sin layout aún (verificando sesión): sidebar fantasma + la pantalla que se pidió. */
 export function FullScreenSkeleton({ page }) {
   return (
     <div className="app-skeleton flex h-screen w-full overflow-hidden bg-white supports-[height:100dvh]:h-dvh dark:bg-black">

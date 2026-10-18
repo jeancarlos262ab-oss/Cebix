@@ -1,15 +1,3 @@
-/**
- * LocationPickerMap — mapa pequeño para elegir un punto (lat/lng) con un clic.
- *
- * Se usa dentro del formulario de parcelas: el usuario toca el lugar exacto y
- * aparece el pin de ubicación (el mismo de los demás mapas). El pin también se
- * puede arrastrar. Si cambian `lat`/`lng` desde los campos de texto, el pin y
- * la vista se mueven con ellos.
- *
- * Estilo: sin controles ni etiqueta por defecto de Leaflet; botones de zoom propios
- * (mismo panel plano y oscuro que el resto de los mapas, ver geomap/mapUi.js) y una
- * pastilla con las coordenadas.
- */
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
@@ -18,7 +6,7 @@ import { PANEL } from "../geomap/mapUi";
 import { locationPinHtml, PIN_SIZE, PIN_TIP_OFFSET } from "./LocationPin";
 import "leaflet/dist/leaflet.css";
 
-const DEFAULT_CENTER = [19.9, -98.1]; // Hidalgo / Tlaxcala / Puebla
+const DEFAULT_CENTER = [19.9, -98.1]; 
 const DEFAULT_ZOOM = 8;
 const POINT_ZOOM = 15;
 const MIN_ZOOM = 4;
@@ -42,7 +30,6 @@ function ClickHandler({ onPick }) {
   return null;
 }
 
-/** Mantiene la vista centrada en el punto cuando cambia desde fuera (campos de texto). */
 function Recenter({ position }) {
   const map = useMap();
   const lat = position?.[0];
@@ -53,7 +40,7 @@ function Recenter({ position }) {
       map.setView([lat, lng], Math.max(map.getZoom(), POINT_ZOOM));
     }
   }, [lat, lng, map]);
-  // El mapa nace dentro de un modal con animación/scroll: se recalcula su tamaño.
+  
   useEffect(() => {
     const id = window.setTimeout(() => map.invalidateSize(), 150);
     return () => window.clearTimeout(id);
@@ -61,7 +48,6 @@ function Recenter({ position }) {
   return null;
 }
 
-/** Botones + / − propios. Los clics no llegan al mapa (si no, marcarían un punto). */
 function ZoomButtons() {
   const map = useMap();
   const ref = useRef(null);
@@ -93,9 +79,6 @@ function ZoomButtons() {
   );
 }
 
-/**
- * @param {{ lat: string|number, lng: string|number, onChange: (lat:number, lng:number) => void, height?: number|string, bare?: boolean }} props
- */
 export default function LocationPickerMap({ lat, lng, onChange, height = 260, bare = false }) {
   const latN = lat === "" || lat == null ? NaN : Number(lat);
   const lngN = lng === "" || lng == null ? NaN : Number(lng);
@@ -104,8 +87,8 @@ export default function LocationPickerMap({ lat, lng, onChange, height = 260, ba
 
   const initial = useMemo(
     () => ({ center: position ?? DEFAULT_CENTER, zoom: position ? POINT_ZOOM : DEFAULT_ZOOM }),
-    // Solo el estado inicial: después la vista la maneja el usuario.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
+    
     []
   );
 
@@ -147,7 +130,7 @@ export default function LocationPickerMap({ lat, lng, onChange, height = 260, ba
         )}
       </MapContainer>
 
-      {/* Pastilla de estado: coordenadas del pin o instrucción. No intercepta clics. */}
+      {}
       <div className={`pointer-events-none absolute bottom-2.5 left-2.5 z-1000 max-w-[calc(100%-1.25rem)] px-3 py-1.5 text-xs text-gray-200 ${PANEL}`}>
         {hasPoint ? (
           <>

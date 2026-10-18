@@ -14,19 +14,18 @@ import RequireAnalysis from "../components/ui/RequireAnalysis";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { useSidebar } from "../context/SidebarContext";
 
-// Solo satelital real y oscuro, sin importar el tema de la app.
 const BASEMAP_KEYS = ["satellite", "oscuro"];
 
 function MapaSatelitalPageContent() {
   const { parcels } = useParcels();
   const { toggle, collapsed } = useSidebar();
-  const mappable = useMemo(() => parcels.filter(hasCoords), [parcels]); // sin lat/lng no se dibuja (no se inventan ubicaciones)
+  const mappable = useMemo(() => parcels.filter(hasCoords), [parcels]); 
   const [region, setRegion] = useState("all");
   const [selectedId, setSelectedId] = useState(null);
 
-  // En escritorio el sidebar flota sobre el mapa (12px de margen + 232px + 12px de margen, o 80px contraído).
-  // El contenido queda a 32px del sidebar, igual que el padding lateral (lg:px-8) de las demás pantallas.
-  const pillsLeft = collapsed ? "lg:left-[368px]" : "lg:left-[520px]"; // tras el título (más chico)
+  
+  
+  const pillsLeft = collapsed ? "lg:left-[368px]" : "lg:left-[520px]"; 
   const contentLeft = collapsed ? "lg:left-[136px]" : "lg:left-[288px]";
 
   const regionOptions = useMemo(() => {
@@ -68,12 +67,12 @@ function MapaSatelitalPageContent() {
   const hidden = parcels.length - mappable.length;
 
   return (
-    // El mapa ocupa TODA la pantalla, también por detrás del sidebar, que flota
-    // encima (ver Sidebar floating), con un degradado oscuro detrás de él.
+    
+    
     <div className="map-flat flex h-full flex-col">
       <div className="relative isolate flex flex-1 flex-col">
-        {/* Degradado de la esquina (el mismo componente del layout): delante de los degradados negros (z-900) y
-            detrás del título, la barra de capas y los paneles (z-1000). El sidebar flota por encima de todo. */}
+        {
+}
         <CornerGlow className="z-950" />
 
         <div className="relative min-h-[420px] flex-1">
@@ -92,8 +91,8 @@ function MapaSatelitalPageContent() {
             />
           </div>
 
-          {/* Degradado a la izquierda, DETRÁS del sidebar: oscurece el borde del mapa y se
-              desvanece hacia la derecha. Solo escritorio; su ancho sigue al del sidebar. */}
+          {
+}
           <div
             aria-hidden="true"
             className={`pointer-events-none absolute inset-y-0 left-0 z-900 hidden w-[650px] origin-left transform-gpu transition-transform duration-200 ease-out lg:block ${
@@ -105,7 +104,7 @@ function MapaSatelitalPageContent() {
             }}
           />
 
-          {/* Degradado inferior a todo el ancho de la ventana. */}
+          {}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 bottom-0 z-900 h-[240px]"
@@ -115,7 +114,7 @@ function MapaSatelitalPageContent() {
             }}
           />
 
-          {/* Menú: solo móvil/tablet (en escritorio el sidebar siempre está visible). */}
+          {}
           <div className="pointer-events-none absolute left-3 top-3 z-1000 lg:hidden">
             <button
               type="button"
@@ -127,7 +126,7 @@ function MapaSatelitalPageContent() {
             </button>
           </div>
 
-          {/* Título sobre el mapa */}
+          {}
           <div className={`pointer-events-none absolute left-[66px] top-2 z-1000 lg:top-6 ${contentLeft}`}>
             <h1 className="font-garet text-xl font-extrabold tracking-[0.02em] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.7)]">
               Mapa satelital
@@ -139,8 +138,8 @@ function MapaSatelitalPageContent() {
           </div>
         </div>
 
-        {/* En celular estos bloques van uno tras otro bajo el mapa, sobre fondo negro. En
-            escritorio (lg:contents) cada uno flota sobre el mapa con su propia posición. */}
+        {
+}
         <div className="flex flex-col gap-3 bg-black px-4 py-4 lg:contents">
           <div className={`pointer-events-none lg:absolute lg:top-6 lg:z-1000 lg:flex lg:justify-center lg:right-[364px] ${pillsLeft}`}>
             <div className="pointer-events-auto max-w-full">
@@ -148,7 +147,7 @@ function MapaSatelitalPageContent() {
             </div>
           </div>
 
-          {/* Columna derecha: leyenda, detalle y panel de resumen. Si no caben, se desplaza y las flechas van mostrando el resto. */}
+          {}
           <ScrollColumn className="lg:absolute lg:bottom-[290px] lg:right-5 lg:top-3 lg:z-1000 lg:w-[352px]">
             <RiskLegend className="shrink-0" />
 
