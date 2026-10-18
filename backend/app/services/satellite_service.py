@@ -6,6 +6,10 @@ def provider() -> str:
 def extract(geometry: dict, year: int) -> dict:
     return stac.extract_features_stac(geometry, year)
 
+def extract_ciclo(geometry: dict, year: int) -> dict:
+    """Lluvia de las etapas posteriores a abril-mayo (modo 'ciclo')."""
+    return stac.extract_precip_ciclo(geometry, year)
+
 def status() -> dict:
     
     return stac.status()

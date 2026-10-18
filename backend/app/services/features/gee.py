@@ -249,8 +249,8 @@ def _s2_window_medians(ee, geom, year: int, window: str, bands: list[str]) -> di
     n_scenes = col.size()
     return ee.Dictionary({"medianas": ee.Dictionary(out), "n_escenas": n_scenes}).getInfo()
 
-def _precip(ee, geom, year: int) -> float | None:
-    start_md, end_md = PHENO_WINDOWS["emergencia_macollamiento"]
+def _precip(ee, geom, year: int, window: str = "emergencia_macollamiento") -> float | None:
+    start_md, end_md = PHENO_WINDOWS[window]
     total = ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY").filterDate(f"{year}-{start_md}", f"{year}-{end_md}").sum()
 
     def reduce_over(g):

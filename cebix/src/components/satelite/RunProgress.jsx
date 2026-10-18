@@ -6,6 +6,13 @@ import { getPredictionMode } from "../../services/predictionMode";
 import { SourceChip } from "./SourceChip";
 import ExtractionPreview from "./ExtractionPreview";
 
+function formatRemaining(sec) {
+  if (sec < 60) return `${Math.max(1, Math.ceil(sec))} s`;
+  const m = Math.floor(sec / 60);
+  const r = Math.ceil(sec % 60);
+  return r === 60 ? `${m + 1} min` : r ? `${m} min ${r} s` : `${m} min`;
+}
+
 const ROW = "grid grid-cols-[1.75rem_minmax(0,1fr)_auto] items-center gap-x-3 px-5 py-2.5 sm:grid-cols-[1.75rem_minmax(0,1fr)_auto_5.5rem] md:grid-cols-[1.75rem_minmax(0,1fr)_auto_7rem_5.5rem]";
 
 function Status({ state }) {
@@ -26,8 +33,9 @@ function Status({ state }) {
 
 export default function RunProgress({ predicting: responded = false, year, points = [] }) {
   
-  const [onlyRain] = useState(() => getPredictionMode() === "lluvia");
-  const features = onlyRain ? SAT_FEATURES.filter((f) => f.source === "chirps") : SAT_FEATURES;
+  const [mode] = useState(() => getPredictionMode());
+  const onlyRain = mode === "lluvia" || mode === "ciclo";
+  const features = SAT_FEATURES.filter((f) => (!f.modeOnly || f.modeOnly === mode) && (!onlyRain || f.source === "chirps"));
   const total = features.length;
   
   const [frozenPoints] = useState(points);
@@ -46,6 +54,14 @@ export default function RunProgress({ predicting: responded = false, year, point
   const current = responded ? total : step; 
   const predicting = current >= total;
   const pct = Math.min(100, Math.round((Math.min(current, total) / total) * 100));
+  
+  const estimatedTotalSec = (total * STEP_MS) / 1000;
+  const remainingSec = Math.max(0, estimatedTotalSec - elapsedSec);
+  const etaLabel = responded
+    ? "Cálculo completado"
+    : predicting || remainingSec <= 0
+      ? "Finalizando el cálculo…"
+      : `≈ ${formatRemaining(remainingSec)} restantes`;
   const stateOf = (i) => (i < current ? "done" : i === current ? "running" : "pending");
 
   return (
@@ -62,6 +78,12 @@ export default function RunProgress({ predicting: responded = false, year, point
         <div className="text-right">
           <p className="font-display text-lg font-semibold leading-none tabular-nums text-gray-900 dark:text-gray-100">{pct}%</p>
           <p className="mt-1 text-xs tabular-nums text-gray-500 dark:text-gray-400">{elapsedSec} s transcurridos</p>
+          <p
+            className="mt-0.5 text-xs font-medium tabular-nums text-accent-600 dark:text-accent-400"
+            title={`Tiempo total estimado: ≈ ${formatRemaining(estimatedTotalSec)}`}
+          >
+            {etaLabel}
+          </p>
         </div>
       </header>
 

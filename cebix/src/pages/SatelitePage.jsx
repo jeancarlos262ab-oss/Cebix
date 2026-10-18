@@ -162,8 +162,16 @@ function Metric({ label, wide = false, accent = false, children }) {
 function Facts() {
   const [mode] = usePredictionMode();
   const items = [
-    { label: "Fuentes", text: mode === "lluvia" ? "CHIRPS (datos abiertos), resumido dentro del polígono." : "Sentinel-2, Landsat y CHIRPS (datos abiertos), resumidos dentro del polígono." },
-    { label: "Cálculo", text: mode === "lluvia" ? "Solo la lluvia de CHIRPS dentro del polígono." : "10 variables por ventana fenológica. Tarda entre 30 y 90 s." },
+    { label: "Fuentes", text: mode === "lluvia" || mode === "ciclo" ? "CHIRPS (datos abiertos), resumido dentro del polígono." : "Sentinel-2, Landsat y CHIRPS (datos abiertos), resumidos dentro del polígono." },
+    {
+      label: "Cálculo",
+      text:
+        mode === "lluvia"
+          ? "Solo la lluvia de CHIRPS dentro del polígono."
+          : mode === "ciclo"
+          ? "La lluvia de CHIRPS de las tres etapas (abril a septiembre) dentro del polígono. Tarda más que solo lluvia."
+          : "10 variables por ventana fenológica. Tarda entre 30 y 90 s.",
+    },
     { label: "Resultado", text: "Rendimiento estimado, intervalo al 90 % y peso SHAP de cada variable." },
   ];
   return (
@@ -550,6 +558,7 @@ function NuevaParcelaTab() {
         ic90_superior: result.ic90_superior,
         advertencias: result.advertencias ?? [],
         avisos_dominio: result.avisos ?? [], 
+        modo: result.modo ?? null,
         proveedor: result.proveedor ?? null,
         calculado_en: new Date().toISOString(),
       },
@@ -612,8 +621,18 @@ function NuevaParcelaTab() {
   const s3 = phase === "done" && !stale ? "done" : canRun || running ? "active" : "pending";
 
   const [predMode] = usePredictionMode();
-  const READ = predMode === "lluvia" ? "Se lee la lluvia real de CHIRPS dentro del polígono." : "Se leen imágenes reales de 10 variables (30 a 90 s).";
-  const READ_SHORT = predMode === "lluvia" ? "Se lee la lluvia real de CHIRPS dentro del polígono." : "Se leen imágenes reales de 10 variables. Tarda entre 30 y 90 s.";
+  const READ =
+    predMode === "lluvia"
+      ? "Se lee la lluvia real de CHIRPS dentro del polígono."
+      : predMode === "ciclo"
+      ? "Se lee la lluvia real de CHIRPS de las tres etapas dentro del polígono."
+      : "Se leen imágenes reales de 10 variables (30 a 90 s).";
+  const READ_SHORT =
+    predMode === "lluvia"
+      ? "Se lee la lluvia real de CHIRPS dentro del polígono."
+      : predMode === "ciclo"
+      ? "Se lee la lluvia real de CHIRPS de las tres etapas dentro del polígono."
+      : "Se leen imágenes reales de 10 variables. Tarda entre 30 y 90 s.";
 
   const drawHint =
     points.length === 0

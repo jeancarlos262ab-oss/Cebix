@@ -216,6 +216,19 @@ Los datos sí: Sentinel-2 y Landsat son abiertos, y tanto Earth Search como CHIR
 **sin garantía de servicio**, así que puede ser lento o fallar a ratos. El hospedaje es aparte: el plan gratuito de Render duerme el servicio y tiene
 límites de memoria (no los medí con esta carga).
 
+## Modo "ciclo" (lluvia de las 3 etapas, abril–octubre)
+
+`modo=ciclo` en `/predict`, `/predict-csv` y `/predict-from-geometry`. Usa `models/model_artifact_ciclo.joblib`
+(Random Forest con `precip_acum_emergencia_macollamiento_mm`, `precip_acum_encanado_mm`, `precip_acum_espigado_llenado_mm`).
+RMSE 0.564 t/ha por bloques espaciales (solo lluvia: 0.535); estado nuevo 0.667. Se entrena con `ml/03_modelo/entrenar_ciclo.py`.
+
+- CSV oficial (Básico/PRO): las lluvias de las otras dos etapas salen de `data/parcelas_oficiales.csv`.
+- CSV propio: debe traer las tres columnas de lluvia; si falta alguna responde 422 (no se rellena).
+- Polígono dibujado: la lluvia de jun–jul y ago–sep se lee de CHIRPS día por día (`stac.extract_precip_ciclo`, con respaldo de
+  Earth Engine). **Esta lectura en vivo no se probó contra los servidores reales** (sin red al construirla); verifícala con un
+  polígono antes de usarla en una demo.
+- La lluvia total del ciclo en un solo número NO se usa: validada da RMSE 0.90 t/ha (peor que el promedio del estado).
+
 ## Limitación honesta (decirla en el reporte/demo si preguntan)
 
 `/predict` y `/predict-csv` ejecutan el modelo real sobre features YA CALCULADAS. Las parcelas nuevas dibujadas en el mapa

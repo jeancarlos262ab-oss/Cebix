@@ -81,7 +81,9 @@ function riskRgb(parcel) {
   return hex ? hexToRgb(hex) : MUTED;
 }
 
-export async function generateYieldReportPDF(parcel, { modelSummary = null } = {}) {
+import { MODE_CAVEAT, MODE_DESC, MODE_LABEL, modeModelNote, reportMode, stageRain } from "./reportMode";
+
+export async function generateYieldReportPDF(parcel, { modelSummary = null, modelModes = null } = {}) {
   if (!parcel) throw new Error("No hay parcela para generar el reporte.");
 
   const [{ jsPDF }, logo] = await Promise.all([import("jspdf"), logoToPng()]);
@@ -192,12 +194,24 @@ export async function generateYieldReportPDF(parcel, { modelSummary = null } = {
 
   const ic = Array.isArray(parcel.ic90) ? parcel.ic90.map(num) : [];
   const hasIc = ic.length === 2 && ic[0] !== null && ic[1] !== null;
+  const modo = reportMode(parcel);
   const rows = [
+    ...(modo ? [["Modo de cálculo", MODE_DESC[modo], MODE_LABEL[modo], ""]] : []),
     ["IC 90%", "Intervalo de confianza del rendimiento", hasIc ? `${ic[0].toFixed(2)} – ${ic[1].toFixed(2)}` : `± ${fix(parcel.confidence)}`, "ton/ha"],
-    ["NDVI", "Vigor del cultivo, pico del ciclo", fix(parcel.ndvi, 3), "índice"],
-    ["EVI", "Índice de vegetación mejorado", fix(parcel.evi, 3), "índice"],
-    ["Precipitación", "Lluvia acumulada del ciclo", fix(parcel.precip, 0), "mm"],
-    ["GDD", "Grados-día de crecimiento", fix(parcel.gdd, 0), "°C·día"],
+    ...(modo === "lluvia"
+      ? [["Precipitación", "Lluvia abril-mayo (variable del modelo)", fix(parcel.precip, 0), "mm"]]
+      : modo === "ciclo"
+      ? [
+          ["Lluvia abr-may", "Emergencia-macollamiento (CHIRPS)", fix(parcel.precip, 0), "mm"],
+          ["Lluvia jun-jul", "Encañado (CHIRPS)", fix(stageRain(parcel)?.enc, 0), "mm"],
+          ["Lluvia ago-sep", "Espigado-llenado (CHIRPS)", fix(stageRain(parcel)?.esp, 0), "mm"],
+        ]
+      : [
+          ["NDVI", "Vigor del cultivo, pico del ciclo", fix(parcel.ndvi, 3), "índice"],
+          ["EVI", "Índice de vegetación mejorado", fix(parcel.evi, 3), "índice"],
+          ["Precipitación", "Lluvia abril-mayo (CHIRPS)", fix(parcel.precip, 0), "mm"],
+          ["GDD", "Grados-día de crecimiento", fix(parcel.gdd, 0), "°C·día"],
+        ]),
   ];
   const RH = 19;
   rows.forEach(([a, b, c, d]) => {
@@ -240,7 +254,7 @@ export async function generateYieldReportPDF(parcel, { modelSummary = null } = {
   font("normal", 7, MUTED);
   doc.text(
     wrap(
-      "El score va de 0 a 100 y el semáforo se deriva del rendimiento esperado, su incertidumbre y el vigor del cultivo (NDVI).",
+      "El score (0 a 100) es la probabilidad estimada de superar 3.5 ton/ha, calculada con el rendimiento esperado y su incertidumbre (IC 90%). El semáforo se deriva de ese score.",
       300
     ),
     M + 10,
@@ -299,9 +313,7 @@ export async function generateYieldReportPDF(parcel, { modelSummary = null } = {
   fill(BAND);
   doc.rect(0, FOOTER_Y, PW, FOOTER_H, "F");
 
-  const modelNote = modelSummary
-    ? `El rendimiento se estimó con ${modelSummary.modelName} (${modelSummary.validation}; RMSE ${modelSummary.rmse} ton/ha).`
-    : "El rendimiento se estimó con el modelo predictivo de CEBIX.";
+  const modelNote = modeModelNote(modo, modelSummary, modelModes);
   const fy = FOOTER_Y + 24;
   font("bold", 8.5, INK);
   txt("Nota metodológica:", M, fy);
@@ -313,7 +325,7 @@ export async function generateYieldReportPDF(parcel, { modelSummary = null } = {
   font("normal", 7, INK);
   doc.text(
     wrap(
-      "Cada barra SHAP indica cuánto sumó (verde) o restó (rojo) esa variable al rendimiento estimado de esta parcela, en ton/ha respecto al promedio del modelo. Este documento es informativo: la estimación tiene un margen de error y debe contrastarse con la cosecha real.",
+      "Cada barra SHAP indica cuánto sumó (verde) o restó (rojo) esa variable al rendimiento estimado de esta parcela, en ton/ha respecto al promedio del modelo. Este documento es informativo: la estimación tiene un margen de error y debe contrastarse con la cosecha real." + (MODE_CAVEAT[modo] ?? ""),
       R - 234
     ),
     234,

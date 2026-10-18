@@ -5,13 +5,13 @@ from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 
 from app.schemas import PredictRequest
 from app.services import official_dataset as official
-from app.services.features.common import FEATURE_KEYS
-from app.services.model_service import _clean, row_context, run_inference, variant_from_modo
+from app.services.features.common import FEATURE_KEYS, PRECIP_ETAPAS_KEYS
+from app.services.model_service import _clean, modo_from_variant, row_context, run_inference, variant_from_modo
 
 router = APIRouter(tags=["predicción"])
 
 @router.post("/predict")
-def predict(payload: PredictRequest, modo: str = Query("lluvia", description="'lluvia' (por defecto) o '10var' (Plan B).")):
+def predict(payload: PredictRequest, modo: str = Query("lluvia", description="'lluvia' (por defecto), '10var' (Plan B) o 'ciclo' (lluvia de las 3 etapas abr–oct).")):
     if not payload.parcelas:
         raise HTTPException(status_code=400, detail="Manda al menos una parcela en 'parcelas'.")
 
@@ -37,7 +37,7 @@ async def predict_csv(
         "PREDICCION",
         description="Solo para el CSV Básico oficial: PREDICCION (las 59 parcelas a estimar), ENTRENAMIENTO o TODAS.",
     ),
-    modo: str = Query("lluvia", description="'lluvia' (solo la lluvia de abril–mayo, por defecto) o '10var' (Plan B: 10 variables)."),
+    modo: str = Query("lluvia", description="'lluvia' (solo la lluvia de abril–mayo, por defecto), '10var' (Plan B: 10 variables) o 'ciclo' (lluvia de las 3 etapas, abril–octubre)."),
 ):
     
     content = await file.read()
@@ -103,7 +103,7 @@ def _predict_official_basico(content: bytes, conjunto: str, variant: str = "abie
         r["modelo"] = "abierto"
 
     def context(i):
-        extra = {k: _clean(feats[k].iloc[i]) for k in [*FEATURE_KEYS, "ndvi_pico_ciclo"] if k in feats.columns}
+        extra = {k: _clean(feats[k].iloc[i]) for k in [*FEATURE_KEYS, *PRECIP_ETAPAS_KEYS, "ndvi_pico_ciclo"] if k in feats.columns}
         return {**row_context(feats, i), **extra}
 
     return {
@@ -111,7 +111,7 @@ def _predict_official_basico(content: bytes, conjunto: str, variant: str = "abie
         "fuente": "csv_basico_oficial",
         "conjunto": conjunto,
         "modelo": "abierto",
-        "modo": "10var" if variant == "10var" else "lluvia",
+        "modo": modo_from_variant(variant),
         "parcelas_sin_referencia": sin_referencia,
         "predicciones": [
             {"ID_POLIGONO": ids[i], "Estado": estados[i], **context(i), **results[i]} for i in range(len(ids))
@@ -157,7 +157,7 @@ def _predict_official_pro(content: bytes, conjunto: str, variant: str = "abierto
         r["modelo"] = "abierto"
 
     def context(i):
-        extra = {k: _clean(feats[k].iloc[i]) for k in [*official.PLANET_FEATURES, "ndvi_pico_ciclo"] if k in feats.columns}
+        extra = {k: _clean(feats[k].iloc[i]) for k in [*official.PLANET_FEATURES, *PRECIP_ETAPAS_KEYS, "ndvi_pico_ciclo"] if k in feats.columns}
         return {**row_context(feats, i), **extra}
 
     return {
@@ -165,7 +165,7 @@ def _predict_official_pro(content: bytes, conjunto: str, variant: str = "abierto
         "fuente": "csv_pro_planet",
         "conjunto": conjunto,
         "modelo": "abierto",
-        "modo": "10var" if variant == "10var" else "lluvia",
+        "modo": modo_from_variant(variant),
         "parcelas_sin_referencia": sin_referencia,
         "predicciones": [
             {"ID_POLIGONO": ids[i], "Estado": estados[i], **context(i), **results[i]} for i in range(len(ids))

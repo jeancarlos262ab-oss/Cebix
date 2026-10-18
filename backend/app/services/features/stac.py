@@ -317,7 +317,7 @@ def _pick_chirps_template(geom: dict, year: int, errors: list[str]) -> str | Non
         errors.append(f"Sin datos válidos en el píxel [{url}]")
     return None
 
-def _precip_gee_fallback(geom: dict, year: int, warnings: list[str], motivo: str) -> float | None:
+def _precip_gee_fallback(geom: dict, year: int, warnings: list[str], motivo: str, window: str = "emergencia_macollamiento") -> float | None:
     
     try:
         from . import gee
@@ -325,7 +325,7 @@ def _precip_gee_fallback(geom: dict, year: int, warnings: list[str], motivo: str
         if not gee.configured():
             return None
         ee = gee.ensure_initialized()
-        value = gee._with_retries(gee._precip, ee, ee.Geometry(geom), year)
+        value = gee._with_retries(gee._precip, ee, ee.Geometry(geom), year, window)
     except Exception as e:  
         logging.getLogger(__name__).warning("CHIRPS vía Earth Engine falló: %s", _short(e))
         return None
@@ -334,13 +334,21 @@ def _precip_gee_fallback(geom: dict, year: int, warnings: list[str], motivo: str
     warnings.append(f"CHIRPS: {motivo}; la lluvia se leyó del mismo producto CHIRPS a través de Google Earth Engine.")
     return round(float(value), 3)
 
-def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
-    start = date(year, 4, 1)
-    days = [start + timedelta(d) for d in range((date(year, 6, 1) - start).days)]  
+_WINDOW_ES = {
+    "emergencia_macollamiento": "abril-mayo",
+    "encanado": "junio-julio",
+    "espigado_llenado": "agosto-septiembre",
+}
+
+def _precip(geom: dict, year: int, warnings: list[str], window: str = "emergencia_macollamiento") -> float | None:
+    (m0, d0), (m1, d1) = (tuple(int(x) for x in md.split("-")) for md in PHENO_WINDOWS[window])
+    start = date(year, m0, d0)
+    days = [start + timedelta(d) for d in range((date(year, m1, d1) - start).days)]
+    label = _WINDOW_ES[window]
     log = logging.getLogger(__name__)
 
-    
-    local = _chirps_local_total(geom, year)
+    # La rejilla local precalculada solo cubre abril-mayo; las otras etapas se leen día por día.
+    local = _chirps_local_total(geom, year) if window == "emergencia_macollamiento" else None
     if local is not None:
         return local
 
@@ -363,11 +371,11 @@ def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
     tpl = _pick_chirps_template(geom, year, probe_errors)
     if tpl is None:
         log.warning("CHIRPS: ninguna fuente respondió. %s", " | ".join(probe_errors))
-        alt = _precip_gee_fallback(geom, year, warnings, "el servidor del CHC no respondió (bloqueo 403)")
+        alt = _precip_gee_fallback(geom, year, warnings, "el servidor del CHC no respondió (bloqueo 403)", window)
         if alt is not None:
             return alt
         warnings.append(
-            "CHIRPS: no se pudo leer la lluvia de abril-mayo ("
+            f"CHIRPS: no se pudo leer la lluvia de {label} ("
             + (probe_errors[0] if probe_errors else "sin detalle")
             + "); el modelo usó la mediana de entrenamiento para la lluvia."
         )
@@ -457,7 +465,7 @@ def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
         detail = errors[0] if errors else "el píxel no tenía datos válidos"
         log.warning("CHIRPS: faltaron %d de %d días. Primer error: %s", missing, len(days), detail)
         if len(values) == 0 or missing / len(days) > CHIRPS_MAX_MISSING:
-            alt = _precip_gee_fallback(geom, year, warnings, f"faltaron {missing} de {len(days)} días en el CHC")
+            alt = _precip_gee_fallback(geom, year, warnings, f"faltaron {missing} de {len(days)} días en el CHC", window)
             if alt is not None:
                 return alt
             warnings.append(
@@ -477,6 +485,19 @@ def _precip(geom: dict, year: int, warnings: list[str]) -> float | None:
             "así que el valor puede diferir un poco del dataset oficial."
         )
     return round(sum(values.values()), 3)
+
+PRECIP_CICLO_KEYS = {
+    "precip_acum_encanado_mm": "encanado",
+    "precip_acum_espigado_llenado_mm": "espigado_llenado",
+}
+
+def extract_precip_ciclo(geometry_geojson: dict, year: int = 2025) -> dict:
+    """Lluvia CHIRPS de encañado (jun-jul) y espigado-llenado (ago-sep): lo que el modo 'ciclo' suma a abril-mayo."""
+    geometry, _ = validate_geometry(geometry_geojson)
+    year = validate_year(year)
+    warnings: list[str] = []
+    features = {key: _precip(geometry, year, warnings, window) for key, window in PRECIP_CICLO_KEYS.items()}
+    return {"features": features, "advertencias": warnings}
 
 def _open_client():
     from pystac_client import Client

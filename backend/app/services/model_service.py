@@ -13,6 +13,7 @@ from app.config import (
     IC_INFLATION,
     META_PATH,
     MODEL_10VAR_PATH,
+    MODEL_CICLO_PATH,
     MODEL_PATH,
     MODEL_PLANET_PATH,
     PARCELAS_OFICIALES_PATH,
@@ -22,15 +23,19 @@ from app.config import (
 
 _cache: dict = {}  
 _meta_cache = None
-_PATHS = {"abierto": MODEL_PATH, "10var": MODEL_10VAR_PATH, "planet": MODEL_PLANET_PATH}
+_PATHS = {"abierto": MODEL_PATH, "10var": MODEL_10VAR_PATH, "ciclo": MODEL_CICLO_PATH, "planet": MODEL_PLANET_PATH}
 
-MODOS = {"lluvia": "abierto", "10var": "10var"}
+MODOS = {"lluvia": "abierto", "10var": "10var", "ciclo": "ciclo"}
+
+def modo_from_variant(variant: str) -> str:
+    """Nombre público del modo que devuelve la API (lo guarda el frontend con cada parcela)."""
+    return variant if variant in ("10var", "ciclo") else "lluvia"
 
 def variant_from_modo(modo: str | None) -> str:
     
     m = (modo or "lluvia").strip().lower()
     if m not in MODOS:
-        raise HTTPException(status_code=422, detail="modo debe ser 'lluvia' o '10var'.")
+        raise HTTPException(status_code=422, detail="modo debe ser 'lluvia', '10var' o 'ciclo'.")
     return MODOS[m]
 
 def get_artifact(variant: str = "abierto"):
@@ -64,6 +69,10 @@ def get_model_meta():
     return _meta_cache
 
 _PRECIP = "precip_acum_emergencia_macollamiento_mm"
+_PRECIP_EXTRA = {
+    "precip_acum_encanado_mm": "encañado (jun–jul)",
+    "precip_acum_espigado_llenado_mm": "espigado-llenado (ago–sep)",
+}
 _domain_cache: dict | None = None
 
 def get_domain() -> dict:
@@ -75,6 +84,11 @@ def get_domain() -> dict:
             tr = ref[ref["CONJUNTO"] == "ENTRENAMIENTO"]
             _domain_cache = {
                 "precip": (float(tr[_PRECIP].min()), float(tr[_PRECIP].max())),
+                "precip_extra": {
+                    c: (float(tr[c].min()), float(tr[c].max()))
+                    for c in _PRECIP_EXTRA
+                    if c in tr.columns
+                },
                 "lat": (float(tr["lat"].min()), float(tr["lat"].max())),
                 "lng": (float(tr["lng"].min()), float(tr["lng"].max())),
                 "estados": set(tr["Estado"].dropna().unique()),
@@ -100,6 +114,17 @@ def domain_warnings(row, estado) -> list[str]:
                 f"La lluvia de abril–mayo ({p:.0f} mm) queda fuera del rango visto al entrenar ({lo:.0f}–{hi:.0f} mm): "
                 "la estimación es una extrapolación."
             )
+    for col, etapa in _PRECIP_EXTRA.items():
+        v = row.get(col)
+        rng = d.get("precip_extra", {}).get(col)
+        if v is not None and rng is not None and np.isfinite(v):
+            lo, hi = rng
+            m = (hi - lo) * DOMAIN_PRECIP_MARGIN
+            if v < lo - m or v > hi + m:
+                out.append(
+                    f"La lluvia de {etapa} ({v:.0f} mm) queda fuera del rango visto al entrenar ({lo:.0f}–{hi:.0f} mm): "
+                    "la estimación es una extrapolación."
+                )
     lat, lng = row.get("lat"), row.get("lng")
     if lat is not None and lng is not None and np.isfinite(lat) and np.isfinite(lng):
         (la0, la1), (ln0, ln1) = d["lat"], d["lng"]
@@ -126,7 +151,7 @@ def run_inference(rows_df, estados, variant: str = "abierto"):
             muestra = ", ".join(ids[:5]) + (f" y {len(ids) - 5} más" if len(ids) > 5 else "")
             raise HTTPException(
                 status_code=422,
-                detail="Falta la lluvia de abril–mayo (precip_acum_emergencia_macollamiento_mm), la variable del modelo"
+                detail="Falta la lluvia que usa el modelo (" + ", ".join(required) + ")"
                 + (f", en: {muestra}." if ids else ".")
                 + " No se estima sin ella.",
             )
@@ -171,12 +196,12 @@ def run_inference(rows_df, estados, variant: str = "abierto"):
             for j in order
         ]
         faltantes = [artifact["feature_labels"].get(c, c) for c in feature_order if imputed_cols.iloc[i][c]]
-        row = {c: pd.to_numeric(rows_df.iloc[i].get(c), errors="coerce") for c in (_PRECIP, "lat", "lng") if c in rows_df.columns}
+        row = {c: pd.to_numeric(rows_df.iloc[i].get(c), errors="coerce") for c in (_PRECIP, *(_PRECIP_EXTRA if variant == "ciclo" else ()), "lat", "lng") if c in rows_df.columns}
         avisos = domain_warnings(row, estado)
         results.append({
             "fuera_de_rango": bool(avisos),
             "avisos": avisos,
-            "modo": "10var" if variant == "10var" else "lluvia",
+            "modo": modo_from_variant(variant),
             "variables_imputadas": faltantes,
             "yieldEstimate": round(float(point_pred[i]), 2),
             "ic90_inferior": round(lowers[i], 2),

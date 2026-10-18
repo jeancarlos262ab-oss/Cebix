@@ -118,7 +118,7 @@ function ParcelaDetallePageContent() {
           <section className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
             {[
               { label: "NDVI pico", value: parcel.ndvi.toFixed(2), hint: "Máximo del ciclo" },
-              { label: "Precipitación", value: `${formatNumber(parcel.precip)} mm`, hint: "Acumulada en el ciclo" },
+              { label: "Precipitación", value: `${formatNumber(parcel.precip)} mm`, hint: "Acumulada abril–mayo" },
               { label: "GDD acumulados", value: formatNumber(parcel.gdd), hint: "Grados-día del ciclo" },
             ].map((stat) => (
               <div
@@ -201,7 +201,7 @@ function ParcelaDetallePageContent() {
               type="button"
               onClick={async () => {
                 try {
-                  await generateYieldReportPDF(parcel, { modelSummary: info?.modelSummary });
+                  await generateYieldReportPDF(parcel, { modelSummary: info?.modelSummary, modelModes: info?.modelModes });
                   toast.success("Reporte PDF generado.");
                 } catch (err) {
                   console.error("Error al generar el PDF", err);

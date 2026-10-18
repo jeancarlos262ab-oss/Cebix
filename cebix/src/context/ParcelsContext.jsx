@@ -128,6 +128,7 @@ function fromDatabaseParcel(row) {
     isCustom: true,
     shap: row.shap ?? [],
     satelite: row.satelite ?? null, 
+    modo: row.satelite?.modo ?? null,
   };
 }
 
@@ -198,6 +199,7 @@ function buildParcelRecord(fields, existingParcels, importance = []) {
     
     shap: Array.isArray(fields.shap) ? fields.shap : approximateShap({ ndvi, evi, precip }, existingParcels, importance),
     satelite: fields.satelite ?? null,
+    modo: fields.modo ?? fields.satelite?.modo ?? null,
   };
 }
 
@@ -258,6 +260,8 @@ function buildAnalysisParcel(pred, row = {}, index = 0) {
     isCustom: false,
     fromModelRun: true,
     shap: pred.shap ?? [],
+    modo: pred.modo ?? null,
+    precipEtapas: pred.modo === "ciclo" ? { enc: firstNum(meta.precip_acum_encanado_mm), esp: firstNum(meta.precip_acum_espigado_llenado_mm) } : null,
     fueraDeRango: Boolean(pred.fuera_de_rango),
     avisos: Array.isArray(pred.avisos) ? pred.avisos : [],
   };

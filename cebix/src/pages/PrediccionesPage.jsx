@@ -62,7 +62,7 @@ function PrediccionesPageContent() {
     if (generating) return;
     setGenerating(true);
     try {
-      await generateYieldReportPDF(parcel, { modelSummary: info?.modelSummary });
+      await generateYieldReportPDF(parcel, { modelSummary: info?.modelSummary, modelModes: info?.modelModes });
       toast.success("Reporte PDF generado.");
     } catch (err) {
       console.error("Error al generar el PDF", err);

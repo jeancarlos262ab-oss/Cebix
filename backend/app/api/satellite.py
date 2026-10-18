@@ -24,9 +24,17 @@ def predict_from_geometry(payload: GeometryRequest):
     features = extracted["features"]
     df = pd.DataFrame([features]).astype(float)  
     variant = variant_from_modo(payload.modo)
+    advertencias = list(extracted["advertencias"])
+    if variant == "ciclo":
+        try:
+            extra = satellite_service.extract_ciclo(payload.geometry, payload.anio)
+        except SatelliteError as e:
+            raise HTTPException(status_code=e.status, detail=e.message) from None
+        features = {**features, **extra["features"]}
+        df = pd.DataFrame([features]).astype(float)
+        advertencias += extra["advertencias"]
     result = run_inference(df, [payload.Estado], variant)[0]
 
-    advertencias = list(extracted["advertencias"])
     if payload.anio != 2025:
         advertencias.append(f"El modelo se entrenó con el ciclo 2025; para {payload.anio} extrapola (clima distinto).")
     artifact, _ = get_artifact(variant)

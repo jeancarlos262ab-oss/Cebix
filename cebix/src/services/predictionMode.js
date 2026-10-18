@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { appStorage } from "./AppStorage";
 
-export const MODES = ["lluvia", "10var"];
+export const MODES = ["lluvia", "10var", "ciclo"];
 const KEY = "cebix-prediction-mode";
 const listeners = new Set();
 let current = (() => {

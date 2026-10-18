@@ -20,7 +20,7 @@ export default function FeaturesTable({ features }) {
           </tr>
         </thead>
         <tbody>
-          {SAT_FEATURES.map((f) => (
+          {SAT_FEATURES.filter((f) => !f.modeOnly || features?.[f.key] != null).map((f) => (
             <tr key={f.key} className="border-b border-gray-100 last:border-0 dark:border-gray-800/70">
               <td className="px-4 py-3">
                 <p className="text-gray-900 dark:text-gray-100">{f.label}</p>

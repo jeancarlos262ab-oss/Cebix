@@ -85,7 +85,7 @@ export default function RunModelPanel() {
       
       loadAnalysis(data.predicciones, csvText, runName.trim() || f.name);
       toast.success(
-        `Modelo (${data.modo === "10var" ? "10 variables" : "solo lluvia"}) ejecutado: ${data.predicciones.length} parcela${data.predicciones.length === 1 ? "" : "s"} procesada${data.predicciones.length === 1 ? "" : "s"}. Pulsa "Guardar corrida" para conservarla.`
+        `Modelo (${data.modo === "10var" ? "10 variables" : data.modo === "ciclo" ? "ciclo completo" : "solo lluvia"}) ejecutado: ${data.predicciones.length} parcela${data.predicciones.length === 1 ? "" : "s"} procesada${data.predicciones.length === 1 ? "" : "s"}. Pulsa "Guardar corrida" para conservarla.`
       );
     } catch (err) {
       toast.error(friendlyError(err));
@@ -259,9 +259,9 @@ export default function RunModelPanel() {
             <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
               Modelo usado:{" "}
               <strong className="text-gray-800 dark:text-gray-200">
-                {modeUsed === "10var" ? "10 variables" : "solo lluvia temprana (CHIRPS)"}
+                {modeUsed === "10var" ? "10 variables" : modeUsed === "ciclo" ? "ciclo completo, lluvia de 3 etapas (CHIRPS)" : "solo lluvia temprana (CHIRPS)"}
               </strong>
-              {modeUsed === "10var" && " · Error típico mayor que con solo lluvia; ver Modelo → Resumen."}
+              {(modeUsed === "10var" || modeUsed === "ciclo") && " · Error típico mayor que con solo lluvia; ver Modelo → Resumen."}
             </p>
           )}
           {results && <ReliabilityNotice results={results} />}

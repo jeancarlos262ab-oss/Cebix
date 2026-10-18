@@ -10,6 +10,7 @@ const fmt = (v, d = 2) => (typeof v === "number" ? formatNumber(v, { minimumFrac
 const BASE = {
   lluvia: { title: "Solo lluvia", tag: "Recomendado", short: "Lluvia de abril–mayo" },
   "10var": { title: "10 variables", tag: "Completo", short: "Lluvia + índices satelitales" },
+  ciclo: { title: "Ciclo completo", tag: "Abr–oct", short: "Lluvia de las 3 etapas" },
 };
 
 const INFO_BTN =
@@ -28,12 +29,13 @@ function InfoBody({ topic, modes, byRegion }) {
 
   const table = (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[420px] text-left text-xs">
+      <table className="w-full min-w-[480px] text-left text-xs">
         <thead>
           <tr className="text-gray-400 dark:text-gray-500">
             <th className="py-1 pr-3 font-medium" />
             <th className="py-1 pr-3 font-medium">Solo lluvia</th>
-            <th className="py-1 font-medium">10 variables</th>
+            <th className="py-1 pr-3 font-medium">10 variables</th>
+            <th className="py-1 font-medium">Ciclo completo</th>
           </tr>
         </thead>
         <tbody className="tabular-nums">
@@ -41,7 +43,8 @@ function InfoBody({ topic, modes, byRegion }) {
             <tr key={label}>
               <td className="py-1.5 pr-3 text-gray-500 dark:text-gray-400">{label}</td>
               <td className="py-1.5 pr-3 text-gray-900 dark:text-gray-100">{modes ? get(modes.lluvia) : "—"}</td>
-              <td className="py-1.5 text-gray-900 dark:text-gray-100">{modes ? get(modes["10var"]) : "—"}</td>
+              <td className="py-1.5 pr-3 text-gray-900 dark:text-gray-100">{modes ? get(modes["10var"]) : "—"}</td>
+              <td className="py-1.5 text-gray-900 dark:text-gray-100">{modes ? get(modes.ciclo) : "—"}</td>
             </tr>
           ))}
         </tbody>
@@ -66,6 +69,33 @@ function InfoBody({ topic, modes, byRegion }) {
           {item("Por qué abril–mayo", "el ciclo va de abril a octubre, pero solo la lluvia de abril–mayo distingue bien entre parcelas. Probamos acumularla por más meses y el error sube: abril–junio 0.60, abril–septiembre 0.80 y abril–octubre 0.84 t/ha, contra 0.53 con abril–mayo.")}
           {item("Qué necesita", "funciona con cualquier CSV (Básico, PRO o propio) y con parcelas dibujadas.")}
           {item("Explicación (SHAP)", "toda la explicación es la lluvia.")}
+        </ul>
+      </div>
+    );
+  }
+
+  if (topic === "ciclo") {
+    return (
+      <div className="space-y-4">
+        {table}
+        <ul className={list}>
+          {item(
+            "Qué usa",
+            "la lluvia CHIRPS de las tres etapas del ciclo abril–octubre por separado: emergencia-macollamiento (abr–may), encañado (jun–jul) y espigado-llenado (ago–sep). No usa índices satelitales.",
+          )}
+          {item(
+            "Por qué por separado",
+            "acumular toda la lluvia del ciclo en un solo número empeora mucho el resultado (error de 0.90 t/ha, peor que predecir el promedio del estado). Separada por etapas el modelo recupera casi la precisión de abril–mayo.",
+          )}
+          {item(
+            "Precisión",
+            "queda un poco por debajo de “Solo lluvia”: la lluvia de abril–mayo concentra casi todo el peso y las otras dos etapas aportan muy poco. Úsalo para contrastar o para parcelas donde importe el ciclo completo, no como sustituto.",
+          )}
+          {item(
+            "Qué necesita",
+            "el CSV Básico u oficial y las parcelas dibujadas. Un CSV propio debe traer las tres columnas de lluvia por etapa; si falta alguna, no se estima. Con parcelas dibujadas la lectura de CHIRPS tarda más (abril a septiembre).",
+          )}
+          {item("Explicación (SHAP)", "se reparte entre las tres etapas, con abril–mayo muy por encima de las otras.")}
         </ul>
       </div>
     );
@@ -137,9 +167,9 @@ function InfoBody({ topic, modes, byRegion }) {
         )}
         {item(
           "Qué necesita",
-          "“Solo lluvia” funciona con cualquier CSV (Básico, PRO o propio) y con parcelas dibujadas. “10 variables” además necesita los índices Sentinel-2/Landsat: no sirve con el CSV PRO (Planet no trae esos índices).",
+          "“Solo lluvia” funciona con cualquier CSV (Básico, PRO o propio) y con parcelas dibujadas. “10 variables” además necesita los índices Sentinel-2/Landsat: no sirve con el CSV PRO (Planet no trae esos índices). “Ciclo completo” necesita la lluvia de las tres etapas: sirve con los CSV oficiales y con parcelas dibujadas.",
         )}
-        {item("Por qué abril–mayo", "el ciclo va de abril a octubre, pero solo la lluvia de abril–mayo distingue bien entre parcelas. Probamos acumularla por más meses y el error sube: abril–junio 0.60, abril–septiembre 0.80 y abril–octubre 0.84 t/ha, contra 0.53 con abril–mayo.")}
+        {item("Por qué abril–mayo", "el ciclo va de abril a octubre, pero solo la lluvia de abril–mayo distingue bien entre parcelas. Probamos acumularla por más meses y el error sube: abril–junio 0.60, abril–septiembre 0.80 y abril–octubre 0.84 t/ha, contra 0.53 con abril–mayo. Por eso el modo “Ciclo completo” usa la lluvia de cada etapa por separado y no el total.")}
         {item(
           "Explicación (SHAP)",
           "con “solo lluvia” toda la explicación es la lluvia; con “10 variables” se reparte entre la lluvia y los índices.",
@@ -166,19 +196,20 @@ export default function ModeSelector({ disable10 = false, disable10Reason = "", 
     compare: "¿Qué cambia entre uno y otro?",
     lluvia: BASE.lluvia.title,
     "10var": BASE["10var"].title,
+    ciclo: BASE.ciclo.title,
   };
 
   return (
     <div className={`@container ${className}`}>
       <div className="flex items-center justify-between gap-2">
         <p className={`font-medium text-gray-900 dark:text-gray-100 ${stacked ? "text-xs" : "text-sm"}`}>¿Cómo quieres estimar el rendimiento?</p>
-        <button type="button" onClick={() => setTopic("compare")} aria-label="Comparar los dos modos" className={INFO_BTN}>
+        <button type="button" onClick={() => setTopic("compare")} aria-label="Comparar los modos" className={INFO_BTN}>
           <Info size={16} />
         </button>
       </div>
 
-      <div role="radiogroup" aria-label="Modo de predicción" className={`mt-2 grid grid-cols-1 ${stacked ? "gap-1.5 @md:grid-cols-2" : "gap-3 sm:grid-cols-2"}`}>
-        {["lluvia", "10var"].map((key) => {
+      <div role="radiogroup" aria-label="Modo de predicción" className={`mt-2 grid grid-cols-1 ${stacked ? "gap-1.5 @md:grid-cols-3" : "gap-3 sm:grid-cols-3"}`}>
+        {["lluvia", "10var", "ciclo"].map((key) => {
           const m = modes?.[key];
           const { title, tag, short } = BASE[key];
           const disabled = key === "10var" && disable10;

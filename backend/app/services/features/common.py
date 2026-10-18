@@ -28,6 +28,8 @@ FEATURE_KEYS = [
     *S2_FEATURES.keys(),
 ]
 
+PRECIP_ETAPAS_KEYS = ["precip_acum_encanado_mm", "precip_acum_espigado_llenado_mm"]  # lluvia extra del modo "ciclo"
+
 CLOUD_MAX = 40          
 FIRST_YEAR = 2018       
 MAX_VERTICES = 500

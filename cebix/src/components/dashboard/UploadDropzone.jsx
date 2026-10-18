@@ -33,6 +33,14 @@ function geometryResultToFields(poly, estado, data) {
     evi: finite(f.bas_evi_emergencia_macollamiento),
     precip: finite(f.precip_acum_emergencia_macollamiento_mm),
     gdd: 0,
+    modo: data.modo ?? null,
+    satelite: data.modo
+      ? {
+          version: 1,
+          modo: data.modo,
+          ...(data.modo === "ciclo" && { etapas: { enc: f.precip_acum_encanado_mm ?? null, esp: f.precip_acum_espigado_llenado_mm ?? null } }),
+        }
+      : null,
     yieldEstimate: data.yieldEstimate,
     confidence: Number.isFinite(half) ? half : undefined,
     
