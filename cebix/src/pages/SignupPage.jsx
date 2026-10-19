@@ -218,12 +218,12 @@ export default function SignupPage() {
         </form>
       ) : (
         <>
-          <div className="auth-notice mb-6">
-            <MailCheck size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
-            <span>
-              Te enviamos un código de 6 dígitos a <strong className="font-semibold">{form.email}</strong>. Escríbelo
-              para confirmar que ese correo es tuyo.
-            </span>
+          <div role="note" className="mb-6 flex items-start gap-2 text-xs leading-relaxed text-amber-700 dark:text-amber-400">
+            <MailCheck size={14} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <p>
+              <strong>Te enviamos un código de 6 dígitos</strong> a {form.email}. Escríbelo para confirmar que ese
+              correo es tuyo.
+            </p>
           </div>
 
           <form className="space-y-5" onSubmit={handleVerify}>
