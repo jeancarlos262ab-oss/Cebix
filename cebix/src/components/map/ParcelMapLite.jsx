@@ -16,6 +16,7 @@ import { boundaryLeafletStyle } from "./boundaryStyle";
 import RiskTrafficLight from "./RiskTrafficLight";
 import "leaflet/dist/leaflet.css";
 import { RISK_COLORS } from "../../utils/riskColors";
+import { formatFixed } from "../../utils/intl";
 
 const RISK_HEX = RISK_COLORS;
 
@@ -212,6 +213,7 @@ function ParcelMapLite({
   edgeFade = false,
   controlsOrientation = "vertical",
   zoomClassName = "",
+  isolated = true,
   basemapKeys,
 }) {
   const mapRef = useRef(null);
@@ -333,7 +335,7 @@ function ParcelMapLite({
     <div
       ref={containerRef}
       style={{ height: typeof height === "number" ? `${height}px` : height }}
-      className={`map-fs relative isolate w-full overflow-hidden bg-black ${rounded ? "rounded-2xl" : ""}`}
+      className={`map-fs relative ${isolated ? "isolate" : ""} w-full overflow-hidden bg-black ${rounded ? "rounded-2xl" : ""}`}
     >
       <MapContainer
         ref={mapRef}
@@ -418,7 +420,7 @@ function ParcelMapLite({
                       <div className="bg-black px-2.5 py-2">
                         <dt className="text-[11px] text-gray-400">Rendimiento</dt>
                         <dd className="mt-0.5 text-sm font-bold text-white">
-                          {parcel.yieldEstimate.toFixed(1)}
+                          {formatFixed(parcel.yieldEstimate, 1)}
                           <span className="ml-1 text-[11px] font-medium text-gray-400">ton/ha</span>
                         </dd>
                       </div>
@@ -429,7 +431,7 @@ function ParcelMapLite({
                             className="h-2 w-2 shrink-0 rounded-xs"
                             style={{ backgroundColor: ndviToColor(parcel.ndvi) }}
                           />
-                          {parcel.ndvi.toFixed(2)}
+                          {formatFixed(parcel.ndvi, 2)}
                         </dd>
                       </div>
                       <div className="col-span-2 bg-black px-2.5 py-2">

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
 import BigNumber from "./BigNumber";
 import { GLASS } from "./tokens";
+import { formatFixed } from "../../../utils/intl";
 
 const BINS = 14;
 
@@ -63,8 +64,8 @@ export default function YieldCard({ parcels, selected }) {
       </div>
 
       <div className="mt-1.5 flex justify-between text-[10px] tabular-nums text-white/35">
-        <span>{stats.min.toFixed(1)}</span>
-        <span>{stats.max.toFixed(1)} t/ha</span>
+        <span>{formatFixed(stats.min, 1)}</span>
+        <span>{formatFixed(stats.max, 1)} t/ha</span>
       </div>
     </div>
   );

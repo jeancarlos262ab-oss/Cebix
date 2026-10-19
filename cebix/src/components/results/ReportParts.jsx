@@ -1,3 +1,4 @@
+import { formatFixed } from "../../utils/intl";
 const MAX_YIELD = 6; 
 const DIRECTION_COLOR = { positivo: "var(--chart-positive)", negativo: "var(--chart-negative)", mixto: "var(--chart-mixed)" };
 const SIGN = { positivo: "+", negativo: "−", mixto: "±" };
@@ -17,7 +18,7 @@ export function RangeBar({ estimate, half }) {
     <div
       className="mt-7"
       role="img"
-      aria-label={`Estimación ${estimate.toFixed(1)} ton/ha, intervalo al 90 % de ${low.toFixed(1)} a ${high.toFixed(1)} ton/ha`}
+      aria-label={`Estimación ${formatFixed(estimate, 1)} ton/ha, intervalo al 90 % de ${formatFixed(low, 1)} a ${formatFixed(high, 1)} ton/ha`}
     >
       <div className="relative h-5">
         <div className="absolute inset-x-0 top-1/2 h-px bg-gray-300 dark:bg-gray-700" />
@@ -73,7 +74,7 @@ export function Contributions({ data }) {
               <span
                 className="relative h-4"
                 role="img"
-                aria-label={`${r.feature}: ${r.direction ?? "efecto"} de ${r.magnitude.toFixed(2)}`}
+                aria-label={`${r.feature}: ${r.direction ?? "efecto"} de ${formatFixed(r.magnitude, 2)}`}
               >
                 <span className="absolute inset-y-0 left-1/2 w-px bg-gray-300 dark:bg-gray-700" />
                 <span
@@ -87,7 +88,7 @@ export function Contributions({ data }) {
               </span>
               <span className="text-right text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">
                 {SIGN[r.direction] ?? ""}
-                {r.magnitude.toFixed(2)}
+                {formatFixed(r.magnitude, 2)}
               </span>
             </li>
           );
@@ -103,16 +104,16 @@ export function SummaryPanel({ yieldEstimate, half, low, high, score, rows = [] 
       <div className="p-6">
         <Label>Rendimiento esperado</Label>
         <p className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="font-display text-4xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">{yieldEstimate.toFixed(1)}</span>
+          <span className="font-display text-4xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">{formatFixed(yieldEstimate, 1)}</span>
           <span className="text-sm text-gray-500 dark:text-gray-400">ton/ha</span>
-          <span className="ml-1 text-sm tabular-nums text-gray-500 dark:text-gray-400">± {half.toFixed(1)}</span>
+          <span className="ml-1 text-sm tabular-nums text-gray-500 dark:text-gray-400">± {formatFixed(half, 1)}</span>
         </p>
         <RangeBar estimate={yieldEstimate} half={half} />
       </div>
 
       <dl className="divide-y divide-gray-100 border-t border-gray-200 dark:divide-gray-800/70 dark:border-gray-800 lg:border-l lg:border-t-0">
         <Row label="Intervalo al 90 %">
-          {low.toFixed(1)} – {high.toFixed(1)} ton/ha
+          {formatFixed(low, 1)} – {formatFixed(high, 1)} ton/ha
         </Row>
         <Row label="Índice de rendimiento">{score} / 100</Row>
         {rows.map((r) => (

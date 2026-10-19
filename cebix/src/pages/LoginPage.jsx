@@ -6,9 +6,10 @@ import AuthLayout from "../components/auth/AuthLayout";
 import AuthField, { PasswordToggle } from "../components/auth/AuthField";
 import AuthButton from "../components/auth/AuthButton";
 import { useAuth } from "../context/AuthContext";
+import { PASSWORD_HINT, PASSWORD_MIN_LENGTH, PASSWORD_RULE_MESSAGE, passwordProblem } from "../utils/passwordRules";
 
 function getAuthErrorMessage(error) {
-  if (!error) return "No pudimos iniciar sesión. Intenta de nuevo.";
+  if (!error) return "No se pudo iniciar sesión. Inténtalo de nuevo.";
 
   const message = error.message?.toLowerCase() ?? "";
   if (message.includes("email not confirmed")) {
@@ -21,11 +22,11 @@ function getAuthErrorMessage(error) {
     return "Demasiados intentos. Espera unos minutos y vuelve a intentarlo.";
   }
 
-  return "No pudimos iniciar sesión. Revisa tus datos e inténtalo de nuevo.";
+  return "No se pudo iniciar sesión. Revisa tus datos e inténtalo de nuevo.";
 }
 
 function getResetErrorMessage(error) {
-  if (!error) return "No pudimos actualizar la contraseña. Intenta de nuevo.";
+  if (!error) return "No se pudo actualizar la contraseña. Inténtalo de nuevo.";
 
   const code = error.message ?? "";
   if (code === "expired") {
@@ -35,13 +36,13 @@ function getResetErrorMessage(error) {
     return "El código no es correcto. Revisa tu correo e inténtalo de nuevo.";
   }
   if (code === "invalid_password") {
-    return "La contraseña debe tener al menos 6 caracteres.";
+    return PASSWORD_RULE_MESSAGE;
   }
   if (code === "network_error") {
-    return "No pudimos conectarnos. Revisa tu conexión e inténtalo de nuevo.";
+    return "No se pudo conectar. Revisa tu conexión e inténtalo de nuevo.";
   }
 
-  return "No pudimos actualizar la contraseña. Intenta de nuevo.";
+  return "No se pudo actualizar la contraseña. Inténtalo de nuevo.";
 }
 
 const HEADINGS = {
@@ -99,7 +100,7 @@ export default function LoginPage() {
     setSubmitting(false);
 
     if (resetError) {
-      toast.error("No pudimos enviar el código. Revisa el correo e inténtalo de nuevo.");
+      toast.error("No se pudo enviar el código. Revisa el correo e inténtalo de nuevo.");
       return;
     }
 
@@ -136,8 +137,9 @@ export default function LoginPage() {
   async function handleResetSubmit(event) {
     event.preventDefault();
 
-    if (newPassword.password.length < 6) {
-      toast.error("La contraseña debe tener al menos 6 caracteres.");
+    const passwordError = passwordProblem(newPassword.password);
+    if (passwordError) {
+      toast.error(passwordError);
       return;
     }
     if (newPassword.password !== newPassword.confirmPassword) {
@@ -219,7 +221,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <AuthButton loading={submitting} loadingLabel="Iniciando sesión...">
+          <AuthButton loading={submitting} loadingLabel="Iniciando sesión…">
             Iniciar sesión
           </AuthButton>
 
@@ -248,7 +250,7 @@ export default function LoginPage() {
               }}
             />
 
-            <AuthButton loading={submitting} loadingLabel="Enviando código..." arrow={false}>
+            <AuthButton loading={submitting} loadingLabel="Enviando código…" arrow={false}>
               Enviar código
             </AuthButton>
           </form>
@@ -284,7 +286,7 @@ export default function LoginPage() {
               autoFocus
             />
 
-            <AuthButton loading={submitting} loadingLabel="Verificando..." disabled={resetCode.length < 6}>
+            <AuthButton loading={submitting} loadingLabel="Verificando…" disabled={resetCode.length < 6}>
               Continuar
             </AuthButton>
           </form>
@@ -292,7 +294,7 @@ export default function LoginPage() {
           <p className="auth-muted mt-6 flex flex-wrap items-center justify-center gap-x-1.5 text-center text-sm">
             <span>¿No llegó el código?</span>
             <button type="button" onClick={handleResendCode} disabled={resending} className="auth-link disabled:opacity-60">
-              {resending ? "Enviando..." : resent ? "Reenviado ✓" : "Reenviar código"}
+              {resending ? "Enviando…" : resent ? "Reenviado ✓" : "Reenviar código"}
             </button>
           </p>
           <p className="mt-3 text-center text-sm">
@@ -319,10 +321,10 @@ export default function LoginPage() {
               label="Contraseña nueva"
               icon={Lock}
               required
-              minLength={6}
+              minLength={PASSWORD_MIN_LENGTH}
               type={showNewPassword ? "text" : "password"}
               autoComplete="new-password"
-              placeholder="Mínimo 6 caracteres"
+              placeholder={PASSWORD_HINT}
               value={newPassword.password}
               onChange={(e) => {
                 setNewPassword((current) => ({ ...current, password: e.target.value }));
@@ -335,7 +337,7 @@ export default function LoginPage() {
               label="Confirmar contraseña"
               icon={Lock}
               required
-              minLength={6}
+              minLength={PASSWORD_MIN_LENGTH}
               type={showNewPassword ? "text" : "password"}
               autoComplete="new-password"
               placeholder="Escríbela de nuevo"
@@ -350,7 +352,7 @@ export default function LoginPage() {
               }
             />
 
-            <AuthButton loading={submitting} loadingLabel="Guardando...">
+            <AuthButton loading={submitting} loadingLabel="Guardando…">
               Cambiar contraseña
             </AuthButton>
           </form>

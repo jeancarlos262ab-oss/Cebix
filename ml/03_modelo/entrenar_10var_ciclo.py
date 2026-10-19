@@ -1,23 +1,3 @@
-"""
-Modo "10 variables + ciclo completo": las 4ª combinación de los modos de predicción.
-
-                      | lluvia abr-may (1 etapa) | lluvia de las 3 etapas (ciclo)
-  Solo lluvia         | "lluvia"                 | "ciclo"
-  10 variables        | "10var"                  | "10var_ciclo"   <-- este script
-
-Usa las mismas 9 variables satelitales del modo "10var" (LAI, NDVI, NDTI, STI, NDWI, EVI y nº de observaciones) y cambia
-la lluvia de abril-mayo por la lluvia CHIRPS de las TRES etapas (abr-may, jun-jul, ago-sep): 9 + 3 = 12 columnas.
-
-Se valida igual que los demás modos (bloques espaciales 12x5x6 + estado nuevo) y se exporta
-backend/models/model_artifact_10var_ciclo.joblib con el mismo formato. Agrega `modelModes["10var_ciclo"]` a
-model_meta.json SIN tocar el resto de los metadatos (no reentrena ni modifica los otros 3 modos).
-
-Nota: las 9 variables satelitales se eligieron con los datos completos (igual que en "10var"), por lo que la cifra de
-validación con variables fijas es algo optimista. Se imprime también la de "10var" con variables fijas para compararlas
-en igualdad de condiciones.
-
-Uso:  python entrenar_10var_ciclo.py --features ../02_datos_procesados/features_completo.csv --models-dir ../../backend/models
-"""
 import argparse
 import json
 import os
@@ -45,7 +25,6 @@ LABELS = {
 }
 fmt = ev.fmt
 
-
 def main(args):
     full = pd.read_csv(args.features)
     train = full[full["CONJUNTO"] == "ENTRENAMIENTO"].reset_index(drop=True)
@@ -53,8 +32,8 @@ def main(args):
     est = train["Estado"].values
     blocks = [ev.block_splits(train, r) for r in range(ev.N_REPS)]
     states = [ev.state_splits(train)]
-    # Validación HONESTA (igual que "10var"): la lluvia de las 3 etapas entra siempre y las otras 9 variables se eligen
-    # por importancia usando solo la partición de entrenamiento. Es la cifra que se reporta.
+    
+    
     all_feats = [c for c in full.columns if c not in ev.NON_FEATURE]
     live_feats = [c for c in all_feats if not any(p in c for p in ev.NOT_LIVE)]
     pool = [c for c in live_feats if c not in RAIN_ETAPAS]
@@ -67,7 +46,7 @@ def main(args):
         a, b = ev.prep(tr, te, cols)
         return ev.rf().fit(a, tr[ev.TARGET].values).predict(b)
 
-    fixed = ev.fixed_fold(FEATURES, ev.rf)   # mismo RF (prof. 4) que el modo "10var"
+    fixed = ev.fixed_fold(FEATURES, ev.rf)   
     P = ev.oof_predictions(train, blocks, infold_fold)
     m = ev.metrics(y, P)
     m_state = ev.metrics(y, ev.oof_predictions(train, states, infold_fold))
@@ -113,7 +92,6 @@ def main(args):
     with open(meta_path, "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
     print("OK", meta["modelModes"]["10var_ciclo"]["rmse"], importance)
-
 
 if __name__ == "__main__":
     here = os.path.dirname(os.path.abspath(__file__))

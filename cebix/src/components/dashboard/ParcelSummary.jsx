@@ -1,15 +1,15 @@
 import { parcelWarnings } from "../../utils/reliability";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import ParcelEmblem from "./ParcelEmblem";
 import MiniBarChart from "./MiniBarChart";
 import FeatureImportanceChart from "../charts/FeatureImportanceChart";
 import { LinesSkeleton } from "../ui/PageSkeleton";
 import { useModelInfo } from "../../context/ModelInfoContext";
 import { useParcels } from "../../context/ParcelsContext";
-import { downloadCSV } from "../../utils/csv";
 import { yieldByRegion, yieldRange } from "../../utils/parcelStats";
+import { formatFixed } from "../../utils/intl";
 
 const TABS = ["Predicción", "Variables", "Nivel", "Rango"];
 
@@ -115,19 +115,6 @@ function ScrollableTabs({ tabs, active, onChange }) {
   );
 }
 
-function exportRegionYield(rows) {
-  downloadCSV(
-    "cebix-rendimiento-por-estado.csv",
-    [
-      { key: "label", label: "Estado" },
-      { key: "count", label: "Parcelas" },
-      { key: "mean", label: "Rendimiento estimado promedio (ton/ha)" },
-      { key: "max", label: "Rendimiento estimado máximo (ton/ha)" },
-    ],
-    rows
-  );
-}
-
 export default function ParcelSummary() {
   const { parcels } = useParcels();
   const { info } = useModelInfo();
@@ -140,7 +127,7 @@ export default function ParcelSummary() {
     if (activeTab === "Variables") {
       return importance.slice(0, 3).map((f) => ({
         label: f.feature,
-        value: `${f.direction === "negativo" ? "-" : "+"}${f.value.toFixed(3)}`,
+        value: `${f.direction === "negativo" ? "-" : "+"}${formatFixed(f.value, 3)}`,
       }));
     }
 
@@ -159,9 +146,9 @@ export default function ParcelSummary() {
       const range = yieldRange(parcels);
       if (!range) return [];
       return [
-        { label: "Rendimiento mínimo estimado", value: `${range.min.toFixed(2)} ton/ha` },
-        { label: "Rendimiento máximo estimado", value: `${range.max.toFixed(2)} ton/ha` },
-        { label: "Rango (máx − mín)", value: `${range.spread.toFixed(2)} ton/ha` },
+        { label: "Rendimiento mínimo estimado", value: `${formatFixed(range.min, 1)} ton/ha` },
+        { label: "Rendimiento máximo estimado", value: `${formatFixed(range.max, 1)} ton/ha` },
+        { label: "Rango (máx − mín)", value: `${formatFixed(range.spread, 1)} ton/ha` },
       ];
     }
 
@@ -170,9 +157,9 @@ export default function ParcelSummary() {
     const avgScore = parcels.reduce((s, p) => s + p.score, 0) / parcels.length;
     const outside = parcels.filter((p) => parcelWarnings(p, info?.dominio).length > 0).length;
     return [
-      { label: "Rendimiento estimado (promedio)", value: `${avgYield.toFixed(1)} ton/ha` },
+      { label: "Rendimiento estimado (promedio)", value: `${formatFixed(avgYield, 1)} ton/ha` },
       ...(outside > 0 ? [{ label: "Parcelas fuera de rango", value: `${outside} de ${parcels.length} (menos confiables)` }] : []),
-      { label: "Margen de error (RMSE espacial)", value: rmse == null ? "—" : `± ${rmse.toFixed(2)} ton/ha` },
+      { label: "Margen de error (RMSE espacial)", value: rmse == null ? "—" : `± ${formatFixed(rmse, 1)} ton/ha` },
       { label: "Índice de rendimiento (promedio)", value: `${Math.round(avgScore)} / 100` },
     ];
   }, [activeTab, parcels, importance, rmse, info]);
@@ -219,15 +206,6 @@ export default function ParcelSummary() {
           <h3 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">
             Rendimiento estimado por estado
           </h3>
-          <button
-            type="button"
-            onClick={() => exportRegionYield(regionRows)}
-            aria-label="Descargar CSV de esta serie"
-            title="Descargar CSV de esta serie"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-          >
-            <Download size={14} strokeWidth={1.75} />
-          </button>
         </div>
         <div className="mt-4">
           <MiniBarChart data={regionRows} />

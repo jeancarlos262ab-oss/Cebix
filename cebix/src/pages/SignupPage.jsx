@@ -6,29 +6,30 @@ import AuthLayout from "../components/auth/AuthLayout";
 import AuthField, { PasswordToggle } from "../components/auth/AuthField";
 import AuthButton from "../components/auth/AuthButton";
 import { useAuth } from "../context/AuthContext";
+import { PASSWORD_HINT, PASSWORD_MIN_LENGTH, PASSWORD_RULE_MESSAGE, passwordProblem } from "../utils/passwordRules";
 
 function getSignUpErrorMessage(error) {
-  if (!error) return "No pudimos crear la cuenta. Intenta de nuevo.";
+  if (!error) return "No se pudo crear la cuenta. Inténtalo de nuevo.";
 
   const code = error.message ?? "";
   if (code === "already_registered") {
     return "Ya existe una cuenta con ese correo. Intenta iniciar sesión.";
   }
   if (code === "invalid_password") {
-    return "La contraseña debe tener al menos 6 caracteres.";
+    return PASSWORD_RULE_MESSAGE;
   }
   if (code === "invalid_email") {
     return "Escribe un correo electrónico válido.";
   }
   if (code === "network_error") {
-    return "No pudimos conectarnos. Revisa tu conexión e inténtalo de nuevo.";
+    return "No se pudo conectar. Revisa tu conexión e inténtalo de nuevo.";
   }
 
-  return "No pudimos crear la cuenta. Revisa tus datos e inténtalo de nuevo.";
+  return "No se pudo crear la cuenta. Revisa tus datos e inténtalo de nuevo.";
 }
 
 function getVerifyErrorMessage(error) {
-  if (!error) return "No pudimos verificar el código. Intenta de nuevo.";
+  if (!error) return "No se pudo verificar el código. Inténtalo de nuevo.";
 
   const code = error.message ?? "";
   if (code === "expired") {
@@ -38,12 +39,12 @@ function getVerifyErrorMessage(error) {
     return "El código no es correcto. Revisa tu correo e inténtalo de nuevo.";
   }
   if (code === "network_error") {
-    return "No pudimos conectarnos. Revisa tu conexión e inténtalo de nuevo.";
+    return "No se pudo conectar. Revisa tu conexión e inténtalo de nuevo.";
   }
   
   
   
-  return "No pudimos verificar el código. Inténtalo de nuevo.";
+  return "No se pudo verificar el código. Inténtalo de nuevo.";
 }
 
 export default function SignupPage() {
@@ -75,6 +76,11 @@ export default function SignupPage() {
   async function handleSubmit(event) {
     event.preventDefault();
 
+    const passwordError = passwordProblem(form.password);
+    if (passwordError) {
+      toast.error(passwordError);
+      return;
+    }
     if (form.password !== form.confirmPassword) {
       toast.error("Las contraseñas no coinciden.");
       return;
@@ -118,7 +124,7 @@ export default function SignupPage() {
     setResending(false);
 
     if (resendError) {
-      toast.error("No pudimos reenviar el código. Espera unos segundos e inténtalo de nuevo.");
+      toast.error("No se pudo reenviar el código. Espera unos segundos e inténtalo de nuevo.");
       return;
     }
     setResent(true);
@@ -166,11 +172,11 @@ export default function SignupPage() {
             label="Contraseña"
             icon={Lock}
             required
-            minLength={6}
+            minLength={PASSWORD_MIN_LENGTH}
             type={showPassword ? "text" : "password"}
             name="password"
             autoComplete="new-password"
-            placeholder="Mínimo 6 caracteres"
+            placeholder={PASSWORD_HINT}
             value={form.password}
             onChange={handleChange}
             rightElement={<PasswordToggle shown={showPassword} onToggle={() => setShowPassword((v) => !v)} />}
@@ -180,7 +186,7 @@ export default function SignupPage() {
             label="Confirmar contraseña"
             icon={Lock}
             required
-            minLength={6}
+            minLength={PASSWORD_MIN_LENGTH}
             type={showConfirmPassword ? "text" : "password"}
             name="confirmPassword"
             autoComplete="new-password"
@@ -198,7 +204,7 @@ export default function SignupPage() {
           />
 
           <div className="pt-2">
-            <AuthButton loading={submitting} loadingLabel="Creando cuenta...">
+            <AuthButton loading={submitting} loadingLabel="Creando cuenta…">
               Crear cuenta
             </AuthButton>
           </div>
@@ -236,7 +242,7 @@ export default function SignupPage() {
               className="auth-code"
             />
 
-            <AuthButton loading={submitting} loadingLabel="Verificando..." disabled={code.length < 6}>
+            <AuthButton loading={submitting} loadingLabel="Verificando…" disabled={code.length < 6}>
               Verificar y entrar
             </AuthButton>
           </form>
@@ -244,7 +250,7 @@ export default function SignupPage() {
           <p className="auth-muted mt-6 flex flex-wrap items-center justify-center gap-x-1.5 text-center text-sm">
             <span>¿No llegó el código?</span>
             <button type="button" onClick={handleResend} disabled={resending} className="auth-link disabled:opacity-60">
-              {resending ? "Enviando..." : resent ? "Reenviado ✓" : "Reenviar código"}
+              {resending ? "Enviando…" : resent ? "Reenviado ✓" : "Reenviar código"}
             </button>
           </p>
           <p className="mt-3 text-center text-sm">

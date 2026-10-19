@@ -1,4 +1,5 @@
 import { GLASS } from "./tokens";
+import { formatFixed } from "../../../utils/intl";
 
 export default function RegionBars({ regions, total, value, onChange }) {
   if (regions.length === 0) return null;
@@ -20,7 +21,7 @@ export default function RegionBars({ regions, total, value, onChange }) {
                 <span className="flex items-baseline justify-between gap-3 text-xs">
                   <span className={active ? "font-medium text-white" : "text-white/80"}>{r.label}</span>
                   <span className="tabular-nums text-white/55">
-                    <span className="font-medium text-white">{r.count}</span> · {share.toFixed(0)}%
+                    <span className="font-medium text-white">{r.count}</span> · {formatFixed(share, 0)}%
                   </span>
                 </span>
                 <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-white/10" aria-hidden="true">

@@ -1,5 +1,6 @@
 import { useEffect, useId } from "react";
 import { X } from "lucide-react";
+import { BTN_OUTLINE_SM } from "./buttonStyles";
 
 const SIZES = { sm: "max-w-3xl", md: "max-w-4xl", lg: "max-w-5xl" };
 
@@ -100,8 +101,7 @@ export const MODAL_BTN_CANCEL = `${BTN} border border-gray-300 bg-white text-gra
 export const MODAL_BTN_PRIMARY = `${BTN} bg-accent-500 text-accent-contrast hover:bg-accent-600`;
 export const MODAL_BTN_DANGER = `${BTN} bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500`;
 
-export const MODAL_BTN_SMALL =
-  "inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900";
+export const MODAL_BTN_SMALL = BTN_OUTLINE_SM;
 
 export function modalInput(error) {
   return [

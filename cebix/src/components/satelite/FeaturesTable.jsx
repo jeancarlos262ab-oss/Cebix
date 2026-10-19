@@ -7,8 +7,6 @@ const fmt = (value, digits) =>
     ? "—"
     : formatNumber(value, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
-// `modo` define qué variables se calcularon (solo lluvia: 1; ciclo completo: 3; 10 variables: 10).
-// Sin modo (registros antiguos) se muestran las que traen valor.
 export default function FeaturesTable({ features, modo = null }) {
   const rows = featuresForMode(modo) ?? SAT_FEATURES.filter((f) => features?.[f.key] != null);
   return (

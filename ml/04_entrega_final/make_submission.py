@@ -1,31 +1,3 @@
-"""
-Genera el CSV de entrega final para el Reto AgroCebada 2026.
-
-FIRA pide, además de subir todo a la plataforma del reto, enviar por correo a
-innovacion@fira.gob.mx un archivo nombrado exactamente:
-
-    nombre_del_equipo_prediccion.csv      (ej. agrozed_prediccion.csv)
-
-con la predicción de rendimiento de las 59 parcelas del conjunto de PREDICCION, en el formato de la plantilla
-del reto (ID_area_rendimiento_70_30_Reto_AgroCebada.csv), 4 columnas:
-
-    ID_POLIGONO, AREA_HA, RENDIMIENTO_T_HA, CONJUNTO
-
-Uso (con el mejor modelo: "Solo lluvia", Random Forest, RMSE 0.53 t/ha; sus predicciones salen de entrenar_y_validar.py):
-    python make_submission.py --team agrozed --out-dir ./entrega
-
-`--predictions` (opcional, por defecto 03_modelo/resultados_FINAL/predicciones_finales.csv) debe ser un CSV con, al menos:
-    ID_POLIGONO, rendimiento_t_ha
-`--reference` (opcional) es la plantilla oficial ID_area_rendimiento_*.csv; si no se da, se usa backend/data/parcelas_oficiales.csv,
-que trae el mismo ID, área y conjunto de cada parcela.
-
-El script:
-  1. Verifica que estén las 59 parcelas de PREDICCION, ni una de más ni de menos.
-  2. Verifica que no haya rendimientos nulos, negativos o absurdamente altos (>15 t/ha
-     sería un error de escala casi seguro para cebada de temporal).
-  3. Escribe el archivo final con el nombre exacto que pide la convocatoria.
-"""
-
 import argparse
 import os
 import sys
@@ -33,16 +5,14 @@ import sys
 import pandas as pd
 
 EXPECTED_N_PREDICT = 59
-YIELD_SANITY_MAX = 15.0  # t/ha — por encima de esto casi seguro es un error de unidades
-
+YIELD_SANITY_MAX = 15.0  
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_PREDICTIONS = os.path.join(HERE, "..", "03_modelo", "resultados_FINAL", "predicciones_finales.csv")
 DEFAULT_REFERENCE = os.path.join(HERE, "..", "..", "backend", "data", "parcelas_oficiales.csv")
 
-
 def load_reference(path):
-    """Devuelve ID_POLIGONO, AREA_HA y CONJUNTO de las parcelas de PREDICCION (de la plantilla oficial o de parcelas_oficiales.csv)."""
+    
     ref = pd.read_csv(path, encoding="utf-8-sig")
     ref.columns = [c.strip() for c in ref.columns]
     ref = ref.loc[:, [c for c in ref.columns if not c.lower().startswith("unnamed")]]
@@ -52,7 +22,6 @@ def load_reference(path):
             sys.exit(f"ERROR: la referencia {path} no trae la columna '{col}'.")
     ref["ID_POLIGONO"] = ref["ID_POLIGONO"].astype(str).str.strip()
     return ref[ref["CONJUNTO"].astype(str).str.upper() == "PREDICCION"][["ID_POLIGONO", "AREA_HA", "CONJUNTO"]]
-
 
 def main(predictions_path, features_predict_path, team_name, out_dir, reference_path=DEFAULT_REFERENCE):
     os.makedirs(out_dir, exist_ok=True)
@@ -76,7 +45,7 @@ def main(predictions_path, features_predict_path, team_name, out_dir, reference_
     preds["ID_POLIGONO"] = preds["ID_POLIGONO"].str.strip()
     got_ids = set(preds["ID_POLIGONO"])
 
-    # --- validaciones ---
+    
     problems = []
 
     if expected_ids is not None:
@@ -115,7 +84,7 @@ def main(predictions_path, features_predict_path, team_name, out_dir, reference_
         print("\nNo se generó el archivo de entrega hasta corregir lo anterior.")
         sys.exit(1)
 
-    # --- archivo final ---
+    
     ref = load_reference(reference_path)
     if len(ref) != EXPECTED_N_PREDICT:
         sys.exit(f"ERROR: la referencia trae {len(ref)} parcelas de PREDICCION y se esperaban {EXPECTED_N_PREDICT}.")
@@ -131,7 +100,6 @@ def main(predictions_path, features_predict_path, team_name, out_dir, reference_
 
     print(f"OK — {len(out)} parcelas, sin problemas detectados.")
     print(f"Archivo listo para enviar a innovacion@fira.gob.mx:\n  {out_path}")
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

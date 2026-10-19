@@ -137,12 +137,8 @@ export const SAT_FEATURES = [
   },
 ];
 
-// Variables que realmente usa cada modo: "lluvia" y "ciclo" solo leen CHIRPS (lluvia);
-// "10var" usa la lluvia de abril-mayo + los 9 índices Sentinel-2/Landsat. Sin modo (registros
-// antiguos) devuelve null y quien llama decide qué mostrar.
-// "10var_ciclo" = los 9 índices Sentinel-2/Landsat + la lluvia de las 3 etapas del ciclo.
 export const isRainMode = (modo) => modo === "lluvia" || modo === "ciclo";
-// Modos que usan la lluvia de las 3 etapas (abril–septiembre) en vez de solo abril–mayo.
+
 export const isCicloMode = (modo) => modo === "ciclo" || modo === "10var_ciclo";
 export function featuresForMode(modo) {
   if (modo !== "lluvia" && modo !== "10var" && modo !== "ciclo" && modo !== "10var_ciclo") return null;
@@ -190,7 +186,7 @@ export const SAT_QUESTIONS = [
   {
     question: "¿Los números son idénticos a los del dataset oficial?",
     answer:
-      "No necesariamente. Pueden diferir un poco por la versión del procesamiento de las imágenes y por cómo se ponderan los píxeles de borde. Por eso existe la pestaña 'Validación del cálculo', que compara contra el dataset oficial parcela por parcela.",
+      "No necesariamente. Pueden diferir un poco por la versión del procesamiento de las imágenes y por cómo se ponderan los píxeles de borde.",
   },
   {
     question: "¿Qué pasa si elijo otro año?",

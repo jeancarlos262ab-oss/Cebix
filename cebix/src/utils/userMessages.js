@@ -9,7 +9,7 @@ export function realError(err) {
   return parts.join(" | ");
 }
 
-export const MSG_CONNECTION = "No pudimos conectarnos. Revisa tu conexión a internet e inténtalo de nuevo.";
+export const MSG_CONNECTION = "No se pudo conectar. Revisa tu conexión a internet e inténtalo de nuevo.";
 export const MSG_SERVICE = "El servicio no está disponible por el momento. Inténtalo de nuevo en unos minutos.";
 export const MSG_GENERIC = "Algo salió mal. Inténtalo de nuevo.";
 

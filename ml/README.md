@@ -12,7 +12,6 @@ ml/03_modelo/entrenar_y_validar.py          ÚNICO script de modelo: valida, ent
 ml/03_modelo/resultados_FINAL/              CSV/JSON de la última corrida (comparación, búsqueda, variables extra, predicciones)
 ml/04_entrega_final/make_submission.py      CSV que se manda a FIRA (valida las 59 parcelas)
 ml/build_example_csv.py                     genera backend/data/ejemplo_features_predict.csv
-ml/historico/                               scripts y resultados de rondas anteriores (NO usar, ver "Qué cambió")
 backend/                                    API FastAPI que ejecuta los modelos en vivo
 ```
 
@@ -122,7 +121,11 @@ python ml/build_example_csv.py --shapefile /ruta/Parcelas_Reto_AGC_CONJUNTO.shp 
 | Modo | Artefacto | Variables | RMSE (bloques espaciales) | R² |
 |---|---|---|---|---|
 | `lluvia` (por defecto) | `model_artifact.joblib` | lluvia abril–mayo | 0.535 | 0.60 |
-| `10var` (Plan B) | `model_artifact_10var.joblib` | lluvia + 9 índices Sentinel-2/Landsat | 0.620 | 0.47 |
+| `10var` (Plan B) | `model_artifact_10var.joblib` | lluvia + 8 índices Sentinel-2 + nº de observaciones válidas | 0.620 | 0.47 |
+| `ciclo` | `model_artifact_ciclo.joblib` | lluvia de las 3 etapas (abr–oct) | 0.564 | 0.55 |
+| `10var_ciclo` | `model_artifact_10var_ciclo.joblib` | las 10 variables con la lluvia de las 3 etapas (12 variables) | 0.610 | 0.48 |
+
+`ciclo` y `10var_ciclo` se generan con `03_modelo/entrenar_ciclo.py` y `03_modelo/entrenar_10var_ciclo.py` (corren después de `entrenar_y_validar.py` y agregan su entrada a `model_meta.json`).
 
 - El intervalo del 90 % y el RMSE por estado de cada modo salen de su propia validación fuera de muestra. En el Plan B se usa la validación con selección de variables dentro de cada partición (la cifra honesta), no la de variables fijas (0.523, optimista).
 - El Plan B exige la lluvia; si faltan índices satelitales los rellena con la mediana de entrenamiento y la respuesta lista `variables_imputadas`.

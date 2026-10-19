@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Download, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import UploadDropzone from "./UploadDropzone";
 import ParcelRow from "./ParcelRow";
 import ParcelFormModal from "./ParcelFormModal";
@@ -8,7 +8,7 @@ import FullscreenLink from "../ui/FullscreenLink";
 import usePagination from "../../hooks/usePagination";
 import { useParcels } from "../../context/ParcelsContext";
 import useParcelActions from "../../hooks/useParcelActions";
-import { exportParcelsCSV } from "../../utils/csv";
+import ExportButton from "../ui/ExportButton";
 
 const COLUMNS = ["Parcela", "Rendimiento", "Nivel", "NDVI", "Municipio", ""];
 
@@ -24,14 +24,7 @@ export default function ParcelsTable() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">Parcelas evaluadas</h2>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => exportParcelsCSV(parcels)}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-700 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
-          >
-            <Download size={15} strokeWidth={1.75} className="text-gray-400" />
-            Exportar reporte
-          </button>
+          <ExportButton parcels={parcels} />
           <button
             type="button"
             onClick={() => setModal("add")}

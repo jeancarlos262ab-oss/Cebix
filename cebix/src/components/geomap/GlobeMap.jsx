@@ -515,6 +515,15 @@ export default function GlobeMap({ entry, active = true, onEnter, isFullscreen, 
         onPointerCancel={onPointerUp}
       />
 
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-5 h-[38%]"
+        style={{
+          background:
+            "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.7) 22%, rgba(0,0,0,0.45) 48%, rgba(0,0,0,0.18) 78%, rgba(0,0,0,0) 100%)",
+        }}
+      />
+
       <div className="pointer-events-none absolute left-3 top-3 z-10">
         <div className={`pointer-events-auto flex items-center gap-0.5 p-1 ${PANEL}`}>
           <button type="button" onClick={() => enter(STUDY_BOUNDS)} disabled={busy} className={PRIMARY}>

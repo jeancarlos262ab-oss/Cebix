@@ -347,7 +347,7 @@ def _precip(geom: dict, year: int, warnings: list[str], window: str = "emergenci
     label = _WINDOW_ES[window]
     log = logging.getLogger(__name__)
 
-    # La rejilla local precalculada solo cubre abril-mayo; las otras etapas se leen día por día.
+    
     local = _chirps_local_total(geom, year) if window == "emergencia_macollamiento" else None
     if local is not None:
         return local
@@ -492,7 +492,7 @@ PRECIP_CICLO_KEYS = {
 }
 
 def extract_precip_ciclo(geometry_geojson: dict, year: int = 2025) -> dict:
-    """Lluvia CHIRPS de encañado (jun-jul) y espigado-llenado (ago-sep): lo que el modo 'ciclo' suma a abril-mayo."""
+    
     geometry, _ = validate_geometry(geometry_geojson)
     year = validate_year(year)
     warnings: list[str] = []

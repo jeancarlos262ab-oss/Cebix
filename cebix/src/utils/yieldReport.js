@@ -223,7 +223,7 @@ export async function generateYieldReportPDF(parcel, { modelSummary = null, mode
           ["GDD", "Grados-día de crecimiento", fix(parcel.gdd, 0), "°C·día"],
         ]),
   ];
-  // Con las 10 variables la tabla es más larga: filas más compactas para que el SHAP quepa.
+  
   const RH = rows.length > 8 ? 15 : 19;
   rows.forEach(([a, b, c, d]) => {
     font("normal", 8, INK);

@@ -7,9 +7,9 @@ import Semaphore from "../ui/Semaphore";
 import { Contributions, Label, SummaryPanel } from "../results/ReportParts";
 import { formatHa } from "../../utils/polygon";
 import { MODE_DESC, MODE_LABEL, MODE_NOTICE } from "../../utils/reportMode";
+import { BTN_OUTLINE_SM } from "../ui/buttonStyles";
 
-const BTN =
-  "inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800";
+const BTN = BTN_OUTLINE_SM;
 
 const BTN_PRIMARY =
   "inline-flex items-center gap-1.5 rounded-lg bg-accent-500 px-3 py-1.5 text-xs font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black";
@@ -43,7 +43,7 @@ export default function ParcelResult({ result, view, ran, stale, save, downloade
               </button>
               {save?.replaces && (
                 <button type="button" onClick={save?.onSaveNew} disabled={stale || save?.saving} className={BTN}>
-                  Guardar como nueva
+                  Guardar como parcela nueva
                 </button>
               )}
             </>

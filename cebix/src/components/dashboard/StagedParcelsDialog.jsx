@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Loader2, Save } from "lucide-react";
 import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_PRIMARY, MODAL_BTN_DANGER } from "../ui/Modal";
+import { formatFixed } from "../../utils/intl";
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
@@ -66,7 +67,7 @@ export default function StagedParcelsDialog({ staged, saving, onRename, onCommit
                 className="min-w-0 rounded-md bg-transparent px-2 py-1.5 text-sm text-gray-900 hover:bg-gray-100 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-accent-500 disabled:opacity-60 dark:text-gray-100 dark:hover:bg-gray-900 dark:focus:bg-black"
               />
               <span className="text-right text-sm tabular-nums text-gray-700 dark:text-gray-200 sm:order-last">
-                {Number.isFinite(yieldValue) ? `${yieldValue.toFixed(2)} t/ha` : "—"}
+                {Number.isFinite(yieldValue) ? `${formatFixed(yieldValue, 1)} t/ha` : "—"}
               </span>
               <span className="hidden text-sm text-gray-600 dark:text-gray-400 sm:block">{f.region || "—"}</span>
               <span className="hidden text-right text-sm tabular-nums text-gray-600 dark:text-gray-400 sm:block">{f.area || "—"}</span>

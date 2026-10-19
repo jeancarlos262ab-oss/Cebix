@@ -3,8 +3,9 @@ import { ArrowUpRight, ExternalLink, X } from "lucide-react";
 import BigNumber from "./BigNumber";
 import RangeBadge, { useParcelWarnings } from "../../ui/RangeBadge";
 import { GLASS, RISK_META, riskColorOf } from "./tokens";
+import { formatFixed } from "../../../utils/intl";
 
-const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "—");
+const fmt = (v, d = 2) => (Number.isFinite(v) ? formatFixed(v, d) : "—");
 
 function Stat({ label, value }) {
   return (
@@ -111,7 +112,7 @@ export default function SelectedParcelCard({ parcel, scale, onClose, className =
                     <span className="truncate text-white/80">{f.name}</span>
                     <span className={`shrink-0 tabular-nums ${f.impact >= 0 ? "text-white" : "text-white/55"}`}>
                       {f.impact >= 0 ? "+" : "−"}
-                      {Math.abs(f.impact).toFixed(2)}
+                      {formatFixed(Math.abs(f.impact), 2)}
                     </span>
                   </div>
                   <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
@@ -130,9 +131,9 @@ export default function SelectedParcelCard({ parcel, scale, onClose, className =
       <div className="mt-4 flex shrink-0 gap-2">
         <Link
           to={`/parcelas/${parcel.id}`}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-xs font-semibold text-black transition-colors hover:bg-white/85"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-white px-4 py-2.5 text-xs font-semibold text-black transition-colors hover:bg-white/85"
         >
-          Ver detalle
+          Ver parcela
           <ArrowUpRight size={14} />
         </Link>
         {hasCoords && (
@@ -140,7 +141,7 @@ export default function SelectedParcelCard({ parcel, scale, onClose, className =
             href={`https://www.google.com/maps?q=${parcel.lat},${parcel.lng}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/[0.08] px-4 py-2.5 text-xs font-medium text-white transition-colors hover:bg-white/15"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-white/[0.08] px-4 py-2.5 text-xs font-medium text-white transition-colors hover:bg-white/15"
           >
             Google Maps
             <ExternalLink size={13} className="text-white/55" />

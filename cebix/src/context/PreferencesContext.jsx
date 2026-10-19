@@ -9,13 +9,13 @@ import {
   formatTime,
   setIntlPrefs,
 } from "../utils/intl";
-import { TRANSLATIONS } from "../utils/translations";
 
 const STORAGE_KEY = "cebix-region";
 
 function load() {
   const saved = appStorage.getJSON(STORAGE_KEY, null);
-  return { ...DEFAULT_REGION, ...(saved ?? {}) };
+  const { idioma: _legacy, ...rest } = saved ?? {};
+  return { ...DEFAULT_REGION, ...rest };
 }
 
 const PreferencesContext = createContext(null);
@@ -28,18 +28,15 @@ export function PreferencesProvider({ children }) {
 
   useEffect(() => {
     appStorage.setJSON(STORAGE_KEY, region);
-    document.documentElement.lang = region.idioma.split("-")[0];
+    document.documentElement.lang = "es";
   }, [region]);
 
   const value = useMemo(() => {
-    const dictionary = TRANSLATIONS[region.idioma];
     return {
       ...region,
-      setIdioma: (idioma) => setRegion((r) => ({ ...r, idioma })),
       setFormatoFecha: (formatoFecha) => setRegion((r) => ({ ...r, formatoFecha })),
       setZonaHoraria: (zonaHoraria) => setRegion((r) => ({ ...r, zonaHoraria })),
       resetRegion: () => setRegion({ ...DEFAULT_REGION }),
-      t: (text) => dictionary?.[text] ?? text,
       formatDate,
       formatTime,
       formatDateTime,
@@ -48,7 +45,7 @@ export function PreferencesProvider({ children }) {
     };
   }, [region]);
 
-  const key = `${region.idioma}|${region.formatoFecha}|${region.zonaHoraria}`;
+  const key = `${region.formatoFecha}|${region.zonaHoraria}`;
   return (
     <PreferencesContext.Provider value={value}>
       <Fragment key={key}>{children}</Fragment>

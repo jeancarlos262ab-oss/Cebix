@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Pencil, ChevronRight } from "lucide-react";
 import CategoryTag from "../ui/CategoryTag";
 import RangeBadge from "../ui/RangeBadge";
+import { formatFixed } from "../../utils/intl";
 
 const NDVI_MIN = 0.4;
 const NDVI_MAX = 0.85;
@@ -44,10 +45,10 @@ function ParcelRow({ parcel, onEdit }) {
         <div>
           <div>
             <p className="font-display text-sm font-semibold tabular-nums text-gray-800 dark:text-gray-200">
-              {parcel.yieldEstimate.toFixed(1)} <span className="text-xs font-medium text-gray-500 dark:text-gray-400">ton/ha</span>
+              {formatFixed(parcel.yieldEstimate, 1)} <span className="text-xs font-medium text-gray-500 dark:text-gray-400">ton/ha</span>
             </p>
             {typeof parcel.confidence === "number" && (
-              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">± {parcel.confidence.toFixed(2)}</p>
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">± {formatFixed(parcel.confidence, 1)}</p>
             )}
             <RangeBadge parcel={parcel} className="mt-1" />
           </div>
@@ -68,7 +69,7 @@ function ParcelRow({ parcel, onEdit }) {
       </td>
 
       <td className="py-4 pr-4">
-        <span className="text-sm font-medium tabular-nums text-gray-800 dark:text-gray-200">{parcel.ndvi.toFixed(2)}</span>
+        <span className="text-sm font-medium tabular-nums text-gray-800 dark:text-gray-200">{formatFixed(parcel.ndvi, 2)}</span>
         <div className="mt-1.5 h-1 w-16 overflow-hidden bg-gray-100 dark:bg-gray-800">
           <div className="h-full bg-gray-500 dark:bg-gray-400" style={{ width: `${ndviPct}%` }} />
         </div>

@@ -1,12 +1,3 @@
--- Ejecutar UNA sola vez en Supabase: Dashboard -> SQL Editor -> New query -> Run.
---
--- Fotos de perfil: bucket público "avatars" donde cada persona solo puede escribir,
--- reemplazar y borrar dentro de su propia carpeta (<user_id>/...). Cualquiera puede VER
--- las fotos (la URL pública se guarda en profiles.avatar_url y se muestra a todo el equipo).
--- Por cada foto se guardan DOS archivos: la original tal cual (para verla en grande, sin perder
--- calidad) y una miniatura 256x256 (para la barra lateral, ligera). Límite 10 MB y solo imágenes;
--- lo hace cumplir el servidor aunque alguien salte la interfaz.
-
 alter table public.profiles add column if not exists avatar_full_url text;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -38,5 +29,4 @@ create policy "avatars: borrar propia"
   on storage.objects for delete to authenticated
   using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
 
--- Refresca la caché de esquema de la API para que reconozca la columna nueva.
 notify pgrst, 'reload schema';

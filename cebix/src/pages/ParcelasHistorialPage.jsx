@@ -1,6 +1,6 @@
 import { memo, useCallback, useDeferredValue, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Check, ChevronRight, Minus, Pencil, Search, Trash2, X } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Check, ChevronRight, Minus, Pencil, Search, Trash2, X } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import Pagination from "../components/ui/Pagination";
@@ -10,6 +10,8 @@ import usePagination from "../hooks/usePagination";
 import useParcelActions from "../hooks/useParcelActions";
 import { useParcels } from "../context/ParcelsContext";
 import { RISK_COLORS } from "../utils/riskColors";
+import BackToParcelas from "../components/ui/BackToParcelas";
+import { formatFixed } from "../utils/intl";
 
 const REGION_FILTERS = ["Todas", "Hidalgo", "Tlaxcala", "Puebla"];
 
@@ -82,7 +84,7 @@ const HistoryRow = memo(function HistoryRow({ parcel, selected, onToggle, onEdit
             )}
             {}
             <span className="text-gray-300 dark:text-gray-700 lg:hidden">·</span>
-            <span className="lg:hidden">{parcel.yieldEstimate.toFixed(1)} ton/ha</span>
+            <span className="lg:hidden">{formatFixed(parcel.yieldEstimate, 1)} ton/ha</span>
             <span className="text-gray-300 dark:text-gray-700 lg:hidden">·</span>
             <span className="lg:hidden">
               <RiskLabel label={parcel.risk} color={parcel.riskColor} />
@@ -92,7 +94,7 @@ const HistoryRow = memo(function HistoryRow({ parcel, selected, onToggle, onEdit
       </div>
 
       <p className="hidden text-sm tabular-nums text-gray-900 dark:text-gray-100 lg:block">
-        {parcel.yieldEstimate.toFixed(1)}{" "}
+        {formatFixed(parcel.yieldEstimate, 1)}{" "}
         <span className="text-xs text-gray-500 dark:text-gray-400">ton/ha</span>
       </p>
 
@@ -101,7 +103,7 @@ const HistoryRow = memo(function HistoryRow({ parcel, selected, onToggle, onEdit
         <span className="text-xs tabular-nums text-gray-500 dark:text-gray-400">{parcel.score}</span>
       </div>
 
-      <span className="hidden text-sm tabular-nums text-gray-900 dark:text-gray-100 lg:block">{parcel.ndvi.toFixed(2)}</span>
+      <span className="hidden text-sm tabular-nums text-gray-900 dark:text-gray-100 lg:block">{formatFixed(parcel.ndvi, 2)}</span>
 
       <div className="hidden min-w-0 lg:block">
         <p className="truncate text-sm text-gray-900 dark:text-gray-100">{parcel.municipio}</p>
@@ -238,9 +240,7 @@ function ParcelasHistorialContent() {
         <TopBar title="Todas las parcelas" hideSearch />
         <div className="mx-auto flex max-w-xl flex-col items-center px-4 py-20 text-center sm:px-6">
           <p className="text-sm text-gray-500 dark:text-gray-400">Ya no queda ninguna parcela en tu cuenta.</p>
-          <Link to="/parcelas" className="mt-3 text-sm font-medium text-accent-600 hover:underline dark:text-accent-400">
-            Volver a Parcelas
-          </Link>
+          <BackToParcelas className="mt-3" />
         </div>
       </>
     );
@@ -270,13 +270,7 @@ function ParcelasHistorialContent() {
         subtitle={`${filtered.length} de ${parcels.length} parcela${parcels.length === 1 ? "" : "s"}`}
         hideSearch
         actions={
-          <Link
-            to="/parcelas"
-            className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-xs transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
-          >
-            <ArrowLeft size={15} className="text-gray-500 dark:text-gray-400" />
-            Volver a Parcelas
-          </Link>
+          <BackToParcelas />
         }
       />
 
@@ -366,7 +360,7 @@ function ParcelasHistorialContent() {
               <button
                 type="button"
                 onClick={clearSelection}
-                className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:text-gray-300 dark:hover:bg-gray-900"
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:text-gray-300 dark:hover:bg-gray-900"
               >
                 <X size={15} className="text-gray-400 dark:text-gray-500" />
                 Cancelar
@@ -376,7 +370,7 @@ function ParcelasHistorialContent() {
               type="button"
               disabled={count === 0}
               onClick={() => setConfirm({ parcels: selectedParcels })}
-              className="flex items-center gap-1.5 rounded-full bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-xs transition-colors hover:bg-red-700 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-red-600 dark:focus-visible:ring-offset-black"
+              className="flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-xs transition-colors hover:bg-red-700 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-red-600 dark:focus-visible:ring-offset-black"
             >
               <Trash2 size={15} />
               {count > 0 ? `Eliminar (${count})` : "Eliminar"}

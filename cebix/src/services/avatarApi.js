@@ -86,7 +86,7 @@ export async function deleteAvatar(userId) {
 
 export function avatarErrorMessage(err) {
   const msg = String(err?.message ?? err ?? "");
-  if (/bucket not found/i.test(msg)) return "No pudimos guardar tu foto por el momento. Inténtalo más tarde.";
+  if (/bucket not found/i.test(msg)) return "No se pudo guardar tu foto por el momento. Inténtalo más tarde.";
   if (/row-level security|not authorized|unauthorized|403/i.test(msg)) return "No tienes permiso para guardar la foto. Vuelve a iniciar sesión.";
   if (/too large|payload|413|size/i.test(msg)) return "La imagen es demasiado grande.";
   console.error("[avatar]", err);

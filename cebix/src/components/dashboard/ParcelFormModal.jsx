@@ -1,6 +1,6 @@
 import { userMessage } from "../../utils/userMessages";
 import { useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import LocationPickerMap from "../map/LocationPickerMap";
 import { detectEstado } from "../../utils/polygon";
 import { reverseLocation } from "../../utils/reverseGeocode";
@@ -288,9 +288,10 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
       </div>
 
       {submitError && (
-        <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">
-          {submitError}
-        </p>
+        <div role="alert" className="mt-4 flex items-start gap-2 text-xs text-red-600 dark:text-red-400">
+          <AlertCircle size={14} strokeWidth={1.75} className="mt-0.5 shrink-0" />
+          <p>{submitError}</p>
+        </div>
       )}
     </Modal>
   );

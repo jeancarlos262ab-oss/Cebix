@@ -88,6 +88,8 @@ function MapaSatelitalPageContent() {
               basemapKeys={BASEMAP_KEYS}
               controlsLeftClassName={`left-3 ${contentLeft}`}
               controlsTopClassName="top-[62px] lg:top-[104px]"
+              isolated={false}
+              zoomClassName="z-1000!"
             />
           </div>
 

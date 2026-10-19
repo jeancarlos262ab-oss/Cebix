@@ -1,20 +1,3 @@
-"""
-Modo "ciclo completo" (abril-octubre): lluvia CHIRPS de las TRES etapas del ciclo.
-
-  precip_acum_emergencia_macollamiento_mm  (abr-may)
-  precip_acum_encanado_mm                  (jun-jul)
-  precip_acum_espigado_llenado_mm          (ago-sep)
-
-Se valida igual que el modelo de producción (bloques espaciales 12x5x6 + estado nuevo) y se exporta
-backend/models/model_artifact_ciclo.joblib con el mismo formato que los otros artefactos. Además agrega
-`modelModes.ciclo` a model_meta.json SIN tocar el resto de los metadatos.
-
-Nota honesta: la lluvia total del ciclo como una sola variable (precip_acum_ciclo_mm) rinde mucho peor (RMSE ~0.90 t/ha,
-peor que el promedio del estado); separarla por etapas la deja cerca de la lluvia temprana sola. Por eso el modo usa las
-tres etapas por separado.
-
-Uso:  python entrenar_ciclo.py --features ../02_datos_procesados/features_completo.csv --models-dir ../../backend/models
-"""
 import argparse
 import json
 import os
@@ -42,7 +25,6 @@ CICLO_LABELS = {
     "precip_acum_espigado_llenado_mm": "Precipitación en espigado-llenado (ago–sep)",
 }
 fmt = ev.fmt
-
 
 def main(args):
     full = pd.read_csv(args.features)
@@ -93,7 +75,6 @@ def main(args):
     with open(meta_path, "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
     print("OK", meta["modelModes"]["ciclo"]["rmse"], importance)
-
 
 if __name__ == "__main__":
     here = os.path.dirname(os.path.abspath(__file__))

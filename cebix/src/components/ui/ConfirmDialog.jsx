@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertCircle, AlertTriangle, Loader2 } from "lucide-react";
 import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_DANGER } from "./Modal";
 
 export default function ConfirmDialog({ title, description, confirmLabel = "Eliminar", onConfirm, onClose }) {
@@ -57,9 +57,10 @@ export default function ConfirmDialog({ title, description, confirmLabel = "Elim
     >
       {description && <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">{description}</p>}
       {error && (
-        <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">
-          {error}
-        </p>
+        <div role="alert" className="mt-3 flex items-start gap-2 text-xs text-red-600 dark:text-red-400">
+          <AlertCircle size={14} strokeWidth={1.75} className="mt-0.5 shrink-0" />
+          <p>{error}</p>
+        </div>
       )}
     </Modal>
   );

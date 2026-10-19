@@ -9,6 +9,7 @@ import {
   Loader2,
   Play,
   TrendingDown,
+  X,
   TrendingUp,
   UploadCloud,
 } from "lucide-react";
@@ -22,9 +23,10 @@ import DocumentPeek from "../ui/DocumentPeek";
 import ModeSelector from "./ModeSelector";
 import { useModelInfo } from "../../context/ModelInfoContext";
 import { useParcels } from "../../context/ParcelsContext";
-import { EXAMPLE_TODOS_URL, fetchSubmissionCsv, friendlyError, predictCsv } from "../../services/modelApi";
-import { formatNumber } from "../../utils/intl";
+import { EXAMPLE_TODOS_URL, PREDICTION_SET_SIZE, fetchSubmissionCsv, friendlyError, predictCsv } from "../../services/modelApi";
+import { formatNumber, formatFixed } from "../../utils/intl";
 import { detectKind } from "../../utils/csvKind";
+import { BTN_OUTLINE, BTN_OUTLINE_SM } from "../ui/buttonStyles";
 
 const MIN_THINKING_MS = 5000;
 
@@ -62,8 +64,16 @@ export default function RunModelPanel() {
     }
   }
 
+  const abortRef = useRef(null);
+
+  function handleCancel() {
+    abortRef.current?.abort();
+  }
+
   async function runWith(f) {
     if (!f) return;
+    const controller = new AbortController();
+    abortRef.current = controller;
     const hadAnalysis = hasAnalysis;
     setLoading(true);
     setResults(null);
@@ -76,7 +86,7 @@ export default function RunModelPanel() {
       const k = await detectKind(f);
       const official = k !== "otro";
       const [data, csvText] = await Promise.all([
-        predictCsv(f),
+        predictCsv(f, undefined, controller.signal),
         official ? Promise.resolve("") : f.text(),
         sleep(MIN_THINKING_MS),
       ]).then(([d, text]) => [d, text]);
@@ -89,8 +99,10 @@ export default function RunModelPanel() {
         `Modelo (${data.modo === "10var" ? "10 variables" : data.modo === "ciclo" ? "ciclo completo" : data.modo === "10var_ciclo" ? "10 variables + ciclo completo" : "solo lluvia"}) ejecutado: ${data.predicciones.length} parcela${data.predicciones.length === 1 ? "" : "s"} procesada${data.predicciones.length === 1 ? "" : "s"}. Pulsa "Guardar corrida" para conservarla${hadAnalysis ? "; reemplazará la corrida guardada anterior" : ""}.`
       );
     } catch (err) {
-      toast.error(friendlyError(err));
+      if (controller.signal.aborted || err?.name === "AbortError") toast.success("Cálculo cancelado.");
+      else toast.error(friendlyError(err));
     } finally {
+      if (abortRef.current === controller) abortRef.current = null;
       setLoading(false);
     }
   }
@@ -108,7 +120,7 @@ export default function RunModelPanel() {
     setModelUsed(null);
     setModeUsed(null);
     setRunName("");
-    toast.success("Resultados borrados. El dashboard quedó vacío.");
+    toast.success("Resultados eliminados. El dashboard quedó vacío.");
   }
 
   return (
@@ -153,7 +165,7 @@ export default function RunModelPanel() {
             <a
               href={EXAMPLE_TODOS_URL}
               download
-              className="relative z-10 inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              className={`relative z-10 shrink-0 ${BTN_OUTLINE}`}
             >
               <Download size={16} strokeWidth={1.75} className="text-gray-400" />
               Descargar archivos de ejemplo
@@ -207,14 +219,26 @@ export default function RunModelPanel() {
               </label>
             )}
 
-            <button
-              type="submit"
-              disabled={!file || loading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent-500 px-5 py-2.5 text-sm font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black sm:w-auto"
-            >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} strokeWidth={1.75} />}
-              {loading ? "Ejecutando modelo..." : "Ejecutar modelo"}
-            </button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <button
+                type="submit"
+                disabled={!file || loading}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent-500 px-5 py-2.5 text-sm font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black sm:w-auto"
+              >
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} strokeWidth={1.75} />}
+                {loading ? "Ejecutando modelo…" : "Ejecutar modelo"}
+              </button>
+              {loading && (
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className={`w-full sm:w-auto ${BTN_OUTLINE} px-5 py-2.5`}
+                >
+                  <X size={16} strokeWidth={1.75} />
+                  Cancelar cálculo
+                </button>
+              )}
+            </div>
           </form>
 
         </Step>
@@ -247,10 +271,10 @@ export default function RunModelPanel() {
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                  className={BTN_OUTLINE_SM}
                 >
                   <Trash2 size={13} strokeWidth={1.75} />
-                  Borrar resultados
+                  Eliminar resultados
                 </button>
               </span>
             </div>
@@ -276,7 +300,7 @@ export default function RunModelPanel() {
           n={4}
           title="Descarga un resumen"
           last
-          description="Un CSV con el rendimiento estimado de cada parcela del conjunto de predicción (59 parcelas)."
+          description={`Un CSV con el rendimiento estimado de cada parcela del conjunto de predicción (${PREDICTION_SET_SIZE} parcelas).`}
         >
           <SubmissionDownload />
         </Step>
@@ -303,7 +327,7 @@ function SubmissionDownload() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast.success(`Archivo ${filename} descargado (59 parcelas).`);
+      toast.success(`Archivo ${filename} descargado (${PREDICTION_SET_SIZE} parcelas).`);
     } catch (err) {
       toast.error(friendlyError(err));
     } finally {
@@ -502,7 +526,7 @@ function ResultsTable({ results }) {
                   {r.yieldEstimate}
                   {Number.isFinite(r.ic90_inferior) && Number.isFinite(r.ic90_superior) && (
                     <span className="ml-1 text-xs font-normal text-gray-500 dark:text-gray-400">
-                      ± {((r.ic90_superior - r.ic90_inferior) / 2).toFixed(2)}
+                      ± {formatFixed(((r.ic90_superior - r.ic90_inferior) / 2), 1)}
                     </span>
                   )}
                   {r.fuera_de_rango && (

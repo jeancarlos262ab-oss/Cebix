@@ -3,6 +3,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { getAccentHex } from "../../utils/accentColors";
 import { SOURCES, WINDOWS } from "../../data/satelite";
 import { STEP_MS } from "../../services/sateliteApi";
+import { formatFixed } from "../../utils/intl";
 
 const STAC = "https://earth-search.aws.element84.com/v1";
 const CHIRPS = "https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/cogs/p05";
@@ -30,7 +31,7 @@ function bboxOf(points) {
   if (!points.length) return null;
   const lats = points.map((p) => p[0]);
   const lngs = points.map((p) => p[1]);
-  const f = (n) => n.toFixed(5);
+  const f = (n) => formatFixed(n, 5);
   return `[${f(Math.min(...lngs))}, ${f(Math.min(...lats))}, ${f(Math.max(...lngs))}, ${f(Math.max(...lats))}]`;
 }
 

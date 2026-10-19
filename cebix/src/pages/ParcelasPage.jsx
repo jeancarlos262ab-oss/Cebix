@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Download, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import ParcelMap from "../components/map/ParcelMap";
 import ParcelRow from "../components/dashboard/ParcelRow";
@@ -10,7 +10,7 @@ import FullscreenLink from "../components/ui/FullscreenLink";
 import usePagination from "../hooks/usePagination";
 import ParcelFormModal from "../components/dashboard/ParcelFormModal";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
-import { exportParcelsCSV } from "../utils/csv";
+import ExportButton from "../components/ui/ExportButton";
 import { RISK_COLORS } from "../utils/riskColors";
 import { EmptyAnalysis } from "../components/ui/RequireAnalysis";
 import useParcelActions from "../hooks/useParcelActions";
@@ -122,14 +122,10 @@ function ParcelasPageContent() {
         subtitle={`${filtered.length} parcela${filtered.length === 1 ? "" : "s"} en tu cuenta.`}
         actions={
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => exportParcelsCSV(filtered, `cebix-parcelas-${region.toLowerCase()}${risk === "all" ? "" : `-${risk}`}.csv`)}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-700 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
-            >
-              <Download size={15} strokeWidth={1.75} className="text-gray-400" />
-              Exportar
-            </button>
+            <ExportButton
+              parcels={filtered}
+              filename={`cebix-parcelas-${region.toLowerCase()}${risk === "all" ? "" : `-${risk}`}.csv`}
+            />
             <button
               type="button"
               onClick={() => setModal("add")}

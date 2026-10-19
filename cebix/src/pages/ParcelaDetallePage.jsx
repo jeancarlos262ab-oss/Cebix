@@ -1,8 +1,8 @@
 import { RangeNotice } from "../components/ui/RangeBadge";
 import { useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "../services/toast";
-import { ArrowLeft, FileDown, Pencil, Trash2 } from "lucide-react";
+import { FileDown, Pencil, Trash2 } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import ParcelMap from "../components/map/ParcelMap";
 import Semaphore from "../components/ui/Semaphore";
@@ -16,7 +16,8 @@ import RequireAnalysis from "../components/ui/RequireAnalysis";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import ParcelFormModal from "../components/dashboard/ParcelFormModal";
 import useParcelActions from "../hooks/useParcelActions";
-import { formatNumber as intlNumber } from "../utils/intl";
+import { formatNumber as intlNumber, formatFixed } from "../utils/intl";
+import BackToParcelas from "../components/ui/BackToParcelas";
 
 function formatNumber(value, maxDecimals = 1) {
   const n = Number(value);
@@ -39,9 +40,7 @@ function ParcelaDetallePageContent() {
     return (
       <div className="px-4 py-10 sm:px-6 lg:px-8">
         <p className="text-sm text-gray-500 dark:text-gray-400">No se encontró esa parcela.</p>
-        <Link to="/parcelas" className="mt-2 inline-block text-sm font-medium text-accent-600">
-          Volver a Parcelas
-        </Link>
+        <BackToParcelas className="mt-3" />
       </div>
     );
   }
@@ -57,17 +56,11 @@ function ParcelaDetallePageContent() {
         hideSearch
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Link
-              to="/parcelas"
-              className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-xs transition-colors hover:bg-gray-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 dark:border-gray-800 dark:bg-black dark:text-gray-300 dark:hover:bg-gray-800"
-            >
-              <ArrowLeft size={15} className="text-accent-600 dark:text-accent-400" />
-              Todas las parcelas
-            </Link>
+            <BackToParcelas />
             <button
               type="button"
               onClick={() => setDialog("edit")}
-              className="flex items-center gap-1.5 rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
+              className="flex items-center gap-1.5 rounded-lg bg-accent-500 px-4 py-2 text-sm font-medium text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
             >
               <Pencil size={15} />
               Editar
@@ -75,7 +68,7 @@ function ParcelaDetallePageContent() {
             <button
               type="button"
               onClick={() => setDialog("delete")}
-              className="flex items-center gap-1.5 rounded-full bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-xs transition-colors hover:bg-red-700 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
+              className="flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-xs transition-colors hover:bg-red-700 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
             >
               <Trash2 size={15} />
               Eliminar
@@ -118,7 +111,7 @@ function ParcelaDetallePageContent() {
           {}
           <section className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
             {[
-              { label: "NDVI pico", value: parcel.ndvi.toFixed(2), hint: "Máximo del ciclo" },
+              { label: "NDVI pico", value: formatFixed(parcel.ndvi, 2), hint: "Máximo del ciclo" },
               { label: "Precipitación", value: `${formatNumber(parcel.precip)} mm`, hint: "Acumulada abril–mayo" },
               { label: "GDD acumulados", value: formatNumber(parcel.gdd), hint: "Grados-día del ciclo" },
             ].map((stat) => (
@@ -146,11 +139,11 @@ function ParcelaDetallePageContent() {
               <Label>Rendimiento estimado</Label>
               <p className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <span className="font-display text-4xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-                  {parcel.yieldEstimate.toFixed(1)}
+                  {formatFixed(parcel.yieldEstimate, 1)}
                 </span>
                 <span className="text-sm text-gray-500 dark:text-gray-400">ton/ha</span>
                 <span className="ml-1 text-sm tabular-nums text-gray-500 dark:text-gray-400">
-                  ± {halfIc.toFixed(1)} (90 % de confianza)
+                  ± {formatFixed(halfIc, 1)} (90 % de confianza)
                 </span>
               </p>
               <RangeBar estimate={parcel.yieldEstimate} half={halfIc} />
@@ -173,7 +166,7 @@ function ParcelaDetallePageContent() {
                   {parcel.satelite?.anio ? ` · Ciclo ${parcel.satelite.anio}` : ""}
                   {MODE_NOTICE[parcel.satelite?.modo ?? parcel.modo] ? ` · ${MODE_NOTICE[parcel.satelite?.modo ?? parcel.modo]}` : ""}
                   {Number.isFinite(parcel.satelite?.ic90_inferior) && Number.isFinite(parcel.satelite?.ic90_superior)
-                    ? ` · intervalo al 90 %: ${parcel.satelite.ic90_inferior.toFixed(2)} a ${parcel.satelite.ic90_superior.toFixed(2)} ton/ha`
+                    ? ` · intervalo al 90 %: ${formatFixed(parcel.satelite.ic90_inferior, 1)} a ${formatFixed(parcel.satelite.ic90_superior, 1)} ton/ha`
                     : ""}
                   {parcel.satelite?.calculado_en
                     ? ` · calculado el ${new Date(parcel.satelite.calculado_en).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })}`
@@ -193,9 +186,9 @@ function ParcelaDetallePageContent() {
                 <Row label="Superficie">{parcel.area}</Row>
                 <Row label="Municipio">{parcel.municipio}</Row>
                 <Row label="Región">{parcel.region}</Row>
-                <Row label="EVI">{parcel.evi.toFixed(2)}</Row>
+                <Row label="EVI">{formatFixed(parcel.evi, 2)}</Row>
                 <Row label="Coordenadas">
-                  {hasCoords(parcel) ? `${parcel.lat.toFixed(3)}, ${parcel.lng.toFixed(3)}` : "—"}
+                  {hasCoords(parcel) ? `${formatFixed(parcel.lat, 3)}, ${formatFixed(parcel.lng, 3)}` : "—"}
                 </Row>
               </dl>
             </section>
@@ -205,16 +198,16 @@ function ParcelaDetallePageContent() {
               onClick={async () => {
                 try {
                   await generateYieldReportPDF(parcel, { modelSummary: info?.modelSummary, modelModes: info?.modelModes });
-                  toast.success("Reporte PDF generado.");
+                  toast.success("PDF descargado.");
                 } catch (err) {
                   console.error("Error al generar el PDF", err);
-                  toast.error("No se pudo generar el reporte PDF. Inténtalo de nuevo.");
+                  toast.error("No se pudo generar el PDF. Inténtalo de nuevo.");
                 }
               }}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
             >
               <FileDown size={15} />
-              Generar reporte PDF
+              Descargar PDF
             </button>
           </aside>
         </div>

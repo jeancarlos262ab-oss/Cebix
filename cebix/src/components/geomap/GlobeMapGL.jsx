@@ -456,6 +456,15 @@ export default function GlobeMapGL({
     <div className="relative h-full min-h-[300px] w-full overflow-hidden bg-black">
       <div ref={mapEl} aria-label="Globo terráqueo interactivo" className="absolute inset-0 isolate h-full w-full" />
 
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-5 h-[38%]"
+        style={{
+          background:
+            "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.7) 22%, rgba(0,0,0,0.45) 48%, rgba(0,0,0,0.18) 78%, rgba(0,0,0,0) 100%)",
+        }}
+      />
+
       <div className="pointer-events-none absolute left-3 top-3 z-10">
         <div className={`pointer-events-auto flex items-center gap-0.5 p-1 ${PANEL}`}>
           <button type="button" onClick={goStudy} disabled={locked} className={GHOST}>
@@ -475,8 +484,8 @@ export default function GlobeMapGL({
           <button type="button" aria-label="Deshacer último vértice" title="Deshacer último vértice" onClick={onUndo} disabled={!drawing || !points.length || locked} className={GHOST}>
             <Undo2 size={14} /> <span className="hidden sm:inline">Deshacer</span>
           </button>
-          <button type="button" aria-label="Borrar parcela" title="Borrar parcela" onClick={onClear} disabled={!points.length || locked} className={GHOST}>
-            <Eraser size={14} /> <span className="hidden sm:inline">Borrar</span>
+          <button type="button" aria-label="Quitar contorno" title="Quitar contorno" onClick={onClear} disabled={!points.length || locked} className={GHOST}>
+            <Eraser size={14} /> <span className="hidden sm:inline">Quitar</span>
           </button>
         </div>
       </div>

@@ -29,17 +29,11 @@ const TIME_ZONES = [
   { id: "America/Los_Angeles", city: "Los Ángeles" },
   { id: "Europe/Madrid", city: "Madrid" },
 ];
-const TIME_ZONE_CITY_EN = {
-  "Ciudad de México": "Mexico City",
-  Cancún: "Cancún",
-  "Nueva York": "New York",
-  "Los Ángeles": "Los Angeles",
-};
 
 export default function AjustesPage() {
   const {
-    t, idioma, formatoFecha, zonaHoraria,
-    setIdioma, setFormatoFecha, setZonaHoraria, resetRegion,
+    formatoFecha, zonaHoraria,
+    setFormatoFecha, setZonaHoraria, resetRegion,
     formatDate, formatTime, formatNumber,
   } = usePreferences();
   const { theme, setTheme, accent, setAccent, resolvedTheme } = useTheme();
@@ -49,7 +43,7 @@ export default function AjustesPage() {
   
   
   const { account, updateAccount } = useAccount();
-  const pref = { theme, accent, idioma, formatoFecha, zonaHoraria };
+  const pref = { theme, accent, formatoFecha, zonaHoraria };
   const [notifs, setNotifs] = useState({
     email: account.notifEmail,
     riesgo: account.notifRisk,
@@ -69,7 +63,6 @@ export default function AjustesPage() {
     if ("accent" in patch && patch.accent !== accent) setAccent(patch.accent);
     if ("formatoFecha" in patch && patch.formatoFecha !== formatoFecha) setFormatoFecha(patch.formatoFecha);
     if ("zonaHoraria" in patch && patch.zonaHoraria !== zonaHoraria) setZonaHoraria(patch.zonaHoraria);
-    if ("idioma" in patch && patch.idioma !== idioma) setIdioma(patch.idioma); 
   }
 
   
@@ -83,7 +76,7 @@ export default function AjustesPage() {
     const { error } = await updateAccount(dbPatch);
     if (error) {
       setNotifs(previous);
-      toast.error(t("No se pudo guardar la preferencia. Intenta de nuevo."));
+      toast.error("No se pudo guardar la preferencia. Inténtalo de nuevo.");
     }
   }
 
@@ -99,28 +92,28 @@ export default function AjustesPage() {
     const defaults = { email: true, riesgo: true, resumenSemanal: false };
     setNotifs(defaults);
     const { error } = await updateAccount({ notifEmail: true, notifRisk: true, notifWeekly: false });
-    if (error) toast.error(t("No se pudieron restablecer las notificaciones."));
-    else toast.success(t("Ajustes restablecidos."));
+    if (error) toast.error("No se pudieron restablecer las notificaciones.");
+    else toast.success("Ajustes restablecidos.");
   }
 
   return (
     <div className="pb-10">
       <TopBar
-        title={t("Ajustes")}
-        subtitle={t("Personaliza la apariencia y el comportamiento de CEBIX")}
+        title="Ajustes"
+        subtitle="Personaliza la apariencia y el comportamiento de CEBIX"
         hideSearch
         actions={
           <div className="flex items-center gap-2">
             <span className="hidden text-xs text-gray-500 dark:text-gray-400 sm:inline">
-              {t("Los cambios se guardan automáticamente.")}
+              Los cambios se guardan automáticamente.
             </span>
             <button
               type="button"
               onClick={handleReset}
-              className="flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               <RotateCcw size={13} className="text-accent-600 dark:text-accent-400" />
-              {t("Restablecer")}
+              Restablecer
             </button>
           </div>
         }
@@ -130,45 +123,43 @@ export default function AjustesPage() {
         {}
         <SettingsSection
           icon={Palette}
-          title={t("Apariencia")}
-          description={t("Elige cómo se ve CEBIX en este dispositivo")}
+          title="Apariencia"
+          description="Elige cómo se ve CEBIX en este dispositivo"
         >
-          <div className="-mx-5">
-          <div className="grid grid-cols-1 divide-y divide-gray-200 dark:divide-gray-800 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <div className="grid grid-cols-1 gap-5 py-5 sm:grid-cols-2">
             <ThemePreviewCard
-              label={t("Claro")}
-              description={t("Ideal para exteriores")}
+              label="Claro"
+              description="Ideal para exteriores"
               variant="light"
               active={pref.theme === "light"}
               onSelect={() => applyPref({ theme: "light" })}
               accentColor={accentColor}
             />
             <ThemePreviewCard
-              label={t("Oscuro")}
-              description={t("Menos fatiga visual")}
+              label="Oscuro"
+              description="Menos fatiga visual"
               variant="dark"
               active={pref.theme === "dark"}
               onSelect={() => applyPref({ theme: "dark" })}
               accentColor={accentColor}
             />
             <ThemePreviewCard
-              label={t("Sistema")}
-              description={t("Sigue al dispositivo")}
+              label="Sistema"
+              description="Sigue al dispositivo"
               variant="split"
               active={pref.theme === "system"}
               onSelect={() => applyPref({ theme: "system" })}
               accentColor={accentColor}
             />
           </div>
-          </div>
 
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-4">
             <span>
               <span className="block text-sm font-medium text-gray-900 dark:text-white">
-                {t("Color de acento")}
+                Color de acento
               </span>
               <span className="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
-                {t("Se usa en botones, enlaces y gráficas principales")}
+                Se usa en botones, enlaces y gráficas principales
               </span>
             </span>
             <div className="flex items-center gap-2">
@@ -176,7 +167,7 @@ export default function AjustesPage() {
                 <button
                   key={a.id}
                   type="button"
-                  aria-label={t((isDark && a.darkLabel) || a.label)}
+                  aria-label={(isDark && a.darkLabel) || a.label}
                   onClick={() => applyPref({ accent: a.id })}
                   className="flex h-8 w-8 items-center justify-center rounded-full border-2 transition-transform hover:scale-105"
                   style={{
@@ -196,32 +187,32 @@ export default function AjustesPage() {
         {}
         <SettingsSection
           icon={Bell}
-          title={t("Notificaciones")}
-          description={t("Elige qué avisos quieres recibir")}
+          title="Notificaciones"
+          description="Elige qué avisos quieres recibir"
         >
           <Toggle
-            label={t("Alertas por correo")}
-            description={t("Interruptor general: si lo apagas no recibirás ningún correo de CEBIX")}
+            label="Alertas por correo"
+            description="Interruptor general: si lo apagas no recibirás ningún correo de CEBIX"
             checked={notifs.email}
             onChange={(v) => applyNotif({ email: v })}
           />
           <Toggle
-            label={t("Alertas de bajo rendimiento")}
-            description={t("Cuando una parcela cambia a semáforo rojo o amarillo")}
+            label="Alertas de bajo rendimiento"
+            description="Cuando una parcela cambia a semáforo rojo o amarillo"
             checked={notifs.riesgo}
             disabled={!notifs.email}
             onChange={(v) => applyNotif({ riesgo: v })}
           />
           <Toggle
-            label={t("Resumen semanal")}
-            description={t("Reporte cada lunes con el estado general del portafolio")}
+            label="Resumen semanal"
+            description="Reporte cada lunes con el estado general del portafolio"
             checked={notifs.resumenSemanal}
             disabled={!notifs.email}
             onChange={(v) => applyNotif({ resumenSemanal: v })}
           />
           <Toggle
-            label={t("Sonido de notificaciones")}
-            description={t("Reproduce un sonido cuando aparece un aviso en la esquina inferior derecha (solo en este dispositivo)")}
+            label="Sonido de notificaciones"
+            description="Reproduce un sonido cuando aparece un aviso en la esquina inferior derecha (solo en este dispositivo)"
             checked={soundOn}
             onChange={applySound}
           />
@@ -230,26 +221,13 @@ export default function AjustesPage() {
         {}
         <SettingsSection
           icon={Globe2}
-          title={t("Idioma y región")}
-          description={t("Formato de fecha, hora y zona horaria")}
+          title="Región"
+          description="Formato de fecha, hora y zona horaria"
         >
-          <div className="grid grid-cols-1 gap-4 py-5 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 py-5 sm:grid-cols-2">
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                {t("Idioma")}
-              </span>
-              <select
-                value={pref.idioma}
-                onChange={(e) => applyPref({ idioma: e.target.value })}
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-accent-500 dark:focus:border-accent-500 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
-              >
-                <option value="es-MX">Español (México)</option>
-                <option value="en-US">English (US)</option>
-              </select>
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                {t("Formato de fecha")}
+                Formato de fecha
               </span>
               <select
                 value={pref.formatoFecha}
@@ -262,7 +240,7 @@ export default function AjustesPage() {
             </label>
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                {t("Zona horaria")}
+                Zona horaria
               </span>
               <select
                 value={pref.zonaHoraria}
@@ -271,14 +249,14 @@ export default function AjustesPage() {
               >
                 {TIME_ZONES.map((z) => (
                   <option key={z.id} value={z.id}>
-                    {idioma === "en-US" ? TIME_ZONE_CITY_EN[z.city] ?? z.city : z.city} ({timeZoneOffsetLabel(z.id, idioma)})
+                    {z.city} ({timeZoneOffsetLabel(z.id)})
                   </option>
                 ))}
               </select>
             </label>
           </div>
           <p className="py-4 text-xs text-gray-500 dark:text-gray-400">
-            {t("Vista previa")}: {formatDate(new Date())} · {formatTime(new Date())} · {formatNumber(1234567.89)}
+            Vista previa: {formatDate(new Date())} · {formatTime(new Date())} · {formatNumber(1234567.89)}
           </p>
         </SettingsSection>
       </div>

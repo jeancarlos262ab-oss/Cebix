@@ -38,7 +38,7 @@ export function Card({ icon: Icon, title, description, action, children, classNa
   );
 }
 
-export function Heading({ icon: Icon, eyebrow, title, large = false, bebas = false, children }) {
+export function Heading({ icon: Icon, eyebrow, title, large = false, bebas = false, sizeClass, children }) {
   return (
     <div>
       {(Icon || eyebrow) && (
@@ -47,7 +47,7 @@ export function Heading({ icon: Icon, eyebrow, title, large = false, bebas = fal
           {eyebrow && <p className="text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{eyebrow}</p>}
         </div>
       )}
-      <h2 className={`${Icon || eyebrow ? "mt-1" : ""} text-gray-900 dark:text-gray-100 ${bebas ? `font-bebas font-normal tracking-wide ${large ? "text-3xl sm:text-5xl" : "text-2xl"}` : `font-display font-semibold ${large ? "text-2xl sm:text-3xl" : "text-xl"}`}`}>{title}</h2>
+      <h2 className={`${Icon || eyebrow ? "mt-1" : ""} text-gray-900 dark:text-gray-100 ${bebas ? `font-bebas font-normal tracking-wide ${sizeClass ?? (large ? "text-3xl sm:text-5xl" : "text-2xl")}` : `font-display font-semibold ${large ? "text-2xl sm:text-3xl" : "text-xl"}`}`}>{title}</h2>
       {children && <p className="mt-2 max-w-prose text-sm leading-relaxed text-gray-500 dark:text-gray-400">{children}</p>}
     </div>
   );

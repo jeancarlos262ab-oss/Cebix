@@ -1,3 +1,4 @@
+import { formatFixed } from "../../utils/intl";
 const DIRECTION_COLOR = {
   positivo: "var(--chart-positive)",
   negativo: "var(--chart-negative)",
@@ -31,13 +32,13 @@ export default function FeatureImportanceChart({ data }) {
                 </span>
                 <span className="font-display shrink-0 text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">
                   {SIGN[row.direction] ?? ""}
-                  {row.magnitude.toFixed(2)}
+                  {formatFixed(row.magnitude, 2)}
                 </span>
               </div>
               <div
                 className="mt-1.5 h-1.5 w-full overflow-hidden bg-gray-100 dark:bg-gray-800"
                 role="img"
-                aria-label={`${row.feature}: impacto ${row.direction} de ${row.magnitude.toFixed(2)}`}
+                aria-label={`${row.feature}: impacto ${row.direction} de ${formatFixed(row.magnitude, 2)}`}
               >
                 <div className="h-full" style={{ width: `${pct}%`, backgroundColor: color }} />
               </div>

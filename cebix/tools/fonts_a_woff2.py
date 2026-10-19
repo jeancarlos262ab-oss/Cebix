@@ -1,10 +1,3 @@
-"""Convierte los .otf de public/fonts a .woff2 (mucho más ligeros para la web).
-
-Uso (desde la raíz del proyecto):
-    pip install fonttools brotli
-    python tools/fonts_a_woff2.py
-Los .otf originales se conservan como respaldo.
-"""
 from pathlib import Path
 
 from fontTools.ttLib import TTFont

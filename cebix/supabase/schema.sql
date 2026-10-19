@@ -1,15 +1,3 @@
--- Ejecutar UNA sola vez, completo, en: Supabase Dashboard -> SQL Editor -> New query -> Run.
--- Junta las 3 piezas que la app necesita en un proyecto de Supabase nuevo:
---   1) profiles       -> perfil de cada usuario (nombre, rol, región...)
---   2) parcels_custom -> parcelas que el equipo captura a mano en la app
---   3) otp_codes      -> códigos de 6 dígitos para registro y recuperación por SMTP
-
--- ============================================================
--- 1) PROFILES
--- ============================================================
--- Un renglón por usuario de auth.users. Se llena solo: cuando /api/send-otp
--- crea la cuenta (auth.admin.createUser) con name/role/region en los
--- metadatos, el trigger de abajo copia esos datos aquí automáticamente.
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   email text,
@@ -25,14 +13,12 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
--- Cualquier persona ya logueada puede ver el directorio del equipo.
 drop policy if exists "profiles: leer todo autenticado" on public.profiles;
 create policy "profiles: leer todo autenticado"
   on public.profiles for select
   to authenticated
   using (true);
 
--- Cada quien puede editar su propio perfil.
 drop policy if exists "profiles: editar propio" on public.profiles;
 create policy "profiles: editar propio"
   on public.profiles for update
@@ -40,16 +26,6 @@ create policy "profiles: editar propio"
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
--- NOTA: AjustesPage/UsersContext deja que cualquier usuario logueado
--- actualice el perfil de OTRA persona (por ejemplo, para que un admin
--- cambie el rol de alguien más), pero la política de arriba solo lo
--- permite sobre el propio perfil. Si quieres que ese flujo funcione desde
--- el navegador, dime y agregamos una política extra que valide "mi propio
--- rol en profiles es Administradora" antes de dejar editar filas ajenas.
-
--- Crea el perfil automáticamente cuando se crea el usuario en auth.users
--- (tanto si lo crea /api/send-otp con la Service Role Key, como si algún
--- día se crea de otra forma).
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -75,13 +51,6 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- ============================================================
--- 2) PARCELS_CUSTOM
--- ============================================================
--- Parcelas capturadas a mano desde la app. Cada parcela pertenece a quien la capturó
--- (user_id = auth.uid() por defecto) y cada cuenta solo ve y modifica las suyas.
--- Si ya tenías la tabla creada antes de este cambio, corre
--- parcels_custom_por_usuario.sql en lugar de volver a ejecutar esta sección.
 create table if not exists public.parcels_custom (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
@@ -133,13 +102,6 @@ create policy "parcels_custom: borrar propias"
   on public.parcels_custom for delete to authenticated
   using (auth.uid() = user_id);
 
--- ============================================================
--- 3) OTP_CODES (registro y recuperación de contraseña por Gmail SMTP)
--- ============================================================
--- Solo se lee/escribe con la Service Role Key desde /api/send-otp y
--- /api/verify-otp, así que no lleva políticas: RLS activado sin políticas
--- deniega todo al navegador (anon/authenticated), y la service_role
--- siempre se salta RLS.
 create table if not exists public.otp_codes (
   id uuid primary key default gen_random_uuid(),
   email text not null,
@@ -156,26 +118,6 @@ create index if not exists otp_codes_lookup_idx
 
 alter table public.otp_codes enable row level security;
 
--- Opcional: borra códigos viejos automáticamente (requiere la extensión
--- pg_cron: Dashboard -> Database -> Extensions).
--- select cron.schedule(
---   'cleanup-otp-codes',
---   '0 * * * *',
---   $$ delete from public.otp_codes where expires_at < now() - interval '1 day' $$
--- );
-
--- ============================================================
--- 4) AVATARS (fotos de perfil, Supabase Storage)
--- ============================================================
--- Bucket público "avatars" con una carpeta por usuario. Ver avatars_storage.sql
--- (es el mismo bloque; si ya corriste este archivo completo, corre ese también).
-
-
--- ============================================================
--- 5) DATOS POR USUARIO (corrida del modelo y envíos a comité)
--- ============================================================
--- Mismo contenido que datos_por_usuario.sql (córrelo aparte si ya tenías el resto).
--- 1) Última corrida del modelo / importación de cada usuario (una fila por usuario).
 create table if not exists public.user_analysis (
   user_id uuid primary key default auth.uid() references auth.users (id) on delete cascade,
   file_name text,
@@ -201,7 +143,6 @@ create policy "user_analysis: editar propia"
 create policy "user_analysis: borrar propia"
   on public.user_analysis for delete to authenticated using (auth.uid() = user_id);
 
--- 2) Envíos a comité (una fila por parcela enviada).
 create table if not exists public.committee_submissions (
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   parcel_id text not null,

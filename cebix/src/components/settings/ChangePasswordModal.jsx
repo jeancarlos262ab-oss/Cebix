@@ -2,18 +2,22 @@ import { useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "../../services/toast";
 import { supabase } from "../../services/supabaseClient";
+import { useAuth } from "../../context/AuthContext";
+import { userMessage } from "../../utils/userMessages";
 import Modal, { MODAL_COLS, MODAL_BTN_CANCEL, MODAL_BTN_PRIMARY, ModalField, modalInput } from "../ui/Modal";
+import { PASSWORD_MIN_LENGTH } from "../../utils/passwordRules";
 
 function validate(form) {
   const errors = {};
   if (!form.current) errors.current = "Requerido";
-  if (form.next.length < 8) errors.next = "Mínimo 8 caracteres";
-  if (form.next && !/[0-9]/.test(form.next)) errors.next = "Incluye al menos un número";
+  if (form.next.length < PASSWORD_MIN_LENGTH) errors.next = `Mínimo ${PASSWORD_MIN_LENGTH} caracteres`;
+  else if (!/[0-9]/.test(form.next)) errors.next = "Incluye al menos un número";
   if (form.confirm !== form.next) errors.confirm = "No coincide";
   return errors;
 }
 
 export default function ChangePasswordModal({ onClose, onChanged }) {
+  const { user } = useAuth();
   const [form, setForm] = useState({ current: "", next: "", confirm: "" });
   const [errors, setErrors] = useState({});
   const [show, setShow] = useState(false);
@@ -30,9 +34,33 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
     if (Object.keys(nextErrors).length > 0) return;
 
     setSubmitting(true);
+
+    
+    const email = user?.email;
+    if (email) {
+      const { error: verifyError } = await supabase.auth.signInWithPassword({ email, password: form.current });
+      if (verifyError) {
+        const wrong = verifyError.status === 400 || /invalid login credentials/i.test(verifyError.message ?? "");
+        if (wrong) setErrors({ current: "Contraseña incorrecta" });
+        else toast.error(userMessage(verifyError, "No se pudo verificar tu contraseña actual. Inténtalo de nuevo."));
+        setSubmitting(false);
+        return;
+      }
+    }
+
+    
     const { error } = await supabase.auth.updateUser({ password: form.next });
     if (error) {
-      toast.error("No pudimos actualizar la contraseña. Inténtalo de nuevo.");
+      console.error("[updateUser password]", error);
+      const code = error.code ?? "";
+      const msg = String(error.message ?? "");
+      if (code === "same_password" || /different from the old password/i.test(msg)) {
+        setErrors({ next: "Debe ser distinta de la actual" });
+      } else if (code === "weak_password" || /password should|weak|at least|characters/i.test(msg)) {
+        setErrors({ next: "Contraseña demasiado débil. Usa más caracteres, mayúsculas y símbolos." });
+      } else {
+        toast.error(userMessage(error, "No se pudo actualizar la contraseña. Inténtalo de nuevo."));
+      }
       setSubmitting(false);
       return;
     }
@@ -56,7 +84,7 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
           </button>
           <button type="submit" disabled={submitting} className={MODAL_BTN_PRIMARY}>
             {submitting && <Loader2 size={14} className="animate-spin" />}
-            {submitting ? "Actualizando..." : "Guardar contraseña"}
+            {submitting ? "Actualizando…" : "Guardar contraseña"}
           </button>
         </>
       }
@@ -72,7 +100,7 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
             />
           </ModalField>
           <ul className="space-y-1 rounded-lg border border-gray-200 px-3 py-2.5 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
-            <li>• Mínimo 8 caracteres.</li>
+            <li>• Mínimo {PASSWORD_MIN_LENGTH} caracteres.</li>
             <li>• Incluye al menos un número.</li>
           </ul>
         </div>

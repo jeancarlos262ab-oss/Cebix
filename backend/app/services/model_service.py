@@ -28,11 +28,10 @@ _PATHS = {"abierto": MODEL_PATH, "10var": MODEL_10VAR_PATH, "ciclo": MODEL_CICLO
 
 MODOS = {"lluvia": "abierto", "10var": "10var", "ciclo": "ciclo", "10var_ciclo": "10var_ciclo"}
 
-# Variantes que usan la lluvia de las 3 etapas del ciclo (abr–oct) en vez de solo abril–mayo.
 VARIANTES_CICLO = ("ciclo", "10var_ciclo")
 
 def modo_from_variant(variant: str) -> str:
-    """Nombre público del modo que devuelve la API (lo guarda el frontend con cada parcela)."""
+    
     return variant if variant in ("10var", "ciclo", "10var_ciclo") else "lluvia"
 
 def variant_from_modo(modo: str | None) -> str:
@@ -190,7 +189,7 @@ def run_inference(rows_df, estados, variant: str = "abierto"):
         estado = estados[i]
         confidence = artifact["rmse_by_region"].get(estado, artifact["overall_rmse"])
         local_shap = shap_values.values[i]
-        order = np.argsort(-np.abs(local_shap))  # todas las variables del modelo, de mayor a menor impacto
+        order = np.argsort(-np.abs(local_shap))  
         shap_out = [
             {
                 "feature": artifact["feature_labels"].get(feature_order[j], feature_order[j]),

@@ -6,12 +6,10 @@ import { ChevronRight, LogOut, Settings, X, Menu, PanelLeft } from "lucide-react
 import { generalNav, workspaceNav } from "../../data/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { useSidebar } from "../../context/SidebarContext";
-import { usePreferences } from "../../context/PreferencesContext";
 import Logo from "../ui/Logo";
 import Modal, { MODAL_BTN_CANCEL, MODAL_BTN_PRIMARY } from "../ui/Modal";
 
 function NavSection({ title, items, collapsed }) {
-  const { t } = usePreferences();
   
   
   const { pathname, search } = useLocation();
@@ -28,7 +26,7 @@ function NavSection({ title, items, collapsed }) {
             collapsed ? "invisible" : "",
           ].join(" ")}
         >
-          {t(title)}
+          {title}
         </p>
       )}
       <ul className="mt-2 space-y-0.5">
@@ -37,7 +35,7 @@ function NavSection({ title, items, collapsed }) {
             <NavLink
               to={to + (pathname === to ? search : saved.get(to) ?? "")}
               end={to === "/"}
-              title={collapsed ? t(label) : undefined}
+              title={collapsed ? label : undefined}
               className={({ isActive }) =>
                 [
                   
@@ -56,7 +54,7 @@ function NavSection({ title, items, collapsed }) {
                     strokeWidth={isActive ? 2.25 : 2}
                     className="shrink-0"
                   />
-                  {!collapsed && <span className="flex-1 text-left truncate">{t(label)}</span>}
+                  {!collapsed && <span className="flex-1 text-left truncate">{label}</span>}
                   {!collapsed && badge && (
                     <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-300 mr-1 transition-colors duration-300 ease-out">
                       {badge}
@@ -73,11 +71,10 @@ function NavSection({ title, items, collapsed }) {
 }
 
 function SignOutConfirm({ onCancel, onConfirm, loading }) {
-  const { t } = usePreferences();
 
   return (
     <Modal
-      title={t("¿Cerrar sesión?")}
+      title="¿Cerrar sesión?"
       size="sm"
       role="alertdialog"
       zClass="z-60"
@@ -87,9 +84,9 @@ function SignOutConfirm({ onCancel, onConfirm, loading }) {
             <LogOut size={18} />
           </span>
           <div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">{t("Sesión actual")}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Sesión actual</p>
             <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-              {t("Tu información queda guardada en tu cuenta.")}
+              Tu información queda guardada en tu cuenta.
             </p>
           </div>
         </div>
@@ -99,23 +96,22 @@ function SignOutConfirm({ onCancel, onConfirm, loading }) {
       footer={
         <>
           <button type="button" autoFocus onClick={onCancel} disabled={loading} className={MODAL_BTN_CANCEL}>
-            {t("Cancelar")}
+            Cancelar
           </button>
           <button type="button" onClick={onConfirm} disabled={loading} className={MODAL_BTN_PRIMARY}>
-            {loading ? t("Cerrando sesión...") : t("Cerrar sesión")}
+            {loading ? "Cerrando sesión…" : "Cerrar sesión"}
           </button>
         </>
       }
     >
       <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-        {t("Tendrás que iniciar sesión de nuevo para volver a entrar.")}
+        Tendrás que iniciar sesión de nuevo para volver a entrar.
       </p>
     </Modal>
   );
 }
 
 function Sidebar({ floating = false }) {
-  const { t } = usePreferences();
   
   
   const { mobileOpen, close, collapsed: collapsedPref, setCollapsed } = useSidebar();
@@ -192,8 +188,8 @@ function Sidebar({ floating = false }) {
             <button
               type="button"
               onClick={() => setCollapsed(false)}
-              aria-label={t("Expandir menú")}
-              title={t("Expandir menú")}
+              aria-label="Expandir menú"
+              title="Expandir menú"
               className="absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center bg-white text-gray-600 opacity-0 transition-[opacity,color,background-color] duration-300 hover:opacity-100 focus-visible:opacity-100 dark:bg-black dark:text-gray-300"
             >
               <PanelLeft size={18} />
@@ -203,8 +199,8 @@ function Sidebar({ floating = false }) {
             <button
               type="button"
               onClick={() => setCollapsed(true)}
-              aria-label={t("Contraer menú")}
-              title={t("Contraer menú")}
+              aria-label="Contraer menú"
+              title="Contraer menú"
               className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 transition-colors duration-300 ease-out"
             >
               <Menu size={18} />
@@ -213,7 +209,7 @@ function Sidebar({ floating = false }) {
           <button
             type="button"
             onClick={close}
-            aria-label={t("Cerrar menú")}
+            aria-label="Cerrar menú"
             className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 transition-colors duration-300 ease-out lg:hidden"
           >
             <X size={16} />
@@ -234,7 +230,7 @@ function Sidebar({ floating = false }) {
         <div className="border-t border-gray-100 py-2 dark:border-gray-800 transition-colors duration-300 ease-out">
           <NavLink
             to="/perfil"
-            title={collapsed ? profile?.name || t("Perfil") : undefined}
+            title={collapsed ? profile?.name || "Perfil" : undefined}
             className={[
               "flex w-full items-center py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors duration-300 ease-out",
               collapsed ? "justify-center px-0" : "gap-3 px-4",
@@ -248,7 +244,7 @@ function Sidebar({ floating = false }) {
               <>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-gray-900 dark:text-white transition-colors duration-300 ease-out">
-                    {profile?.name || t("Perfil")}
+                    {profile?.name || "Perfil"}
                   </span>
                 </span>
                 <ChevronRight size={16} className="shrink-0 text-gray-500 dark:text-gray-400 transition-colors duration-300 ease-out" />
@@ -258,14 +254,14 @@ function Sidebar({ floating = false }) {
           <button
             type="button"
             onClick={() => setConfirmOpen(true)}
-            title={collapsed ? t("Cerrar sesión") : undefined}
+            title={collapsed ? "Cerrar sesión" : undefined}
             className={[
               "flex h-[34px] w-full items-center text-left text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-white transition-colors duration-300 ease-out",
               collapsed ? "justify-center px-0" : "gap-3 px-4",
             ].join(" ")}
           >
             <LogOut size={18} className="shrink-0" />
-            {!collapsed && <span>{t("Cerrar sesión")}</span>}
+            {!collapsed && <span>Cerrar sesión</span>}
           </button>
         </div>
       </aside>

@@ -2,6 +2,8 @@ import { getPredictionMode } from "./predictionMode";
 import { MSG_CONNECTION, MSG_GENERIC, MSG_SERVICE, SHOW_REAL_ERRORS, isTechnical, realError } from "../utils/userMessages";
 
 export const API_URL = (import.meta.env.VITE_MODEL_API_URL || "http://localhost:8000").replace(/\/$/, "");
+
+export const PREDICTION_SET_SIZE = 59;
 export const EXAMPLE_CSV_URL = `${API_URL}/example-csv`;
 
 export const EXAMPLE_TODOS_URL = `${import.meta.env.BASE_URL}ejemplos/Archivos_de_ejemplo.zip`;
@@ -53,16 +55,14 @@ export async function errorFromResponse(res) {
   return new ApiError(message, { status: res.status, url: res.url, raw: raw.slice(0, 4000) });
 }
 
-export async function predictCsv(file, modo = getPredictionMode()) {
+export async function predictCsv(file, modo = getPredictionMode(), signal) {
   const formData = new FormData();
   formData.append("file", file); 
-  const res = await fetch(`${API_URL}/predict-csv?modo=${encodeURIComponent(modo)}`, { method: "POST", body: formData });
+  const res = await fetch(`${API_URL}/predict-csv?modo=${encodeURIComponent(modo)}`, { method: "POST", body: formData, signal });
   if (!res.ok) throw await errorFromResponse(res);
   return res.json();
 }
 
-// CSV resumen (ID_POLIGONO, AREA_HA, RENDIMIENTO_T_HA, CONJUNTO) con las 59 parcelas del conjunto de predicción.
-// Siempre se calcula con «Solo lluvia», el modelo con mejor validación. Devuelve { blob, filename }.
 export async function fetchSubmissionCsv(nombre) {
   const res = await fetch(`${API_URL}/submission-csv?nombre=${encodeURIComponent(nombre)}&modo=lluvia`);
   if (!res.ok) throw await errorFromResponse(res);

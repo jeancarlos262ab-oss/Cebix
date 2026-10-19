@@ -1,5 +1,6 @@
+const LOCALE = "es-MX";
+
 export const DEFAULT_REGION = {
-  idioma: "es-MX",
   formatoFecha: "dd/mm/aaaa",
   zonaHoraria: "America/Mexico_City",
 };
@@ -10,7 +11,7 @@ export function setIntlPrefs(prefs) {
   current = { ...DEFAULT_REGION, ...prefs };
 }
 
-export const getLocale = () => current.idioma;
+export const getLocale = () => LOCALE;
 
 const formatters = new Map();
 function cached(Ctor, locale, options) {
@@ -64,12 +65,11 @@ export function formatDate(value) {
 export function formatTime(value) {
   const d = toDate(value);
   if (!d) return "—";
-  const english = current.idioma.startsWith("en");
-  return dateFormat(current.idioma, {
+  return dateFormat(LOCALE, {
     timeZone: safeTimeZone(current.zonaHoraria),
     hour: "2-digit",
     minute: "2-digit",
-    hourCycle: english ? "h12" : "h23",
+    hourCycle: "h23",
   }).format(d);
 }
 
@@ -82,7 +82,7 @@ export function formatDateTime(value) {
 export function formatMonthYear(value) {
   const d = toDate(value);
   if (!d) return "—";
-  return dateFormat(current.idioma, {
+  return dateFormat(LOCALE, {
     timeZone: safeTimeZone(current.zonaHoraria),
     year: "numeric",
     month: "long",
@@ -92,10 +92,10 @@ export function formatMonthYear(value) {
 export function formatNumber(value, options) {
   const n = Number(value);
   if (!Number.isFinite(n)) return "—";
-  return numberFormat(current.idioma, options).format(n);
+  return numberFormat(LOCALE, options).format(n);
 }
 
-export function timeZoneOffsetLabel(tz, locale = current.idioma) {
+export function timeZoneOffsetLabel(tz, locale = LOCALE) {
   try {
     const part = dateFormat(locale, { timeZone: tz, timeZoneName: "shortOffset" })
       .formatToParts(new Date())
@@ -104,4 +104,8 @@ export function timeZoneOffsetLabel(tz, locale = current.idioma) {
   } catch {
     return "";
   }
+}
+
+export function formatFixed(value, decimals = 1) {
+  return formatNumber(value, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }

@@ -1,7 +1,3 @@
-// Modo con el que se calculó una parcela ("lluvia" o "10var") y los textos que el PDF
-// debe mostrar para cada uno. `modo` es null cuando el registro no lo guardó
-// (captura manual, CSV propio o corridas anteriores a este cambio).
-
 import { SOURCES, WINDOWS, featuresForMode } from "../data/satelite";
 
 export const MODE_LABEL = { lluvia: "Solo lluvia", "10var": "10 variables", ciclo: "Ciclo completo", "10var_ciclo": "10 variables + ciclo completo" };
@@ -18,7 +14,6 @@ export function reportMode(parcel) {
   return m === "lluvia" || m === "10var" || m === "ciclo" || m === "10var_ciclo" ? m : null;
 }
 
-// Nota metodológica según el modo, con las métricas de validación de ese modelo.
 export function modeModelNote(modo, modelSummary, modelModes) {
   const m = modo ? modelModes?.[modo] : null;
   if (modo === "lluvia") {
@@ -62,12 +57,10 @@ export const MODE_CAVEAT = {
   "10var_ciclo": " No es más preciso que «Solo lluvia»: con 138 parcelas de un solo ciclo (2025) los índices satelitales y la lluvia de encañado y espigado aportan muy poco. Es una referencia de riesgo, no una cifra exacta de cosecha.",
 };
 
-// Aviso visible en pantalla (no en el PDF, que usa MODE_CAVEAT) para el modo "10var_ciclo".
 export const MODE_NOTICE = {
   "10var_ciclo": "No es más preciso que «Solo lluvia»: con 138 parcelas de un solo ciclo (2025) los índices satelitales y la lluvia de encañado y espigado aportan muy poco. Úsalo para contrastar; es una referencia de riesgo, no una cifra exacta de cosecha.",
 };
 
-// Lluvia por etapa (mm) de una parcela calculada en modo "ciclo" o "10var_ciclo": { enc, esp } o null.
 export function stageRain(parcel) {
   const e = parcel?.precipEtapas ?? parcel?.satelite?.etapas;
   const f = parcel?.satelite?.features;
@@ -76,8 +69,6 @@ export function stageRain(parcel) {
   return enc === null && esp === null ? null : { enc, esp };
 }
 
-// Variables del modelo de una parcela según el modo con que se calculó, listas para el PDF:
-// [{ short, label, detail, value, unit, digits }]. null si no hay valores guardados (registros antiguos).
 export function reportFeatures(parcel, modo) {
   const list = featuresForMode(modo);
   const values = parcel?.satelite?.features ?? parcel?.features ?? null;

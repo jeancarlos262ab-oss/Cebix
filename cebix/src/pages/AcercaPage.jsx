@@ -185,7 +185,7 @@ export default function AcercaPage() {
           {}
           <Reveal className="pb-6 pt-10 lg:pt-16">
             <div className="max-w-xl">
-              <Heading title="La cebada en el altiplano" large bebas>
+              <Heading title="La cebada en el altiplano" bebas sizeClass="text-3xl sm:text-4xl">
                 La cebada es un cereal de clima templado. Una parte importante de la producción nacional se destina a la
                 industria de la malta, y Hidalgo, Puebla y Tlaxcala figuran entre las zonas donde más se cultiva. Casi toda
                 se siembra de temporal, sin riego: lo que llueve al inicio del ciclo marca gran parte de la cosecha.

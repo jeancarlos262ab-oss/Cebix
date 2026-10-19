@@ -127,7 +127,7 @@
     },
     {
       "title": "Margen de error por estado",
-      "detail": "RMSE por estado: Tlaxcala 0.40 t/ha, Hidalgo 0.54 t/ha, Puebla 0.58 t/ha. El intervalo del 90 % se arma con los errores fuera de muestra de cada estado. Al medir su cobertura de forma honesta (usando solo los errores de parcelas de otros bloques) el intervalo crudo cubría 84 %, no 90 %; por eso se ensancha 1.3 veces, con lo que cubre cerca de 89 %."
+      "detail": "RMSE por estado: Tlaxcala 0.40 t/ha, Hidalgo 0.54 t/ha, Puebla 0.59 t/ha. El intervalo del 90 % se arma con los errores fuera de muestra de cada estado. Al medir su cobertura de forma honesta (usando solo los errores de parcelas de otros bloques) el intervalo crudo cubría 84 %, no 90 %; por eso se ensancha 1.3 veces, con lo que cubre cerca de 89 %."
     },
     {
       "title": "Variables adicionales del dataset oficial",

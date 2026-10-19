@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { Download } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -10,7 +9,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { downloadCSV } from "../../utils/csv";
 import { useParcels } from "../../context/ParcelsContext";
 import { yieldHistogram } from "../../utils/parcelStats";
 
@@ -72,24 +70,6 @@ export default function YieldDistribution() {
             Cuántas parcelas caen en cada rango de rendimiento (ton/ha) según el modelo.
           </p>
         </div>
-        <button
-          type="button"
-          aria-label="Descargar CSV de esta serie"
-          title="Descargar CSV de esta serie"
-          onClick={() =>
-            downloadCSV(
-              "cebix-distribucion-rendimiento.csv",
-              [
-                { key: "label", label: "Rango (ton/ha)" },
-                { key: "value", label: "Parcelas" },
-              ],
-              data
-            )
-          }
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-        >
-          <Download size={16} strokeWidth={1.75} />
-        </button>
       </div>
 
       <div className="mt-6 h-60 w-full">

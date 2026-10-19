@@ -5,6 +5,7 @@ import { Minus, Plus } from "lucide-react";
 import { PANEL } from "../geomap/mapUi";
 import { locationPinHtml, PIN_SIZE, PIN_TIP_OFFSET } from "./LocationPin";
 import "leaflet/dist/leaflet.css";
+import { formatFixed } from "../../utils/intl";
 
 const DEFAULT_CENTER = [19.9, -98.1]; 
 const DEFAULT_ZOOM = 8;
@@ -135,7 +136,7 @@ export default function LocationPickerMap({ lat, lng, onChange, height = 260, ba
         {hasPoint ? (
           <>
             <span className="font-mono tabular-nums">
-              {latN.toFixed(5)}, {lngN.toFixed(5)}
+              {formatFixed(latN, 5)}, {formatFixed(lngN, 5)}
             </span>
             <span className="hidden text-gray-400 sm:inline"> · arrastra el pin o toca otro lugar</span>
           </>

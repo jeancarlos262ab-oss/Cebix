@@ -11,7 +11,7 @@ import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { useModelInfo } from "../context/ModelInfoContext";
 import { generateYieldReportPDF } from "../utils/yieldReport";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
-import { formatNumber } from "../utils/intl";
+import { formatNumber, formatFixed } from "../utils/intl";
 import { isCicloMode } from "../data/satelite";
 import { stageRain } from "../utils/reportMode";
 
@@ -65,10 +65,10 @@ function PrediccionesPageContent() {
     setGenerating(true);
     try {
       await generateYieldReportPDF(parcel, { modelSummary: info?.modelSummary, modelModes: info?.modelModes });
-      toast.success("Reporte PDF generado.");
+      toast.success("PDF descargado.");
     } catch (err) {
       console.error("Error al generar el PDF", err);
-      toast.error("No se pudo generar el reporte PDF. Inténtalo de nuevo.");
+      toast.error("No se pudo generar el PDF. Inténtalo de nuevo.");
     } finally {
       setGenerating(false);
     }
@@ -93,10 +93,10 @@ function PrediccionesPageContent() {
       if (!avg) return { ...base, icon: Minus, diff: "Sin referencia" };
       const d = ((value - avg) / avg) * 100;
       if (Math.abs(d) < 0.5) return { ...base, icon: Minus, diff: "En línea" };
-      return { ...base, icon: d > 0 ? TrendingUp : TrendingDown, diff: `${d > 0 ? "+" : "−"}${Math.abs(d).toFixed(0)} %` };
+      return { ...base, icon: d > 0 ? TrendingUp : TrendingDown, diff: `${d > 0 ? "+" : "−"}${formatFixed(Math.abs(d), 0)} %` };
     };
     return [
-      row("EVI", parcel.evi, regionAverages.evi, (v) => Number(v).toFixed(2)),
+      row("EVI", parcel.evi, regionAverages.evi, (v) => formatFixed(Number(v), 2)),
       row("GDD acumulados", parcel.gdd, regionAverages.gdd, fmtInt),
     ];
   }, [parcel, regionAverages]);
@@ -164,10 +164,10 @@ function PrediccionesPageContent() {
               type="button"
               onClick={handleGenerate}
               disabled={generating}
-              className="mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:opacity-60 dark:focus-visible:ring-offset-black"
+              className="mt-8 flex w-full items-center justify-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-semibold text-accent-contrast shadow-xs transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:opacity-60 dark:focus-visible:ring-offset-black"
             >
               {generating ? <Loader2 size={15} className="animate-spin" /> : <FileDown size={15} />}
-              Generar reporte PDF
+              Descargar PDF
             </button>
           </section>
         </aside>
@@ -193,7 +193,7 @@ function PrediccionesPageContent() {
               high={parcel.ic90 ? parcel.ic90[1] : parcel.yieldEstimate + parcel.confidence}
               score={parcel.score}
               rows={[
-                { label: "NDVI pico", value: parcel.ndvi.toFixed(2) },
+                { label: "NDVI pico", value: formatFixed(parcel.ndvi, 2) },
                 ...(isCicloMode(parcel.modo)
                   ? [
                       { label: "Lluvia abr–may", value: `${parcel.precip} mm` },
@@ -221,7 +221,7 @@ function PrediccionesPageContent() {
                 <div className="relative mt-3 min-h-[160px] flex-1 max-md:min-h-[220px]">
                   {hasCoords(parcel) ? (
                     <div className="absolute inset-0">
-                      <StaticMapImage lat={parcel.lat} lng={parcel.lng} zoom={17} height={260} rounded fill />
+                      <StaticMapImage lat={parcel.lat} lng={parcel.lng} zoom={17} height={260} rounded fill bottomFade />
                     </div>
                   ) : (
                     <div className="flex h-full min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-gray-300 px-4 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
@@ -238,7 +238,7 @@ function PrediccionesPageContent() {
                   <Row label="Región">
                     {parcel.region} ({parcel.regionCode})
                   </Row>
-                  <Row label="Coordenadas">{hasCoords(parcel) ? `${parcel.lat.toFixed(4)}, ${parcel.lng.toFixed(4)}` : "—"}</Row>
+                  <Row label="Coordenadas">{hasCoords(parcel) ? `${formatFixed(parcel.lat, 4)}, ${formatFixed(parcel.lng, 4)}` : "—"}</Row>
                   <Row label="Origen del dato">
                     <span className="font-normal leading-snug">{originLabel}</span>
                   </Row>

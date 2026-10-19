@@ -7,6 +7,7 @@ import FeatureCountChart from "../components/charts/FeatureCountChart";
 import RunModelPanel from "../components/model/RunModelPanel";
 import RequireModelInfo from "../components/ui/RequireModelInfo";
 import { useModelInfo } from "../context/ModelInfoContext";
+import { formatFixed } from "../utils/intl";
 
 const TABS = [
   { key: "ejecutar", label: "Ejecutar modelo" },
@@ -104,7 +105,7 @@ function ResumenTab() {
           </div>
           <p className="mt-3 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
             {planetModel.rmse < planetModel.baseline.rmse
-              ? `Con Planet el error baja ${(planetModel.baseline.rmse - planetModel.rmse).toFixed(2)} t/ha.`
+              ? `Con Planet el error baja ${formatFixed((planetModel.baseline.rmse - planetModel.rmse), 2)} t/ha.`
               : "Con Planet la precisión no mejora, por eso no se usa."}{" "}
             Un archivo de Planet se ejecuta con el modelo de lluvia y sus índices se muestran como contexto de la parcela.
           </p>
@@ -286,8 +287,8 @@ function ProcesoTab() {
                     {r.variant}
                     {r.group && <span className="ml-1.5 text-xs text-gray-400 dark:text-gray-500">{r.group}</span>}
                   </td>
-                  <td className="px-2 py-2.5 text-right tabular-nums text-gray-700 dark:text-gray-300">{r.r2.toFixed(3)}</td>
-                  <td className="px-2 py-2.5 text-right tabular-nums text-gray-700 dark:text-gray-300">{r.rmse.toFixed(3)}</td>
+                  <td className="px-2 py-2.5 text-right tabular-nums text-gray-700 dark:text-gray-300">{formatFixed(r.r2, 3)}</td>
+                  <td className="px-2 py-2.5 text-right tabular-nums text-gray-700 dark:text-gray-300">{formatFixed(r.rmse, 3)}</td>
                   <td className="px-5 py-2.5 text-right">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${VERDICT_STYLE[r.verdict]}`}>{r.verdict}</span>
                   </td>

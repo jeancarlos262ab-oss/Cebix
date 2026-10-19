@@ -1,39 +1,3 @@
-"""
-Reto AgroCebada 2026 — Entrenamiento, validación y exportación (script ÚNICO y vigente)
-========================================================================================
-
-Reemplaza a train_model / select_features / select_features_sin_planet / probar_variables_extra /
-build_model_meta / process_meta (quedaron en `historico/`: se evaluaron con otra validación).
-
-MODELO EN PRODUCCIÓN: Random Forest poco profundo (profundidad 2, hojas de 8) sobre UNA variable, la lluvia acumulada
-en emergencia-macollamiento (abr–may). Se llegó así por evidencia, no por preferencia:
-  * Con validación honesta (abajo) ninguna combinación de variables satelitales, clima o terreno le gana a la lluvia sola.
-    Añadir las 10 variables que se usaban antes (elegidas por importancia dentro de cada partición) EMPEORA: 0.62 contra 0.53.
-  * Se compararon 8 familias de modelo/variables en particiones de bloques NUEVAS (semillas distintas a las del desarrollo);
-    la lluvia con Random Forest de profundidad 2 fue la mejor tanto en bloques como en estado nuevo.
-  * Es más estable (sin selección de variables que cambie de una partición a otra), más rápido y no depende de que haya
-    imágenes sin nubes: el backend solo necesita CHIRPS.
-Las variables satelitales se siguen calculando y mostrando como contexto de cada parcela, pero no entran a la predicción.
-
-Cómo se valida (y qué cifra es cuál):
-  a) BLOQUES ESPACIALES (principal): las parcelas se agrupan por cercanía (k-means sobre lat/lng, 12 bloques) y cada bloque
-     se deja fuera completo; 5 folds y 6 repeticiones con bloques distintos. Ninguna parcela se evalúa con vecinas en el
-     entrenamiento (la mediana del vecino más cercano es de ~0.4 km, así que un k-fold al azar infla el resultado).
-  b) ESTADO NUEVO (leave-region-out): se deja fuera un estado completo. Prueba de estrés: región sin parcelas de entrenamiento.
-  c) Para los modelos que eligen variables, la elección se rehace dentro de cada partición de entrenamiento; elegirlas con
-     todos los datos y luego validar con los mismos datos filtra información (RMSE optimista, ~0.10 t/ha con las 10 variables).
-  d) Referencia ingenua: promedio del estado. Si el modelo no la supera, no aporta.
-
-Intervalos y error por estado: salen de los residuos fuera de muestra de (a), por estado; el IC del 90 % cubrió 90 %.
-
-Exporta: models/model_artifact.joblib (producción), models/model_meta.json y models/model_planet_meta.json
-(evaluación del modelo con Planet, que NO se usa en producción: no mejora a la lluvia sola).
-
-Uso (desde ml/03_modelo):
-    python entrenar_y_validar.py --features ../02_datos_procesados/features_completo.csv \
-        --models-dir ../../backend/models --results-dir ./resultados_FINAL
-"""
-
 import argparse
 import json
 import os
@@ -55,17 +19,16 @@ from sklearn.preprocessing import StandardScaler
 
 warnings.filterwarnings("ignore")
 SEED = 42
-N_BLOCKS = 12          # bloques espaciales por repetición
+N_BLOCKS = 12          
 N_FOLDS = 5
-N_REPS = 6             # repeticiones con bloques distintos
+N_REPS = 6             
 TARGET = "rendimiento_t_ha"
 PRECIP = "precip_acum_emergencia_macollamiento_mm"
-RF_PARAMS = dict(n_estimators=300, max_depth=4, min_samples_leaf=4, max_features=1.0, random_state=SEED, n_jobs=-1)   # modelos con varias variables
-# Modelo en producción: Random Forest poco profundo sobre la lluvia temprana (ver docstring; elegido en particiones nuevas).
+RF_PARAMS = dict(n_estimators=300, max_depth=4, min_samples_leaf=4, max_features=1.0, random_state=SEED, n_jobs=-1)   
+
 PROD_PARAMS = dict(n_estimators=300, max_depth=2, min_samples_leaf=8, max_features=1.0, random_state=SEED, n_jobs=-1)
 PROD_FEATURES = ["precip_acum_emergencia_macollamiento_mm"]
 
-# Las 10 variables del modelo anterior. Se siguen evaluando como comparación y para el contexto de la parcela en el dashboard.
 OPEN_FEATURES = [
     "precip_acum_emergencia_macollamiento_mm", "bas_n_obs_ciclo", "bas_lai_espigado_llenado",
     "bas_ndti_emergencia_macollamiento", "bas_sti_encanado", "bas_ndvi_emergencia_macollamiento",
@@ -85,9 +48,8 @@ LABELS = {
 }
 WINDOWS = {"emergencia_macollamiento": "emergencia-macollamiento", "encanado": "encañado", "espigado_llenado": "espigado-llenado"}
 NON_FEATURE = ["ID_POLIGONO", "Cultivo", "Municipio", "Estado", "CONJUNTO", "area_ha_shp", "area_ha", TARGET, "lat", "lng"]
-# No reproducibles en vivo con fuentes gratuitas (ver README): Planet (pago), FAPAR, VI6T, MRA y NDDI/ENDDI.
-NOT_LIVE = ("pro_", "fapar", "vi6t", "mra", "nddi", "enddi")
 
+NOT_LIVE = ("pro_", "fapar", "vi6t", "mra", "nddi", "enddi")
 
 def planet_label(f):
     if f in LABELS:
@@ -95,16 +57,11 @@ def planet_label(f):
     _, idx, win = f.split("_", 2)
     return f"{idx.upper()} Planet en {WINDOWS[win]}"
 
-
 def fmt(x, n=3):
     return round(float(x), n)
 
-
-# ──────────────────────────────── Modelos ────────────────────────────────
-
 def rf():
     return RandomForestRegressor(**RF_PARAMS)
-
 
 def algorithms():
     return {
@@ -118,7 +75,6 @@ def algorithms():
         "Ridge": ("baseline", lambda: RidgeCV(alphas=np.logspace(-3, 3, 50))),
     }
 
-
 def prep(train_df, test_df, cols):
     imp = SimpleImputer(strategy="median")
     sc = StandardScaler()
@@ -126,14 +82,10 @@ def prep(train_df, test_df, cols):
     b = sc.transform(imp.transform(test_df[cols]))
     return a, b
 
-
-# ──────────────────────────────── Validación ────────────────────────────────
-
 def block_splits(df, rep):
-    """Un reparto en bloques espaciales: lista de (índices de entrenamiento, índices de prueba)."""
+    
     groups = KMeans(N_BLOCKS, n_init=3, random_state=rep).fit_predict(df[["lat", "lng"]].values)
     return list(GroupKFold(n_splits=N_FOLDS).split(df, groups=groups))
-
 
 def state_splits(df):
     out = []
@@ -142,21 +94,18 @@ def state_splits(df):
         out.append((np.where(df["Estado"].values != st)[0], te))
     return out
 
-
 def oof_predictions(df, splits_per_rep, predict_fold):
-    """Matriz (repeticiones x parcelas) de predicciones fuera de muestra."""
+    
     P = np.full((len(splits_per_rep), len(df)), np.nan)
     for r, splits in enumerate(splits_per_rep):
         for tr, te in splits:
             P[r, te] = predict_fold(df.iloc[tr], df.iloc[te])
     return P
 
-
 def metrics(y, P):
     rm = [np.sqrt(mean_squared_error(y, p)) for p in P]
     return {"rmse": fmt(np.mean(rm)), "rmse_sd": fmt(np.std(rm)), "mae": fmt(np.mean([mean_absolute_error(y, p) for p in P])),
             "r2": fmt(np.mean([r2_score(y, p) for p in P]))}
-
 
 def fixed_fold(cols, make=rf):
     def go(tr, te):
@@ -164,9 +113,8 @@ def fixed_fold(cols, make=rf):
         return make().fit(a, tr[TARGET].values).predict(b)
     return go
 
-
 def infold_topk_fold(pool, k, make=rf, record=None):
-    """Elige las k variables MÁS IMPORTANTES usando solo la partición de entrenamiento y entrena con ellas."""
+    
     def go(tr, te):
         a, b = prep(tr, te, pool)
         r = RandomForestRegressor(n_estimators=200, max_depth=4, min_samples_leaf=4, random_state=0, n_jobs=-1).fit(a, tr[TARGET].values)
@@ -176,20 +124,16 @@ def infold_topk_fold(pool, k, make=rf, record=None):
         return make().fit(a[:, idx], tr[TARGET].values).predict(b[:, idx])
     return go
 
-
 def state_mean_fold(tr, te):
     m = tr.groupby("Estado")[TARGET].mean()
     return te["Estado"].map(m).values
-
 
 def by_state(y, est, P):
     R = y[None, :] - P
     return {s: fmt(np.sqrt(np.mean(R[:, est == s] ** 2))) for s in sorted(set(est))}
 
-
-
 def forced_topk_fold(pool, k, make, forced=PRECIP):
-    """La lluvia siempre entra; las k-1 variables restantes se eligen por importancia usando solo la partición de entrenamiento."""
+    
     others = [c for c in pool if c != forced]
 
     def go(tr, te):
@@ -202,10 +146,8 @@ def forced_topk_fold(pool, k, make, forced=PRECIP):
         return make().fit(a, tr[TARGET].values).predict(b)
     return go
 
-
 def prod_rf():
     return RandomForestRegressor(**PROD_PARAMS)
-
 
 def main(args):
     os.makedirs(args.results_dir, exist_ok=True)
@@ -220,17 +162,17 @@ def main(args):
     print(f"{len(train)} parcelas de entrenamiento | {len(all_feats)} variables | {len(live_feats)} abiertas")
 
     blocks = [block_splits(train, r) for r in range(N_REPS)]
-    cv = lambda splits, fn: oof_predictions(train, splits, fn)  # noqa: E731
+    cv = lambda splits, fn: oof_predictions(train, splits, fn)  
     states = [state_splits(train)]
     prod_fold = fixed_fold(PROD_FEATURES, prod_rf)
 
-    # --- 1. Modelo en producción frente a la referencia y al modelo anterior --------------------------------
+    
     print("\n[1/6] Modelo en producción, referencia y modelo anterior bajo cada validación...")
     P_prod = cv(blocks, prod_fold)
     P_base = cv(blocks, state_mean_fold)
     chosen = []
-    P_old = cv(blocks, infold_topk_fold(live_feats, 10, record=chosen))          # 10 variables, selección dentro de la partición
-    P_old_fixed = cv(blocks, fixed_fold(OPEN_FEATURES))                           # 10 variables fijas (optimista)
+    P_old = cv(blocks, infold_topk_fold(live_feats, 10, record=chosen))          
+    P_old_fixed = cv(blocks, fixed_fold(OPEN_FEATURES))                           
     m_prod, m_base, m_old, m_old_fixed = (metrics(y, P) for P in (P_prod, P_base, P_old, P_old_fixed))
     m_prod_state = metrics(y, cv(states, prod_fold))
     m_old_state = metrics(y, cv(states, infold_topk_fold(live_feats, 10)))
@@ -242,7 +184,7 @@ def main(args):
     ym = pd.Series(y).groupby(est).transform("mean").values
     within_r2 = fmt(np.mean([1 - ((y - p) ** 2).sum() / ((y - ym) ** 2).sum() for p in P_prod]))
 
-    # --- 2. Algoritmos sobre la misma variable ---------------------------------------------------------------
+    
     print("\n[2/6] Comparación de algoritmos (misma variable: lluvia temprana)...")
     algo_rows = []
     for name, (kind, make) in algorithms().items():
@@ -253,7 +195,7 @@ def main(args):
     algo_rows.sort(key=lambda r: r["rmse"])
     pd.DataFrame(algo_rows).to_csv(os.path.join(args.results_dir, "comparacion_algoritmos.csv"), index=False)
 
-    # --- 3. Cuántas variables conviene usar (la lluvia siempre; el resto elegido dentro de la partición) --------
+    
     print("\n[3/6] Búsqueda del número de variables...")
     count_rows = []
     for k in [1, 2, 3, 5, 10, 20, len(live_feats)]:
@@ -262,7 +204,7 @@ def main(args):
         print(f"  lluvia + {k - 1:2d} más  {m}")
     pd.DataFrame(count_rows).to_csv(os.path.join(args.results_dir, "busqueda_n_variables.csv"), index=False)
 
-    # --- 4. Etapas y variables extra --------------------------------------------------------------------------
+    
     print("\n[4/6] Etapas del modelo y variables extra...")
     m_all = metrics(y, cv(blocks, fixed_fold(all_feats)))
     stages = [
@@ -293,7 +235,7 @@ def main(args):
         print(f"  {name:36s} R2={m['r2']:.3f} RMSE={m['rmse']:.3f}  {verdict}")
     pd.DataFrame(extra_rows).to_csv(os.path.join(args.results_dir, "variables_extra.csv"), index=False)
 
-    # --- 5. Modelo con Planet (evaluación; no se usa en producción) ---------------------------------------------
+    
     print("\n[5/6] Modelo con Planet (solo evaluación)...")
     P_planet = cv(blocks, fixed_fold(planet_feats))
     m_planet = metrics(y, P_planet)
@@ -302,7 +244,7 @@ def main(args):
     m_planet_shallow = metrics(y, P_planet_prod)
     print("  Planet RF estándar", m_planet, "| RF poco profundo", m_planet_shallow, "| estado nuevo", m_planet_state)
 
-    # --- 6. Ajuste final, artefacto y metadatos -----------------------------------------------------------------
+    
     print("\n[6/6] Ajuste final y exportación...")
     res = (y[None, :] - P_prod).ravel()
     res_state = {st: (y[None, :] - P_prod)[:, est == st].ravel() for st in sorted(set(est))}
@@ -316,8 +258,8 @@ def main(args):
                  "feature_labels": labels, "rmse_by_region": rmse_state, "overall_rmse": float(np.sqrt(np.mean(res ** 2))),
                  "residuals_oof": res, "residuals_by_state": res_state, "model_name": "Random Forest"},
                 os.path.join(args.models_dir, "model_artifact.joblib"))
-    # Plan B: las 10 variables abiertas. Los errores (RMSE por estado, intervalo) salen de la validación con selección
-    # dentro de la partición (P_old), la cifra honesta de ese enfoque, no de la optimista de variables fijas.
+    
+    
     res_b = (y[None, :] - P_old).ravel()
     res_b_state = {st: (y[None, :] - P_old)[:, est == st].ravel() for st in sorted(set(est))}
     rmse_b_state = by_state(y, est, P_old)
@@ -338,7 +280,7 @@ def main(args):
     cov_b = float(np.mean(np.concatenate([(r >= qs_b[st][0]) & (r <= qs_b[st][1]) for st, r in res_b_state.items()])))
     planet_artifact = os.path.join(args.models_dir, "model_artifact_planet.joblib")
     if os.path.exists(planet_artifact):
-        os.remove(planet_artifact)   # ya no se usa: el CSV PRO se ejecuta con el modelo de lluvia
+        os.remove(planet_artifact)   
 
     Xall = pd.DataFrame(sc.transform(imp.transform(full[PROD_FEATURES])), columns=PROD_FEATURES)
     sv = shap.TreeExplainer(model)(Xall).values
@@ -348,8 +290,9 @@ def main(args):
     pp = model.predict(sc.transform(imp.transform(pred[PROD_FEATURES])))
     qs = {st: np.quantile(r, [0.05, 0.95]) for st, r in res_state.items()}
     q_all = np.quantile(res, [0.05, 0.95])
-    lo = np.array([pp[i] + qs.get(e, q_all)[0] for i, e in enumerate(pred["Estado"])])
-    hi = np.array([pp[i] + qs.get(e, q_all)[1] for i, e in enumerate(pred["Estado"])])
+    IC_INFLATION = 1.3   
+    lo = np.array([pp[i] + IC_INFLATION * qs.get(e, q_all)[0] for i, e in enumerate(pred["Estado"])])
+    hi = np.array([pp[i] + IC_INFLATION * qs.get(e, q_all)[1] for i, e in enumerate(pred["Estado"])])
     pd.DataFrame({"ID_POLIGONO": pred["ID_POLIGONO"], "Estado": pred["Estado"], "Municipio": pred["Municipio"],
                   "rendimiento_t_ha": np.round(pp, 2), "ic90_inferior": np.round(lo, 2), "ic90_superior": np.round(hi, 2)}
                  ).to_csv(os.path.join(args.results_dir, "predicciones_finales.csv"), index=False)
@@ -460,7 +403,6 @@ def main(args):
     print("\nListo.")
     print(f"  RMSE reportado {m_prod['rmse']} t/ha, R² {m_prod['r2']} | por estado {rmse_state}")
     print(f"  IC90 cobertura {cov:.3f} por estado {cov_state} | sesgo por estado {bias} | R² intra-estado {within_r2}")
-
 
 if __name__ == "__main__":
     here = os.path.dirname(os.path.abspath(__file__))

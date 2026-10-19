@@ -17,6 +17,7 @@ import RiskTrafficLight from "./RiskTrafficLight";
 import RangeBadge from "../ui/RangeBadge";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { RISK_COLORS } from "../../utils/riskColors";
+import { formatFixed } from "../../utils/intl";
 
 const RISK_HEX = RISK_COLORS;
 
@@ -334,6 +335,7 @@ function ParcelMapGL({
   edgeFade = false,
   controlsOrientation = "vertical",
   zoomClassName = "",
+  isolated = true,
   basemapKeys,
   basemap: initialBasemap,
   onWebGLError,
@@ -709,7 +711,7 @@ function ParcelMapGL({
     <div
       ref={containerRef}
       style={{ height: typeof height === "number" ? `${height}px` : height }}
-      className={`map-fs relative isolate w-full overflow-hidden bg-black ${rounded ? "rounded-2xl" : ""}`}
+      className={`map-fs relative ${isolated ? "isolate" : ""} w-full overflow-hidden bg-black ${rounded ? "rounded-2xl" : ""}`}
     >
       {sized && (
       <Map
@@ -822,10 +824,10 @@ function ParcelMapGL({
               </p>
               <div className="mt-2 space-y-1 text-xs text-gray-300">
                 <p>
-                  <span className="font-medium">Rendimiento:</span> {popupInfo.yieldEstimate.toFixed(1)} ton/ha
+                  <span className="font-medium">Rendimiento:</span> {formatFixed(popupInfo.yieldEstimate, 1)} ton/ha
                 </p>
                 <p>
-                  <span className="font-medium">NDVI:</span> {popupInfo.ndvi.toFixed(2)}
+                  <span className="font-medium">NDVI:</span> {formatFixed(popupInfo.ndvi, 2)}
                 </p>
                 <p>
                   <span className="font-medium">Nivel:</span> {popupInfo.risk}

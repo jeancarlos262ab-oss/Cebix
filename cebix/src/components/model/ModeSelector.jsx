@@ -17,7 +17,6 @@ const BASE = {
 
 const MODE_KEYS = ["lluvia", "10var", "ciclo", "10var_ciclo"];
 
-// Los modos con índices Sentinel-2/Landsat no sirven con el CSV PRO (Planet).
 const USES_INDICES = (key) => key === "10var" || key === "10var_ciclo";
 
 const INFO_BTN =

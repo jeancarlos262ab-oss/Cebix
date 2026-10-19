@@ -10,6 +10,7 @@ export default function StaticMapImage({
   height = 130,
   rounded = false,
   fill = false,
+  bottomFade = false,
   className = "",
 }) {
   const [loaded, setLoaded] = useState(false);
@@ -62,6 +63,10 @@ export default function StaticMapImage({
         <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400 dark:text-gray-500">
           Cargando vista…
         </div>
+      )}
+
+      {bottomFade && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
       )}
 
       <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-[-95%]">

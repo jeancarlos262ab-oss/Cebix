@@ -217,7 +217,6 @@ const firstNum = (...vals) => {
   return null;
 };
 
-// Variables del modelo (según el modo) presentes en la fila del CSV / respuesta, para mostrarlas y para el PDF.
 function pickFeatures(meta, modo) {
   const list = featuresForMode(modo);
   if (!list) return null;
@@ -307,7 +306,7 @@ export function ParcelsProvider({ children }) {
 
   const notifySaveError = useCallback((what, err) => {
     console.error(`No se pudo guardar ${what} en Supabase`, err);
-    toast.error(`No pudimos guardar ${what}. Por ahora solo se conserva en este navegador; inténtalo de nuevo más tarde.`, {
+    toast.error(`No se pudo guardar ${what}. Por ahora solo se conserva en este navegador; inténtalo de nuevo más tarde.`, {
       id: `save-${what}`,
     });
   }, []);
@@ -349,7 +348,7 @@ export function ParcelsProvider({ children }) {
         }
       } else if (remoteA.error) {
         console.error("No se pudo leer la corrida del modelo de Supabase", remoteA.error);
-        toast.error("No pudimos cargar tu última corrida guardada. Inténtalo de nuevo más tarde.", {
+        toast.error("No se pudo cargar tu última corrida guardada. Inténtalo de nuevo más tarde.", {
           id: "load-analysis",
           duration: 10000,
         });
@@ -667,7 +666,7 @@ export function ParcelsProvider({ children }) {
       regionSummary,
       hasAnalysis: analysisParcels.length > 0,
       analysisMeta: analysis ? { fileName: analysis.fileName, runAt: analysis.runAt, count: analysisParcels.length } : null,
-      // Corrida ya guardada (la que reemplazaría un borrador sin guardar); null si no hay borrador o no había ninguna.
+      
       savedAnalysisMeta: (() => {
         if (!analysisDirty || !uid) return null;
         const saved = appStorage.getJSON(scopedKey(ANALYSIS_KEY, uid), null);

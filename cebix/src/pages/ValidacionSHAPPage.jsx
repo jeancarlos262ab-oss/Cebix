@@ -1,4 +1,5 @@
-import { usePredictionMode } from "../services/predictionMode";
+import { MODES, usePredictionMode } from "../services/predictionMode";
+import { MODE_DESC, MODE_LABEL } from "../utils/reportMode";
 import { useMemo, useState } from "react";
 import { BarChart3, CalendarRange, ChevronDown, ImageIcon, Layers, Sigma } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
@@ -10,6 +11,7 @@ import RequireAnalysis from "../components/ui/RequireAnalysis";
 import RequireModelInfo from "../components/ui/RequireModelInfo";
 import { Card, DIVIDE, Heading, HeroPhoto, LINE, Reveal } from "../components/ui/PageKit";
 import heroImage from "../assets/shap/imagen-1.webp";
+import { formatFixed } from "../utils/intl";
 
 const FILES = import.meta.glob("../assets/shap/imagen-*.webp", { eager: true, import: "default" });
 const imageFor = (n) => Object.entries(FILES).find(([path]) => new RegExp(`/imagen-${n}\\.[a-z]+$`).test(path))?.[1];
@@ -121,7 +123,7 @@ function SummaryStat({ label, value, hint }) {
       <Label>{label}</Label>
       {value != null ? (
         <>
-          <p className="mt-3 font-display text-3xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">{value}</p>
+          <p className="mt-3 font-display text-xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">{value}</p>
           {hint && <p className="mt-1.5 text-xs leading-snug text-gray-500 dark:text-gray-400">{hint}</p>}
         </>
       ) : (
@@ -165,7 +167,7 @@ function ImportanceRow({ rank, row, share, cumulative, maxValue }) {
 
       <span className="text-right font-display font-medium tabular-nums text-gray-900 dark:text-gray-100">
         {SIGN[row.direction] ?? ""}
-        {row.value.toFixed(3)}
+        {formatFixed(row.value, 3)}
       </span>
 
       <span className="hidden text-right font-display text-xs tabular-nums text-gray-500 dark:text-gray-400 sm:block">
@@ -215,12 +217,41 @@ function WindowBreakdown({ rows }) {
   );
 }
 
+function ModeTabs({ mode, onChange }) {
+  return (
+    <div role="radiogroup" aria-label="Modo del modelo a validar" className="grid w-full grid-cols-2 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 xl:min-w-0 xl:flex-[2]">
+      {MODES.map((key, i) => {
+        const active = key === mode;
+        return (
+          <button
+            key={key}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(key)}
+            className={`flex min-h-11 items-center justify-center border-gray-200 px-3 py-2 dark:border-gray-800 ${i % 2 === 0 ? "border-r" : ""} ${i < 2 ? "border-b" : ""} text-center font-display text-[13px] font-medium leading-tight transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-500 ${
+              active
+                ? "bg-accent-600 text-white dark:bg-accent-400 dark:text-black"
+                : "bg-white text-gray-600 hover:bg-gray-50 dark:bg-black dark:text-gray-400 dark:hover:bg-gray-800"
+            }`}
+          >
+            {MODE_LABEL[key]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function ValidacionSHAPPageContent() {
-  const { parcels } = useParcels();
+  const { parcels: allParcels } = useParcels();
   const { info } = useModelInfo();
   const { modelSummary, guidingQuestions } = info;
   
-  const [predMode] = usePredictionMode();
+  
+  const [globalMode] = usePredictionMode();
+  const [predMode, setPredMode] = useState(globalMode);
+  const parcels = useMemo(() => allParcels.filter((p) => (p.modo ?? "lluvia") === predMode), [allParcels, predMode]);
   const globalImportance = info.modelModes?.[predMode]?.importance?.length ? info.modelModes[predMode].importance : info.globalImportance;
   const [filter, setFilter] = useState("todas");
   const globalDirection = useMemo(
@@ -311,41 +342,44 @@ function ValidacionSHAPPageContent() {
 
       <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         {}
-        <Reveal className="pb-6 pt-10 lg:pt-16">
+        <Reveal className="relative pb-6 pt-10 lg:pt-16">
           <div className="max-w-xl">
-            <Heading title="Qué mueve la predicción" large bebas>
+            <Heading title="Qué mueve la predicción" bebas sizeClass="text-3xl sm:text-4xl">
               SHAP reparte cada predicción entre las variables que la produjeron. Aquí se revisa que el modelo dé
               peso a lo que debe, que lo haga en la dirección esperada y que el semáforo sea coherente con ello.
             </Heading>
           </div>
           {}
-          <dl className="mt-10 grid max-w-5xl gap-y-6 sm:grid-cols-3 sm:divide-x sm:divide-gray-200 sm:dark:divide-gray-800">
-            {[
-              {
-                label: "Variable dominante",
-                big: `${Math.round((topFeature.value / total) * 100)}%`,
-                note: topFeature.feature,
-              },
-              {
-                label: "Ventana más crítica",
-                big: `${windowShares.share}%`,
-                note: `${topWindow.label} · ${topWindow.note}`,
-              },
-              {
-                label: "Coherencia con el semáforo",
-                big: checks.eligible ? `${pct(checks.eligiblePositive, checks.eligible)}%` : "—",
-                note: checks.eligible
-                  ? `${checks.eligiblePositive} de ${checks.eligible} parcelas de rendimiento alto`
-                  : "Aún no hay parcelas de rendimiento alto para comparar",
-              },
-            ].map((f) => (
-              <div key={f.label} className="min-w-0 sm:px-8 sm:first:pl-0 sm:last:pr-0">
-                <dt className="text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{f.label}</dt>
-                <dd className="mt-2 font-display text-4xl font-semibold tabular-nums text-accent-600 dark:text-accent-400 sm:text-5xl">{f.big}</dd>
-                <dd className="mt-2 text-sm leading-snug text-gray-600 dark:text-gray-300">{f.note}</dd>
-              </div>
-            ))}
-          </dl>
+          <div className="mt-10 flex flex-col gap-8 xl:flex-row xl:items-center xl:gap-10">
+            <dl className="grid min-w-0 flex-[3] gap-y-6 sm:grid-cols-3 sm:divide-x sm:divide-gray-200 sm:dark:divide-gray-800">
+              {[
+                {
+                  label: "Variable dominante",
+                  big: `${Math.round((topFeature.value / total) * 100)}%`,
+                  note: topFeature.feature,
+                },
+                {
+                  label: "Ventana más crítica",
+                  big: `${windowShares.share}%`,
+                  note: `${topWindow.label} · ${topWindow.note}`,
+                },
+                {
+                  label: "Coherencia con el semáforo",
+                  big: checks.eligible ? `${pct(checks.eligiblePositive, checks.eligible)}%` : "—",
+                  note: checks.eligible
+                    ? `${checks.eligiblePositive} de ${checks.eligible} parcelas de rendimiento alto`
+                    : "Aún no hay parcelas de rendimiento alto para comparar",
+                },
+              ].map((f) => (
+                <div key={f.label} className="min-w-0 sm:px-8 sm:first:pl-0 sm:last:pr-0">
+                  <dt className="text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{f.label}</dt>
+                  <dd className="mt-2 font-display text-2xl font-semibold tabular-nums text-accent-600 dark:text-accent-400 sm:text-3xl">{f.big}</dd>
+                  <dd className="mt-2 text-sm leading-snug text-gray-600 dark:text-gray-300">{f.note}</dd>
+                </div>
+              ))}
+            </dl>
+            <ModeTabs mode={predMode} onChange={setPredMode} />
+          </div>
         </Reveal>
 
         {}
@@ -374,7 +408,7 @@ function ValidacionSHAPPageContent() {
                   />
                   <SummaryStat
                     label="Correlación SHAP – rendimiento"
-                    value={checks.r == null ? "—" : checks.r.toFixed(2)}
+                    value={checks.r == null ? "—" : formatFixed(checks.r, 2)}
                     hint={`r de Pearson sobre ${checks.total} parcelas`}
                   />
                 </JoinedCells>
@@ -451,9 +485,9 @@ function ValidacionSHAPPageContent() {
             <Reveal className="flex-auto">
               <Card className="h-full" title="Consistencia del score">
                 <div className="p-5">
-                  <p className="font-display text-3xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                  <p className="font-display text-xl font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                     {checks.eligiblePositive}
-                    <span className="ml-1.5 text-base font-normal text-gray-400 dark:text-gray-500">
+                    <span className="ml-1.5 text-sm font-normal text-gray-400 dark:text-gray-500">
                       de {checks.eligible} de rendimiento alto
                     </span>
                   </p>
@@ -566,7 +600,7 @@ function ValidacionSHAPPageContent() {
                         label="Rendimiento estimado"
                         value={
                           <>
-                            {selected.yieldEstimate.toFixed(2)}
+                            {formatFixed(selected.yieldEstimate, 1)}
                             <span className="ml-1 text-sm font-normal text-gray-400 dark:text-gray-500">ton/ha</span>
                           </>
                         }
@@ -582,7 +616,7 @@ function ValidacionSHAPPageContent() {
                       />
                       <SummaryStat
                         label="SHAP neto (top 4)"
-                        value={`${localNet >= 0 ? "+" : "−"}${Math.abs(localNet).toFixed(3)}`}
+                        value={`${localNet >= 0 ? "+" : "−"}${formatFixed(Math.abs(localNet), 3)}`}
                       />
                       <SummaryStat label="Variable dominante" value={null} hint={localDrivers[0].feature} />
                     </JoinedCells>
@@ -607,7 +641,7 @@ function ValidacionSHAPPageContent() {
                   </>
                 ) : (
                   <p className="p-5 text-sm text-gray-500 dark:text-gray-400">
-                    Aún no hay parcelas con contribuciones SHAP para explicar.
+                    Aún no hay parcelas calculadas en el modo «{MODE_LABEL[predMode]}». Ejecuta el modelo con este modo para explicarlas aquí.
                   </p>
                 )}
               </Card>

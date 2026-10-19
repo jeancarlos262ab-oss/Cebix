@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Search, CornerDownLeft } from "lucide-react";
 import { useParcels } from "../../context/ParcelsContext";
 import { RISK_COLORS } from "../../utils/riskColors";
+import { formatFixed } from "../../utils/intl";
 
 const RISK_DOT = RISK_COLORS;
 
@@ -142,7 +143,7 @@ export default function GlobalSearch() {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium text-gray-900 dark:text-gray-100">{p.name}</span>
                   <span className="block truncate text-xs text-gray-400 dark:text-gray-500">
-                    {p.municipio}, {p.region} · {p.yieldEstimate.toFixed(1)} ton/ha
+                    {p.municipio}, {p.region} · {formatFixed(p.yieldEstimate, 1)} ton/ha
                   </span>
                 </span>
                 {i === activeIndex && <CornerDownLeft size={13} className="shrink-0 text-accent-600 dark:text-accent-400" />}

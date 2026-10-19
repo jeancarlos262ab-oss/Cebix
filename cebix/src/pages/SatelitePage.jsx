@@ -1,6 +1,6 @@
 import { userMessage } from "../utils/userMessages";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { toast } from "../services/toast";
 import {
   AlertTriangle,
@@ -21,8 +21,6 @@ import GeometryMap from "../components/geomap/GeometryMap";
 import { Collapse, SlideList } from "../components/ui/Collapse";
 import RunProgress from "../components/satelite/RunProgress";
 import ParcelResult from "../components/satelite/ParcelResult";
-import ValidationTable from "../components/satelite/ValidationTable";
-import ValidationRunner from "../components/satelite/ValidationRunner";
 import { Z90, classifyRisk, scoreFromInputs, useParcels } from "../context/ParcelsContext";
 import { predictFromGeometry } from "../services/sateliteApi";
 import ModeSelector from "../components/model/ModeSelector";
@@ -42,30 +40,13 @@ import {
 } from "../utils/polygon";
 import { formatDistance } from "../utils/geo";
 import { checkPointUrban, checkUrban } from "../utils/urbanCheck";
-
-const REAL_VALIDATION = Object.values(import.meta.glob("../data/sateliteValidation.json", { eager: true, import: "default" }))[0];
-
-const TABS = [
-  { key: "nueva", label: "Nueva parcela" },
-  { key: "validacion", label: "Validación del cálculo" },
-];
+import { BTN_OUTLINE_SM } from "../components/ui/buttonStyles";
+import { formatFixed } from "../utils/intl";
 
 const FIELD =
   "w-full rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-[13px] text-gray-800 focus:border-accent-500 focus:outline-hidden focus:ring-1 focus:ring-accent-500 disabled:opacity-50 dark:border-gray-700 dark:bg-black dark:text-gray-200";
 
-const BTN =
-  "inline-flex items-center justify-center gap-1.5 rounded-md border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800";
-
-function SectionHeader({ title, description }) {
-  return (
-    <div className="mb-5">
-      <h2 className="font-display text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
-      {description && (
-        <p className="mt-1 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">{description}</p>
-      )}
-    </div>
-  );
-}
+const BTN = BTN_OUTLINE_SM;
 
 function Field({ label, hint, children }) {
   return (
@@ -302,7 +283,7 @@ function NuevaParcelaTab() {
       landuse: `cerca del ${Math.round((urban.share ?? 0) * 100)} % del contorno está sobre mancha urbana`,
       place: "hay un poblado marcado dentro del contorno",
       streets: `hay ${urban.streets} calles urbanas dentro del contorno`,
-      buildings: `hay ${urban.buildings} construcciones dentro del contorno (${(urban.perHa ?? 0).toFixed(1)} por ha)`,
+      buildings: `hay ${urban.buildings} construcciones dentro del contorno (${formatFixed((urban.perHa ?? 0), 1)} por ha)`,
       amenities: `hay ${urban.amenities} comercios, escuelas o iglesias dentro del contorno`,
     }[urban.reason] ?? "se detectó una zona urbana";
     if (urbanOverride) {
@@ -523,7 +504,7 @@ function NuevaParcelaTab() {
       requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     } catch (err) {
       if (err.name === "AbortError") return;
-      const message = userMessage(err, "No pudimos completar el cálculo.");
+      const message = userMessage(err, "No se pudo completar el cálculo.");
       setError({ message }); 
       setPhase("error");
       toast.error("No se pudieron calcular los índices", {
@@ -539,7 +520,7 @@ function NuevaParcelaTab() {
     const f = view.features;
     const fields = {
       name: ran.name,
-      area: `${ran.ha.toFixed(2)} ha`,
+      area: `${formatFixed(ran.ha, 2)} ha`,
       yieldEstimate: result.yieldEstimate,
       confidence: view.half,
       score: view.score, 
@@ -680,7 +661,7 @@ function NuevaParcelaTab() {
         </div>
 
         {}
-        <aside className="grid min-w-0 grid-cols-1 divide-y divide-gray-200 border-t border-gray-200 dark:divide-gray-800 dark:border-gray-800 lg:grid-cols-[minmax(0,17rem)_minmax(0,15rem)_minmax(0,1fr)] lg:divide-x lg:divide-y-0">
+        <aside className="grid min-w-0 grid-cols-1 divide-y divide-gray-200 border-t border-gray-200 dark:divide-gray-800 dark:border-gray-800 lg:grid-cols-3 lg:divide-x lg:divide-y-0">
           <PanelSection n={1} state={s1} title="Contorno de la parcela">
             {info ? (
               <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-gray-200 bg-gray-200 dark:border-gray-800 dark:bg-gray-800">
@@ -688,7 +669,7 @@ function NuevaParcelaTab() {
                 <Metric label="Perímetro">{formatDistance(info.perimeter)}</Metric>
                 <Metric label="Vértices">{points.length}</Metric>
                 <Metric label="Centroide" wide>
-                  {info.center[0].toFixed(5)}, {info.center[1].toFixed(5)}
+                  {formatFixed(info.center[0], 5)}, {formatFixed(info.center[1], 5)}
                 </Metric>
               </dl>
             ) : (
@@ -765,7 +746,7 @@ function NuevaParcelaTab() {
           <PanelSection n={3} state={s3} running={running} title="Predicción">
             {!running && <ModeSelector stacked className="mb-3" />}
             {running ? (
-              <button type="button" onClick={cancel} className={`${BTN} w-full gap-2 px-3 py-2 text-xs font-medium`}>
+              <button type="button" onClick={cancel} className={`${BTN} gap-2 px-4 py-2 text-xs font-medium`}>
                 <Square size={14} /> Cancelar cálculo
               </button>
             ) : (
@@ -773,7 +754,7 @@ function NuevaParcelaTab() {
                 type="button"
                 onClick={run}
                 disabled={!canRun}
-                className="flex w-full items-center justify-center gap-2 rounded-md bg-accent-500 px-3 py-2 text-xs font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black"
+                className="flex w-fit items-center justify-center gap-2 rounded-md bg-accent-500 px-4 py-2 text-xs font-medium text-accent-contrast transition-colors hover:bg-accent-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:focus-visible:ring-offset-black"
               >
                 <Calculator size={14} strokeWidth={1.75} />
                 {result ? "Recalcular índices satelitales" : "Calcular índices satelitales"}
@@ -800,7 +781,7 @@ function NuevaParcelaTab() {
                     type="button"
                     onClick={saveResult}
                     disabled={saving || stale || urbanBlocked}
-                    className="flex w-full items-center justify-center gap-2 rounded-md border border-accent-500 px-3 py-2 text-xs font-medium text-accent-700 transition-colors hover:bg-accent-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:text-accent-400 dark:hover:bg-accent-500/10 dark:focus-visible:ring-offset-black"
+                    className="flex w-fit items-center justify-center gap-2 rounded-md border border-accent-500 px-4 py-2 text-xs font-medium text-accent-700 transition-colors hover:bg-accent-50 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:text-accent-400 dark:hover:bg-accent-500/10 dark:focus-visible:ring-offset-black"
                   >
                     {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} strokeWidth={1.75} />}
                     {saving ? "Guardando…" : replacesSaved ? "Reemplazar parcela guardada" : "Guardar parcela"}
@@ -811,7 +792,7 @@ function NuevaParcelaTab() {
                     type="button"
                     onClick={() => saveResult({ asNew: true })}
                     disabled={saving || stale || urbanBlocked}
-                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-medium text-gray-600 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-300"
+                    className="mt-2 flex w-fit items-center justify-center gap-2 rounded-md px-1 py-2 text-xs font-medium text-gray-600 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-300"
                   >
                     Guardar como parcela nueva
                   </button>
@@ -953,61 +934,7 @@ function NuevaParcelaTab() {
   );
 }
 
-function ValidacionTab({ rows, setRows }) {
-  return (
-    <div className="space-y-8">
-      <SectionHeader
-        title="¿Qué tan fiel es el cálculo en vivo?"
-        description="Se repite el cálculo satelital sobre parcelas de referencia y se compara con los valores oficiales. Los índices y la lluvia deben quedar dentro de ±15 %; el número de imágenes puede diferir más."
-      />
-
-      <ValidationRunner onRows={setRows} />
-
-      {rows.length > 0 ? (
-        <ValidationTable
-          rows={rows}
-          onClear={() => setRows([])}
-          onDownload={() => downloadBlob("validacion_satelite.json", JSON.stringify(rows.map(({ id, official, live }) => ({ id, official, live })), null, 2))}
-        />
-      ) : (
-        <div className="rounded-2xl border border-dashed border-gray-300 px-6 py-10 text-center dark:border-gray-700">
-          <h3 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Aún no hay parcelas comparadas</h3>
-          <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-            Sube arriba el CSV con los valores oficiales y los contornos de esas parcelas, y pulsa &quot;Calcular y comparar&quot;. Los resultados
-            aparecen aquí, parcela por parcela, a medida que se calculan.
-          </p>
-        </div>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
-          <h3 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Criterio de aceptación</h3>
-          <ul className="mt-3 list-disc space-y-2 pl-4 text-sm text-gray-600 marker:text-gray-300 dark:text-gray-400 dark:marker:text-gray-600">
-            <li>Índices espectrales y precipitación: diferencia dentro de ±15 %.</li>
-            <li>Densidad de observaciones: puede diferir más (±30 %); si es sistemático, se ajusta o se documenta.</li>
-            <li>Diferencias pequeñas son normales: distinta versión del procesamiento atmosférico o geometría exacta.</li>
-          </ul>
-        </div>
-        <div className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
-          <h3 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">Si algo sale fuera de rango, revisa</h3>
-          <ul className="mt-3 list-disc space-y-2 pl-4 text-sm text-gray-600 marker:text-gray-300 dark:text-gray-400 dark:marker:text-gray-600">
-            <li>Que el polígono esté en lat/lng y no en UTM.</li>
-            <li>Que se use promedio por escena → mediana por ventana, y no un compuesto por píxel.</li>
-            <li>Que la lluvia sume los 61 días de abril y mayo (si falta un día, no se puede calcular el valor).</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function SatelitePage() {
-  const [params, setParams] = useSearchParams();
-  const requested = params.get("tab");
-  const tab = TABS.some((t) => t.key === requested) ? requested : "nueva";
-  
-  const [validationRows, setValidationRows] = useState(() => (Array.isArray(REAL_VALIDATION) ? REAL_VALIDATION.map((r) => ({ ...r, live: r.live ?? r.gee })) : []));
-
   return (
     <>
       <TopBar
@@ -1021,38 +948,8 @@ export default function SatelitePage() {
         }
       />
 
-      <div className="mt-4 px-4 sm:px-6 lg:px-8">
-        <div role="tablist" className="flex gap-6 overflow-x-auto border-b border-gray-200 scrollbar-none dark:border-gray-800">
-          {TABS.map((t) => {
-            const active = t.key === tab;
-            return (
-              <button
-                key={t.key}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setParams({ tab: t.key }, { replace: true })}
-                className={`-mb-px shrink-0 border-b-2 pb-3 text-sm font-medium transition-colors ${
-                  active
-                    ? "border-accent-500 text-gray-900 dark:text-white"
-                    : "border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-                }`}
-              >
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       <div className="px-4 py-6 sm:px-6 lg:px-8">
-        {}
-        <div hidden={tab !== "nueva"}>
-          <NuevaParcelaTab />
-        </div>
-        <div hidden={tab !== "validacion"}>
-          <ValidacionTab rows={validationRows} setRows={setValidationRows} />
-        </div>
+        <NuevaParcelaTab />
       </div>
     </>
   );
