@@ -548,6 +548,7 @@ html.dark .app-corner-glow {
   width: 100% !important;
   height: 100% !important;
   border-radius: 0 !important;
+  border-width: 0 !important;
 }
 
 html:not(.dark) .border-gray-100:not(.dark *),

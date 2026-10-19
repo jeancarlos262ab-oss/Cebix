@@ -32,7 +32,7 @@ export default function StaticMapImage({
       title="Abrir ubicación en Google Maps"
       className={[
         "group relative block w-full cursor-pointer overflow-hidden bg-black text-left",
-        rounded ? "rounded-2xl" : "",
+        rounded ? "rounded-2xl border border-gray-200 bg-clip-padding dark:border-gray-800" : "",
         className,
       ].join(" ")}
       style={{ height: fill ? "100%" : `${height}px` }}

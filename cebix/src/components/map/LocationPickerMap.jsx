@@ -95,7 +95,7 @@ export default function LocationPickerMap({ lat, lng, onChange, height = 260, ba
 
   return (
     <div
-      className={`relative overflow-hidden bg-gray-100 dark:bg-gray-900 ${bare ? "" : "rounded-xl border border-gray-300 dark:border-gray-700"}`}
+      className={`relative overflow-hidden bg-gray-100 dark:bg-gray-900 ${bare ? "" : "rounded-2xl border border-gray-200 dark:border-gray-800"}`}
       style={{ height }}
     >
       <MapContainer

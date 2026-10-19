@@ -5,7 +5,7 @@ import TopBar from "../components/layout/TopBar";
 import { useParcels } from "../context/ParcelsContext";
 import { RISK_COLORS } from "../utils/riskColors";
 import { WINDOWS } from "../data/satelite";
-import { Card, CHIP, DIVIDE, Fact, Heading, HERO_MASK, LINE, Reveal, useHeroSize } from "../components/ui/PageKit";
+import { Card, CHIP, DIVIDE, Fact, Heading, HERO_MASK, ImageShade, LINE, Reveal, useHeroSize } from "../components/ui/PageKit";
 
 const FILES = import.meta.glob("../assets/acerca/imagen-*.webp", { eager: true, import: "default" });
 const imageFor = (n) => Object.entries(FILES).find(([path]) => new RegExp(`/imagen-${n}\\.[a-z]+$`).test(path))?.[1];
@@ -48,6 +48,7 @@ const Photo = memo(function Photo({ src, alt, className, position, eager, badge,
         }`}
         style={{ objectPosition: position }}
       />
+      <ImageShade />
       {badge && (
         <span
           className={`absolute bottom-3 left-3 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white transition-opacity duration-700 ${loaded ? "opacity-100" : "opacity-0"}`}

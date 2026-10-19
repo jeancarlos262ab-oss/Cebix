@@ -9,7 +9,7 @@ import { useParcels } from "../context/ParcelsContext";
 import { Contributions, Label } from "../components/results/ReportParts";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
 import RequireModelInfo from "../components/ui/RequireModelInfo";
-import { Card, DIVIDE, Heading, HeroPhoto, LINE, Reveal } from "../components/ui/PageKit";
+import { Card, DIVIDE, Heading, HeroPhoto, ImageShade, LINE, Reveal } from "../components/ui/PageKit";
 import heroImage from "../assets/shap/imagen-1.webp";
 import { formatFixed } from "../utils/intl";
 
@@ -29,6 +29,7 @@ function ShapImage({ n, className = "", position = "center" }) {
     return (
       <figure className={`group relative overflow-hidden bg-gray-100 dark:bg-gray-900 ${className}`}>
         <img src={src} alt={slot.title} loading="lazy" decoding="async" className="absolute inset-0 size-full transform-gpu object-cover transition-transform duration-700 ease-out will-change-transform group-hover:scale-[1.05] motion-reduce:transition-none motion-reduce:group-hover:scale-100" style={{ objectPosition: position }} />
+        <ImageShade />
         <figcaption className="absolute bottom-3 left-3 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white">{slot.caption}</figcaption>
       </figure>
     );

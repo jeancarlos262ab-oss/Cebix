@@ -335,7 +335,7 @@ function ParcelMapLite({
     <div
       ref={containerRef}
       style={{ height: typeof height === "number" ? `${height}px` : height }}
-      className={`map-fs relative ${isolated ? "isolate" : ""} w-full overflow-hidden bg-black ${rounded ? "rounded-2xl" : ""}`}
+      className={`map-fs relative ${isolated ? "isolate" : ""} w-full overflow-hidden bg-black ${rounded ? "rounded-2xl border border-gray-200 bg-clip-padding dark:border-gray-800" : ""}`}
     >
       <MapContainer
         ref={mapRef}

@@ -8,7 +8,7 @@ const ParcelMapLite = lazy(loadParcelMapLite);
 
 function MapLoadingFallback({ height, rounded }) {
   return (
-    <div className="app-skeleton w-full" style={{ height: typeof height === "number" ? `${height}px` : height }}>
+    <div className={`app-skeleton w-full ${rounded ? "overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800" : ""}`} style={{ height: typeof height === "number" ? `${height}px` : height }}>
       <BlockSkeleton height="100%" rounded={!!rounded} />
     </div>
   );

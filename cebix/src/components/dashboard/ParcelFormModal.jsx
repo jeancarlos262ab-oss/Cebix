@@ -1,6 +1,6 @@
 import { userMessage } from "../../utils/userMessages";
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, Lock } from "lucide-react";
 import LocationPickerMap from "../map/LocationPickerMap";
 import { detectEstado } from "../../utils/polygon";
 import { reverseLocation } from "../../utils/reverseGeocode";
@@ -52,11 +52,11 @@ function validate(form, metadataOnly = false) {
   if (!form.area.trim() || Number.isNaN(Number(form.area))) errors.area = "Número de hectáreas";
   for (const field of metadataOnly ? METADATA_FIELDS : NUMERIC_FIELDS) {
     if (form[field] === "" || Number.isNaN(Number(form[field]))) {
-      errors[field] = "Requerido";
+      errors[field] = field === "lat" || field === "lng" ? "Marca el mapa" : "Requerido";
     }
   }
   if (form.lat && (Number(form.lat) < 14 || Number(form.lat) > 33)) {
-    errors.lat = "Fuera de México";
+    errors.lat = "Fuera de México: mueve el pin";
   }
   if (!metadataOnly && form.ndvi && (Number(form.ndvi) < -1 || Number(form.ndvi) > 1)) {
     errors.ndvi = "NDVI está entre -1 y 1";
@@ -74,10 +74,9 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
 
   
   const [locating, setLocating] = useState(false);
-  const formRef = useRef(form);
-  formRef.current = form;
-  const autoMunicipio = useRef(""); 
-  const regionTouched = useRef(false); 
+  // Municipio y región se bloquean al marcar el punto; solo se liberan si no
+  // se pudieron obtener automáticamente (sin red, fuera de las 3 regiones…).
+  const [manual, setManual] = useState(() => ({ municipio: Boolean(parcel) && !parcel.municipio, region: false }));
   const geoRequest = useRef(null);
   useEffect(() => () => geoRequest.current?.abort(), []);
 
@@ -86,38 +85,35 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
   }
 
   function handlePick(lat, lng) {
-    
     const estado = detectEstado(lat, lng);
+    // El lugar siempre sale del punto marcado: se limpia el municipio anterior
+    // para que nunca quede uno que no corresponda con el pin.
     setForm((f) => ({
       ...f,
       lat: String(lat),
       lng: String(lng),
-      ...(estado && !metadataOnly && !regionTouched.current ? { region: estado } : {}),
+      municipio: "",
+      ...(estado && !metadataOnly ? { region: estado } : {}),
     }));
-    setErrors((e) => ({ ...e, lat: undefined, lng: undefined }));
+    setManual({ municipio: false, region: false });
+    setErrors((e) => ({ ...e, lat: undefined, lng: undefined, municipio: undefined }));
 
-    
-    
     geoRequest.current?.abort();
     const controller = new AbortController();
     geoRequest.current = controller;
     setLocating(true);
     reverseLocation(lat, lng, { signal: controller.signal })
-      .then(({ municipio, estado }) => {
+      .then(({ municipio, estado: geoEstado }) => {
         if (controller.signal.aborted) return;
-        if (estado && !metadataOnly && !regionTouched.current) {
-          setForm((f) => ({ ...f, region: estado }));
-        }
-        if (municipio) {
-          const current = formRef.current.municipio.trim();
-          if (current === "" || current === autoMunicipio.current) {
-            autoMunicipio.current = municipio;
-            setForm((f) => ({ ...f, municipio }));
-            setErrors((e) => ({ ...e, municipio: undefined }));
-          }
-        }
+        const finalEstado = estado || geoEstado;
+        if (!estado && geoEstado && !metadataOnly) setForm((f) => ({ ...f, region: geoEstado }));
+        if (municipio) setForm((f) => ({ ...f, municipio }));
+        setManual({ municipio: !municipio, region: !finalEstado });
       })
-      .catch(() => {}) 
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setManual({ municipio: true, region: !estado });
+      })
       .finally(() => {
         if (!controller.signal.aborted) setLocating(false);
       });
@@ -147,6 +143,10 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
       setSaving(false);
     }
   }
+
+  const hasPoint = form.lat !== "" && form.lng !== "" && Number.isFinite(Number(form.lat)) && Number.isFinite(Number(form.lng));
+  const municipioLocked = hasPoint && !manual.municipio;
+  const regionLocked = hasPoint && !manual.region;
 
   return (
     <Modal
@@ -189,6 +189,9 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
       <div>
         <section className="grid grid-cols-2 content-start gap-3">
           <SectionTitle>Datos de la parcela</SectionTitle>
+          <p className="col-span-2 -mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Marca la parcela en el mapa: la ubicación, el municipio y la región se llenan solos y quedan bloqueados para evitar errores.
+          </p>
 
           <Field label="Nombre" span2 error={errors.name}>
             <input
@@ -199,23 +202,24 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
             />
           </Field>
 
-          <Field label="Municipio" error={errors.municipio}>
+          <Field label={<LockedLabel locked={municipioLocked}>Municipio</LockedLabel>} error={errors.municipio}>
             <input
               value={form.municipio}
               onChange={(e) => set("municipio", e.target.value)}
-              className={inputClass(errors.municipio)}
+              readOnly={municipioLocked}
+              aria-readonly={municipioLocked}
+              placeholder={locating ? "Buscando…" : hasPoint && manual.municipio ? "Escríbelo, no se pudo detectar" : "Se llena al marcar el mapa"}
+              className={municipioLocked ? lockedClass : inputClass(errors.municipio)}
             />
           </Field>
 
           {!metadataOnly ? (
-            <Field label="Región">
+            <Field label={<LockedLabel locked={regionLocked}>Región</LockedLabel>}>
               <select
                 value={form.region}
-                onChange={(e) => {
-                  regionTouched.current = true;
-                  set("region", e.target.value);
-                }}
-                className={inputClass()}
+                onChange={(e) => set("region", e.target.value)}
+                disabled={regionLocked}
+                className={regionLocked ? lockedClass : inputClass()}
               >
                 {(REGIONS.includes(form.region) || !form.region ? REGIONS : [...REGIONS, form.region]).map((r) => (
                   <option key={r} value={r}>
@@ -230,12 +234,12 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
             </Field>
           )}
 
-          <Field label="Latitud" error={errors.lat}>
-            <input value={form.lat} onChange={(e) => set("lat", e.target.value)} placeholder="19.85" className={inputClass(errors.lat)} />
+          <Field label={<LockedLabel locked>Latitud</LockedLabel>} error={errors.lat}>
+            <input value={form.lat} readOnly aria-readonly placeholder="Marca el mapa" className={errors.lat ? `${lockedClass} border-red-400!` : lockedClass} />
           </Field>
 
-          <Field label="Longitud" error={errors.lng}>
-            <input value={form.lng} onChange={(e) => set("lng", e.target.value)} placeholder="-98.30" className={inputClass(errors.lng)} />
+          <Field label={<LockedLabel locked>Longitud</LockedLabel>} error={errors.lng}>
+            <input value={form.lng} readOnly aria-readonly placeholder="Marca el mapa" className={errors.lng ? `${lockedClass} border-red-400!` : lockedClass} />
           </Field>
 
         </section>
@@ -298,6 +302,17 @@ export default function ParcelFormModal({ parcel, onClose, onSubmit }) {
 }
 
 const inputClass = modalInput;
+
+const lockedClass = `${modalInput()} cursor-not-allowed bg-gray-100! text-gray-500! focus:border-gray-300! focus:ring-0! dark:bg-gray-900! dark:text-gray-400! dark:focus:border-gray-700!`;
+
+function LockedLabel({ locked, children }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      {children}
+      {locked && <Lock size={10} strokeWidth={2} className="text-gray-400 dark:text-gray-500" aria-label="Bloqueado" />}
+    </span>
+  );
+}
 
 function SectionTitle({ className = "", children }) {
   return (

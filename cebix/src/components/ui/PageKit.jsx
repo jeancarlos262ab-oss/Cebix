@@ -65,6 +65,18 @@ export function Fact({ icon: Icon, label, wrap = false, children }) {
   );
 }
 
+const BOTTOM_SHADE = "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.7) 22%, rgba(0,0,0,0.45) 48%, rgba(0,0,0,0.18) 78%, rgba(0,0,0,0) 100%)";
+
+export function ImageShade({ className = "h-[38%]" }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={`pointer-events-none absolute inset-x-0 bottom-0 ${className}`}
+      style={{ background: BOTTOM_SHADE }}
+    />
+  );
+}
+
 const FADE_LEFT = "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.03) 8%, rgba(0,0,0,0.12) 18%, rgba(0,0,0,0.28) 30%, rgba(0,0,0,0.5) 43%, rgba(0,0,0,0.74) 57%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.98) 85%, #000 100%)";
 const FADE_DOWN = "linear-gradient(to bottom, #000 0%, rgba(0,0,0,0.98) 15%, rgba(0,0,0,0.9) 28%, rgba(0,0,0,0.74) 40%, rgba(0,0,0,0.5) 53%, rgba(0,0,0,0.28) 66%, rgba(0,0,0,0.12) 78%, rgba(0,0,0,0.03) 90%, transparent 100%)";
 export const HERO_MASK = {
@@ -132,6 +144,7 @@ export const HeroPhoto = memo(function HeroPhoto({ src, alt = "", position = "ce
         className={`size-full object-cover transition-opacity duration-700 motion-reduce:transition-none ${loaded ? "opacity-100" : "opacity-0"}`}
         style={{ objectPosition: position }}
       />
+      <ImageShade />
     </div>
   );
 });

@@ -639,7 +639,7 @@ function NuevaParcelaTab() {
   return (
     <div className="space-y-6">
       {}
-      <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
         {}
         <div className="relative h-[320px] sm:h-[380px] lg:h-[420px]">
           <div className="absolute inset-0">
