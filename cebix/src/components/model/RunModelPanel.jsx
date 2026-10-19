@@ -341,3 +341,260 @@ function SubmissionDownload() {
     </form>
   );
 }
+
+const GUIDE_ITEMS = [
+  {
+    term: "Rendimiento (t/ha)",
+    text: "Cuánta cebada se espera cosechar en cada hectárea. 1 tonelada (t) son 1,000 kg.",
+  },
+  {
+    term: "IC 90%",
+    text: "El rango más probable. Hay un 90 % de probabilidad de que la cosecha real quede entre esos dos números.",
+  },
+  {
+    term: "± RMSE",
+    text: "Cuánto suele equivocarse el modelo, en t/ha. Mientras más pequeño, más confiable es la estimación.",
+  },
+  {
+    term: "Variable de mayor impacto",
+    text: "El factor que más pesó en la estimación. Flecha verde ↑: la subió. Flecha roja ↓: la bajó.",
+  },
+];
+
+const FALLBACK_LIMITS = [
+  "Un solo ciclo de entrenamiento (2025) y una sola variable: la lluvia de abril–mayo.",
+  "Desviación de ±0.54 t/ha: sirve para comparar y priorizar parcelas, no para fijar una cifra exacta.",
+];
+
+function ReliabilityNotice({ results }) {
+  const { info } = useModelInfo();
+  const limits = info?.limitaciones?.length ? info.limitaciones : FALLBACK_LIMITS;
+  const outside = results.filter((r) => r.fuera_de_rango);
+  return (
+    <div className="mb-3 space-y-2 text-xs">
+      {outside.length > 0 && (
+        <div
+          role="alert"
+          className="flex gap-2 rounded-2xl border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
+        >
+          <AlertTriangle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">
+              {outside.length === 1 ? "1 parcela queda" : `${outside.length} parcelas quedan`} fuera de lo que el modelo vio al entrenar
+            </p>
+            <p className="mt-0.5">
+              Su estimación es una extrapolación y menos confiable ({outside.slice(0, 5).map((r) => r.ID_POLIGONO).join(", ")}
+              {outside.length > 5 ? "…" : ""}). Pasa el cursor sobre la etiqueta &quot;Fuera de rango&quot; para ver el motivo.
+            </p>
+          </div>
+        </div>
+      )}
+      <details className="rounded-2xl border border-gray-200 p-3 text-gray-600 dark:border-gray-800 dark:text-gray-400">
+        <summary className="cursor-pointer font-medium text-gray-900 dark:text-gray-100">
+          Cómo interpretar estas estimaciones
+        </summary>
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          {limits.map((t) => (
+            <li key={t}>{t}</li>
+          ))}
+        </ul>
+      </details>
+    </div>
+  );
+}
+
+function ResultsGuide({ results }) {
+  if (!results?.length) return null; 
+  const first = results[0];
+  const top = first?.shap?.[0];
+  const kg = first ? Math.round(Number(first.yieldEstimate) * 1000) : NaN;
+
+  return (
+    <div className="mt-2 rounded-2xl border border-gray-200 p-4 text-xs dark:border-gray-800 md:mt-4">
+      <h3 className="font-display text-xs font-semibold text-gray-900 dark:text-gray-100">
+        ¿Cómo leer la tabla?
+      </h3>
+      <p className="mt-1 text-gray-500 dark:text-gray-400">
+        Cada fila es una parcela y el modelo estima cuánta cebada dará.
+      </p>
+
+      <dl className="mt-3 space-y-2.5">
+        {GUIDE_ITEMS.map((item) => (
+          <div key={item.term}>
+            <dt className="font-medium text-gray-900 dark:text-gray-100">{item.term}</dt>
+            <dd className="mt-0.5 text-gray-500 dark:text-gray-400">{item.text}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {Number.isFinite(kg) && (
+        <p className="mt-3 pt-3 text-gray-700 dark:text-gray-300">
+          <span className="font-medium text-gray-900 dark:text-gray-100">Ejemplo: </span>
+          la parcela {first.ID_POLIGONO} ({first.Estado}) daría cerca de {first.yieldEstimate} t/ha
+          (unos {formatNumber(kg)} kg por hectárea), y, con unos 90 % de probabilidad, entre{" "}
+          {first.ic90_inferior} y {first.ic90_superior} (es un rango probable, no una garantía).
+          {top && (
+            <>
+              {" "}
+              Lo que más influyó fue &quot;{top.feature}&quot;, que{" "}
+              {top.direction === "positivo" ? "subió" : "bajó"} la estimación.
+            </>
+          )}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ResultsTable({ results }) {
+  const wrapRef = useRef(null);
+
+  
+  
+  useEffect(() => {
+    const el = wrapRef.current;
+    const container = document.getElementById(SCROLL_CONTAINER_ID);
+    if (!el || !container) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+
+    const distance = el.getBoundingClientRect().bottom + SCROLL_MARGIN - container.getBoundingClientRect().bottom;
+    if (distance <= 0) return; 
+
+    
+    const duration = Math.min(SCROLL_MAX_MS, Math.max(SCROLL_MIN_MS, distance * 1.2));
+    animateScroll.scrollMore(distance, {
+      containerId: SCROLL_CONTAINER_ID,
+      smooth: "easeInOutQuad",
+      duration,
+    });
+  }, [results]);
+
+  return (
+    <div
+      ref={wrapRef}
+      className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-800">
+      <table className="min-w-full text-sm">
+        <thead>
+          <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
+            <th className="px-4 py-3 font-medium">Parcela</th>
+            <th className="px-4 py-3 font-medium">Estado</th>
+            <th className="px-4 py-3 text-right font-medium">Rendimiento (t/ha)</th>
+            <th className="px-4 py-3 font-medium">IC 90%</th>
+            <th className="px-4 py-3 font-medium">± RMSE</th>
+            <th className="px-4 py-3 font-medium">Variable de mayor impacto</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+          {results.map((r) => {
+            const top = r.shap[0];
+            const positive = top?.direction === "positivo";
+            const DirIcon = positive ? TrendingUp : TrendingDown;
+            return (
+              <tr
+                key={r.ID_POLIGONO}
+                className="text-gray-900 transition-colors hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-gray-900"
+              >
+                <td className="whitespace-nowrap px-4 py-3 font-medium">{r.ID_POLIGONO}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-gray-600 dark:text-gray-400">
+                  {r.Estado}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-right font-display text-base font-semibold tabular-nums">
+                  {r.yieldEstimate}
+                  {Number.isFinite(r.ic90_inferior) && Number.isFinite(r.ic90_superior) && (
+                    <span className="ml-1 text-xs font-normal text-gray-500 dark:text-gray-400">
+                      ± {((r.ic90_superior - r.ic90_inferior) / 2).toFixed(2)}
+                    </span>
+                  )}
+                  {r.fuera_de_rango && (
+                    <span
+                      title={(r.avisos ?? []).join(" ")}
+                      className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 align-middle font-sans text-[10px] font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+                    >
+                      <AlertTriangle size={10} aria-hidden="true" />
+                      Fuera de rango
+                    </span>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 tabular-nums text-gray-500 dark:text-gray-400">
+                  {r.ic90_inferior} – {r.ic90_superior}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 tabular-nums text-gray-500 dark:text-gray-400">
+                  {r.confidence}
+                </td>
+                <td className="min-w-[16rem] px-4 py-3">
+                  <div className="flex items-start gap-2">
+                    <DirIcon
+                      size={15}
+                      aria-hidden="true"
+                      className={`mt-0.5 shrink-0 ${
+                        positive
+                          ? "text-ndvi-600 dark:text-ndvi-400"
+                          : "text-red-600 dark:text-red-400"
+                      }`}
+                    />
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {top?.feature}
+                      <span className="ml-1 text-gray-400 dark:text-gray-500">({top?.direction})</span>
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ResultsPlaceholder({ loading }) {
+  const bar = {
+    height: 10,
+    borderRadius: 2,
+    enableAnimation: loading,
+  };
+
+  return (
+    <div
+      aria-hidden="true"
+      className="results-skeleton overflow-hidden rounded-2xl border border-dashed border-gray-300 dark:border-gray-700"
+    >
+      {[0, 1, 2].map((i) => (
+        <div
+          key={i}
+          className={`flex items-center gap-4 px-4 py-3.5 ${
+            ""
+          }`}
+        >
+          <Skeleton {...bar} containerClassName="block w-16" />
+          <Skeleton {...bar} containerClassName="block w-14" />
+          <Skeleton {...bar} containerClassName="block w-12 strong" />
+          <Skeleton {...bar} containerClassName="hidden w-24 sm:block" />
+          <Skeleton {...bar} containerClassName="hidden flex-1 md:block" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Step({ n, title, description, last = false, children }) {
+  return (
+    <section className="relative flex gap-4">
+      {}
+      {!last && (
+        <span
+          aria-hidden="true"
+          className="absolute left-3.5 top-9 -bottom-10 w-px -translate-x-1/2 bg-gray-200 dark:bg-gray-800"
+        />
+      )}
+      <span className="relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-xs font-medium tabular-nums text-gray-600 dark:border-gray-700 dark:bg-black dark:text-gray-300">
+        {n}
+      </span>
+      <div className="min-w-0 flex-1">
+        <h2 className="font-display text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+        <p className="mt-0.5 max-w-2xl text-sm text-gray-500 dark:text-gray-400">{description}</p>
+        <div className="mt-4">{children}</div>
+      </div>
+    </section>
+  );
+}
