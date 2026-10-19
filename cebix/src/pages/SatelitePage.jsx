@@ -29,6 +29,7 @@ import ModeSelector from "../components/model/ModeSelector";
 import { usePredictionMode } from "../services/predictionMode";
 import { parseGeometryFiles } from "../services/geoApi";
 import { ESTADOS, MAX_AREA_HA, SAT_QUESTIONS, TRAINED_YEAR, WARN_AREA_HA, YEARS } from "../data/satelite";
+import { MODE_NOTICE } from "../utils/reportMode";
 import {
   areaHa,
   centroid,
@@ -174,6 +175,7 @@ function Facts() {
           ? "Los índices por ventana fenológica y la lluvia de las tres etapas (abril a septiembre). Es el modo más lento."
           : "10 variables por ventana fenológica. Tarda entre 30 y 90 s.",
     },
+    ...(MODE_NOTICE[mode] ? [{ label: "Ojo", text: MODE_NOTICE[mode] }] : []),
     { label: "Resultado", text: "Rendimiento estimado, intervalo al 90 % y peso SHAP de cada variable." },
   ];
   return (

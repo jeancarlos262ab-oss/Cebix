@@ -4,6 +4,7 @@ import { useModelInfo } from "../../context/ModelInfoContext";
 import { usePredictionMode } from "../../services/predictionMode";
 import { formatNumber } from "../../utils/intl";
 import Modal from "../ui/Modal";
+import { MODE_NOTICE } from "../../utils/reportMode";
 
 const fmt = (v, d = 2) => (typeof v === "number" ? formatNumber(v, { minimumFractionDigits: d, maximumFractionDigits: d }) : "—");
 
@@ -271,6 +272,7 @@ export default function ModeSelector({ disable10 = false, disable10Reason = "", 
             {BASE[active].short}
             {modes?.[active] && <span className="tabular-nums"> · Desviación {fmt(modes[active].rmse)} t/ha</span>}
           </p>
+          {MODE_NOTICE[active] && <p className="mt-1 text-amber-600 dark:text-amber-400">{MODE_NOTICE[active]}</p>}
           {disable10 && <p className="mt-1 text-amber-600 dark:text-amber-400">Modos con 10 variables: {disable10Reason}</p>}
         </div>
         <button

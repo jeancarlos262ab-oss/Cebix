@@ -61,6 +61,15 @@ export async function predictCsv(file, modo = getPredictionMode()) {
   return res.json();
 }
 
+// CSV resumen (ID_POLIGONO, AREA_HA, RENDIMIENTO_T_HA, CONJUNTO) con las 59 parcelas del conjunto de predicción.
+// Siempre se calcula con «Solo lluvia», el modelo con mejor validación. Devuelve { blob, filename }.
+export async function fetchSubmissionCsv(nombre) {
+  const res = await fetch(`${API_URL}/submission-csv?nombre=${encodeURIComponent(nombre)}&modo=lluvia`);
+  if (!res.ok) throw await errorFromResponse(res);
+  const match = /filename="?([^";]+)"?/.exec(res.headers.get("Content-Disposition") || "");
+  return { blob: await res.blob(), filename: match ? match[1] : "resumen_prediccion.csv" };
+}
+
 export async function fetchModelInfo() {
   const res = await fetch(`${API_URL}/model-info`);
   if (!res.ok) throw await errorFromResponse(res);

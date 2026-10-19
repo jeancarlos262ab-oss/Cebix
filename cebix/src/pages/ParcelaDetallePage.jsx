@@ -11,7 +11,7 @@ import FeaturesTable from "../components/satelite/FeaturesTable";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { useModelInfo } from "../context/ModelInfoContext";
 import { generateYieldReportPDF } from "../utils/yieldReport";
-import { MODE_DESC, MODE_LABEL } from "../utils/reportMode";
+import { MODE_DESC, MODE_LABEL, MODE_NOTICE } from "../utils/reportMode";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import ParcelFormModal from "../components/dashboard/ParcelFormModal";
@@ -171,6 +171,7 @@ function ParcelaDetallePageContent() {
                 <p className="mb-3 mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
                   {(parcel.satelite?.modo ?? parcel.modo) ? `Modo ${MODE_LABEL[parcel.satelite?.modo ?? parcel.modo]}: ${MODE_DESC[parcel.satelite?.modo ?? parcel.modo]}` : "Modo de cálculo no registrado"}
                   {parcel.satelite?.anio ? ` · Ciclo ${parcel.satelite.anio}` : ""}
+                  {MODE_NOTICE[parcel.satelite?.modo ?? parcel.modo] ? ` · ${MODE_NOTICE[parcel.satelite?.modo ?? parcel.modo]}` : ""}
                   {Number.isFinite(parcel.satelite?.ic90_inferior) && Number.isFinite(parcel.satelite?.ic90_superior)
                     ? ` · intervalo al 90 %: ${parcel.satelite.ic90_inferior.toFixed(2)} a ${parcel.satelite.ic90_superior.toFixed(2)} ton/ha`
                     : ""}

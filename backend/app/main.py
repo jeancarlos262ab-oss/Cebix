@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import geo, health, model, overpass, predict, satellite
+from app.api import geo, health, model, overpass, predict, satellite, submission
 from app.config import ALLOWED_ORIGIN_REGEX, ALLOWED_ORIGINS
 
 app = FastAPI(
@@ -21,7 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for r in (health.router, model.router, predict.router, satellite.router, geo.router, overpass.router):
+for r in (health.router, model.router, predict.router, satellite.router, geo.router, overpass.router, submission.router):
     app.include_router(r)
 
 @app.exception_handler(Exception)

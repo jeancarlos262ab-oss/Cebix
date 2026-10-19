@@ -6,14 +6,18 @@ innovacion@fira.gob.mx un archivo nombrado exactamente:
 
     nombre_del_equipo_prediccion.csv      (ej. agrozed_prediccion.csv)
 
-con la predicción de rendimiento de las 59 parcelas del conjunto de PREDICCION.
+con la predicción de rendimiento de las 59 parcelas del conjunto de PREDICCION, en el formato de la plantilla
+del reto (ID_area_rendimiento_70_30_Reto_AgroCebada.csv), 4 columnas:
 
-Uso:
-    python make_submission.py --predictions mis_predicciones.csv --team agrozed --out-dir ./entrega
+    ID_POLIGONO, AREA_HA, RENDIMIENTO_T_HA, CONJUNTO
 
-`--predictions` debe ser un CSV con, al menos, las columnas:
+Uso (con el mejor modelo: "Solo lluvia", Random Forest, RMSE 0.53 t/ha; sus predicciones salen de entrenar_y_validar.py):
+    python make_submission.py --team agrozed --out-dir ./entrega
+
+`--predictions` (opcional, por defecto 03_modelo/resultados_FINAL/predicciones_finales.csv) debe ser un CSV con, al menos:
     ID_POLIGONO, rendimiento_t_ha
-(el resultado de tu modelo sobre features_predict.csv)
+`--reference` (opcional) es la plantilla oficial ID_area_rendimiento_*.csv; si no se da, se usa backend/data/parcelas_oficiales.csv,
+que trae el mismo ID, área y conjunto de cada parcela.
 
 El script:
   1. Verifica que estén las 59 parcelas de PREDICCION, ni una de más ni de menos.
@@ -32,7 +36,25 @@ EXPECTED_N_PREDICT = 59
 YIELD_SANITY_MAX = 15.0  # t/ha — por encima de esto casi seguro es un error de unidades
 
 
-def main(predictions_path, features_predict_path, team_name, out_dir):
+HERE = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_PREDICTIONS = os.path.join(HERE, "..", "03_modelo", "resultados_FINAL", "predicciones_finales.csv")
+DEFAULT_REFERENCE = os.path.join(HERE, "..", "..", "backend", "data", "parcelas_oficiales.csv")
+
+
+def load_reference(path):
+    """Devuelve ID_POLIGONO, AREA_HA y CONJUNTO de las parcelas de PREDICCION (de la plantilla oficial o de parcelas_oficiales.csv)."""
+    ref = pd.read_csv(path, encoding="utf-8-sig")
+    ref.columns = [c.strip() for c in ref.columns]
+    ref = ref.loc[:, [c for c in ref.columns if not c.lower().startswith("unnamed")]]
+    ref = ref.rename(columns={"area_ha": "AREA_HA"})
+    for col in ("ID_POLIGONO", "AREA_HA", "CONJUNTO"):
+        if col not in ref.columns:
+            sys.exit(f"ERROR: la referencia {path} no trae la columna '{col}'.")
+    ref["ID_POLIGONO"] = ref["ID_POLIGONO"].astype(str).str.strip()
+    return ref[ref["CONJUNTO"].astype(str).str.upper() == "PREDICCION"][["ID_POLIGONO", "AREA_HA", "CONJUNTO"]]
+
+
+def main(predictions_path, features_predict_path, team_name, out_dir, reference_path=DEFAULT_REFERENCE):
     os.makedirs(out_dir, exist_ok=True)
 
     preds = pd.read_csv(predictions_path)
@@ -94,8 +116,14 @@ def main(predictions_path, features_predict_path, team_name, out_dir):
         sys.exit(1)
 
     # --- archivo final ---
-    out = preds[["ID_POLIGONO", yield_col]].rename(columns={yield_col: "RENDIMIENTO_T_HA"})
-    out = out.sort_values("ID_POLIGONO").reset_index(drop=True)
+    ref = load_reference(reference_path)
+    if len(ref) != EXPECTED_N_PREDICT:
+        sys.exit(f"ERROR: la referencia trae {len(ref)} parcelas de PREDICCION y se esperaban {EXPECTED_N_PREDICT}.")
+    if set(ref["ID_POLIGONO"]) != got_ids:
+        sys.exit("ERROR: los IDs de las predicciones no coinciden con los de la plantilla de PREDICCION.")
+    out = ref.merge(preds[["ID_POLIGONO", yield_col]].rename(columns={yield_col: "RENDIMIENTO_T_HA"}), on="ID_POLIGONO", how="left")
+    out["RENDIMIENTO_T_HA"] = out["RENDIMIENTO_T_HA"].round(2)
+    out = out[["ID_POLIGONO", "AREA_HA", "RENDIMIENTO_T_HA", "CONJUNTO"]].sort_values("ID_POLIGONO").reset_index(drop=True)
 
     filename = f"{team_name.strip().lower().replace(' ', '_')}_prediccion.csv"
     out_path = os.path.join(out_dir, filename)
@@ -107,9 +135,10 @@ def main(predictions_path, features_predict_path, team_name, out_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--predictions", required=True, help="CSV con ID_POLIGONO y la columna de rendimiento predicho")
+    parser.add_argument("--predictions", default=DEFAULT_PREDICTIONS, help="CSV con ID_POLIGONO y la columna de rendimiento predicho (por defecto, el del mejor modelo)")
+    parser.add_argument("--reference", default=DEFAULT_REFERENCE, help="Plantilla oficial ID_area_rendimiento_*.csv o parcelas_oficiales.csv (ID, área y conjunto)")
     parser.add_argument("--features-predict", default=None, help="features_predict.csv (opcional, para validar que están las 59 parcelas correctas)")
     parser.add_argument("--team", required=True, help="Nombre del equipo, ej. agrozed")
     parser.add_argument("--out-dir", default="./entrega")
     args = parser.parse_args()
-    main(args.predictions, args.features_predict, args.team, args.out_dir)
+    main(args.predictions, args.features_predict, args.team, args.out_dir, args.reference)

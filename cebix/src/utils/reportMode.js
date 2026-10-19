@@ -59,7 +59,12 @@ export const MODE_CAVEAT = {
   lluvia: " Con solo lluvia la estimación distingue zonas (celdas de ~5 km), no parcelas vecinas.",
   ciclo: " Con solo lluvia (de las tres etapas) la estimación distingue zonas (celdas de ~5 km), no parcelas vecinas.",
   "10var": "",
-  "10var_ciclo": "",
+  "10var_ciclo": " No es más preciso que «Solo lluvia»: con 138 parcelas de un solo ciclo (2025) los índices satelitales y la lluvia de encañado y espigado aportan muy poco. Es una referencia de riesgo, no una cifra exacta de cosecha.",
+};
+
+// Aviso visible en pantalla (no en el PDF, que usa MODE_CAVEAT) para el modo "10var_ciclo".
+export const MODE_NOTICE = {
+  "10var_ciclo": "No es más preciso que «Solo lluvia»: con 138 parcelas de un solo ciclo (2025) los índices satelitales y la lluvia de encañado y espigado aportan muy poco. Úsalo para contrastar; es una referencia de riesgo, no una cifra exacta de cosecha.",
 };
 
 // Lluvia por etapa (mm) de una parcela calculada en modo "ciclo" o "10var_ciclo": { enc, esp } o null.
