@@ -44,8 +44,8 @@ export function EmptyAnalysis({ title, subtitle, onAdd, skeleton = "dashboard" }
 
   
   
-  const runModelCsv = async (file, kind) => {
-    const data = await predictCsv(file);
+  const runModelCsv = async (file, kind, signal) => {
+    const data = await predictCsv(file, undefined, signal);
     const csvText = kind === "otro" ? await file.text() : "";
     loadAnalysis(data.predicciones, csvText, file.name);
   };

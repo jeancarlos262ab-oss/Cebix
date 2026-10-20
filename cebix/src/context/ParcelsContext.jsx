@@ -72,7 +72,7 @@ function approximateShap(fields, existingParcels = [], importance = []) {
     const sign = entry.direction === "negativo" ? -1 : 1;
     const delta = avg ? (fields[field] - avg) / avg : 0;
     const impact = Number((delta * entry.value * sign).toFixed(3));
-    return [{ feature: entry.feature, impact, direction: impact >= 0 ? "positivo" : "negativo" }];
+    return [{ feature: entry.feature, impact, direction: impact >= 0 ? "positivo" : "negativo", approx: true }];
   }).sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
 }
 
@@ -593,6 +593,19 @@ export function ParcelsProvider({ children }) {
   }, [analysis, analysisParcels, customParcels, globalImportance, persistAnalysis]);
 
   
+  // Guarda solo el SHAP real de una parcela propia (no toca el resto de sus campos).
+  const setParcelShap = useCallback(
+    async (id, shap) => {
+      if (!customParcels.some((p) => p.id === id)) return { error: new Error("Solo las parcelas guardadas pueden actualizar su SHAP.") };
+      const { data, error: updateError } = await supabase.from("parcels_custom").update({ shap }).eq("id", id).select().single();
+      if (updateError) return { error: updateError };
+      const saved = fromDatabaseParcel(data);
+      setCustomParcels((prev) => prev.map((parcel) => (parcel.id === id ? saved : parcel)));
+      return { data: saved, error: null };
+    },
+    [customParcels]
+  );
+
   const removeParcel = useCallback(async (id) => {
     const isCustom = customParcels.some((p) => p.id === id);
 
@@ -679,6 +692,7 @@ export function ParcelsProvider({ children }) {
       discardAnalysisDraft,
       addParcel,
       updateParcel,
+      setParcelShap,
       removeParcel,
       removeParcels,
       isCustomParcel,
@@ -700,6 +714,7 @@ export function ParcelsProvider({ children }) {
       discardAnalysisDraft,
       addParcel,
       updateParcel,
+      setParcelShap,
       removeParcel,
       removeParcels,
       isCustomParcel,

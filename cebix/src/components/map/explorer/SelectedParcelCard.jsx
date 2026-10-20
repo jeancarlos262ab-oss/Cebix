@@ -1,3 +1,4 @@
+import { isApproxShap } from "../../../utils/shapSource";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, ExternalLink, X } from "lucide-react";
 import BigNumber from "./BigNumber";
@@ -105,6 +106,11 @@ export default function SelectedParcelCard({ parcel, scale, onClose, className =
         {factors.length > 0 && (
           <div className="mt-4">
             <p className="text-[11px] text-white/45">Qué más influye</p>
+            {isApproxShap(parcel) && (
+              <p className="mt-1.5 rounded-md bg-amber-400/15 px-2 py-1.5 text-[11px] leading-snug text-amber-100">
+                SHAP aproximado, no calculado por el modelo.
+              </p>
+            )}
             <ul className="mt-2 space-y-2">
               {factors.map((f) => (
                 <li key={f.name} className="text-xs">

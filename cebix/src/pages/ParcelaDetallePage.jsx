@@ -6,7 +6,8 @@ import { FileDown, Pencil, Trash2 } from "lucide-react";
 import TopBar from "../components/layout/TopBar";
 import ParcelMap from "../components/map/ParcelMap";
 import Semaphore from "../components/ui/Semaphore";
-import { Contributions, Label, RangeBar, Row } from "../components/results/ReportParts";
+import { ApproxShapNote, Contributions, Label, RangeBar, Row } from "../components/results/ReportParts";
+import { isApproxShap } from "../utils/shapSource";
 import FeaturesTable from "../components/satelite/FeaturesTable";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { useModelInfo } from "../context/ModelInfoContext";
@@ -150,7 +151,10 @@ function ParcelaDetallePageContent() {
             </section>
 
             <section className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
-              <Label>Por qué el modelo predijo esto (SHAP local)</Label>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <Label>Por qué el modelo predijo esto (SHAP local)</Label>
+                {isApproxShap(parcel) && <ApproxShapNote parcels={parcel} className="-mt-1" />}
+              </div>
               <p className="mt-1.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
                 Contribución de cada variable al rendimiento estimado de esta parcela.
               </p>

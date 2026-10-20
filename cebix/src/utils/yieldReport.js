@@ -1,5 +1,6 @@
 import { formatDate, formatDateTime } from "./intl";
 import { RISK_COLORS } from "./riskColors";
+import { isApproxShap } from "./shapSource";
 
 const INK = [0, 0, 0];
 const MUTED = [150, 150, 150];
@@ -285,7 +286,7 @@ export async function generateYieldReportPDF(parcel, { modelSummary = null, mode
   const barHalf = 95;
   tableHeader(
     [
-      ["Variables que explican la predicción (SHAP local)", COL.concept],
+      [isApproxShap(parcel) ? "Variables que explican la predicción (SHAP APROXIMADO, no calculado por el modelo)" : "Variables que explican la predicción (SHAP local)", COL.concept],
       ["Resta", barCenter - barHalf, { align: "left" }],
       ["Suma", barCenter + barHalf, { align: "right" }],
       ["Impacto", R - 10, { align: "right" }],

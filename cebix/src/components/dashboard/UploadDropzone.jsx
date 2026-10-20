@@ -1,6 +1,6 @@
 import { SHOW_REAL_ERRORS, realError, userMessage } from "../../utils/userMessages";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, UploadCloud } from "lucide-react";
+import { Loader2, UploadCloud, X } from "lucide-react";
 import { toast } from "../../services/toast";
 import { parseCSV } from "../../utils/csv";
 import { detectEstado } from "../../utils/polygon";
@@ -10,6 +10,7 @@ import { isGeoFile, parseGeometryFiles } from "../../services/geoApi";
 import BatchSizeDialog from "./BatchSizeDialog";
 import StagedParcelsDialog from "./StagedParcelsDialog";
 import Dropzone from "../ui/Dropzone";
+import SlowHint from "../ui/SlowHint";
 import { detectKind } from "../../utils/csvKind";
 import { Z90, scoreFromInputs } from "../../context/ParcelsContext";
 
@@ -41,10 +42,13 @@ function geometryResultToFields(poly, estado, data) {
           modo: data.modo,
           anio: GEO_YEAR,
           features: f,
+          ...(Array.isArray(data.shap) && data.shap.length > 0 && { shap_real: true }),
           ...(isCicloMode(data.modo) && { etapas: { enc: f.precip_acum_encanado_mm ?? null, esp: f.precip_acum_espigado_llenado_mm ?? null } }),
         }
       : null,
     yieldEstimate: data.yieldEstimate,
+    // SHAP real del servidor para el modo elegido; sin esto el contexto lo aproxima.
+    ...(Array.isArray(data.shap) && data.shap.length > 0 && { shap: data.shap }),
     confidence: Number.isFinite(half) ? half : undefined,
     
     ...(Number.isFinite(half) && { score: scoreFromInputs({ yieldEstimate: data.yieldEstimate, confidence: half / Z90 }) }),
@@ -242,21 +246,29 @@ export default function UploadDropzone({ onParsed, onModelCsv }) {
   
   const runModel = useCallback(
     async (file, kind, fallbackMessage) => {
+      const controller = new AbortController();
+      abortRef.current = controller;
       setBusy(true);
       const id = toast.loading(
         kind === "planet"
           ? "Archivo de Planet detectado: ejecutando el modelo…"
-          : "Ejecutando el modelo con tu archivo…"
+          : "Ejecutando el modelo con tu archivo…",
+        { action: { label: "Cancelar", onClick: () => controller.abort() } }
       );
       try {
-        await onModelCsv(file, kind);
+        await onModelCsv(file, kind, controller.signal);
         toast.success('Modelo ejecutado. Pulsa "Guardar corrida" para conservar los resultados.', { id });
       } catch (err) {
+        if (controller.signal.aborted || err?.name === "AbortError") {
+          toast("Cálculo cancelado. Puedes volver a intentarlo.", { id });
+          return;
+        }
         toast.error(
           (fallbackMessage ?? userMessage(err, "No se pudo ejecutar el modelo con el archivo.")) + (SHOW_REAL_ERRORS && fallbackMessage ? ` [${realError(err)}]` : ""),
           { id, duration: 12000 }
         );
       } finally {
+        if (abortRef.current === controller) abortRef.current = null;
         setBusy(false);
       }
     },
@@ -353,6 +365,19 @@ export default function UploadDropzone({ onParsed, onModelCsv }) {
           </>
         )}
       </Dropzone>
+
+      {busy && (
+        <div className="mt-3 space-y-2">
+          <button
+            type="button"
+            onClick={() => abortRef.current?.abort()}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            <X size={14} strokeWidth={1.75} /> Cancelar cálculo
+          </button>
+          <SlowHint />
+        </div>
+      )}
 
       {staged.length > 0 && !stagedOpen && (
         <button

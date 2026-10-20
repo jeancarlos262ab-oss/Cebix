@@ -41,6 +41,7 @@ import {
 import { formatDistance } from "../utils/geo";
 import { checkPointUrban, checkUrban } from "../utils/urbanCheck";
 import { BTN_OUTLINE_SM } from "../components/ui/buttonStyles";
+import SlowHint from "../components/ui/SlowHint";
 import { formatFixed } from "../utils/intl";
 
 const FIELD =
@@ -760,6 +761,7 @@ function NuevaParcelaTab() {
                 {result ? "Recalcular índices satelitales" : "Calcular índices satelitales"}
               </button>
             )}
+            {running && <SlowHint className="mt-3" />}
             {!running && result && replacesSaved && (
               <p className="mt-2 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
                 Esta parcela ya está guardada. Recalcular no la modifica: solo cambia si pulsas &quot;Reemplazar parcela guardada&quot; después del cálculo.

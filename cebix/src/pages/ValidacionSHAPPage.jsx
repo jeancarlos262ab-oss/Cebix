@@ -6,9 +6,10 @@ import TopBar from "../components/layout/TopBar";
 import InfoButton from "../components/ui/InfoButton";
 import { useModelInfo } from "../context/ModelInfoContext";
 import { useParcels } from "../context/ParcelsContext";
-import { Contributions, Label } from "../components/results/ReportParts";
+import { ApproxShapNote, Contributions, Label } from "../components/results/ReportParts";
 import RequireAnalysis from "../components/ui/RequireAnalysis";
 import RequireModelInfo from "../components/ui/RequireModelInfo";
+import { isApproxShap } from "../utils/shapSource";
 import { Card, DIVIDE, Heading, HeroPhoto, ImageShade, LINE, Reveal } from "../components/ui/PageKit";
 import heroImage from "../assets/shap/imagen-1.webp";
 import { formatFixed } from "../utils/intl";
@@ -292,7 +293,7 @@ function ValidacionSHAPPageContent() {
 
   
   const checks = useMemo(() => {
-    const withShap = parcels.filter((p) => p.shap?.length);
+    const withShap = parcels.filter((p) => p.shap?.length && !isApproxShap(p)); // la validación solo usa SHAP reales
     const eligible = withShap.filter((p) => p.score >= 70);
     const eligiblePositive = eligible.filter((p) => netShap(p) > 0).length;
     const dominantTop = withShap.filter((p) => {
@@ -313,6 +314,7 @@ function ValidacionSHAPPageContent() {
   }, [parcels, topFeature.feature]);
 
   
+  const approxParcels = useMemo(() => parcels.filter((p) => isApproxShap(p) && p.isCustom), [parcels]);
   const selectable = useMemo(() => parcels.filter((p) => p.shap?.length), [parcels]);
   const [selectedId, setSelectedId] = useState(null);
   const selected = selectable.find((p) => p.id === selectedId) ?? selectable[0];
@@ -572,8 +574,8 @@ function ValidacionSHAPPageContent() {
               >
                 {selected ? (
                   <>
-                    <div className={`border-b p-5 ${LINE}`}>
-                      <div className="relative max-w-md">
+                    <div className={`flex flex-wrap items-start justify-between gap-3 border-b p-5 ${LINE}`}>
+                      <div className="relative w-full max-w-md">
                         <select
                           value={selected.id}
                           
@@ -594,6 +596,9 @@ function ValidacionSHAPPageContent() {
                           className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
                         />
                       </div>
+                      {(isApproxShap(selected) || approxParcels.length > 0) && (
+                        <ApproxShapNote parcels={approxParcels.length > 0 ? approxParcels : selected} />
+                      )}
                     </div>
 
                     <JoinedCells bare className="grid-cols-2 xl:grid-cols-4">

@@ -19,6 +19,7 @@ import "react-loading-skeleton/dist/skeleton.css";
 import { Link } from "react-router-dom";
 import LiquidOrbLoader from "./LiquidOrbLoader";
 import Dropzone from "../ui/Dropzone";
+import SlowHint from "../ui/SlowHint";
 import DocumentPeek from "../ui/DocumentPeek";
 import ModeSelector from "./ModeSelector";
 import { useModelInfo } from "../../context/ModelInfoContext";
@@ -239,6 +240,7 @@ export default function RunModelPanel() {
                 </button>
               )}
             </div>
+            {loading && <SlowHint />}
           </form>
 
         </Step>

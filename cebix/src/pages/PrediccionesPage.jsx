@@ -6,7 +6,8 @@ import TopBar from "../components/layout/TopBar";
 import InfoButton from "../components/ui/InfoButton";
 import Semaphore from "../components/ui/Semaphore";
 import StaticMapImage from "../components/map/StaticMapImage";
-import { Contributions, Label, Row, SummaryPanel } from "../components/results/ReportParts";
+import { ApproxShapNote, Contributions, Label, Row, SummaryPanel } from "../components/results/ReportParts";
+import { isApproxShap } from "../utils/shapSource";
 import { hasCoords, useParcels } from "../context/ParcelsContext";
 import { useModelInfo } from "../context/ModelInfoContext";
 import { generateYieldReportPDF } from "../utils/yieldReport";
@@ -206,7 +207,10 @@ function PrediccionesPageContent() {
 
             {}
             <section>
-              <Label>Contribución de las variables</Label>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <Label>Contribución de las variables</Label>
+                {isApproxShap(parcel) && <ApproxShapNote parcels={parcel} className="-mt-1" />}
+              </div>
               <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-500 dark:text-gray-400">
                 Valores SHAP de {parcel.name}, ordenados por magnitud: cuánto suma o resta cada variable a la estimación.
               </p>

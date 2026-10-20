@@ -63,6 +63,31 @@ export async function predictCsv(file, modo = getPredictionMode(), signal) {
   return res.json();
 }
 
+const PRECIP_KEY = "precip_acum_emergencia_macollamiento_mm";
+
+// Pide al modelo (/predict) el SHAP real de una parcela guardada. Usa las variables que guardó
+// la parcela (satelite.features, con su modo); si no hay, solo la lluvia de abril–mayo (modo «lluvia»).
+export async function explainParcel(parcel, signal) {
+  const saved = parcel.satelite?.features;
+  const hasSaved = saved && Object.keys(saved).length > 0;
+  const modo = hasSaved && parcel.satelite?.modo ? parcel.satelite.modo : "lluvia";
+  const features = hasSaved ? { ...saved } : {};
+  if (features[PRECIP_KEY] == null && Number.isFinite(Number(parcel.precip))) features[PRECIP_KEY] = Number(parcel.precip);
+  if (features[PRECIP_KEY] == null) throw new Error("La parcela no tiene la lluvia de abril–mayo que usa el modelo.");
+  const res = await fetch(`${API_URL}/predict?modo=${encodeURIComponent(modo)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      parcelas: [{ ID_POLIGONO: String(parcel.polygonId ?? parcel.name ?? "parcela"), Estado: parcel.region || "Puebla", features: { ...features, lat: parcel.lat, lng: parcel.lng } }],
+    }),
+    signal,
+  });
+  if (!res.ok) throw await errorFromResponse(res);
+  const pred = (await res.json()).predicciones?.[0];
+  if (!pred?.shap?.length) throw new Error("El modelo no devolvió el SHAP.");
+  return { shap: pred.shap.map((s) => ({ ...s, real: true })), modo: pred.modo ?? modo, yieldEstimate: pred.yieldEstimate };
+}
+
 export async function fetchSubmissionCsv(nombre) {
   const res = await fetch(`${API_URL}/submission-csv?nombre=${encodeURIComponent(nombre)}&modo=lluvia`);
   if (!res.ok) throw await errorFromResponse(res);
@@ -70,8 +95,8 @@ export async function fetchSubmissionCsv(nombre) {
   return { blob: await res.blob(), filename: match ? match[1] : "resumen_prediccion.csv" };
 }
 
-export async function fetchModelInfo() {
-  const res = await fetch(`${API_URL}/model-info`);
+export async function fetchModelInfo(signal) {
+  const res = await fetch(`${API_URL}/model-info`, { signal });
   if (!res.ok) throw await errorFromResponse(res);
   return res.json();
 }

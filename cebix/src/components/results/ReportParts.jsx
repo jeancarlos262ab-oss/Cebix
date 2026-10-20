@@ -1,4 +1,11 @@
+import { useRef, useState } from "react";
+import { Loader2, Sparkles, X } from "lucide-react";
 import { formatFixed } from "../../utils/intl";
+import { APPROX_SHAP_TEXT } from "../../utils/shapSource";
+import { useParcels } from "../../context/ParcelsContext";
+import { explainParcel, friendlyError } from "../../services/modelApi";
+import { toast } from "../../services/toast";
+import SlowHint from "../ui/SlowHint";
 const MAX_YIELD = 6; 
 const DIRECTION_COLOR = { positivo: "var(--chart-positive)", negativo: "var(--chart-negative)", mixto: "var(--chart-mixed)" };
 const SIGN = { positivo: "+", negativo: "−", mixto: "±" };
@@ -42,6 +49,91 @@ export function Row({ label, children }) {
     <div className="flex items-baseline justify-between gap-4 px-6 py-3.5 text-sm">
       <dt className="text-gray-500 dark:text-gray-400">{label}</dt>
       <dd className="text-right font-medium tabular-nums text-gray-900 dark:text-gray-100">{children}</dd>
+    </div>
+  );
+}
+
+// Pide al modelo el SHAP real de una o varias parcelas y lo guarda. Se puede cancelar.
+export function useExplainShap() {
+  const { setParcelShap } = useParcels();
+  const [running, setRunning] = useState(false);
+  const ctlRef = useRef(null);
+
+  const cancel = () => ctlRef.current?.abort();
+
+  async function run(list) {
+    if (running || !list.length) return;
+    const controller = new AbortController();
+    ctlRef.current = controller;
+    setRunning(true);
+    let ok = 0;
+    let failed = 0;
+    let cancelled = false;
+    const notes = [];
+    try {
+      for (const parcel of list) {
+        try {
+          const r = await explainParcel(parcel, controller.signal);
+          const res = await setParcelShap(parcel.id, r.shap);
+          if (res?.error) throw res.error;
+          ok += 1;
+          // Parcela capturada a mano: su rendimiento no sale del modelo.
+          if (!parcel.satelite?.features && Math.abs(Number(parcel.yieldEstimate) - r.yieldEstimate) > 0.05)
+            notes.push(`${parcel.name}: el modelo estima ${r.yieldEstimate} t/ha y la parcela tiene ${parcel.yieldEstimate} t/ha capturados.`);
+        } catch (err) {
+          if (controller.signal.aborted || err?.name === "AbortError") {
+            cancelled = true;
+            break;
+          }
+          failed += 1;
+          console.error("[shap]", parcel.name, err);
+          if (list.length === 1) toast.error(friendlyError(err));
+        }
+      }
+      if (cancelled) toast(`Cálculo cancelado.${ok ? ` Se actualizaron ${ok}.` : ""} Puedes volver a intentarlo.`);
+      else if (ok) toast.success(`SHAP calculado por el modelo en ${ok} parcela${ok === 1 ? "" : "s"}.${failed ? ` ${failed} fallaron.` : ""}${notes.length ? " " + notes.slice(0, 2).join(" ") : ""}`, { duration: notes.length ? 12000 : 5000 });
+      else if (failed && list.length > 1) toast.error("No se pudo calcular el SHAP. Inténtalo de nuevo.");
+    } finally {
+      ctlRef.current = null;
+      setRunning(false);
+    }
+  }
+  return { run, running, cancel };
+}
+
+// Etiqueta chica «SHAP aproximado» + botón para pedirle el real al modelo. El detalle va en el tooltip.
+export function ApproxShapNote({ parcels, className = "" }) {
+  const { run, running, cancel } = useExplainShap();
+  const list = Array.isArray(parcels) ? parcels : parcels ? [parcels] : [];
+  const many = list.length > 1;
+  const BTN = "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-60";
+  return (
+    <div className={`flex flex-col items-start gap-1.5 ${className}`}>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span
+          title={APPROX_SHAP_TEXT}
+          className="inline-flex cursor-help items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />
+          {many ? `${list.length} con SHAP aproximado` : "SHAP aproximado"}
+        </span>
+        {list.length > 0 && !running && (
+          <button type="button" onClick={() => run(list)} className={`${BTN} border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800`}>
+            <Sparkles size={12} strokeWidth={1.75} /> {many ? "Calcular todas con el modelo" : "Calcular con el modelo"}
+          </button>
+        )}
+        {running && (
+          <>
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+              <Loader2 size={12} className="animate-spin" /> Calculando…
+            </span>
+            <button type="button" onClick={cancel} className={`${BTN} border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800`}>
+              <X size={12} strokeWidth={1.75} /> Cancelar
+            </button>
+          </>
+        )}
+      </div>
+      {running && <SlowHint className="max-w-md text-[11px]" />}
     </div>
   );
 }
